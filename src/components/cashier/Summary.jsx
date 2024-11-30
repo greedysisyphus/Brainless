@@ -15,9 +15,14 @@ function Summary({
   const getDifferenceStyle = () => {
     if (difference === 0) {
       return {
-        containerClass: 'bg-green-500/10 border border-green-500/20',
+        containerClass: 'bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20',
         textClass: 'text-green-400',
-        icon: <CheckCircleIcon className="w-6 h-6 text-green-400" />,
+        icon: (
+          <div className="relative">
+            <CheckCircleIcon className="w-6 h-6 text-green-400 animate-pulse" />
+            <div className="absolute inset-0 bg-green-400/20 rounded-full blur-lg animate-pulse" />
+          </div>
+        ),
         message: '金額正確'
       }
     }

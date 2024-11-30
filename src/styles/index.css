@@ -36,7 +36,9 @@
   .card {
     @apply bg-surface rounded-xl p-6 shadow-lg
            border border-white/5 backdrop-blur-sm
-           hover:border-primary/20 transition-all duration-500;
+           hover:border-primary/20 transition-all duration-500
+           hover:shadow-xl hover:shadow-primary/5
+           transform hover:-translate-y-1;
   }
 
   .card-header {
@@ -58,6 +60,48 @@
 
   .summary-value {
     @apply font-semibold;
+  }
+
+  /* 添加頁面切換動畫 */
+  .page-enter {
+    @apply opacity-0 transform translate-x-4;
+  }
+  
+  .page-enter-active {
+    @apply opacity-100 transform translate-x-0 transition-all duration-300;
+  }
+  
+  /* 卡片懸停效果 */
+  .card {
+    @apply bg-surface rounded-xl p-6 shadow-lg
+           border border-white/5 backdrop-blur-sm
+           hover:border-primary/20 transition-all duration-500
+           hover:shadow-xl hover:shadow-primary/5
+           transform hover:-translate-y-1;
+  }
+
+  /* 漸變標題 */
+  .gradient-text {
+    @apply font-bold bg-gradient-to-r from-primary via-purple-500 to-secondary 
+           bg-clip-text text-transparent animate-gradient;
+  }
+
+  /* 閃光按鈕效果 */
+  .btn-primary {
+    @apply relative overflow-hidden;
+  }
+
+  .btn-primary::after {
+    @apply absolute inset-0 bg-gradient-to-r from-transparent 
+           via-white/20 to-transparent -translate-x-full;
+    content: '';
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
   }
 }
 
