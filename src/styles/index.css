@@ -1,3 +1,4 @@
+/* @tailwind base; */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -103,6 +104,25 @@
       transform: translateX(100%);
     }
   }
+
+  .logo {
+    @apply transition-all duration-500;
+    /* 旋轉懸停效果 */
+    &:hover {
+      @apply transform rotate-[360deg];
+    }
+  }
+
+  /* 呼吸光效果 */
+  .logo-glow {
+    @apply transition-all duration-1000;
+    animation: logo-pulse 3s infinite;
+  }
+
+  /* 漂浮效果 */
+  .logo-float {
+    animation: float 3s ease-in-out infinite;
+  }
 }
 
 /* 自定義滾動條 */
@@ -131,4 +151,22 @@
 
 .animate-glow {
   animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes logo-pulse {
+  0%, 100% { 
+    filter: drop-shadow(0 0 0.5rem theme('colors.primary')); 
+  }
+  50% { 
+    filter: drop-shadow(0 0 1.5rem theme('colors.secondary')); 
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 } 

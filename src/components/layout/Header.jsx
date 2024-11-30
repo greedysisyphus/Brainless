@@ -8,7 +8,7 @@ function Header() {
           <img 
             src="https://i.meee.com.tw/VBmG1of.jpeg" 
             alt="Logo" 
-            className="w-20 h-20 rounded-full border-2 border-primary p-1"
+            className="w-20 h-20 rounded-full border-2 border-primary p-1 logo logo-glow logo-float"
           />
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Brainless
