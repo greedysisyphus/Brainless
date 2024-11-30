@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-text-primary min-h-screen font-sans;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply relative px-4 py-2 text-white rounded-lg font-semibold
+           shadow-lg transition-all duration-300
+           hover:-translate-y-0.5 hover:shadow-primary/50
+           overflow-hidden;
+    background: linear-gradient(to right, theme('colors.primary'), theme('colors.secondary'));
+  }
+  
+  .btn-primary:hover {
+    background: linear-gradient(to right, theme('colors.purple.500'), theme('colors.indigo.500'));
+  }
+  
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .input-field {
+    @apply bg-surface/50 border border-white/10 
+           rounded-lg px-4 py-2 text-text-primary
+           focus:border-primary focus:ring-2 focus:ring-primary/50
+           hover:border-white/20 transition-all duration-300
+           placeholder:text-text-secondary/50;
+  }
+
+  .card {
+    @apply bg-surface rounded-xl p-6 shadow-lg
+           border border-white/5 backdrop-blur-sm
+           hover:border-primary/20 transition-all duration-500;
+  }
+
+  .card-header {
+    @apply text-xl font-bold mb-6;
+    background: linear-gradient(to right, theme('colors.primary'), theme('colors.secondary'));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .summary-row {
+    @apply flex justify-between items-center p-3
+           border-b border-white/5 last:border-0;
+  }
+
+  .summary-label {
+    @apply text-text-secondary font-medium;
+  }
+
+  .summary-value {
+    @apply font-semibold;
+  }
+}
+
+/* 自定義滾動條 */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-surface/50 rounded;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply rounded transition-all duration-300;
+  background: linear-gradient(to bottom, theme('colors.primary'), theme('colors.secondary'));
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, theme('colors.purple.500'), theme('colors.indigo.500'));
+}
+
+/* 動畫 */
+@keyframes glow {
+  0% { box-shadow: 0 0 5px theme('colors.primary'), 0 0 10px theme('colors.primary'); }
+  100% { box-shadow: 0 0 20px theme('colors.primary'), 0 0 30px theme('colors.primary'); }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
+} 
