@@ -5,9 +5,9 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/brainless.git"
+    "url": "git+https://github.com/greedysisyphus/Brainless.git"
   },
-  "author": "Your Name",
+  "author": "Jovian",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
