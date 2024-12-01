@@ -10,8 +10,11 @@ const DENOMINATIONS = [
   { value: 1, label: '$1' }
 ]
 
-function DenominationCounter({ title, onTotalChange }) {
-  const [counts, setCounts] = useState({})
+function DenominationCounter({ title, onTotalChange, savedKey }) {
+  const [counts, setCounts] = useState(() => {
+    const saved = localStorage.getItem(savedKey)
+    return saved ? JSON.parse(saved) : {}
+  })
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
@@ -21,6 +24,10 @@ function DenominationCounter({ title, onTotalChange }) {
     setTotal(newTotal)
     onTotalChange(newTotal)
   }, [counts, onTotalChange])
+
+  useEffect(() => {
+    localStorage.setItem(savedKey, JSON.stringify(counts))
+  }, [counts, savedKey])
 
   const handleCountChange = (value, count) => {
     if (count < 0) count = 0
@@ -32,6 +39,7 @@ function DenominationCounter({ title, onTotalChange }) {
 
   const clearAll = () => {
     setCounts({})
+    localStorage.removeItem(savedKey)
   }
 
   return (

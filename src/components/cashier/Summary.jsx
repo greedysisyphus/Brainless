@@ -9,8 +9,8 @@ function Summary({
   onPosAmountChange
 }) {
   const [showResult, setShowResult] = useState(false)
-  const actualCashProfit = cashierTotal + drawerTotal + foreignTotal
-  const difference = actualCashProfit - posAmount - 20000
+  const actualCashProfit = cashierTotal + drawerTotal + foreignTotal - 20000
+  const difference = actualCashProfit - posAmount
 
   const getDifferenceStyle = () => {
     if (difference === 0) {
@@ -87,6 +87,10 @@ function Summary({
           <div className="summary-row">
             <span className="summary-label">外幣總額</span>
             <span className="summary-value">${foreignTotal.toLocaleString()}</span>
+          </div>
+          <div className="summary-row">
+            <span className="summary-label text-red-400">基本金額</span>
+            <span className="summary-value text-red-400">-$20,000</span>
           </div>
           <div className="bg-surface/50 p-4">
             <div className="flex justify-between items-center">

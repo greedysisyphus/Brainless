@@ -1,26 +1,27 @@
 # Brainless
 
-一個簡單的收銀管理和三明治計算系統。
+A tool to simplify my coffee career.
 
-## 功能
+## Features
 
-- 三明治計算器
-  - 計算所需麵包數量
-  - 自動分配多餘麵包片
-  - 可設定目標數量
+- **Sandwich Calculator**
+  - Calculates the required number of bread slices
+  - Automatically allocates extra slices
+  - Configurable target quantities
 
-- 收銀管理
-  - 現金計數
-  - 外幣轉換
-  - 日結計算
+- **Cashier Management**
+  - Cash counting
+  - Foreign currency conversion
+  - Daily reconciliation calculations
 
-## 技術棧
+## Technologies
 
 - React
 - Vite
 - Tailwind CSS
 - React Router
 
-## 開始使用
+## Development
 
-1. 克隆倉庫：
+- **Install dependencies**
+  - `npm install`

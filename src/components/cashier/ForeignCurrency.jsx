@@ -9,13 +9,20 @@ const CURRENCIES = [
   { code: 'HKD', name: '港幣' }
 ]
 
-function ForeignCurrency({ onTotalChange }) {
-  const [transactions, setTransactions] = useState([])
+function ForeignCurrency({ onTotalChange, savedKey }) {
+  const [transactions, setTransactions] = useState(() => {
+    const saved = localStorage.getItem(savedKey)
+    return saved ? JSON.parse(saved) : []
+  })
   const [formData, setFormData] = useState({
     currency: 'USD',
     amount: '',
     rate: ''
   })
+
+  useEffect(() => {
+    localStorage.setItem(savedKey, JSON.stringify(transactions))
+  }, [transactions, savedKey])
 
   useEffect(() => {
     const total = transactions.reduce((sum, t) => sum + t.localValue, 0)
@@ -43,6 +50,7 @@ function ForeignCurrency({ onTotalChange }) {
 
   const clearAll = () => {
     setTransactions([])
+    localStorage.removeItem(savedKey)
   }
 
   return (
@@ -69,6 +77,8 @@ function ForeignCurrency({ onTotalChange }) {
           className="input-field w-full"
           placeholder="金額"
           step="0.01"
+          inputMode="decimal"
+          pattern="[0-9]*[.,]?[0-9]*"
         />
 
         <input
@@ -78,6 +88,8 @@ function ForeignCurrency({ onTotalChange }) {
           className="input-field w-full"
           placeholder="匯率"
           step="0.01"
+          inputMode="decimal"
+          pattern="[0-9]*[.,]?[0-9]*"
         />
 
         <button type="submit" className="btn-primary w-full">
