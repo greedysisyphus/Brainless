@@ -123,6 +123,12 @@
   .logo-float {
     animation: float 3s ease-in-out infinite;
   }
+
+  .btn-icon {
+    @apply p-2 rounded-lg text-text-secondary 
+           hover:bg-white/10 transition-colors
+           focus:outline-none focus:ring-2 focus:ring-primary;
+  }
 }
 
 /* 自定義滾動條 */
