@@ -510,13 +510,13 @@ function Schedule() {
         {/* 表格渲染 */}
         {scheduleData && scheduleData.length > 0 ? (
           <div className="overflow-x-auto rounded-xl border border-white/10 shadow-xl">
-            <table className="w-full border-collapse bg-surface/30">
+            <table className="w-full border-collapse">  {/* 移除背景色 */}
               <thead>
                 <tr>
                   {/* 同事列標題 */}
                   <th className="
                     sticky left-0 z-20 
-                    bg-surface/70 backdrop-blur-md
+                    bg-surface  {/* 使用實心背景 */}
                     p-4 border-b-2 border-r border-primary/30
                     text-primary font-bold min-w-[150px]
                     shadow-lg
@@ -566,15 +566,14 @@ function Schedule() {
               </thead>
               <tbody>
                 {getFilteredData().slice(2).map((row, rowIndex) => (
-                  <tr key={rowIndex} className="group hover:bg-white/5">
+                  <tr key={rowIndex} className="group">  {/* 移除 hover 效果 */}
                     {/* 同事名稱 */}
                     <td className="
-                      sticky left-0 z-10 
-                      bg-surface/70 backdrop-blur-md
+                      sticky left-0 z-20  {/* 提高 z-index */}
+                      bg-surface  {/* 使用實心背景 */}
                       p-4 border-r border-white/10 
                       font-semibold text-primary text-center
                       shadow-lg
-                      group-hover:bg-surface/80
                       transition-colors
                     ">
                       {NAME_MAPPINGS[row[0]] || row[0]}
@@ -589,15 +588,15 @@ function Schedule() {
                         <td key={cellIndex} className={`
                           relative p-4 
                           border-b border-white/5
-                          text-center
+                          text-center bg-surface/30  {/* 添加基礎背景色 */}
                           transition-all duration-200
+                          hover:bg-surface/40  {/* 修改 hover 效果 */}
                           ${shiftStyle ? `
                             ${shiftStyle.background} 
                             ${shiftStyle.text}
                             ${shiftStyle.border}
                           ` : ''}
                           ${isToday ? 'bg-primary/5' : ''}
-                          group-hover:brightness-110
                         `}
                         title={cell}
                         >
