@@ -1,5 +1,12 @@
 import { Link } from 'react-router-dom'
 
+const navigation = [
+  { name: '三明治', href: '/sandwich' },
+  { name: '收銀', href: '/cashier' },
+  { name: '班表', href: '/schedule' },
+  { name: '格式轉換', href: '/data-converter' },
+]
+
 function Header() {
   return (
     <header className="bg-surface text-white">
