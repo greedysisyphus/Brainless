@@ -416,13 +416,11 @@ function Schedule() {
   return (
     <div className="container-custom py-8">
       <div className="card">
-        {/* 頁面標題區域 */}
+        {/* 頁面標題區域 - 移除副標題 */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="card-header mb-1">班表</h2>
-            <p className="text-sm text-text-secondary">
-              管理和查看排班情況
-            </p>
+            <h2 className="card-header mb-0">班表</h2>  {/* 移除 mb-1，改為 mb-0 */}
+            {/* 移除副標題 */}
           </div>
           <div className="flex gap-3">  {/* 增加按鈕間距 */}
             <button 
