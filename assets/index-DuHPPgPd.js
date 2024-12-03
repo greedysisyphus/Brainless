@@ -2049,9 +2049,9 @@ This typically indicates that your device does not have a healthy Internet conne
           ${u?"max-h-[2000px] opacity-100":"max-h-0 opacity-0"}
         `,children:L.jsxs("div",{className:"border border-white/10 rounded-lg p-6 mb-8 bg-surface/30 backdrop-blur-sm",children:[L.jsx(TR,{onJsonGenerated:x}),L.jsxs("div",{className:"mb-6",children:[L.jsx("h3",{className:"text-lg font-semibold mb-2",children:"步驟 2: JSON 轉換班表"}),L.jsx("div",{className:`w-full h-32 border-2 border-dashed border-white/20 
                            rounded-lg p-4 focus:border-primary
-                           hover:border-white/30 transition-colors`,contentEditable:!0,onPaste:f,placeholder:"在此貼上 JSON 數據..."})]})]})}),L.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-6 mb-8",children:[L.jsxs("div",{children:[L.jsx("label",{className:"block text-sm font-medium text-text-secondary mb-2",children:"選擇同事"}),L.jsxs("select",{value:i,onChange:w=>s(w.target.value),className:"input-field w-full bg-surface/50 border-white/10 focus:border-primary",children:[L.jsx("option",{value:"",children:"全部同事"}),Object.values(xu).map(w=>L.jsx("option",{value:w,children:w},w))]})]}),L.jsxs("div",{children:[L.jsx("label",{className:"block text-sm font-medium text-text-secondary mb-2",children:"日期範圍"}),L.jsx("select",{value:o,onChange:w=>l(Number(w.target.value)),className:"input-field w-full bg-surface/50 border-white/10 focus:border-primary",children:IR.map(w=>L.jsx("option",{value:w.days,children:w.label},w.days))})]})]}),t&&t.length>0?L.jsx("div",{className:"overflow-x-auto rounded-xl border border-white/10 shadow-xl",children:L.jsxs("table",{className:"w-full border-collapse bg-surface/30",children:[L.jsx("thead",{children:L.jsxs("tr",{children:[L.jsx("th",{className:`
+                           hover:border-white/30 transition-colors`,contentEditable:!0,onPaste:f,placeholder:"在此貼上 JSON 數據..."})]})]})}),L.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-6 mb-8",children:[L.jsxs("div",{children:[L.jsx("label",{className:"block text-sm font-medium text-text-secondary mb-2",children:"選擇同事"}),L.jsxs("select",{value:i,onChange:w=>s(w.target.value),className:"input-field w-full bg-surface/50 border-white/10 focus:border-primary",children:[L.jsx("option",{value:"",children:"全部同事"}),Object.values(xu).map(w=>L.jsx("option",{value:w,children:w},w))]})]}),L.jsxs("div",{children:[L.jsx("label",{className:"block text-sm font-medium text-text-secondary mb-2",children:"日期範圍"}),L.jsx("select",{value:o,onChange:w=>l(Number(w.target.value)),className:"input-field w-full bg-surface/50 border-white/10 focus:border-primary",children:IR.map(w=>L.jsx("option",{value:w.days,children:w.label},w.days))})]})]}),t&&t.length>0?L.jsx("div",{className:"overflow-x-auto rounded-xl border border-white/10 shadow-xl",children:L.jsxs("table",{className:"w-full border-collapse",children:["  ",L.jsx("thead",{children:L.jsxs("tr",{children:[L.jsx("th",{className:`
                     sticky left-0 z-20 
-                    bg-surface/70 backdrop-blur-md
+                    bg-surface  {/* 使用實心背景 */}
                     p-4 border-b-2 border-r border-primary/30
                     text-primary font-bold min-w-[150px]
                     shadow-lg
@@ -2072,24 +2072,23 @@ This typically indicates that your device does not have a healthy Internet conne
                             shadow-lg shadow-primary/20
                             ring-2 ring-primary/50
                             animate-pulse
-                          `,children:"今天"}),L.jsx("div",{className:"text-lg text-primary",children:SR(w)}),L.jsx("div",{className:"text-xs mt-1 text-text-secondary",children:["日","一","二","三","四","五","六"][E.getDay()]})]},R)})]})}),L.jsx("tbody",{children:C().slice(2).map((w,R)=>L.jsxs("tr",{className:"group hover:bg-white/5",children:[L.jsx("td",{className:`
-                      sticky left-0 z-10 
-                      bg-surface/70 backdrop-blur-md
+                          `,children:"今天"}),L.jsx("div",{className:"text-lg text-primary",children:SR(w)}),L.jsx("div",{className:"text-xs mt-1 text-text-secondary",children:["日","一","二","三","四","五","六"][E.getDay()]})]},R)})]})}),L.jsx("tbody",{children:C().slice(2).map((w,R)=>L.jsxs("tr",{className:"group",children:["  ",L.jsx("td",{className:`
+                      sticky left-0 z-20  {/* 提高 z-index */}
+                      bg-surface  {/* 使用實心背景 */}
                       p-4 border-r border-white/10 
                       font-semibold text-primary text-center
                       shadow-lg
-                      group-hover:bg-surface/80
                       transition-colors
                     `,children:xu[w[0]]||w[0]}),w.slice(1).map((E,g)=>{const _=v(E),k=new Date(C()[1][g+1]).toDateString()===new Date().toDateString();return L.jsx("td",{className:`
                           relative p-4 
                           border-b border-white/5
-                          text-center
+                          text-center bg-surface/30  {/* 添加基礎背景色 */}
                           transition-all duration-200
+                          hover:bg-surface/40  {/* 修改 hover 效果 */}
                           ${_?`
                             ${_.background} 
                             ${_.text}
                             ${_.border}
                           `:""}
                           ${k?"bg-primary/5":""}
-                          group-hover:brightness-110
-                        `,title:E,children:L.jsx("span",{className:"relative z-10",children:_?_.label:E})},g)})]},R))})]})}):L.jsxs("div",{className:"text-center py-12 text-text-secondary",children:[L.jsx("p",{className:"text-lg mb-2",children:"尚無班表數據"}),L.jsx("p",{className:"text-sm",children:"點擊上方工具按鈕開始匯入班表"})]})]})})}const CR=O.lazy(()=>iv(()=>import("./SandwichCalculator-CYvD6h0z.js"),[])),RR=O.lazy(()=>iv(()=>import("./CashierManagement-CJ3KIiGB.js"),[]));function PR(){return L.jsx(Yw,{children:L.jsx(wT,{children:L.jsx(O.Suspense,{fallback:L.jsx(TT,{}),children:L.jsxs($w,{children:[L.jsx(rr,{path:"/",element:L.jsx(Bw,{to:"/sandwich",replace:!0})}),L.jsx(rr,{path:"/sandwich",element:L.jsx(CR,{})}),L.jsx(rr,{path:"/cashier",element:L.jsx(RR,{})}),L.jsx(rr,{path:"/schedule",element:L.jsx(AR,{})}),L.jsx(rr,{path:"/data-converter",element:L.jsx(ST,{})}),L.jsx(rr,{path:"*",element:L.jsx(IT,{})})]})})})})}Nu.createRoot(document.getElementById("root")).render(L.jsx(tg.StrictMode,{children:L.jsx(PR,{})}));export{L as j,O as r};
+                        `,title:E,children:L.jsx("span",{className:"relative z-10",children:_?_.label:E})},g)})]},R))})]})}):L.jsxs("div",{className:"text-center py-12 text-text-secondary",children:[L.jsx("p",{className:"text-lg mb-2",children:"尚無班表數據"}),L.jsx("p",{className:"text-sm",children:"點擊上方工具按鈕開始匯入班表"})]})]})})}const CR=O.lazy(()=>iv(()=>import("./SandwichCalculator-C9l3Vmal.js"),[])),RR=O.lazy(()=>iv(()=>import("./CashierManagement-otYLBvnG.js"),[]));function PR(){return L.jsx(Yw,{children:L.jsx(wT,{children:L.jsx(O.Suspense,{fallback:L.jsx(TT,{}),children:L.jsxs($w,{children:[L.jsx(rr,{path:"/",element:L.jsx(Bw,{to:"/sandwich",replace:!0})}),L.jsx(rr,{path:"/sandwich",element:L.jsx(CR,{})}),L.jsx(rr,{path:"/cashier",element:L.jsx(RR,{})}),L.jsx(rr,{path:"/schedule",element:L.jsx(AR,{})}),L.jsx(rr,{path:"/data-converter",element:L.jsx(ST,{})}),L.jsx(rr,{path:"*",element:L.jsx(IT,{})})]})})})})}Nu.createRoot(document.getElementById("root")).render(L.jsx(tg.StrictMode,{children:L.jsx(PR,{})}));export{L as j,O as r};
