@@ -171,8 +171,6 @@ function ExcelToJsonConverter({ onJsonGenerated }) {
                 bg-surface/30 rounded-lg p-4 
                 max-h-[200px] overflow-y-auto 
                 text-xs text-text-secondary
-                scrollbar-thin scrollbar-thumb-white/10 
-                scrollbar-track-transparent hover:scrollbar-thumb-white/20
               "
             >
               <code>{jsonOutput}</code>

@@ -43,16 +43,11 @@ const formatDate = (dateStr) => {
   }
 }
 
-function ScheduleConverter() {
+function Schedule() {
   const [scheduleData, setScheduleData] = useState([])
   const [isEditing, setIsEditing] = useState(false)
-  const [formatOptions, setFormatOptions] = useState({
-    showWeekend: true,
-    highlightToday: true,
-    compactMode: false
-  })
   const [selectedPerson, setSelectedPerson] = useState('')
-  const [dateRange, setDateRange] = useState(-1)  // -1 表示顯示全部
+  const [dateRange, setDateRange] = useState(-1)
   const [showTools, setShowTools] = useState(false)
 
   // 添加測試用的初始數據
@@ -181,15 +176,16 @@ function ScheduleConverter() {
     setScheduleData(newData)
   }
 
-  // 判斷班次類型和對應的樣式
+  // 更新班次樣式
   const getShiftStyle = (cell) => {
     if (!cell) return '';
     
     // 特休假
     if (cell.includes('特休假')) {
       return {
-        background: 'bg-yellow-500/30',  // 加深黃色
-        text: 'text-yellow-100 font-medium',  // 加粗字體
+        background: 'bg-amber-500/20 hover:bg-amber-500/30',
+        text: 'text-amber-100 font-medium',
+        border: 'border-l-4 border-l-amber-500',
         label: '特休'
       };
     }
@@ -197,8 +193,9 @@ function ScheduleConverter() {
     // 早班：淺藍色背景
     if (cell.includes('4:30-13:00') || cell.includes('4：30-13：00')) {
       return {
-        background: 'bg-blue-500/30',    // 加深藍色
-        text: 'text-blue-100 font-medium',
+        background: 'bg-sky-500/20 hover:bg-sky-500/30',
+        text: 'text-sky-100 font-medium',
+        border: 'border-l-4 border-l-sky-500',
         label: '早班'
       };
     }
@@ -206,8 +203,9 @@ function ScheduleConverter() {
     // 晚班：淺紫色背景
     if (cell.includes('13:00-21:30') || cell.includes('13：00-21：30')) {
       return {
-        background: 'bg-purple-500/30',  // 加深紫色
+        background: 'bg-purple-500/20 hover:bg-purple-500/30',
         text: 'text-purple-100 font-medium',
+        border: 'border-l-4 border-l-purple-500',
         label: '晚班'
       };
     }
@@ -215,9 +213,20 @@ function ScheduleConverter() {
     // 其他排班時間：淺綠色背景
     if (cell.match(/\d{1,2}[:：]\d{2}-\d{1,2}[:：]\d{2}/)) {
       return {
-        background: 'bg-green-500/30',   // 加深綠色
-        text: 'text-green-100 font-medium',
+        background: 'bg-emerald-500/20 hover:bg-emerald-500/30',
+        text: 'text-emerald-100 font-medium',
+        border: 'border-l-4 border-l-emerald-500',
         label: '排班'
+      };
+    }
+
+    // 月休
+    if (cell === '月休') {
+      return {
+        background: 'bg-gray-500/20 hover:bg-gray-500/30',
+        text: 'text-gray-400 font-medium',
+        border: 'border-l-4 border-l-gray-500',
+        label: '休'
       };
     }
 
@@ -407,80 +416,39 @@ function ScheduleConverter() {
   return (
     <div className="container-custom py-8">
       <div className="card">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="card-header mb-0">班表</h2>
-          <div className="flex gap-2">
+        {/* 頁面標題區域 */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="card-header mb-1">班表</h2>
+            <p className="text-sm text-text-secondary">
+              管理和查看排班情況
+            </p>
+          </div>
+          <div className="flex gap-3">  {/* 增加按鈕間距 */}
             <button 
               onClick={() => setShowTools(!showTools)}
-              className={`btn-icon group ${showTools ? 'bg-primary/10' : ''}`}
+              className={`btn-icon group transition-all duration-200 ${showTools ? 'bg-primary/20 text-primary' : ''}`}
               title="轉換工具"
             >
               <ChevronDownIcon 
                 className={`w-5 h-5 transition-transform duration-200 
                   ${showTools ? 'rotate-180' : ''}`}
               />
-              <span className="sr-only">轉換工具</span>
             </button>
             <button 
               onClick={() => setIsEditing(!isEditing)}
-              className={`btn-icon ${isEditing ? 'text-primary' : ''}`}
+              className={`btn-icon transition-all duration-200 ${isEditing ? 'bg-primary/20 text-primary' : ''}`}
               title={isEditing ? '完成編輯' : '編輯模式'}
             >
               <PencilSquareIcon className="w-5 h-5" />
             </button>
             <button 
               onClick={exportToCSV}
-              className="btn-icon"
+              className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
               title="導出 CSV"
             >
               <DocumentArrowDownIcon className="w-5 h-5" />
             </button>
-            <div className="relative group">
-              <button 
-                className="btn-icon"
-                title="格式設置"
-              >
-                <AdjustmentsHorizontalIcon className="w-5 h-5" />
-              </button>
-              <div className="absolute right-0 mt-2 w-48 bg-surface rounded-lg shadow-lg p-2 hidden group-hover:block">
-                <label className="flex items-center p-2 hover:bg-white/5 rounded">
-                  <input
-                    type="checkbox"
-                    checked={formatOptions.showWeekend}
-                    onChange={e => setFormatOptions(prev => ({
-                      ...prev,
-                      showWeekend: e.target.checked
-                    }))}
-                    className="mr-2"
-                  />
-                  顯示週末
-                </label>
-                <label className="flex items-center p-2 hover:bg-white/5 rounded">
-                  <input
-                    type="checkbox"
-                    checked={formatOptions.highlightToday}
-                    onChange={e => setFormatOptions(prev => ({
-                      ...prev,
-                      highlightToday: e.target.checked
-                    }))}
-                    className="mr-2"
-                  />
-                  突出顯示今天
-                </label>
-                <label className="flex items-center p-2 hover:bg-white/5 rounded">
-                  <input
-                    type="checkbox"
-                    checked={formatOptions.compactMode}
-                    onChange={e => setFormatOptions(prev => ({
-                      ...prev,
-                      compactMode: e.target.checked
-                    }))}
-                    className="mr-2"
-                  />
-                  緊湊模式
-                </label>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -489,10 +457,8 @@ function ScheduleConverter() {
           overflow-hidden transition-all duration-300 ease-in-out
           ${showTools ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
         `}>
-          <div className="border-b border-white/10 mb-6">
-            {/* Excel 轉換器 */}
+          <div className="border border-white/10 rounded-lg p-6 mb-8 bg-surface/30 backdrop-blur-sm">
             <ExcelToJsonConverter onJsonGenerated={handleJsonGenerated} />
-
             {/* JSON 貼上區域 */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-2">步驟 2: JSON 轉換班表</h3>
@@ -509,30 +475,30 @@ function ScheduleConverter() {
         </div>
 
         {/* 搜尋區域 */}
-        <div className="mb-6 flex gap-4 flex-wrap">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm text-text-secondary mb-2">
-              選擇員工
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              選擇同事
             </label>
             <select
               value={selectedPerson}
               onChange={e => setSelectedPerson(e.target.value)}
-              className="input-field w-full"
+              className="input-field w-full bg-surface/50 border-white/10 focus:border-primary"
             >
-              <option value="">全部員工</option>
+              <option value="">全部同事</option>
               {Object.values(NAME_MAPPINGS).map(name => (
                 <option key={name} value={name}>{name}</option>
               ))}
             </select>
           </div>
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm text-text-secondary mb-2">
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
               日期範圍
             </label>
             <select
               value={dateRange}
               onChange={e => setDateRange(Number(e.target.value))}
-              className="input-field w-full"
+              className="input-field w-full bg-surface/50 border-white/10 focus:border-primary"
             >
               {DATE_RANGES.map(range => (
                 <option key={range.days} value={range.days}>
@@ -544,63 +510,102 @@ function ScheduleConverter() {
         </div>
 
         {/* 表格渲染 */}
-        {scheduleData && scheduleData.length > 0 && (
+        {scheduleData && scheduleData.length > 0 ? (
           <div className="overflow-x-auto rounded-xl border border-white/10 shadow-xl">
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse bg-surface/30">
               <thead>
                 <tr>
-                  {/* 修改第一列標題 */}
+                  {/* 同事列標題 */}
                   <th className="
-                    sticky left-0 z-20 bg-surface/90 backdrop-blur-sm
+                    sticky left-0 z-20 
+                    bg-surface/70 backdrop-blur-md
                     p-4 border-b-2 border-r border-primary/30
                     text-primary font-bold min-w-[150px]
+                    shadow-lg
                   ">
                     同事
                   </th>
                   
                   {/* 日期列 */}
-                  {getFilteredData()[1].slice(1).map((header, index) => (
-                    <th key={index} className="
-                      p-4 border-b-2 border-primary/30
-                      text-center font-bold text-primary
-                      min-w-[100px] bg-surface/80 backdrop-blur-sm
-                      hover:bg-surface/90 transition-colors
-                    ">
-                      <div>{formatDate(header)}</div>
-                      <div className="text-xs text-text-secondary mt-1">
-                        {['日', '一', '二', '三', '四', '五', '六'][new Date(header).getDay()]}
-                      </div>
-                    </th>
-                  ))}
+                  {getFilteredData()[1].slice(1).map((header, index) => {
+                    const date = new Date(header);
+                    const isToday = new Date(header).toDateString() === new Date().toDateString();
+                    
+                    return (
+                      <th key={index} className={`
+                        relative
+                        p-4 border-b-2 border-primary/30
+                        text-center font-bold
+                        min-w-[100px] 
+                        bg-surface/40
+                        backdrop-blur-md
+                        transition-colors
+                        ${isToday ? 'bg-primary/10' : ''}
+                      `}>
+                        {isToday && (
+                          <span className="
+                            absolute top-1 right-1
+                            text-[10px] font-semibold
+                            bg-primary text-white
+                            px-2 py-0.5 rounded-full
+                            shadow-lg shadow-primary/20
+                            ring-2 ring-primary/50
+                            animate-pulse
+                          ">
+                            今天
+                          </span>
+                        )}
+                        <div className="text-lg text-primary">
+                          {formatDate(header)}
+                        </div>
+                        <div className="text-xs mt-1 text-text-secondary">
+                          {['日', '一', '二', '三', '四', '五', '六'][date.getDay()]}
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
                 {getFilteredData().slice(2).map((row, rowIndex) => (
-                  <tr key={rowIndex} className="hover:bg-white/5 transition-colors">
-                    {/* 修改同事名稱列的樣式 */}
+                  <tr key={rowIndex} className="group hover:bg-white/5">
+                    {/* 同事名稱 */}
                     <td className="
-                      sticky left-0 z-10 bg-surface/90 backdrop-blur-sm
+                      sticky left-0 z-10 
+                      bg-surface/70 backdrop-blur-md
                       p-4 border-r border-white/10 
                       font-semibold text-primary text-center
-                      hover:bg-surface transition-colors
+                      shadow-lg
+                      group-hover:bg-surface/80
+                      transition-colors
                     ">
                       {NAME_MAPPINGS[row[0]] || row[0]}
                     </td>
                     
-                    {/* 修改班次單元格的樣式 */}
+                    {/* 班次單元格 */}
                     {row.slice(1).map((cell, cellIndex) => {
                       const shiftStyle = getShiftStyle(cell);
+                      const isToday = new Date(getFilteredData()[1][cellIndex + 1]).toDateString() === new Date().toDateString();
+                      
                       return (
                         <td key={cellIndex} className={`
-                          p-4 border-b border-white/10 text-center
-                          ${shiftStyle ? `${shiftStyle.background} ${shiftStyle.text}` : ''}
-                          ${cell === '月休' ? 'bg-gray-500/30 text-gray-300 font-medium' : ''}
-                          hover:brightness-110 transition-all
-                          hover:scale-[1.02] transform
+                          relative p-4 
+                          border-b border-white/5
+                          text-center
+                          transition-all duration-200
+                          ${shiftStyle ? `
+                            ${shiftStyle.background} 
+                            ${shiftStyle.text}
+                            ${shiftStyle.border}
+                          ` : ''}
+                          ${isToday ? 'bg-primary/5' : ''}
+                          group-hover:brightness-110
                         `}
                         title={cell}
                         >
-                          {shiftStyle ? shiftStyle.label : cell}
+                          <span className="relative z-10">
+                            {shiftStyle ? shiftStyle.label : cell}
+                          </span>
                         </td>
                       );
                     })}
@@ -609,10 +614,15 @@ function ScheduleConverter() {
               </tbody>
             </table>
           </div>
+        ) : (
+          <div className="text-center py-12 text-text-secondary">
+            <p className="text-lg mb-2">尚無班表數據</p>
+            <p className="text-sm">點擊上方工具按鈕開始匯入班表</p>
+          </div>
         )}
       </div>
     </div>
   )
 }
 
-export default ScheduleConverter 
+export default Schedule 
