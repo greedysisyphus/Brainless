@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Clock from '../Clock'
+import logoCat from '../../assets/logo-cat.png'
 
 function Header() {
   return (
@@ -8,8 +9,8 @@ function Header() {
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-4">
             <img 
-              src="https://i.meee.com.tw/VBmG1of.jpeg" 
-              alt="Logo" 
+              src={logoCat}
+              alt="Cat Logo" 
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-primary p-1 logo logo-glow logo-float"
             />
             <div className="flex flex-col items-start gap-2">
