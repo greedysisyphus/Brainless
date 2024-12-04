@@ -183,37 +183,37 @@ function Schedule() {
     // 特休假
     if (cell.includes('特休假')) {
       return {
-        background: 'bg-amber-500/20 hover:bg-amber-500/30',
+        background: 'bg-gradient-to-r from-amber-500/20 to-amber-600/20',
         text: 'text-amber-100 font-medium',
         border: 'border-l-4 border-l-amber-500',
         label: '特休'
       };
     }
     
-    // 早班：淺藍色背景
+    // 早班：漸層藍色背景
     if (cell.includes('4:30-13:00') || cell.includes('4：30-13：00')) {
       return {
-        background: 'bg-sky-500/20 hover:bg-sky-500/30',
+        background: 'bg-gradient-to-r from-sky-500/20 to-blue-500/20',
         text: 'text-sky-100 font-medium',
         border: 'border-l-4 border-l-sky-500',
         label: '早班'
       };
     }
     
-    // 晚班：淺紫色背景
+    // 晚班：漸層紫色背景
     if (cell.includes('13:00-21:30') || cell.includes('13：00-21：30')) {
       return {
-        background: 'bg-purple-500/20 hover:bg-purple-500/30',
+        background: 'bg-gradient-to-r from-purple-500/20 to-fuchsia-500/20',
         text: 'text-purple-100 font-medium',
         border: 'border-l-4 border-l-purple-500',
         label: '晚班'
       };
     }
 
-    // 其他排班時間：淺綠色背景
+    // 其他排班時間：漸層綠色背景
     if (cell.match(/\d{1,2}[:：]\d{2}-\d{1,2}[:：]\d{2}/)) {
       return {
-        background: 'bg-emerald-500/20 hover:bg-emerald-500/30',
+        background: 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20',
         text: 'text-emerald-100 font-medium',
         border: 'border-l-4 border-l-emerald-500',
         label: '排班'
@@ -223,7 +223,7 @@ function Schedule() {
     // 月休
     if (cell === '月休') {
       return {
-        background: 'bg-gray-500/20 hover:bg-gray-500/30',
+        background: 'bg-gradient-to-r from-gray-500/10 to-gray-600/10',
         text: 'text-gray-400 font-medium',
         border: 'border-l-4 border-l-gray-500',
         label: '休'
@@ -509,14 +509,13 @@ function Schedule() {
 
         {/* 表格渲染 */}
         {scheduleData && scheduleData.length > 0 ? (
-          <div className="overflow-x-auto rounded-xl border border-white/10 shadow-xl">
-            <table className="w-full border-collapse">  {/* 移除背景色 */}
+          <div className="overflow-x-auto rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
+            <table className="w-full border-collapse bg-surface/30">
               <thead>
                 <tr>
-                  {/* 同事列標題 */}
                   <th className="
                     sticky left-0 z-20 
-                    bg-surface  {/* 使用實心背景 */}
+                    bg-surface/95 backdrop-blur-md
                     p-4 border-b-2 border-r border-primary/30
                     text-primary font-bold min-w-[150px]
                     shadow-lg
@@ -566,15 +565,15 @@ function Schedule() {
               </thead>
               <tbody>
                 {getFilteredData().slice(2).map((row, rowIndex) => (
-                  <tr key={rowIndex} className="group">  {/* 移除 hover 效果 */}
-                    {/* 同事名稱 */}
+                  <tr key={rowIndex} className="group hover:bg-white/5 transition-colors">
                     <td className="
-                      sticky left-0 z-20  {/* 提高 z-index */}
-                      bg-surface  {/* 使用實心背景 */}
+                      sticky left-0 z-20
+                      bg-surface/95 backdrop-blur-md
                       p-4 border-r border-white/10 
                       font-semibold text-primary text-center
                       shadow-lg
                       transition-colors
+                      group-hover:bg-surface/90
                     ">
                       {NAME_MAPPINGS[row[0]] || row[0]}
                     </td>
@@ -588,19 +587,19 @@ function Schedule() {
                         <td key={cellIndex} className={`
                           relative p-4 
                           border-b border-white/5
-                          text-center bg-surface/30  {/* 添加基礎背景色 */}
-                          transition-all duration-200
-                          hover:bg-surface/40  {/* 修改 hover 效果 */}
+                          text-center
+                          transition-all duration-300
                           ${shiftStyle ? `
                             ${shiftStyle.background} 
                             ${shiftStyle.text}
                             ${shiftStyle.border}
+                            hover:shadow-lg hover:scale-[1.02]
                           ` : ''}
-                          ${isToday ? 'bg-primary/5' : ''}
+                          ${isToday ? 'ring-2 ring-primary/30 ring-inset' : ''}
                         `}
                         title={cell}
                         >
-                          <span className="relative z-10">
+                          <span className="relative z-10 font-medium">
                             {shiftStyle ? shiftStyle.label : cell}
                           </span>
                         </td>
