@@ -20,15 +20,25 @@ const NAME_MAPPINGS = {
   'A93-陳世芬 Nina 咖啡師': 'Nina'
 }
 
-// 修改日期選項
+// 修改日期選項並添加顏色
 const DATE_RANGES = [
-  { label: '今天', days: 0 },  // 添加今天選項
-  { label: '明天', days: 1 },
-  { label: '後天', days: 2 },
-  { label: '未來 5 天', days: 5 },
-  { label: '未來一週', days: 7 },
-  { label: '全部', days: -1 }  // 使用 -1 表示全部
+  { label: '今天', days: 0, color: 'from-sky-400/20 to-sky-600/20 border-sky-500' },
+  { label: '明天', days: 1, color: 'from-indigo-400/20 to-indigo-600/20 border-indigo-500' },
+  { label: '後天', days: 2, color: 'from-violet-400/20 to-violet-600/20 border-violet-500' },
+  { label: '未來 5 天', days: 5, color: 'from-fuchsia-400/20 to-fuchsia-600/20 border-fuchsia-500' },
+  { label: '未來一週', days: 7, color: 'from-rose-400/20 to-rose-600/20 border-rose-500' },
+  { label: '全部', days: -1, color: 'from-primary/20 to-secondary/20 border-primary' }
 ]
+
+// 修改人員標籤的顏色映射
+const STAFF_COLORS = {
+  '小余': 'from-amber-400/20 to-amber-600/20 border-amber-500',
+  '紅葉': 'from-rose-400/20 to-rose-600/20 border-rose-500',
+  'Ashley': 'from-purple-400/20 to-purple-600/20 border-purple-500',
+  '恩廷': 'from-sky-400/20 to-sky-600/20 border-sky-500',
+  'Jovi': 'from-emerald-400/20 to-emerald-600/20 border-emerald-500',
+  'Nina': 'from-pink-400/20 to-pink-600/20 border-pink-500'
+}
 
 // 添加日期格式化函數
 const formatDate = (dateStr) => {
@@ -55,7 +65,7 @@ function Schedule() {
     console.log('組件已載入')
   }, [])
 
-  // 監聽 Firebase 數據
+  // 監聽 Firebase 數���
   useEffect(() => {
     console.log('開始監聽 Firebase')
     
@@ -190,7 +200,7 @@ function Schedule() {
       };
     }
     
-    // 早班：漸層藍色背景
+    // 早班：漸層藍色背
     if (cell.includes('4:30-13:00') || cell.includes('4：30-13：00')) {
       return {
         background: 'bg-gradient-to-r from-sky-500/20 to-blue-500/20',
@@ -393,7 +403,7 @@ function Schedule() {
       // 第一行：星期幾
       [''].concat(jsonData.schedule.dates.map(date => {
         const day = new Date(date).getDay()
-        return ['日', '一', '二', '三', '四', '五', '六'][day]
+        return ['日', '一', '二', '三', '四', '五', '���'][day]
       })),
       // 第二行：日期
       [''].concat(jsonData.schedule.dates),
@@ -472,38 +482,72 @@ function Schedule() {
           </div>
         </div>
 
-        {/* 搜尋區域 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* 替換原有的選擇同事下拉選單 */}
+        <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-6 mb-8">
+          {/* 人員標籤過濾器 */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-3">
               選擇同事
             </label>
-            <select
-              value={selectedPerson}
-              onChange={e => setSelectedPerson(e.target.value)}
-              className="input-field w-full bg-surface/50 border-white/10 focus:border-primary"
-            >
-              <option value="">全部同事</option>
-              {Object.values(NAME_MAPPINGS).map(name => (
-                <option key={name} value={name}>{name}</option>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedPerson('')}
+                className={`
+                  px-4 py-2 rounded-full text-sm font-medium
+                  transition-all duration-200
+                  border-2 border-white/10
+                  ${!selectedPerson ? 
+                    'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
+                    'hover:border-white/20'
+                  }
+                `}
+              >
+                全部
+              </button>
+              {Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => (
+                <button
+                  key={nickname}
+                  onClick={() => setSelectedPerson(nickname)}
+                  className={`
+                    px-4 py-2 rounded-full text-sm font-medium
+                    transition-all duration-200 
+                    border-2
+                    ${selectedPerson === nickname ?
+                      `bg-gradient-to-r ${STAFF_COLORS[nickname]} border-l-4` :
+                      'border-white/10 hover:border-white/20'
+                    }
+                  `}
+                >
+                  {nickname}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
+
+          {/* 更新日期範圍選擇 */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-3">
               日期範圍
             </label>
-            <select
-              value={dateRange}
-              onChange={e => setDateRange(Number(e.target.value))}
-              className="input-field w-full bg-surface/50 border-white/10 focus:border-primary"
-            >
+            <div className="flex flex-wrap gap-2">
               {DATE_RANGES.map(range => (
-                <option key={range.days} value={range.days}>
+                <button
+                  key={range.days}
+                  onClick={() => setDateRange(range.days)}
+                  className={`
+                    px-4 py-2 rounded-full text-sm font-medium
+                    transition-all duration-200
+                    border-2
+                    ${dateRange === range.days ?
+                      `bg-gradient-to-r ${range.color} border-l-4` :
+                      'border-white/10 hover:border-white/20'
+                    }
+                  `}
+                >
                   {range.label}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         </div>
 

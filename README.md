@@ -21,7 +21,5 @@ A tool to simplify my coffee career.
 - Tailwind CSS
 - React Router
 
-## Development
-
-- **Install dependencies**
-  - `npm install`
+## Live Demo
+Visit [https://greedysisyphus.github.io/Brainless/](https://greedysisyphus.github.io/Brainless/)
