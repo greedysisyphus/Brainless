@@ -1,5 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { CalculatorIcon, BanknotesIcon, CalendarIcon } from '@heroicons/react/24/outline'
+import { 
+  CalculatorIcon, 
+  BanknotesIcon, 
+  CalendarIcon,
+  ClockIcon 
+} from '@heroicons/react/24/outline'
 
 const MENU_ITEMS = [
   { 
@@ -16,7 +21,7 @@ const MENU_ITEMS = [
     path: '/schedule', 
     label: '班表', 
     icon: <CalendarIcon className="w-5 h-5" />
-  }
+  },
 ]
 
 function Navigation() {

@@ -89,6 +89,7 @@ function CashierManagement() {
           foreignTotal={foreignTotal}
           posAmount={posAmount}
           onPosAmountChange={setPosAmount}
+          foreignTransactions={JSON.parse(localStorage.getItem('foreignTransactions') || '[]')}
         />
       </div>
     </div>

@@ -6,11 +6,14 @@ function Summary({
   drawerTotal,
   foreignTotal,
   posAmount,
-  onPosAmountChange
+  onPosAmountChange,
+  foreignTransactions
 }) {
   const [showResult, setShowResult] = useState(false)
+  const [isNightShift, setIsNightShift] = useState(false)
   const actualCashProfit = cashierTotal + drawerTotal + foreignTotal - 20000
   const difference = actualCashProfit - posAmount
+  const submitAmount = cashierTotal + drawerTotal - 20000 - foreignTotal
 
   const getDifferenceStyle = () => {
     if (difference === 0) {
@@ -50,7 +53,21 @@ function Summary({
 
   return (
     <div className="card">
-      <h2 className="card-header">日結匯總</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="card-header mb-0">日結匯總</h2>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-text-secondary">晚班模式</span>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={isNightShift}
+              onChange={(e) => setIsNightShift(e.target.checked)}
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+          </label>
+        </div>
+      </div>
 
       <div className="space-y-6">
         <div className="bg-background/50 rounded-lg p-4 backdrop-blur-sm">
@@ -102,6 +119,59 @@ function Summary({
           </div>
         </div>
 
+        {isNightShift && (
+          <div className="bg-background/50 rounded-lg overflow-hidden">
+            <div className="bg-surface/50 p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  需上繳金額
+                </span>
+                <div className="h-4 w-4 rounded-full bg-gradient-to-r from-primary to-secondary animate-pulse" />
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* 台幣區塊 */}
+              <div className="bg-surface/30 rounded-xl p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-secondary font-medium">台幣</span>
+                  <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    ${submitAmount.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* 外幣區塊 */}
+              <div className="bg-surface/30 rounded-xl p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-text-secondary font-medium">外幣</span>
+                  {!foreignTransactions?.length && (
+                    <span className="text-sm text-text-secondary">無外幣紀錄</span>
+                  )}
+                </div>
+                
+                {foreignTransactions?.length > 0 && (
+                  <div className="bg-background/30 rounded-lg p-2 space-y-2">
+                    {foreignTransactions.map((transaction, index) => (
+                      <div 
+                        key={index} 
+                        className="flex justify-between items-center px-3 py-2 rounded-lg hover:bg-surface/50 transition-colors"
+                      >
+                        <span className="font-medium text-text-secondary">
+                          {transaction.currency}
+                        </span>
+                        <span className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                          ${transaction.amount.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {showResult && (
           <div className={`rounded-lg p-4 backdrop-blur-sm ${style.containerClass}`}>
             <div className="flex items-center justify-between">
@@ -123,4 +193,4 @@ function Summary({
   )
 }
 
-export default Summary 
+export default Summary;
