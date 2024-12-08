@@ -119,21 +119,44 @@ function Summary({
           </div>
         </div>
 
+        {showResult && (
+          <div className={`rounded-lg p-4 backdrop-blur-sm ${style.containerClass}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">差額</span>
+                {style.icon}
+                <span className={`text-sm ${style.textClass}`}>
+                  {style.message}
+                </span>
+              </div>
+              <span className={`text-xl font-bold ${style.textClass}`}>
+                ${difference.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        )}
+
         {isNightShift && (
           <div className="bg-background/50 rounded-lg overflow-hidden">
             <div className="bg-surface/50 p-4">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  需上繳金額
-                </span>
-                <div className="h-4 w-4 rounded-full bg-gradient-to-r from-primary to-secondary animate-pulse" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    需上繳金額
+                  </span>
+                  <div className="h-4 w-4 rounded-full bg-gradient-to-r from-primary to-secondary animate-pulse opacity-75" />
+                </div>
+                <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                  晚班結算
+                </div>
               </div>
             </div>
             
             <div className="p-6 space-y-6">
               {/* 台幣區塊 */}
-              <div className="bg-surface/30 rounded-xl p-4">
-                <div className="flex justify-between items-center">
+              <div className="relative bg-surface/30 rounded-xl p-4 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5" />
+                <div className="relative flex justify-between items-center">
                   <span className="text-text-secondary font-medium">台幣</span>
                   <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                     ${submitAmount.toLocaleString()}
@@ -157,9 +180,12 @@ function Summary({
                         key={index} 
                         className="flex justify-between items-center px-3 py-2 rounded-lg hover:bg-surface/50 transition-colors"
                       >
-                        <span className="font-medium text-text-secondary">
-                          {transaction.currency}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-primary/50" />
+                          <span className="font-medium text-text-secondary">
+                            {transaction.currency}
+                          </span>
+                        </div>
                         <span className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                           ${transaction.amount.toLocaleString()}
                         </span>
@@ -168,23 +194,6 @@ function Summary({
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        )}
-
-        {showResult && (
-          <div className={`rounded-lg p-4 backdrop-blur-sm ${style.containerClass}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">差額</span>
-                {style.icon}
-                <span className={`text-sm ${style.textClass}`}>
-                  {style.message}
-                </span>
-              </div>
-              <span className={`text-xl font-bold ${style.textClass}`}>
-                ${difference.toLocaleString()}
-              </span>
             </div>
           </div>
         )}
