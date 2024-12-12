@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { parseFlightForecast, autoFetchForecast } from '../utils/flightForecastParser'
+import { parseFlightForecast, getForecastUrl } from '../utils/flightForecastParser'
 import { Tab } from '@headlessui/react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -58,7 +58,35 @@ function FlightForecastTest() {
   const autoUpdate = async () => {
     setLoading(true)
     try {
-      const result = await autoFetchForecast()
+      const today = new Date()
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      
+      // 從 GitHub public data 獲取數據
+      const [todayResponse, tomorrowResponse] = await Promise.all([
+        fetch(getForecastUrl(today)),
+        fetch(getForecastUrl(tomorrow))
+      ])
+      
+      if (!todayResponse.ok || !tomorrowResponse.ok) {
+        throw new Error('下載預報表失敗')
+      }
+      
+      const [todayBlob, tomorrowBlob] = await Promise.all([
+        todayResponse.blob(),
+        tomorrowResponse.blob()
+      ])
+      
+      const [todayResult, tomorrowResult] = await Promise.all([
+        parseFlightForecast(todayBlob),
+        parseFlightForecast(tomorrowBlob)
+      ])
+      
+      const result = {
+        today: todayResult,
+        tomorrow: tomorrowResult
+      }
+      
       setResult(result)
       setError(null)
       
@@ -263,7 +291,7 @@ function FlightForecastTest() {
           </div>
         </div>
 
-        {/* ���動上傳區（保留原有功能）*/}
+        {/* 動上傳區（保留原有功能）*/}
         <div className="mb-8">
           <label className="block text-sm text-text-secondary mb-2">
             手動上傳預報表
