@@ -132,8 +132,8 @@ export const getForecastUrl = (date) => {
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
   const day = date.getDate().toString().padStart(2, '0')
   
-  // 直接使用完整 URL
-  return `https://www.taoyuan-airport.com/uploads/fos/${year}_${month}_${day}.xls`
+  // 使用本地數據路徑
+  return `/data/${year}_${month}_${day}.xls`
 }
 
 // 自動下載並解析預報表
