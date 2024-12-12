@@ -132,8 +132,9 @@ export const getForecastUrl = (date) => {
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
   const day = date.getDate().toString().padStart(2, '0')
   
-  // 使用本地數據路徑
-  return `/data/${year}_${month}_${day}.xls`
+  // 使用完整的基礎路徑
+  const basePath = import.meta.env.BASE_URL || '/'
+  return `${basePath}data/${year}_${month}_${day}.xls`
 }
 
 // 自動下載並解析預報表

@@ -15,6 +15,8 @@ jobs:
         run: mkdir -p public/data
       
       - name: Download forecast
+        env:
+          TZ: 'Asia/Taipei'  # 設置時區為台北時間
         run: |
           DATE=$(date +%Y_%m_%d)
           TOMORROW=$(date -d "tomorrow" +%Y_%m_%d)
@@ -36,5 +38,5 @@ jobs:
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
           git add public/data
-          git commit -m "Update forecast data for $(date +%Y-%m-%d)" || exit 0
+          git commit -m "Update forecast data for $(TZ='Asia/Taipei' date +%Y-%m-%d)" || exit 0
           git push
