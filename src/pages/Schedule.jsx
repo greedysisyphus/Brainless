@@ -6,9 +6,12 @@ import {
   DocumentArrowDownIcon,
   AdjustmentsHorizontalIcon,
   ShareIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  ChartBarIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 import ExcelToJsonConverter from '../components/ExcelToJsonConverter'
+import ScheduleStats from '../components/schedule/ScheduleStats'
 
 // 添加名字映射
 const NAME_MAPPINGS = {
@@ -59,13 +62,14 @@ function Schedule() {
   const [selectedPerson, setSelectedPerson] = useState('')
   const [dateRange, setDateRange] = useState(-1)
   const [showTools, setShowTools] = useState(false)
+  const [showStats, setShowStats] = useState(false)
 
   // 添加測試用的初始數據
   useEffect(() => {
     console.log('組件已載入')
   }, [])
 
-  // 監聽 Firebase 數���
+  // 監聽 Firebase 數據
   useEffect(() => {
     console.log('開始監聽 Firebase')
     
@@ -403,7 +407,7 @@ function Schedule() {
       // 第一行：星期幾
       [''].concat(jsonData.schedule.dates.map(date => {
         const day = new Date(date).getDay()
-        return ['日', '一', '二', '三', '四', '五', '���'][day]
+        return ['日', '一', '二', '三', '四', '五', '六'][day]
       })),
       // 第二行：日期
       [''].concat(jsonData.schedule.dates),
@@ -425,239 +429,286 @@ function Schedule() {
 
   return (
     <div className="container-custom py-8">
-      <div className="card">
-        {/* 頁面標題區域 - 移除副標題 */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="card-header mb-0">班表</h2>  {/* 移除 mb-1，改為 mb-0 */}
-            {/* 移除副標題 */}
-          </div>
-          <div className="flex gap-3">  {/* 增加按鈕間距 */}
-            <button 
-              onClick={() => setShowTools(!showTools)}
-              className={`btn-icon group transition-all duration-200 ${showTools ? 'bg-primary/20 text-primary' : ''}`}
-              title="轉換工具"
-            >
-              <ChevronDownIcon 
-                className={`w-5 h-5 transition-transform duration-200 
-                  ${showTools ? 'rotate-180' : ''}`}
-              />
-            </button>
-            <button 
-              onClick={() => setIsEditing(!isEditing)}
-              className={`btn-icon transition-all duration-200 ${isEditing ? 'bg-primary/20 text-primary' : ''}`}
-              title={isEditing ? '完成編輯' : '編輯模式'}
-            >
-              <PencilSquareIcon className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={exportToCSV}
-              className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
-              title="導出 CSV"
-            >
-              <DocumentArrowDownIcon className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* 工具抽屜 */}
-        <div className={`
-          overflow-hidden transition-all duration-300 ease-in-out
-          ${showTools ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
-        `}>
-          <div className="border border-white/10 rounded-lg p-6 mb-8 bg-surface/30 backdrop-blur-sm">
-            <ExcelToJsonConverter onJsonGenerated={handleJsonGenerated} />
-            {/* JSON 貼上區域 */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">步驟 2: JSON 轉換班表</h3>
-              <div 
-                className="w-full h-32 border-2 border-dashed border-white/20 
-                           rounded-lg p-4 focus:border-primary
-                           hover:border-white/30 transition-colors"
-                contentEditable
-                onPaste={handlePaste}
-                placeholder="在此貼上 JSON 數據..."
-              />
+      {/* 移除 grid 布局，改用垂直堆疊 */}
+      <div className="space-y-6">
+        {/* 原有的表格區域 */}
+        <div className="card">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h2 className="card-header mb-0">班表</h2>  {/* 移除 mb-1，改為 mb-0 */}
+              {/* 移除副標題 */}
             </div>
-          </div>
-        </div>
-
-        {/* 替換原有的選擇同事下拉選單 */}
-        <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-6 mb-8">
-          {/* 人員標籤過濾器 */}
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-3">
-              選擇同事
-            </label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedPerson('')}
-                className={`
-                  px-4 py-2 rounded-full text-sm font-medium
-                  transition-all duration-200
-                  border-2 border-white/10
-                  ${!selectedPerson ? 
-                    'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
-                    'hover:border-white/20'
-                  }
-                `}
+            <div className="flex gap-3">  {/* 增加按鈕間距 */}
+              <button 
+                onClick={() => setShowTools(!showTools)}
+                className={`btn-icon group transition-all duration-200 ${showTools ? 'bg-primary/20 text-primary' : ''}`}
+                title="轉換工具"
               >
-                全部
+                <ChevronDownIcon 
+                  className={`w-5 h-5 transition-transform duration-200 
+                    ${showTools ? 'rotate-180' : ''}`}
+                />
               </button>
-              {Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => (
-                <button
-                  key={nickname}
-                  onClick={() => setSelectedPerson(nickname)}
-                  className={`
-                    px-4 py-2 rounded-full text-sm font-medium
-                    transition-all duration-200 
-                    border-2
-                    ${selectedPerson === nickname ?
-                      `bg-gradient-to-r ${STAFF_COLORS[nickname]} border-l-4` :
-                      'border-white/10 hover:border-white/20'
-                    }
-                  `}
-                >
-                  {nickname}
-                </button>
-              ))}
+              <button 
+                onClick={() => setIsEditing(!isEditing)}
+                className={`btn-icon transition-all duration-200 ${isEditing ? 'bg-primary/20 text-primary' : ''}`}
+                title={isEditing ? '完成編輯' : '編輯模式'}
+              >
+                <PencilSquareIcon className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={exportToCSV}
+                className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
+                title="導出 CSV"
+              >
+                <DocumentArrowDownIcon className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => setShowStats(true)}
+                className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
+                title="查看統計"
+              >
+                <ChartBarIcon className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
-          {/* 更新日期範圍選擇 */}
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-3">
-              日期範圍
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {DATE_RANGES.map(range => (
+          {/* 工具抽屜 */}
+          <div className={`
+            overflow-hidden transition-all duration-300 ease-in-out
+            ${showTools ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
+          `}>
+            <div className="border border-white/10 rounded-lg p-6 mb-8 bg-surface/30 backdrop-blur-sm">
+              <ExcelToJsonConverter onJsonGenerated={handleJsonGenerated} />
+              {/* JSON 貼上區域 */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">步驟 2: JSON 轉換班表</h3>
+                <div 
+                  className="w-full h-32 border-2 border-dashed border-white/20 
+                             rounded-lg p-4 focus:border-primary
+                             hover:border-white/30 transition-colors"
+                  contentEditable
+                  onPaste={handlePaste}
+                  placeholder="在此貼上 JSON 數據..."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 替換原有的選擇同事下拉選單 */}
+          <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-6 mb-8">
+            {/* 人員標籤過濾器 */}
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-3">
+                選擇同事
+              </label>
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={range.days}
-                  onClick={() => setDateRange(range.days)}
+                  onClick={() => setSelectedPerson('')}
                   className={`
                     px-4 py-2 rounded-full text-sm font-medium
                     transition-all duration-200
-                    border-2
-                    ${dateRange === range.days ?
-                      `bg-gradient-to-r ${range.color} border-l-4` :
-                      'border-white/10 hover:border-white/20'
+                    border-2 border-white/10
+                    ${!selectedPerson ? 
+                      'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
+                      'hover:border-white/20'
                     }
                   `}
                 >
-                  {range.label}
+                  全部
                 </button>
-              ))}
+                {Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => (
+                  <button
+                    key={nickname}
+                    onClick={() => setSelectedPerson(nickname)}
+                    className={`
+                      px-4 py-2 rounded-full text-sm font-medium
+                      transition-all duration-200 
+                      border-2
+                      ${selectedPerson === nickname ?
+                        `bg-gradient-to-r ${STAFF_COLORS[nickname]} border-l-4` :
+                        'border-white/10 hover:border-white/20'
+                      }
+                    `}
+                  >
+                    {nickname}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 更新日期範圍選擇 */}
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-3">
+                日期範圍
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {DATE_RANGES.map(range => (
+                  <button
+                    key={range.days}
+                    onClick={() => setDateRange(range.days)}
+                    className={`
+                      px-4 py-2 rounded-full text-sm font-medium
+                      transition-all duration-200
+                      border-2
+                      ${dateRange === range.days ?
+                        `bg-gradient-to-r ${range.color} border-l-4` :
+                        'border-white/10 hover:border-white/20'
+                      }
+                    `}
+                  >
+                    {range.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* 表格渲染 */}
-        {scheduleData && scheduleData.length > 0 ? (
-          <div className="overflow-x-auto rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
-            <table className="w-full border-collapse bg-surface/30">
-              <thead>
-                <tr>
-                  <th className="
-                    sticky left-0 z-20 
-                    bg-surface/95 backdrop-blur-md
-                    p-4 border-b-2 border-r border-primary/30
-                    text-primary font-bold min-w-[150px]
-                    shadow-lg
-                  ">
-                    同事
-                  </th>
-                  
-                  {/* 日期列 */}
-                  {getFilteredData()[1].slice(1).map((header, index) => {
-                    const date = new Date(header);
-                    const isToday = new Date(header).toDateString() === new Date().toDateString();
-                    
-                    return (
-                      <th key={index} className={`
-                        relative
-                        p-4 border-b-2 border-primary/30
-                        text-center font-bold
-                        min-w-[100px] 
-                        bg-surface/40
-                        backdrop-blur-md
-                        transition-colors
-                        ${isToday ? 'bg-primary/10' : ''}
-                      `}>
-                        {isToday && (
-                          <span className="
-                            absolute top-1 right-1
-                            text-[10px] font-semibold
-                            bg-primary text-white
-                            px-2 py-0.5 rounded-full
-                            shadow-lg shadow-primary/20
-                            ring-2 ring-primary/50
-                            animate-pulse
-                          ">
-                            今天
-                          </span>
-                        )}
-                        <div className="text-lg text-primary">
-                          {formatDate(header)}
-                        </div>
-                        <div className="text-xs mt-1 text-text-secondary">
-                          {['日', '一', '二', '三', '四', '五', '六'][date.getDay()]}
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {getFilteredData().slice(2).map((row, rowIndex) => (
-                  <tr key={rowIndex} className="group hover:bg-white/5 transition-colors">
-                    <td className="
-                      sticky left-0 z-20
+          {/* 表格渲染 */}
+          {scheduleData && scheduleData.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
+              <table className="w-full border-collapse bg-surface/30">
+                <thead>
+                  <tr>
+                    <th className="
+                      sticky left-0 z-20 
                       bg-surface/95 backdrop-blur-md
-                      p-4 border-r border-white/10 
-                      font-semibold text-primary text-center
+                      p-4 border-b-2 border-r border-primary/30
+                      text-primary font-bold min-w-[150px]
                       shadow-lg
-                      transition-colors
-                      group-hover:bg-surface/90
                     ">
-                      {NAME_MAPPINGS[row[0]] || row[0]}
-                    </td>
+                      同事
+                    </th>
                     
-                    {/* 班次單元格 */}
-                    {row.slice(1).map((cell, cellIndex) => {
-                      const shiftStyle = getShiftStyle(cell);
-                      const isToday = new Date(getFilteredData()[1][cellIndex + 1]).toDateString() === new Date().toDateString();
+                    {/* 日期列 */}
+                    {getFilteredData()[1].slice(1).map((header, index) => {
+                      const date = new Date(header);
+                      const isToday = new Date(header).toDateString() === new Date().toDateString();
                       
                       return (
-                        <td key={cellIndex} className={`
-                          relative p-4 
-                          border-b border-white/5
-                          text-center
-                          transition-all duration-300
-                          ${shiftStyle ? `
-                            ${shiftStyle.background} 
-                            ${shiftStyle.text}
-                            ${shiftStyle.border}
-                            hover:shadow-lg hover:scale-[1.02]
-                          ` : ''}
-                          ${isToday ? 'ring-2 ring-primary/30 ring-inset' : ''}
-                        `}
-                        title={cell}
-                        >
-                          <span className="relative z-10 font-medium">
-                            {shiftStyle ? shiftStyle.label : cell}
-                          </span>
-                        </td>
+                        <th key={index} className={`
+                          relative
+                          p-4 border-b-2 border-primary/30
+                          text-center font-bold
+                          min-w-[100px] 
+                          bg-surface/40
+                          backdrop-blur-md
+                          transition-colors
+                          ${isToday ? 'bg-primary/10' : ''}
+                        `}>
+                          {isToday && (
+                            <span className="
+                              absolute top-1 right-1
+                              text-[10px] font-semibold
+                              bg-primary text-white
+                              px-2 py-0.5 rounded-full
+                              shadow-lg shadow-primary/20
+                              ring-2 ring-primary/50
+                              animate-pulse
+                            ">
+                              今天
+                            </span>
+                          )}
+                          <div className="text-lg text-primary">
+                            {formatDate(header)}
+                          </div>
+                          <div className="text-xs mt-1 text-text-secondary">
+                            {['日', '一', '二', '三', '四', '五', '六'][date.getDay()]}
+                          </div>
+                        </th>
                       );
                     })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12 text-text-secondary">
-            <p className="text-lg mb-2">尚無班表數據</p>
-            <p className="text-sm">點擊上方工具按鈕開始匯入班表</p>
+                </thead>
+                <tbody>
+                  {getFilteredData().slice(2).map((row, rowIndex) => (
+                    <tr key={rowIndex} className="group hover:bg-white/5 transition-colors">
+                      <td className="
+                        sticky left-0 z-20
+                        bg-surface/95 backdrop-blur-md
+                        p-4 border-r border-white/10 
+                        font-semibold text-primary text-center
+                        shadow-lg
+                        transition-colors
+                        group-hover:bg-surface/90
+                      ">
+                        {NAME_MAPPINGS[row[0]] || row[0]}
+                      </td>
+                      
+                      {/* 班次單元格 */}
+                      {row.slice(1).map((cell, cellIndex) => {
+                        const shiftStyle = getShiftStyle(cell);
+                        const isToday = new Date(getFilteredData()[1][cellIndex + 1]).toDateString() === new Date().toDateString();
+                        
+                        return (
+                          <td key={cellIndex} className={`
+                            relative p-4 
+                            border-b border-white/5
+                            text-center
+                            transition-all duration-300
+                            ${shiftStyle ? `
+                              ${shiftStyle.background} 
+                              ${shiftStyle.text}
+                              ${shiftStyle.border}
+                              hover:shadow-lg hover:scale-[1.02]
+                            ` : ''}
+                            ${isToday ? 'ring-2 ring-primary/30 ring-inset' : ''}
+                          `}
+                          title={cell}
+                          >
+                            <span className="relative z-10 font-medium">
+                              {shiftStyle ? shiftStyle.label : cell}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-text-secondary">
+              <p className="text-lg mb-2">尚無班表數據</p>
+              <p className="text-sm">點擊上方工具按鈕開始匯入班表</p>
+            </div>
+          )}
+        </div>
+
+        {/* 移除原本的統計面板，改為彈出式視窗 */}
+        {showStats && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-surface rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold">班表統計</h2>
+                <button 
+                  onClick={() => setShowStats(false)}
+                  className="btn-icon"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6">
+                <ScheduleStats 
+                  scheduleData={getFilteredData().slice(2).reduce((acc, row) => {
+                    const employeeId = row[0];
+                    acc[employeeId] = {
+                      morning: row.slice(1).filter(cell => 
+                        cell.includes('4:30-13:00') || cell.includes('4：30-13：00')
+                      ).length,
+                      evening: row.slice(1).filter(cell => 
+                        cell.includes('13:00-21:30') || cell.includes('13：00-21：30')
+                      ).length
+                    };
+                    return acc;
+                  }, {})}
+                  employees={Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => ({
+                    id: fullName,
+                    name: nickname
+                  }))}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
