@@ -63,6 +63,13 @@ function SandwichCalculator() {
     setResults(null)
   }
   
+  // 分配方式選項
+  const distributionMethods = [
+    { value: 'even', label: '平均分配' },
+    { value: 'ham', label: '優先火腿' },
+    { value: 'salami', label: '優先臘腸' }
+  ]
+  
   return (
     <div className="max-w-2xl mx-auto px-4">
       <div className="bg-surface rounded-2xl p-6 shadow-xl">
@@ -171,33 +178,76 @@ function SandwichCalculator() {
             <label className="block text-sm text-text-secondary mb-2">
               分配方式
             </label>
-            <select
-              className="input-field w-full"
-              value={values.distribution}
-              onChange={e => setValues({
-                ...values,
-                distribution: e.target.value
-              })}
-            >
-              <option value="even">平均分配（若不均則優先火腿）</option>
-              <option value="ham">優先分配給火腿三明治</option>
-              <option value="salami">優先配給臘腸三明治</option>
-            </select>
+            <div className="flex gap-2">
+              {distributionMethods.map((method) => (
+                <button
+                  key={method.value}
+                  onClick={() => setValues({
+                    ...values,
+                    distribution: method.value
+                  })}
+                  className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                    values.distribution === method.value
+                      ? 'bg-primary text-white'
+                      : 'bg-white/5 hover:bg-white/10 text-text-secondary'
+                  }`}
+                >
+                  {method.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>
             <label className="block text-sm text-text-secondary mb-2">
-              額外需要的麵包包數
+              額外需要的麵包包數：{values.extraBags}
             </label>
             <input
-              type="number"
-              className="input-field w-full"
+              type="range"
+              min="0"
+              max="5"
+              step="1"
               value={values.extraBags}
               onChange={e => setValues({
                 ...values,
-                extraBags: e.target.value
+                extraBags: parseInt(e.target.value)
               })}
+              className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer
+                         touch-manipulation
+                         [&::-webkit-slider-thumb]:appearance-none
+                         [&::-webkit-slider-thumb]:w-6
+                         [&::-webkit-slider-thumb]:h-6
+                         [&::-webkit-slider-thumb]:rounded-full
+                         [&::-webkit-slider-thumb]:bg-primary
+                         [&::-webkit-slider-thumb]:cursor-pointer
+                         [&::-webkit-slider-thumb]:hover:bg-primary/80
+                         [&::-webkit-slider-thumb]:transition-colors
+                         [&::-moz-range-thumb]:appearance-none
+                         [&::-moz-range-thumb]:border-0
+                         [&::-moz-range-thumb]:w-6
+                         [&::-moz-range-thumb]:h-6
+                         [&::-moz-range-thumb]:rounded-full
+                         [&::-moz-range-thumb]:bg-primary
+                         [&::-moz-range-thumb]:cursor-pointer
+                         [&::-moz-range-thumb]:hover:bg-primary/80
+                         [&::-moz-range-thumb]:transition-colors
+                         [&::-ms-thumb]:appearance-none
+                         [&::-ms-thumb]:w-6
+                         [&::-ms-thumb]:h-6
+                         [&::-ms-thumb]:rounded-full
+                         [&::-ms-thumb]:bg-primary
+                         [&::-ms-thumb]:cursor-pointer
+                         [&::-ms-thumb]:hover:bg-primary/80
+                         [&::-ms-thumb]:transition-colors"
             />
+            <div className="flex justify-between text-xs text-text-secondary mt-2 px-1">
+              <span>0</span>
+              <span>1</span>
+              <span>2</span>
+              <span>3</span>
+              <span>4</span>
+              <span>5</span>
+            </div>
           </div>
         </div>
 
