@@ -13,12 +13,10 @@ export default defineConfig({
       }
     }
   },
-  optimizeDeps: {
-    include: ['xlsx']
-  },
-  build: {
-    commonjsOptions: {
-      include: [/xlsx/]
+  resolve: {
+    alias: {
+      'react': 'react',
+      'react-dom': 'react-dom'
     }
   }
 }) 
