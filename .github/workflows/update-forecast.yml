@@ -1,0 +1,25 @@
+name: Update Flight Forecast
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 每天凌晨執行
+  workflow_dispatch:      # 允許手動觸發
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Download forecast
+        run: |
+          DATE=$(date +%Y_%m_%d)
+          curl -o public/forecast/$DATE.xls https://www.taoyuan-airport.com/uploads/fos/$DATE.xls
+          
+      - name: Commit and push
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add public/forecast
+          git commit -m "Update forecast for $(date +%Y-%m-%d)" || exit 0
+          git push 

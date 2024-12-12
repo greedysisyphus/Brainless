@@ -5,6 +5,7 @@ import LoadingPage from './pages/LoadingPage'
 import ErrorPage from './pages/ErrorPage'
 import DataConverter from './pages/DataConverter'
 import Schedule from './pages/Schedule'
+import FlightForecastTest from './pages/FlightForecastTest'
 
 // 懶加載頁面
 const SandwichCalculator = lazy(() => import('./pages/SandwichCalculator'))
@@ -21,6 +22,7 @@ function App() {
             <Route path="/cashier" element={<CashierManagement />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/data-converter" element={<DataConverter />} />
+            <Route path="/flight-forecast" element={<FlightForecastTest />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>

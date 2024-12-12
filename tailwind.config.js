@@ -7,16 +7,29 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#6366f1',
-        secondary: '#8b5cf6',
+        primary: '#3b82f6',
         surface: '#1e1e2e',
         background: '#13131a',
         text: {
-          primary: '#ffffff',
+          DEFAULT: '#ffffff',
           secondary: '#94a3b8'
+        },
+        error: {
+          DEFAULT: '#ef4444',
+          secondary: '#dc2626'
+        },
+        warning: {
+          DEFAULT: '#f59e0b',
+          secondary: '#d97706'
+        },
+        success: {
+          DEFAULT: '#22c55e',
+          secondary: '#16a34a'
         }
       }
-    },
+    }
   },
-  plugins: []
+  plugins: [
+    require('tailwind-scrollbar')
+  ]
 } 
