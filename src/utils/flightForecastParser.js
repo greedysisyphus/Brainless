@@ -132,13 +132,13 @@ export const getForecastUrl = (date) => {
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
   const day = date.getDate().toString().padStart(2, '0')
   
-  return `/api/fos/${year}_${month}_${day}.xls`
+  // 使用本地數據路徑
+  return `/Brainless/data/${year}_${month}_${day}.xls`
 }
 
 // 自動下載並解析預報表
 export const autoFetchForecast = async () => {
   try {
-    // 獲取今天和明天的數據
     const today = new Date()
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -152,7 +152,6 @@ export const autoFetchForecast = async () => {
       today: todayResult,
       tomorrow: tomorrowResult
     }
-    
   } catch (error) {
     console.error('自動更新失敗:', error)
     throw error
@@ -162,13 +161,29 @@ export const autoFetchForecast = async () => {
 // 獲取單日數據
 const fetchSingleDay = async (date) => {
   const url = getForecastUrl(date)
-  const response = await fetch(url)
   
-  if (!response.ok) {
-    throw new Error(`下載預報表失敗: ${date.toLocaleDateString()}`)
+  try {
+    // 添加請求頭以模擬瀏覽器請求
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://www.taoyuan-airport.com'
+      },
+      mode: 'cors'  // 允許跨域請求
+    })
+    
+    if (!response.ok) {
+      throw new Error(`下載預報表失敗: ${date.toLocaleDateString()}`)
+    }
+    
+    const blob = await response.blob()
+    const result = await parseFlightForecast(blob)
+    return result
+    
+  } catch (error) {
+    console.error(`下載 ${date.toLocaleDateString()} 預報表失敗:`, error)
+    throw error
   }
-  
-  const blob = await response.blob()
-  const result = await parseFlightForecast(blob)
-  return result
 } 

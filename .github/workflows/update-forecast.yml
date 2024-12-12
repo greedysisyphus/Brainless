@@ -8,18 +8,23 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v2
       
       - name: Download forecast
         run: |
+          mkdir -p public/data
           DATE=$(date +%Y_%m_%d)
-          curl -o public/forecast/$DATE.xls https://www.taoyuan-airport.com/uploads/fos/$DATE.xls
+          TOMORROW=$(date -d "tomorrow" +%Y_%m_%d)
+          curl -L -o "public/data/${DATE}.xls" "https://www.taoyuan-airport.com/uploads/fos/${DATE}.xls"
+          curl -L -o "public/data/${TOMORROW}.xls" "https://www.taoyuan-airport.com/uploads/fos/${TOMORROW}.xls"
           
       - name: Commit and push
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
-          git add public/forecast
-          git commit -m "Update forecast for $(date +%Y-%m-%d)" || exit 0
-          git push 
+          git add public/data
+          git commit -m "Update forecast data for $(date +%Y-%m-%d)" || exit 0
+          git push
