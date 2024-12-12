@@ -132,8 +132,8 @@ export const getForecastUrl = (date) => {
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
   const day = date.getDate().toString().padStart(2, '0')
   
-  // 使用本地數據路徑
-  return `/Brainless/data/${year}_${month}_${day}.xls`
+  // 直接使用完整 URL
+  return `https://www.taoyuan-airport.com/uploads/fos/${year}_${month}_${day}.xls`
 }
 
 // 自動下載並解析預報表
@@ -169,9 +169,10 @@ const fetchSingleDay = async (date) => {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': '*/*',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.taoyuan-airport.com'
+        'Referer': 'https://www.taoyuan-airport.com',
+        'Origin': 'https://www.taoyuan-airport.com'
       },
-      mode: 'cors'  // 允許跨域請求
+      mode: 'no-cors'  // 嘗試使用 no-cors 模式
     })
     
     if (!response.ok) {
