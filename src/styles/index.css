@@ -5,7 +5,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-text-primary min-h-screen font-sans;
+    @apply bg-background text-white min-h-screen font-sans;
   }
 }
 
@@ -15,39 +15,26 @@
            shadow-lg transition-all duration-300
            hover:-translate-y-0.5 hover:shadow-primary/50
            overflow-hidden;
-    background: linear-gradient(to right, theme('colors.primary'), theme('colors.secondary'));
-  }
-  
-  .btn-primary:hover {
-    background: linear-gradient(to right, theme('colors.purple.500'), theme('colors.indigo.500'));
   }
   
   .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply container mx-auto px-4;
   }
   
   .input-field {
     @apply bg-surface/50 border border-white/10 
-           rounded-lg px-4 py-2 text-text-primary
+           rounded-lg px-4 py-2 text-white
            focus:border-primary focus:ring-2 focus:ring-primary/50
            hover:border-white/20 transition-all duration-300
-           placeholder:text-text-secondary/50;
+           placeholder:text-gray-400;
   }
 
   .card {
-    @apply bg-surface rounded-xl p-6 shadow-lg
-           border border-white/5 backdrop-blur-sm
-           hover:border-primary/20 transition-all duration-500
-           hover:shadow-xl hover:shadow-primary/5
-           transform hover:-translate-y-1;
+    @apply bg-surface/30 rounded-lg p-6;
   }
 
   .card-header {
-    @apply text-xl font-bold mb-6;
-    background: linear-gradient(to right, theme('colors.primary'), theme('colors.secondary'));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    @apply text-2xl font-bold text-white;
   }
 
   .summary-row {
@@ -56,76 +43,15 @@
   }
 
   .summary-label {
-    @apply text-text-secondary font-medium;
+    @apply text-gray-400 font-medium;
   }
 
   .summary-value {
-    @apply font-semibold;
-  }
-
-  /* 添加頁面切換動畫 */
-  .page-enter {
-    @apply opacity-0 transform translate-x-4;
-  }
-  
-  .page-enter-active {
-    @apply opacity-100 transform translate-x-0 transition-all duration-300;
-  }
-  
-  /* 卡片懸停效果 */
-  .card {
-    @apply bg-surface rounded-xl p-6 shadow-lg
-           border border-white/5 backdrop-blur-sm
-           hover:border-primary/20 transition-all duration-500
-           hover:shadow-xl hover:shadow-primary/5
-           transform hover:-translate-y-1;
-  }
-
-  /* 漸變標題 */
-  .gradient-text {
-    @apply font-bold bg-gradient-to-r from-primary via-purple-500 to-secondary 
-           bg-clip-text text-transparent animate-gradient;
-  }
-
-  /* 閃光按鈕效果 */
-  .btn-primary {
-    @apply relative overflow-hidden;
-  }
-
-  .btn-primary::after {
-    @apply absolute inset-0 bg-gradient-to-r from-transparent 
-           via-white/20 to-transparent -translate-x-full;
-    content: '';
-    animation: shimmer 2s infinite;
-  }
-
-  @keyframes shimmer {
-    100% {
-      transform: translateX(100%);
-    }
-  }
-
-  .logo {
-    @apply transition-all duration-500;
-    /* 旋轉懸停效果 */
-    &:hover {
-      @apply transform rotate-[360deg];
-    }
-  }
-
-  /* 呼吸光效果 */
-  .logo-glow {
-    @apply transition-all duration-1000;
-    animation: logo-pulse 3s infinite;
-  }
-
-  /* 漂浮效果 */
-  .logo-float {
-    animation: float 3s ease-in-out infinite;
+    @apply font-semibold text-white;
   }
 
   .btn-icon {
-    @apply p-2 rounded-lg text-text-secondary 
+    @apply p-2 rounded-lg text-gray-400 
            hover:bg-white/10 transition-colors
            focus:outline-none focus:ring-2 focus:ring-primary;
   }
@@ -141,38 +67,9 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply rounded transition-all duration-300;
-  background: linear-gradient(to bottom, theme('colors.primary'), theme('colors.secondary'));
+  @apply bg-primary rounded;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, theme('colors.purple.500'), theme('colors.indigo.500'));
-}
-
-/* 動畫 */
-@keyframes glow {
-  0% { box-shadow: 0 0 5px theme('colors.primary'), 0 0 10px theme('colors.primary'); }
-  100% { box-shadow: 0 0 20px theme('colors.primary'), 0 0 30px theme('colors.primary'); }
-}
-
-.animate-glow {
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes logo-pulse {
-  0%, 100% { 
-    filter: drop-shadow(0 0 0.5rem theme('colors.primary')); 
-  }
-  50% { 
-    filter: drop-shadow(0 0 1.5rem theme('colors.secondary')); 
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  @apply bg-primary/80;
 } 
