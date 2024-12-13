@@ -8,23 +8,15 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write    # 添加寫入權限
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: main      # 指定分支
-      
-      - name: Set up timezone
-        uses: szenius/set-timezone@v1.0
-        with:
-          timezoneLinux: "Asia/Taipei"
       
       - name: Create data directory
-        run: |
-          mkdir -p data
+        run: mkdir -p public/data
       
       - name: Download forecast
+        env:
+          TZ: 'Asia/Taipei'  # 設置時區為台北時間
         run: |
           DATE=$(date +%Y_%m_%d)
           TOMORROW=$(date -d "tomorrow" +%Y_%m_%d)
@@ -32,20 +24,19 @@ jobs:
           # 下載今天的數據
           curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
                -H "Referer: https://www.taoyuan-airport.com" \
-               -o data/$DATE.xls \
+               -o public/data/$DATE.xls \
                https://www.taoyuan-airport.com/uploads/fos/$DATE.xls
           
           # 下載明天的數據
           curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
                -H "Referer: https://www.taoyuan-airport.com" \
-               -o data/$TOMORROW.xls \
+               -o public/data/$TOMORROW.xls \
                https://www.taoyuan-airport.com/uploads/fos/$TOMORROW.xls
-      
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./data
-          destination_dir: data
-          commit_message: "Update forecast data for ${{ env.TZ }} $(date +'%Y-%m-%d')"
-          enable_jekyll: false
+          
+      - name: Commit and push
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add public/data
+          git commit -m "Update forecast data for $(TZ='Asia/Taipei' date +%Y-%m-%d)" || exit 0
+          git push 
