@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 
 function Clock() {
   const [countdown, setCountdown] = useState(null)
   const [countdownType, setCountdownType] = useState(null)
-  const [shift, setShift] = useState(null) // 'morning' | 'afternoon' | null
+  const [shift, setShift] = useState(null)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -33,7 +33,7 @@ function Clock() {
           remainingTime = (24 * 60 - currentMinutes) + morningStart
         }
         setCountdownType('workStart')
-        setShift('morning') // 預設顯示早班
+        setShift('morning')
       }
       
       setCountdown(remainingTime)
@@ -42,25 +42,32 @@ function Clock() {
     return () => clearInterval(timer)
   }, [])
 
+  // 根據剩餘時間返回樣式
+  const getTimeStyle = (minutes) => {
+    if (minutes === null) return 'text-text-secondary'
+    if (minutes <= 30) return 'text-red-400 bg-red-400/10 ring-1 ring-red-400'
+    if (minutes <= 120) return 'text-orange-400 bg-orange-400/10 ring-1 ring-orange-400'
+    return 'text-primary bg-primary/10 ring-1 ring-primary'
+  }
+
   const formatCountdown = (minutes) => {
+    if (minutes === null) return ''
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return `${hours}小時 ${mins}分鐘`
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm bg-gray-800/50 px-4 py-2 rounded-lg">
-      <span className="text-gray-400 font-medium">
+    <div className="flex items-center gap-2 text-sm">
+      <span className="text-text-secondary">
         {countdownType === 'workEnd' 
-          ? `${shift === 'morning' ? '早班' : '晚班'}離下班還有` 
-          : '早班離上班還有'}
+          ? `${shift === 'morning' ? '早班' : '晚班'}離下班還有 ` 
+          : '早班離上班還有 '}
       </span>
       <span className={`
         font-medium px-3 py-1 rounded-full
-        ${countdownType === 'workEnd' 
-          ? 'text-blue-500 bg-blue-500/10 animate-pulse'
-          : 'text-yellow-500 bg-yellow-500/10 animate-pulse'
-        }
+        ${getTimeStyle(countdown)}
+        transition-all duration-300
       `}>
         {formatCountdown(countdown)}
       </span>

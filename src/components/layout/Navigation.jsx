@@ -3,7 +3,7 @@ import {
   CalculatorIcon, 
   BanknotesIcon, 
   CalendarIcon,
-  ClockIcon 
+  ChartBarIcon 
 } from '@heroicons/react/24/outline'
 
 const MENU_ITEMS = [
@@ -22,6 +22,11 @@ const MENU_ITEMS = [
     label: '班表', 
     icon: <CalendarIcon className="w-5 h-5" />
   },
+  { 
+    path: '/flight-forecast', 
+    label: '航班預報', 
+    icon: <ChartBarIcon className="w-5 h-5" />
+  }
 ]
 
 function Navigation() {

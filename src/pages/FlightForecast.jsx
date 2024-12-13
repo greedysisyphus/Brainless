@@ -3,7 +3,7 @@ import { parseFlightForecast, getForecastUrl } from '../utils/flightForecastPars
 import { Tab } from '@headlessui/react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
-function FlightForecastTest() {
+function FlightForecast() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -349,4 +349,4 @@ function FlightForecastTest() {
   )
 }
 
-export default FlightForecastTest 
+export default FlightForecast 

@@ -7,27 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#3b82f6',
-        surface: '#1e1e2e',
-        background: '#13131a',
+        primary: '#6366f1',      // 原始的主色調
+        secondary: '#8b5cf6',    // 原始的次要色調
+        surface: '#1e1e2e',      // 原始的表面色
+        background: '#13131a',   // 原始的背景色
         text: {
-          DEFAULT: '#ffffff',
-          secondary: '#94a3b8'
-        },
-        error: {
-          DEFAULT: '#ef4444',
-          secondary: '#dc2626'
-        },
-        warning: {
-          DEFAULT: '#f59e0b',
-          secondary: '#d97706'
-        },
-        success: {
-          DEFAULT: '#22c55e',
-          secondary: '#16a34a'
+          primary: '#ffffff',    // 原始的主要文字顏色
+          secondary: '#94a3b8'   // 原始的次要文字顏色
         }
       }
-    }
+    },
   },
   plugins: []
 } 

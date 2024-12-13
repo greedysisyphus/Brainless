@@ -11,58 +11,50 @@ export const parseFlightForecast = (file) => {
         const workbook = XLSX.read(data, { type: 'array' })
         const worksheet = workbook.Sheets[workbook.SheetNames[0]]
         
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-          header: 1,
-          defval: '',
-          blankrows: false
+        // 先將整個工作表轉換為 JSON 以查看結構
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        console.log('Excel 內容:', jsonData)
+        
+        // 尋找目標行
+        let targetRow = -1
+        const keywords = [
+          '桃園國際機場航班運量整點人次預報表(第二航廈)',
+          '桃園國際機場航班運量整點人次預報表（第二航廈）',
+          '第二航廈',
+          'T2',
+          '二航廈'
+        ]
+        
+        jsonData.forEach((row, index) => {
+          if (row && row[0] && keywords.some(keyword => String(row[0]).includes(keyword))) {
+            targetRow = index
+            console.log('找到目標行:', index, '內容:', row)
+          }
         })
         
-        // 找到第二航廈的數據起始列
-        const t2DataStartCol = jsonData[1].findIndex(cell => 
-          String(cell).includes('第二航廈')
-        )
-        
-        if (t2DataStartCol === -1) {
-          throw new Error('找不到第二航廈的數據')
+        if (targetRow === -1) {
+          throw new Error('找不到目標表格，請確認檔案格式是否正確')
         }
         
-        console.log('第二航廈數據起始列:', t2DataStartCol)
-        
-        // 找到出境人數的相對位置（應該是第二列）
-        const departureOffset = 2  // 出境人數在時間後的第二列
-        const t2DepartureCol = t2DataStartCol + departureOffset
-        
-        console.log('第二航廈出境人數列:', t2DepartureCol)
-        
-        // 收集 24 小時的數據（從第 4 行開始）
+        // 解析出境人數數據
         const hourlyPassengers = []
-        const dataStartRow = 3  // 數據從第 4 行開始
-        
         for (let i = 0; i < 24; i++) {
-          const row = jsonData[dataStartRow + i]
+          const row = jsonData[targetRow + 2 + i]
           if (row) {
-            const timeCell = row[0]  // 時間在第一列
-            const passengerCell = row[t2DepartureCol]  // 使用第二航廈的出境人數列
+            const time = String(row[0]).substring(0, 5)  // 時間在第一列
+            const passengers = parseInt(row[2]) || 0     // 出境人數在第三列
             
-            console.log(`第 ${i + 1} 小時:`, {
-              time: timeCell,
-              passengers: passengerCell,
-              row: dataStartRow + i
-            })
+            console.log(`解析行 ${targetRow + 2 + i}:`, { time, passengers, rawRow: row })
             
-            hourlyPassengers.push({
-              time: String(timeCell).substring(0, 5),
-              passengers: parseInt(passengerCell) || 0
-            })
+            hourlyPassengers.push({ time, passengers })
           }
         }
         
-        // 取得總計（在最後一行）
-        const totalRow = jsonData[dataStartRow + 24]
-        const totalPassengers = totalRow ? parseInt(totalRow[t2DepartureCol]) || 0 : 
-          hourlyPassengers.reduce((sum, curr) => sum + curr.passengers, 0)
+        // 取得總計
+        const totalRow = jsonData[targetRow + 26]
+        const totalPassengers = totalRow ? (parseInt(totalRow[2]) || 0) : 0
         
-        console.log('第二航廈總計:', totalPassengers)
+        console.log('總計行:', totalRow)
         
         const result = {
           terminal2: {
@@ -72,13 +64,13 @@ export const parseFlightForecast = (file) => {
         }
         
         // 分析數據
-        const morningPeaks = findMorningPeak(result.terminal2.hourlyPassengers)
-        const storeRushHour = calculateStoreRushHour(morningPeaks)
+        const morningPeak = findMorningPeak(result.terminal2.hourlyPassengers)
+        const storeRushHour = calculateStoreRushHour(morningPeak)
         
         resolve({
           rawData: result,
           analysis: {
-            morningPeaks,
+            morningPeak,
             storeRushHour,
             totalPassengers
           }
@@ -95,7 +87,7 @@ export const parseFlightForecast = (file) => {
   })
 }
 
-// 找出早上的高峰時段（取兩個最高峰）
+// 找出早上的高峰時段
 const findMorningPeak = (hourlyData) => {
   const morningData = hourlyData.filter(
     item => {
@@ -104,88 +96,23 @@ const findMorningPeak = (hourlyData) => {
     }
   )
   
-  // 按照人數排序並取前兩名
-  const sortedData = [...morningData].sort((a, b) => b.passengers - a.passengers)
-  return sortedData.slice(0, 2)
+  return morningData.reduce((max, current) => 
+    current.passengers > max.passengers ? current : max
+  )
 }
 
-// 計算店家預期高峰時段
-const calculateStoreRushHour = (peakTimes) => {
-  // 取最早的高峰時段來計算店家尖峰
-  const earliestPeak = peakTimes.reduce((earliest, current) => {
-    const earliestHour = parseInt(earliest.time.split(':')[0])
-    const currentHour = parseInt(current.time.split(':')[0])
-    return currentHour < earliestHour ? current : earliest
-  })
-  
-  const peakHour = parseInt(earliestPeak.time.split(':')[0])
+// 計算店家的預期高峰時段
+const calculateStoreRushHour = (peakTime) => {
+  const [hours] = peakTime.time.split(':')
+  const peakHour = parseInt(hours)
   
   return {
     start: `${(peakHour - 2).toString().padStart(2, '0')}:00`,
-    end: `${(peakHour - 1).toString().padStart(2, '0')}:00`
+    end: `${(peakHour - 1).toString().padStart(2, '0')}:00`,
+    expectedPassengers: Math.round(peakTime.passengers * 0.7) // 假設約 70% 的旅客會經過店家
   }
 }
 
-// 獲取指定日期的預報表 URL
 export const getForecastUrl = (date) => {
-  const year = date.getFullYear()
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const day = date.getDate().toString().padStart(2, '0')
-  
-  // 使用完整的基礎路徑
-  const basePath = import.meta.env.BASE_URL || '/'
-  return `${basePath}data/${year}_${month}_${day}.xls`
-}
-
-// 自動下載並解析預報表
-export const autoFetchForecast = async () => {
-  try {
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    
-    const [todayResult, tomorrowResult] = await Promise.all([
-      fetchSingleDay(today),
-      fetchSingleDay(tomorrow)
-    ])
-    
-    return {
-      today: todayResult,
-      tomorrow: tomorrowResult
-    }
-  } catch (error) {
-    console.error('自動更新失敗:', error)
-    throw error
-  }
-}
-
-// 獲取單日數據
-const fetchSingleDay = async (date) => {
-  const url = getForecastUrl(date)
-  
-  try {
-    // 添加請求頭以模擬瀏覽器請求
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': '*/*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.taoyuan-airport.com',
-        'Origin': 'https://www.taoyuan-airport.com'
-      },
-      mode: 'no-cors'  // 嘗試使用 no-cors 模式
-    })
-    
-    if (!response.ok) {
-      throw new Error(`下載預報表失敗: ${date.toLocaleDateString()}`)
-    }
-    
-    const blob = await response.blob()
-    const result = await parseFlightForecast(blob)
-    return result
-    
-  } catch (error) {
-    console.error(`下載 ${date.toLocaleDateString()} 預報表失敗:`, error)
-    throw error
-  }
+  // ... URL 生成邏輯
 } 

@@ -22,12 +22,6 @@
     background: linear-gradient(to right, theme('colors.purple.500'), theme('colors.indigo.500'));
   }
 
-  .btn-icon {
-    @apply p-2 rounded-lg text-text-secondary 
-           hover:bg-white/10 transition-colors
-           focus:outline-none focus:ring-2 focus:ring-primary;
-  }
-
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
@@ -69,12 +63,26 @@
     @apply font-semibold;
   }
 
+  /* 添加頁面切換動畫 */
+  .page-enter {
+    @apply opacity-0 transform translate-x-4;
+  }
+  
+  .page-enter-active {
+    @apply opacity-100 transform translate-x-0 transition-all duration-300;
+  }
+
+  /* 漸變標題 */
   .gradient-text {
     @apply font-bold bg-gradient-to-r from-primary via-purple-500 to-secondary 
            bg-clip-text text-transparent animate-gradient;
   }
 
   /* 閃光按鈕效果 */
+  .btn-primary {
+    @apply relative overflow-hidden;
+  }
+
   .btn-primary::after {
     @apply absolute inset-0 bg-gradient-to-r from-transparent 
            via-white/20 to-transparent -translate-x-full;
@@ -84,18 +92,27 @@
 
   .logo {
     @apply transition-all duration-500;
+    /* 旋轉懸停效果 */
     &:hover {
       @apply transform rotate-[360deg];
     }
   }
 
+  /* 呼吸光效果 */
   .logo-glow {
     @apply transition-all duration-1000;
     animation: logo-pulse 3s infinite;
   }
 
+  /* 漂浮效果 */
   .logo-float {
     animation: float 3s ease-in-out infinite;
+  }
+
+  .btn-icon {
+    @apply p-2 rounded-lg text-text-secondary 
+           hover:bg-white/10 transition-colors
+           focus:outline-none focus:ring-2 focus:ring-primary;
   }
 }
 
@@ -127,6 +144,10 @@
 @keyframes glow {
   0% { box-shadow: 0 0 5px theme('colors.primary'), 0 0 10px theme('colors.primary'); }
   100% { box-shadow: 0 0 20px theme('colors.primary'), 0 0 30px theme('colors.primary'); }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes logo-pulse {
