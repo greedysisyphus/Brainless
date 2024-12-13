@@ -33,23 +33,24 @@ function Navigation() {
   return (
     <nav className="bg-surface sticky top-0 z-50 shadow-lg">
       <div className="container-custom py-4">
-        <div className="flex justify-center gap-4">
+        <div className="grid grid-cols-4 gap-4">
           {MENU_ITEMS.map(item => (
             <NavLink 
               key={item.path}
               to={item.path}
               className={({ isActive }) => `
-                px-6 py-3 rounded-lg font-semibold transition-all duration-300
-                flex items-center gap-2
-                focus:ring-2 focus:ring-primary focus:outline-none
+                flex flex-col items-center justify-center
+                p-4 rounded-xl font-medium
+                transition-all duration-300
+                hover:bg-white/10
                 ${isActive 
-                  ? 'bg-primary text-white' 
-                  : 'bg-white/10 text-white hover:bg-white/20'
+                  ? 'bg-primary/10 text-primary ring-1 ring-primary'
+                  : 'text-text-secondary hover:text-white'
                 }
               `}
             >
               {item.icon}
-              {item.label}
+              <span className="mt-2">{item.label}</span>
             </NavLink>
           ))}
         </div>
