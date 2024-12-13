@@ -50,7 +50,7 @@ function Navigation() {
               `}
             >
               {item.icon}
-              <span className="mt-2">{item.label}</span>
+              <span className="hidden sm:block mt-2">{item.label}</span>
             </NavLink>
           ))}
         </div>
