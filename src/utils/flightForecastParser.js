@@ -1,118 +1,75 @@
 import * as XLSX from 'xlsx'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 
-// 用於解析航班預報表的工具函數
-export const parseFlightForecast = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
+dayjs.extend(utc)
+dayjs.extend(timezone)
+dayjs.tz.setDefault('Asia/Taipei')
+
+export async function getFlightForecast(testBuffer = null) {
+  try {
+    const today = dayjs().tz('Asia/Taipei')
+    const tomorrow = today.add(1, 'day')
     
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target.result)
-        const workbook = XLSX.read(data, { type: 'array' })
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-        
-        // 先將整個工作表轉換為 JSON 以查看結構
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
-        console.log('Excel 內容:', jsonData)
-        
-        // 尋找目標行
-        let targetRow = -1
-        const keywords = [
-          '桃園國際機場航班運量整點人次預報表(第二航廈)',
-          '桃園國際機場航班運量整點人次預報表（第二航廈）',
-          '第二航廈',
-          'T2',
-          '二航廈'
-        ]
-        
-        jsonData.forEach((row, index) => {
-          if (row && row[0] && keywords.some(keyword => String(row[0]).includes(keyword))) {
-            targetRow = index
-            console.log('找到目標行:', index, '內容:', row)
-          }
-        })
-        
-        if (targetRow === -1) {
-          throw new Error('找不到目標表格，請確認檔案格式是否正確')
-        }
-        
-        // 解析出境人數數據
-        const hourlyPassengers = []
-        for (let i = 0; i < 24; i++) {
-          const row = jsonData[targetRow + 2 + i]
-          if (row) {
-            const time = String(row[0]).substring(0, 5)  // 時間在第一列
-            const passengers = parseInt(row[2]) || 0     // 出境人數在第三列
-            
-            console.log(`解析行 ${targetRow + 2 + i}:`, { time, passengers, rawRow: row })
-            
-            hourlyPassengers.push({ time, passengers })
-          }
-        }
-        
-        // 取得總計
-        const totalRow = jsonData[targetRow + 26]
-        const totalPassengers = totalRow ? (parseInt(totalRow[2]) || 0) : 0
-        
-        console.log('總計行:', totalRow)
-        
-        const result = {
-          terminal2: {
-            hourlyPassengers,
-            totalPassengers
-          }
-        }
-        
-        // 分析數據
-        const morningPeak = findMorningPeak(result.terminal2.hourlyPassengers)
-        const storeRushHour = calculateStoreRushHour(morningPeak)
-        
-        resolve({
-          rawData: result,
-          analysis: {
-            morningPeak,
-            storeRushHour,
-            totalPassengers
-          }
-        })
-        
-      } catch (error) {
-        console.error('解析錯誤詳情:', error)
-        reject(error)
-      }
-    }
-    
-    reader.onerror = (error) => reject(error)
-    reader.readAsArrayBuffer(file)
-  })
-}
+    const forecasts = await Promise.all([
+      readForecastFile(today, testBuffer),
+      readForecastFile(tomorrow, testBuffer)
+    ])
 
-// 找出早上的高峰時段
-const findMorningPeak = (hourlyData) => {
-  const morningData = hourlyData.filter(
-    item => {
-      const hour = parseInt(item.time.split(':')[0])
-      return hour >= 4 && hour <= 13  // 早上 4 點到下午 1 點
+    return {
+      today: forecasts[0],
+      tomorrow: forecasts[1]
     }
-  )
-  
-  return morningData.reduce((max, current) => 
-    current.passengers > max.passengers ? current : max
-  )
-}
-
-// 計算店家的預期高峰時段
-const calculateStoreRushHour = (peakTime) => {
-  const [hours] = peakTime.time.split(':')
-  const peakHour = parseInt(hours)
-  
-  return {
-    start: `${(peakHour - 2).toString().padStart(2, '0')}:00`,
-    end: `${(peakHour - 1).toString().padStart(2, '0')}:00`,
-    expectedPassengers: Math.round(peakTime.passengers * 0.7) // 假設約 70% 的旅客會經過店家
+  } catch (error) {
+    console.error('Error getting flight forecast:', error)
+    return null
   }
 }
 
-export const getForecastUrl = (date) => {
-  // ... URL 生成邏輯
+async function readForecastFile(date, testBuffer = null) {
+  try {
+    let workbook;
+    if (testBuffer) {
+      workbook = XLSX.read(testBuffer);
+    } else {
+      const fileName = date.format('YYYY_MM_DD');
+      const response = await fetch(`/data/${fileName}.xls`);
+      const arrayBuffer = await response.arrayBuffer();
+      workbook = XLSX.read(arrayBuffer);
+    }
+    
+    const firstSheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[firstSheetName]
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+    
+    // 找到第二航廈的列索引
+    const terminal2ColumnIndex = data[1].findIndex(cell => 
+      cell && cell.includes('桃園國際機場航班運量整點人次預報表(第二航廈)'))
+    
+    if (terminal2ColumnIndex === -1) {
+      throw new Error('無法找到第二航廈數據')
+    }
+    
+    // 獲取出境數據的列
+    const departureData = data.slice(3).map(row => ({
+      time: row[0]?.split(' ~ ')[0], // 取時間區間的開始時間
+      quantity: parseInt(row[terminal2ColumnIndex + 2] || 0) // 出境桃園數量在第二航廈起始列後的第二列
+    })).filter(item => 
+      item.time && 
+      item.time !== '小計' &&  // 改用嚴格比較
+      item.time !== '總計' &&  // 改用嚴格比較
+      !item.time.includes('總人次') &&
+      !item.time.includes('＊本系統') // 過濾掉免責聲明
+    )
+    
+    // 格式化數據
+    return departureData.map(item => ({
+      time: item.time,
+      quantity: item.quantity || 0
+    }))
+  } catch (error) {
+    console.error(`Error reading forecast file for ${date.format('YYYY-MM-DD')}:`, error)
+    return null
+  }
 } 

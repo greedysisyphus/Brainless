@@ -2,7 +2,7 @@ name: Update Flight Forecast
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每天凌晨執行
+    - cron: '0 20 * * *'  # 每天凌晨執行
   workflow_dispatch:      # 允許手動觸發
 
 jobs:

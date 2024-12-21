@@ -3,7 +3,8 @@ import {
   CalculatorIcon, 
   BanknotesIcon, 
   CalendarIcon,
-  ChartBarIcon 
+  ChartBarIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline'
 
 const MENU_ITEMS = [
@@ -26,6 +27,11 @@ const MENU_ITEMS = [
     path: '/flight-forecast', 
     label: '航班預報', 
     icon: <ChartBarIcon className="w-5 h-5" />
+  },
+  { 
+    path: '/sandwich-history', 
+    label: '銷售記錄', 
+    icon: <ClipboardDocumentListIcon className="w-5 h-5" />
   }
 ]
 
@@ -33,7 +39,7 @@ function Navigation() {
   return (
     <nav className="bg-surface sticky top-0 z-50 shadow-lg">
       <div className="container-custom py-4">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
           {MENU_ITEMS.map(item => (
             <NavLink 
               key={item.path}
