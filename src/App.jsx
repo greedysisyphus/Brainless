@@ -5,13 +5,11 @@ import LoadingPage from './pages/LoadingPage'
 import ErrorPage from './pages/ErrorPage'
 import DataConverter from './pages/DataConverter'
 import Schedule from './pages/Schedule'
-import FlightForecast from './pages/FlightForecast'
-import { checkFirebaseConnection } from './utils/firebase'
+import { db, checkFirebaseConnection } from './utils/firebase'
 
 // 懶加載頁面
 const SandwichCalculator = lazy(() => import('./pages/SandwichCalculator'))
 const CashierManagement = lazy(() => import('./pages/CashierManagement'))
-const SandwichHistory = lazy(() => import('./pages/SandwichHistory'))
 
 function App() {
   useEffect(() => {
@@ -28,8 +26,6 @@ function App() {
             <Route path="/cashier" element={<CashierManagement />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/data-converter" element={<DataConverter />} />
-            <Route path="/flight-forecast" element={<FlightForecast />} />
-            <Route path="/sandwich-history" element={<SandwichHistory />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>

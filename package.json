@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest",
-    "import-data": "node src/utils/importHistoricalData.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
@@ -16,15 +14,13 @@
     "firebase": "^10.14.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.3",
-    "xlsx": "^0.18.5"
+    "react-router-dom": "^6.22.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
-    "vite": "^5.0.0",
-    "vitest": "^1.6.0"
+    "vite": "^5.0.0"
   }
 }

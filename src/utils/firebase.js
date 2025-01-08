@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, collection, getDocs, limit } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -10,13 +10,20 @@ const firebaseConfig = {
   appId: "1:902167883215:web:8dfc400a1035929c5bf6ba"
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// 檢查是否已經初始化
+let firebaseApp;
+if (!getApps().length) {
+  firebaseApp = initializeApp(firebaseConfig);
+} else {
+  firebaseApp = getApps()[0];
+}
+
+export const db = getFirestore(firebaseApp);
 
 // 添加一個初始化檢查函數
 export async function checkFirebaseConnection() {
   try {
-    const testDoc = await getDocs(collection(db, 'forecasts'), limit(1));
+    const testDoc = await getDocs(collection(db, 'schedules'), limit(1));
     console.log('Firebase 連接成功');
     return true;
   } catch (error) {
