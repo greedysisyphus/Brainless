@@ -3,9 +3,8 @@ import { Suspense, lazy, useEffect } from 'react'
 import Layout from './components/layout/Layout'
 import LoadingPage from './pages/LoadingPage'
 import ErrorPage from './pages/ErrorPage'
-import DataConverter from './pages/DataConverter'
 import Schedule from './pages/Schedule'
-import { db, checkFirebaseConnection } from './utils/firebase'
+import { checkFirebaseConnection } from './utils/firebase'
 
 // 懶加載頁面
 const SandwichCalculator = lazy(() => import('./pages/SandwichCalculator'))
@@ -25,7 +24,6 @@ function App() {
             <Route path="/sandwich" element={<SandwichCalculator />} />
             <Route path="/cashier" element={<CashierManagement />} />
             <Route path="/schedule" element={<Schedule />} />
-            <Route path="/data-converter" element={<DataConverter />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>

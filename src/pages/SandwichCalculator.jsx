@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import FlowForecastAlert from '../components/FlowForecastAlert'
 
 function SandwichCalculator() {
   const [settings, setSettings] = useState({
@@ -73,8 +72,6 @@ function SandwichCalculator() {
   
   return (
     <div className="container-custom py-8">
-      <FlowForecastAlert />
-      
       <div className="max-w-2xl mx-auto px-4">
         <div className="bg-surface rounded-2xl p-6 shadow-xl">
           <div className="header">

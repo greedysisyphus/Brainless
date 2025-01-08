@@ -1,5 +1,6 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, limit } from 'firebase/firestore';
+import { getApps } from 'firebase/app';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -11,14 +12,14 @@ const firebaseConfig = {
 };
 
 // 檢查是否已經初始化
-let firebaseApp;
+let app;
 if (!getApps().length) {
-  firebaseApp = initializeApp(firebaseConfig);
+  app = initializeApp(firebaseConfig);
 } else {
-  firebaseApp = getApps()[0];
+  app = getApps()[0];
 }
 
-export const db = getFirestore(firebaseApp);
+export const db = getFirestore(app);
 
 // 添加一個初始化檢查函數
 export async function checkFirebaseConnection() {
