@@ -18,7 +18,7 @@ const MENU_ITEMS = [
   },
   { 
     path: '/schedule', 
-    label: '班表統計', 
+    label: '班表', 
     icon: <CalendarIcon className="w-5 h-5" />
   }
 ]

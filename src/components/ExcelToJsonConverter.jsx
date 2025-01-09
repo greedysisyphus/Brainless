@@ -7,7 +7,9 @@ const NAME_MAPPINGS = {
   'A60-羅稚婕 Ashely 咖啡師': 'Ashley',
   'A88-沈恩廷 Lydia 咖啡師': '恩廷',
   'A89-林渭麟 Jovi 咖啡師': 'Jovi',
-  'A93-陳世芬 Nina 咖啡師': 'Nina'
+  'A93-陳世芬 Nina 咖啡師': 'Nina',
+  'A102-張敏涵 Roxie 咖啡師': 'Roxie',
+  'A101-劉芷溶 Nan 咖啡師': 'Nan'
 }
 
 function ExcelToJsonConverter({ onJsonGenerated }) {

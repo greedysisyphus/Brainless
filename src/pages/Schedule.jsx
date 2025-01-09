@@ -8,7 +8,8 @@ import {
   ShareIcon,
   ChevronDownIcon,
   ChartBarIcon,
-  XMarkIcon
+  XMarkIcon,
+  UsersIcon
 } from '@heroicons/react/24/outline'
 import ExcelToJsonConverter from '../components/ExcelToJsonConverter'
 import ScheduleStats from '../components/schedule/ScheduleStats'
@@ -58,6 +59,289 @@ const formatDate = (dateStr) => {
   }
 }
 
+// 添加班次類型常量
+const SHIFT_TYPES = {
+  MORNING: '早班',
+  EVENING: '晚班',
+  MIDDLE: '中班',
+  HSR: '高鐵',
+  OFF: '休假',
+  SPECIAL: '特休'
+}
+
+// 添加配搭計算函數
+function calculatePairings(scheduleData) {
+  const pairings = {}
+
+  // 初始化配搭計數器
+  Object.values(NAME_MAPPINGS).forEach(name1 => {
+    pairings[name1] = {}
+    Object.values(NAME_MAPPINGS).forEach(name2 => {
+      if (name1 !== name2) {
+        pairings[name1][name2] = 0
+      }
+    })
+  })
+
+  // 獲取每天的班次
+  const dates = scheduleData[1].slice(1) // 跳過第一列的空值
+  dates.forEach((_, dateIndex) => {
+    const dayShifts = {}
+    
+    // 收集當天每個人的班次
+    scheduleData.slice(2).forEach(row => {
+      const name = NAME_MAPPINGS[row[0]]
+      const shift = row[dateIndex + 1]
+      
+      // 判斷班次類型
+      let shiftType = null
+      if (shift.includes('4:30-13:00') || shift.includes('4：30-13：00')) {
+        shiftType = SHIFT_TYPES.MORNING
+      } else if (shift.includes('13:00-21:30') || shift.includes('13：00-21：30')) {
+        shiftType = SHIFT_TYPES.EVENING
+      } else if (shift.includes('7:30-16:00') || shift.includes('7：30-16：00')) {
+        shiftType = SHIFT_TYPES.MIDDLE
+      } else if (shift.includes('6:00-14:30') || shift.includes('6：00-14：30')) {
+        shiftType = SHIFT_TYPES.HSR
+      } else if (shift === '月休' || shift.includes('特休假')) {
+        shiftType = SHIFT_TYPES.OFF
+      }
+      
+      if (shiftType) {
+        dayShifts[name] = shiftType
+      }
+    })
+
+    // 計算配搭次數
+    Object.entries(dayShifts).forEach(([name1, shift1]) => {
+      Object.entries(dayShifts).forEach(([name2, shift2]) => {
+        if (name1 !== name2) {
+          // 早班配早班
+          if (shift1 === SHIFT_TYPES.MORNING && shift2 === SHIFT_TYPES.MORNING) {
+            pairings[name1][name2]++
+          }
+          // 晚班配晚班
+          if (shift1 === SHIFT_TYPES.EVENING && shift2 === SHIFT_TYPES.EVENING) {
+            pairings[name1][name2]++
+          }
+          // 中班配早班或晚班
+          if (shift1 === SHIFT_TYPES.MIDDLE && 
+             (shift2 === SHIFT_TYPES.MORNING || shift2 === SHIFT_TYPES.EVENING)) {
+            pairings[name1][name2]++
+          }
+          if (shift2 === SHIFT_TYPES.MIDDLE && 
+             (shift1 === SHIFT_TYPES.MORNING || shift1 === SHIFT_TYPES.EVENING)) {
+            pairings[name1][name2]++
+          }
+        }
+      })
+    })
+  })
+
+  return pairings
+}
+
+// 修改 PairingsStats 組件
+function PairingsStats({ pairings, onClose }) {
+  const [selectedStaff, setSelectedStaff] = useState(null)
+  const maxPairings = Math.max(...Object.values(pairings).flatMap(p => Object.values(p)))
+
+  const getColorClass = (count) => {
+    if (count === 0) return 'bg-surface/30'
+    const intensity = Math.ceil((count / maxPairings) * 5)
+    switch (intensity) {
+      case 1: return 'bg-primary/10'
+      case 2: return 'bg-primary/20'
+      case 3: return 'bg-primary/30'
+      case 4: return 'bg-primary/40'
+      case 5: return 'bg-primary/50'
+      default: return 'bg-surface/30'
+    }
+  }
+
+  // 獲取指定同事的配搭統計
+  const getStaffPairings = (staffName) => {
+    const pairs = pairings[staffName] || {}
+    return Object.entries(pairs)
+      .filter(([name, count]) => count > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }))
+  }
+
+  const getTotalPairings = (staffName) => {
+    if (!staffName) return null;
+    return Object.values(pairings[staffName] || {}).reduce((sum, count) => sum + count, 0);
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedStaff(null);
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-surface rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+        <div className="flex justify-between items-center p-6 border-b border-white/10">
+          <div>
+            <h2 className="text-xl font-bold">配搭統計</h2>
+            <p className="text-sm text-text-secondary mt-1">
+              {selectedStaff ? `${selectedStaff} 的配搭詳情` : '選擇同事查看配搭詳情'}
+            </p>
+          </div>
+          <button onClick={onClose} className="btn-icon">
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6">
+          {/* 添加 Toggle Buttons */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-text-secondary mb-3">
+              選擇同事
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedStaff(null)}
+                className={`
+                  px-4 py-2 rounded-full text-sm font-medium
+                  transition-all duration-200
+                  border-2 border-white/10
+                  ${!selectedStaff ? 
+                    'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
+                    'hover:border-white/20'
+                  }
+                `}
+              >
+                全部
+              </button>
+              {Object.values(NAME_MAPPINGS).map(name => (
+                <button
+                  key={name}
+                  onClick={() => setSelectedStaff(name)}
+                  className={`
+                    px-3 py-1.5 rounded-full text-sm font-medium
+                    transition-all duration-200 
+                    border-2
+                    ${selectedStaff === name
+                      ? `bg-gradient-to-r ${STAFF_COLORS[name] || 'from-primary/20 to-secondary/20'} 
+                         border-l-2 shadow-lg shadow-black/20 scale-105`
+                      : 'border-white/10 hover:border-white/20 hover:scale-105'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-1.5 min-w-[60px] justify-center">
+                    {name}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {selectedStaff ? (
+            // 顯示選中同事的配搭詳情
+            <div className="space-y-3">
+              {getStaffPairings(selectedStaff).map(({ name, count }) => (
+                <div 
+                  key={name}
+                  className={`
+                    p-4 rounded-lg flex items-center justify-between
+                    ${getColorClass(count)}
+                    transform transition-all duration-200
+                    hover:scale-[1.02] hover:shadow-lg
+                    hover:-translate-y-0.5
+                  `}
+                >
+                  <span className="font-medium">{name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-black/20 px-3 py-1 rounded-full text-sm">
+                      配搭 {count} 次
+                    </span>
+                    <div className="w-16 h-2 rounded-full bg-black/20 overflow-hidden">
+                      <div 
+                        className="h-full bg-primary rounded-full transition-all duration-300"
+                        style={{ width: `${(count / maxPairings) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // 顯示配搭總覽表格
+            <div className="overflow-x-auto">
+              <table className="w-full border-separate border-spacing-1">
+                <thead>
+                  <tr>
+                    <th className="p-2 bg-surface/50 rounded-lg w-20 text-center">
+                      同事
+                    </th>
+                    {Object.values(NAME_MAPPINGS).map(name => (
+                      <th key={name} className="p-2 bg-surface/50 rounded-lg w-20 text-center">
+                        {name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(pairings).map(([name1, pairs]) => (
+                    <tr key={name1}>
+                      <td 
+                        className="p-2 font-medium bg-surface/30 rounded-lg text-center 
+                                 cursor-pointer hover:bg-surface/50 transition-colors"
+                        onClick={() => setSelectedStaff(name1)}
+                      >
+                        {name1}
+                      </td>
+                      {Object.values(NAME_MAPPINGS).map(name2 => {
+                        const count = name1 === name2 ? null : pairs[name2] || 0
+                        return (
+                          <td 
+                            key={name2} 
+                            className={`
+                              p-2 text-center rounded-lg transition-all
+                              ${count === null ? 'bg-surface/10' : getColorClass(count)}
+                              hover:scale-110 hover:shadow-lg
+                            `}
+                          >
+                            {count === null ? '-' : count}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* 圖例 */}
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <div className="text-sm text-text-secondary">配搭頻率：</div>
+            {[0, 1, 2, 3, 4, 5].map(level => (
+              <div key={level} className="flex items-center gap-2">
+                <div className={`
+                  w-6 h-6 rounded 
+                  ${level === 0 ? 'bg-surface/30' : `bg-primary/${level * 10}`}
+                `} />
+                <span className="text-sm text-text-secondary">
+                  {level === 0 ? '無' : `${Math.floor((level / 5) * maxPairings)}次`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Schedule() {
   const [scheduleData, setScheduleData] = useState([])
   const [isEditing, setIsEditing] = useState(false)
@@ -65,6 +349,8 @@ function Schedule() {
   const [dateRange, setDateRange] = useState(-1)
   const [showTools, setShowTools] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [pairings, setPairings] = useState({})
+  const [showPairings, setShowPairings] = useState(false)
 
   // 添加測試用的初始數據
   useEffect(() => {
@@ -106,6 +392,14 @@ function Schedule() {
 
     return () => unsubscribe()
   }, [])
+
+  // 當班表數據更新時計算配搭
+  useEffect(() => {
+    if (scheduleData.length > 2) {
+      const newPairings = calculatePairings(scheduleData)
+      setPairings(newPairings)
+    }
+  }, [scheduleData])
 
   const handlePaste = async (e) => {
     e.preventDefault()
@@ -451,16 +745,13 @@ function Schedule() {
 
   return (
     <div className="container-custom py-8">
-      {/* 移除 grid 布局，改用垂直堆疊 */}
       <div className="space-y-6">
-        {/* 原有的表格區域 */}
         <div className="card">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="card-header mb-0">班表</h2>  {/* 移除 mb-1，改為 mb-0 */}
-              {/* 移除副標題 */}
+              <h2 className="card-header mb-0">班表</h2>
             </div>
-            <div className="flex gap-3">  {/* 增加按鈕間距 */}
+            <div className="flex gap-3">
               <button 
                 onClick={() => setShowTools(!showTools)}
                 className={`btn-icon group transition-all duration-200 ${showTools ? 'bg-primary/20 text-primary' : ''}`}
@@ -491,6 +782,13 @@ function Schedule() {
                 title="查看統計"
               >
                 <ChartBarIcon className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => setShowPairings(true)}
+                className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
+                title="查看配搭統計"
+              >
+                <UsersIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -690,9 +988,8 @@ function Schedule() {
               </table>
             </div>
           ) : (
-            <div className="text-center py-12 text-text-secondary">
-              <p className="text-lg mb-2">尚無班表數據</p>
-              <p className="text-sm">點擊上方工具按鈕開始匯入班表</p>
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
             </div>
           )}
         </div>
@@ -732,6 +1029,14 @@ function Schedule() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* 修改配搭統計顯示 */}
+        {showPairings && Object.keys(pairings).length > 0 && (
+          <PairingsStats 
+            pairings={pairings} 
+            onClose={() => setShowPairings(false)} 
+          />
         )}
       </div>
     </div>

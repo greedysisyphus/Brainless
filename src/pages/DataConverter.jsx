@@ -126,7 +126,9 @@ function DataConverter() {
       '羅稚婕 Ashely 咖啡師': 'Ashley',
       '沈恩廷 Lydia 咖啡師': '恩廷',
       '林渭麟 Jovi 咖啡師': 'Jovi',
-      '陳世芬 Nina 咖啡師': 'Nina'
+      '陳世芬 Nina 咖啡師': 'Nina',
+      'A102-張敏涵 Roxie 咖啡師': 'Roxie',
+      'A101-劉芷溶 Nan 咖啡師': 'Nan'
     }
     return nicknames[fullName] || fullName
   }
