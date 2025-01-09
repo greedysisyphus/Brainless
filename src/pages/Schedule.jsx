@@ -72,20 +72,23 @@ const SHIFT_TYPES = {
 // 添加配搭計算函數
 function calculatePairings(scheduleData) {
   const pairings = {}
+  const pairingDetails = {} // 新增：記錄配搭的具體日期
 
-  // 初始化配搭計數器
+  // 初始化
   Object.values(NAME_MAPPINGS).forEach(name1 => {
     pairings[name1] = {}
+    pairingDetails[name1] = {} // 新增：初始化詳情記錄
     Object.values(NAME_MAPPINGS).forEach(name2 => {
       if (name1 !== name2) {
         pairings[name1][name2] = 0
+        pairingDetails[name1][name2] = [] // 新增：初始化日期陣列
       }
     })
   })
 
   // 獲取每天的班次
-  const dates = scheduleData[1].slice(1) // 跳過第一列的空值
-  dates.forEach((_, dateIndex) => {
+  const dates = scheduleData[1].slice(1)
+  dates.forEach((date, dateIndex) => {
     const dayShifts = {}
     
     // 收集當天每個人的班次
@@ -93,7 +96,6 @@ function calculatePairings(scheduleData) {
       const name = NAME_MAPPINGS[row[0]]
       const shift = row[dateIndex + 1]
       
-      // 判斷班次類型
       let shiftType = null
       if (shift.includes('4:30-13:00') || shift.includes('4：30-13：00')) {
         shiftType = SHIFT_TYPES.MORNING
@@ -101,10 +103,6 @@ function calculatePairings(scheduleData) {
         shiftType = SHIFT_TYPES.EVENING
       } else if (shift.includes('7:30-16:00') || shift.includes('7：30-16：00')) {
         shiftType = SHIFT_TYPES.MIDDLE
-      } else if (shift.includes('6:00-14:30') || shift.includes('6：00-14：30')) {
-        shiftType = SHIFT_TYPES.HSR
-      } else if (shift === '月休' || shift.includes('特休假')) {
-        shiftType = SHIFT_TYPES.OFF
       }
       
       if (shiftType) {
@@ -113,37 +111,57 @@ function calculatePairings(scheduleData) {
     })
 
     // 計算配搭次數
-    Object.entries(dayShifts).forEach(([name1, shift1]) => {
-      Object.entries(dayShifts).forEach(([name2, shift2]) => {
-        if (name1 !== name2) {
-          // 早班配早班
-          if (shift1 === SHIFT_TYPES.MORNING && shift2 === SHIFT_TYPES.MORNING) {
-            pairings[name1][name2]++
-          }
-          // 晚班配晚班
-          if (shift1 === SHIFT_TYPES.EVENING && shift2 === SHIFT_TYPES.EVENING) {
-            pairings[name1][name2]++
-          }
-          // 中班配早班或晚班
-          if (shift1 === SHIFT_TYPES.MIDDLE && 
-             (shift2 === SHIFT_TYPES.MORNING || shift2 === SHIFT_TYPES.EVENING)) {
-            pairings[name1][name2]++
-          }
-          if (shift2 === SHIFT_TYPES.MIDDLE && 
-             (shift1 === SHIFT_TYPES.MORNING || shift1 === SHIFT_TYPES.EVENING)) {
-            pairings[name1][name2]++
-          }
+    const staffNames = Object.keys(dayShifts)
+    for (let i = 0; i < staffNames.length; i++) {
+      const name1 = staffNames[i]
+      const shift1 = dayShifts[name1]
+      
+      for (let j = i + 1; j < staffNames.length; j++) {
+        const name2 = staffNames[j]
+        const shift2 = dayShifts[name2]
+
+        let shouldCount = false
+
+        // 早班配早班
+        if (shift1 === SHIFT_TYPES.MORNING && shift2 === SHIFT_TYPES.MORNING) {
+          shouldCount = true
         }
-      })
-    })
+        // 晚班配晚班
+        else if (shift1 === SHIFT_TYPES.EVENING && shift2 === SHIFT_TYPES.EVENING) {
+          shouldCount = true
+        }
+        // 中班配早班或晚班
+        else if ((shift1 === SHIFT_TYPES.MIDDLE && 
+                (shift2 === SHIFT_TYPES.MORNING || shift2 === SHIFT_TYPES.EVENING)) ||
+                (shift2 === SHIFT_TYPES.MIDDLE && 
+                (shift1 === SHIFT_TYPES.MORNING || shift1 === SHIFT_TYPES.EVENING))) {
+          shouldCount = true
+        }
+
+        if (shouldCount) {
+          pairings[name1][name2]++
+          pairings[name2][name1]++
+          // 新增：記錄配搭日期和班次
+          pairingDetails[name1][name2].push({
+            date: formatDate(date),
+            shifts: `${name1}(${shift1}) - ${name2}(${shift2})`
+          })
+          pairingDetails[name2][name1].push({
+            date: formatDate(date),
+            shifts: `${name2}(${shift2}) - ${name1}(${shift1})`
+          })
+        }
+      }
+    }
   })
 
-  return pairings
+  return { pairings, pairingDetails }
 }
 
-// 修改 PairingsStats 組件
-function PairingsStats({ pairings, onClose }) {
+// 修改 PairingsStats 組件，添加詳情顯示
+function PairingsStats({ pairings: { pairings, pairingDetails }, onClose }) {
   const [selectedStaff, setSelectedStaff] = useState(null)
+  const [selectedPair, setSelectedPair] = useState(null)
   const maxPairings = Math.max(...Object.values(pairings).flatMap(p => Object.values(p)))
 
   const getColorClass = (count) => {
@@ -186,8 +204,9 @@ function PairingsStats({ pairings, onClose }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-surface rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 animate-fade-in">
+      <div className="bg-surface rounded-xl shadow-2xl w-full max-h-[95vh] overflow-y-auto animate-scale-in 
+                      max-w-[calc(100vw-16px)] sm:max-w-4xl">
         <div className="flex justify-between items-center p-6 border-b border-white/10">
           <div>
             <h2 className="text-xl font-bold">配搭統計</h2>
@@ -200,13 +219,13 @@ function PairingsStats({ pairings, onClose }) {
           </button>
         </div>
 
-        <div className="p-6">
-          {/* 添加 Toggle Buttons */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-text-secondary mb-3">
+        <div className="p-3 sm:p-6">
+          {/* Toggle Buttons */}
+          <div className="mb-4 sm:mb-6">
+            <label className="block text-sm font-medium text-text-secondary mb-2 sm:mb-3">
               選擇同事
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <button
                 onClick={() => setSelectedStaff(null)}
                 className={`
@@ -245,92 +264,104 @@ function PairingsStats({ pairings, onClose }) {
           </div>
 
           {selectedStaff ? (
-            // 顯示選中同事的配搭詳情
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {getStaffPairings(selectedStaff).map(({ name, count }) => (
                 <div 
                   key={name}
+                  onClick={() => setSelectedPair(selectedPair === name ? null : name)}
                   className={`
-                    p-4 rounded-lg flex items-center justify-between
+                    p-4 rounded-lg
                     ${getColorClass(count)}
                     transform transition-all duration-200
                     hover:scale-[1.02] hover:shadow-lg
                     hover:-translate-y-0.5
+                    cursor-pointer
                   `}
                 >
-                  <span className="font-medium">{name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-black/20 px-3 py-1 rounded-full text-sm">
-                      配搭 {count} 次
-                    </span>
-                    <div className="w-16 h-2 rounded-full bg-black/20 overflow-hidden">
-                      <div 
-                        className="h-full bg-primary rounded-full transition-all duration-300"
-                        style={{ width: `${(count / maxPairings) * 100}%` }}
-                      />
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-black/20 px-3 py-1 rounded-full text-sm">
+                        配搭 {count} 次
+                      </span>
+                      <div className="w-16 h-2 rounded-full bg-black/20 overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full transition-all duration-300"
+                          style={{ width: `${(count / maxPairings) * 100}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
+                  
+                  {/* 配搭詳情 */}
+                  {selectedPair === name && (
+                    <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                      {pairingDetails[selectedStaff][name].map((detail, index) => (
+                        <div key={index} className="text-sm flex justify-between items-center">
+                          <span className="text-text-secondary">{detail.date}</span>
+                          <span>{detail.shifts}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
-            // 顯示配搭總覽表格
-            <div className="overflow-x-auto">
-              <table className="w-full border-separate border-spacing-1">
-                <thead>
-                  <tr>
-                    <th className="p-2 bg-surface/50 rounded-lg w-20 text-center">
-                      同事
-                    </th>
-                    {Object.values(NAME_MAPPINGS).map(name => (
-                      <th key={name} className="p-2 bg-surface/50 rounded-lg w-20 text-center">
-                        {name}
+            // 配搭總覽表格
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
+              <div className="min-w-[640px] p-3 sm:p-0">
+                <table className="w-full border-separate border-spacing-1">
+                  <thead>
+                    <tr>
+                      <th className="p-1.5 sm:p-2 bg-surface/50 rounded-lg w-16 sm:w-20 text-center text-xs sm:text-sm">
+                        同事
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(pairings).map(([name1, pairs]) => (
-                    <tr key={name1}>
-                      <td 
-                        className="p-2 font-medium bg-surface/30 rounded-lg text-center 
-                                 cursor-pointer hover:bg-surface/50 transition-colors"
-                        onClick={() => setSelectedStaff(name1)}
-                      >
-                        {name1}
-                      </td>
-                      {Object.values(NAME_MAPPINGS).map(name2 => {
-                        const count = name1 === name2 ? null : pairs[name2] || 0
-                        return (
-                          <td 
-                            key={name2} 
-                            className={`
-                              p-2 text-center rounded-lg transition-all
-                              ${count === null ? 'bg-surface/10' : getColorClass(count)}
-                              hover:scale-110 hover:shadow-lg
-                            `}
-                          >
-                            {count === null ? '-' : count}
-                          </td>
-                        )
-                      })}
+                      {Object.values(NAME_MAPPINGS).map(name => (
+                        <th key={name} className="p-1.5 sm:p-2 bg-surface/50 rounded-lg w-16 sm:w-20 text-center text-xs sm:text-sm">
+                          {name}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {Object.entries(pairings).map(([name1, pairs]) => (
+                      <tr key={name1}>
+                        <td className="p-1.5 sm:p-2 font-medium bg-surface/30 rounded-lg text-center text-xs sm:text-sm">
+                          {name1}
+                        </td>
+                        {Object.values(NAME_MAPPINGS).map(name2 => {
+                          const count = name1 === name2 ? null : pairs[name2] || 0
+                          return (
+                            <td 
+                              key={name2} 
+                              className={`
+                                p-1.5 sm:p-2 text-center rounded-lg text-xs sm:text-sm
+                                ${count === null ? 'bg-surface/10' : getColorClass(count)}
+                              `}
+                            >
+                              {count === null ? '-' : count}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {/* 圖例 */}
-          <div className="mt-6 flex items-center justify-center gap-4">
-            <div className="text-sm text-text-secondary">配搭頻率：</div>
+          <div className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm">
+            <div className="text-text-secondary">配搭頻率：</div>
             {[0, 1, 2, 3, 4, 5].map(level => (
-              <div key={level} className="flex items-center gap-2">
+              <div key={level} className="flex items-center gap-1 sm:gap-2">
                 <div className={`
-                  w-6 h-6 rounded 
+                  w-4 h-4 sm:w-6 sm:h-6 rounded 
                   ${level === 0 ? 'bg-surface/30' : `bg-primary/${level * 10}`}
                 `} />
-                <span className="text-sm text-text-secondary">
+                <span className="text-text-secondary">
                   {level === 0 ? '無' : `${Math.floor((level / 5) * maxPairings)}次`}
                 </span>
               </div>
