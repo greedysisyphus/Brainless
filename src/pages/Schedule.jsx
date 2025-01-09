@@ -20,7 +20,9 @@ const NAME_MAPPINGS = {
   'A60-羅稚婕 Ashely 咖啡師': 'Ashley',
   'A88-沈恩廷 Lydia 咖啡師': '恩廷',
   'A89-林渭麟 Jovi 咖啡師': 'Jovi',
-  'A93-陳世芬 Nina 咖啡師': 'Nina'
+  'A93-陳世芬 Nina 咖啡師': 'Nina',
+  'A102-張敏涵 Roxie 咖啡師': 'Roxie',
+  'A101-劉芷溶 Nan 咖啡師': 'Nan'
 }
 
 // 修改日期選項並添加顏色
@@ -204,13 +206,33 @@ function Schedule() {
       };
     }
     
-    // 早班：漸層藍色背
+    // 早班：漸層藍色背景
     if (cell.includes('4:30-13:00') || cell.includes('4：30-13：00')) {
       return {
         background: 'bg-gradient-to-r from-sky-500/20 to-blue-500/20',
         text: 'text-sky-100 font-medium',
         border: 'border-l-4 border-l-sky-500',
         label: '早班'
+      };
+    }
+    
+    // 中班：漸層紅色背景
+    if (cell.includes('7:30-16:00') || cell.includes('7：30-16：00')) {
+      return {
+        background: 'bg-gradient-to-r from-rose-500/20 to-pink-500/20',
+        text: 'text-rose-100 font-medium',
+        border: 'border-l-4 border-l-rose-500',
+        label: '中班'
+      };
+    }
+    
+    // 高鐵班：漸層青色背景
+    if (cell.includes('6:00-14:30') || cell.includes('6：00-14：30')) {
+      return {
+        background: 'bg-gradient-to-r from-cyan-500/20 to-teal-500/20',
+        text: 'text-cyan-100 font-medium',
+        border: 'border-l-4 border-l-cyan-500',
+        label: '高鐵'
       };
     }
     
