@@ -158,7 +158,7 @@ function calculatePairings(scheduleData) {
   return { pairings, pairingDetails }
 }
 
-// 修改 PairingsStats 組件，添加詳情顯示
+// 修改 PairingsStats 組件
 function PairingsStats({ pairings: { pairings, pairingDetails }, onClose }) {
   const [selectedStaff, setSelectedStaff] = useState(null)
   const [selectedPair, setSelectedPair] = useState(null)
@@ -204,184 +204,549 @@ function PairingsStats({ pairings: { pairings, pairingDetails }, onClose }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 animate-fade-in">
-      <div className="bg-surface rounded-xl shadow-2xl w-full max-h-[95vh] overflow-y-auto animate-scale-in 
-                      max-w-[calc(100vw-16px)] sm:max-w-4xl">
-        <div className="flex justify-between items-center p-6 border-b border-white/10">
-          <div>
-            <h2 className="text-xl font-bold">配搭統計</h2>
-            <p className="text-sm text-text-secondary mt-1">
-              {selectedStaff ? `${selectedStaff} 的配搭詳情` : '選擇同事查看配搭詳情'}
-            </p>
-          </div>
-          <button onClick={onClose} className="btn-icon">
-            <XMarkIcon className="w-5 h-5" />
+    <div>
+      {/* Toggle Buttons */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-text-secondary mb-3">
+          選擇同事
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedStaff(null)}
+            className={`
+              px-4 py-2 rounded-full text-sm font-medium
+              transition-all duration-200
+              border-2 border-white/10
+              ${!selectedStaff ? 
+                'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
+                'hover:border-white/20'
+              }
+            `}
+          >
+            全部
           </button>
+          {Object.values(NAME_MAPPINGS).map(name => (
+            <button
+              key={name}
+              onClick={() => setSelectedStaff(name)}
+              className={`
+                px-4 py-2 rounded-full text-sm font-medium
+                transition-all duration-200 
+                border-2
+                ${selectedStaff === name
+                  ? `bg-gradient-to-r ${STAFF_COLORS[name] || 'from-primary/20 to-secondary/20'} 
+                     border-l-2 shadow-lg shadow-black/20 scale-105`
+                  : 'border-white/10 hover:border-white/20 hover:scale-105'
+                }
+              `}
+            >
+              {name}
+            </button>
+          ))}
         </div>
+      </div>
 
-        <div className="p-3 sm:p-6">
-          {/* Toggle Buttons */}
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-sm font-medium text-text-secondary mb-2 sm:mb-3">
-              選擇同事
-            </label>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              <button
-                onClick={() => setSelectedStaff(null)}
-                className={`
-                  px-4 py-2 rounded-full text-sm font-medium
-                  transition-all duration-200
-                  border-2 border-white/10
-                  ${!selectedStaff ? 
-                    'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
-                    'hover:border-white/20'
-                  }
-                `}
-              >
-                全部
-              </button>
-              {Object.values(NAME_MAPPINGS).map(name => (
-                <button
-                  key={name}
-                  onClick={() => setSelectedStaff(name)}
-                  className={`
-                    px-3 py-1.5 rounded-full text-sm font-medium
-                    transition-all duration-200 
-                    border-2
-                    ${selectedStaff === name
-                      ? `bg-gradient-to-r ${STAFF_COLORS[name] || 'from-primary/20 to-secondary/20'} 
-                         border-l-2 shadow-lg shadow-black/20 scale-105`
-                      : 'border-white/10 hover:border-white/20 hover:scale-105'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-1.5 min-w-[60px] justify-center">
-                    {name}
+      {selectedStaff ? (
+        <div className="space-y-3">
+          {getStaffPairings(selectedStaff).map(({ name, count }) => (
+            <div 
+              key={name}
+              onClick={() => setSelectedPair(selectedPair === name ? null : name)}
+              className={`
+                p-4 rounded-lg
+                ${getColorClass(count)}
+                transform transition-all duration-200
+                hover:scale-[1.02] hover:shadow-lg
+                cursor-pointer
+              `}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-black/20 px-3 py-1 rounded-full text-sm">
+                    配搭 {count} 次
+                  </span>
+                  <div className="w-16 h-2 rounded-full bg-black/20 overflow-hidden">
+                    <div 
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${(count / maxPairings) * 100}%` }}
+                    />
                   </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {selectedStaff ? (
-            <div className="space-y-2 sm:space-y-3">
-              {getStaffPairings(selectedStaff).map(({ name, count }) => (
-                <div 
-                  key={name}
-                  onClick={() => setSelectedPair(selectedPair === name ? null : name)}
-                  className={`
-                    p-4 rounded-lg
-                    ${getColorClass(count)}
-                    transform transition-all duration-200
-                    hover:scale-[1.02] hover:shadow-lg
-                    hover:-translate-y-0.5
-                    cursor-pointer
-                  `}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="bg-black/20 px-3 py-1 rounded-full text-sm">
-                        配搭 {count} 次
-                      </span>
-                      <div className="w-16 h-2 rounded-full bg-black/20 overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full transition-all duration-300"
-                          style={{ width: `${(count / maxPairings) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* 配搭詳情 */}
-                  {selectedPair === name && (
-                    <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-                      {pairingDetails[selectedStaff][name].map((detail, index) => (
-                        <div key={index} className="text-sm flex justify-between items-center">
-                          <span className="text-text-secondary">{detail.date}</span>
-                          <span>{detail.shifts}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              ))}
+              </div>
+              
+              {/* 配搭詳情 */}
+              {selectedPair === name && (
+                <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                  {pairingDetails[selectedStaff][name].map((detail, index) => (
+                    <div key={index} className="text-sm flex justify-between items-center">
+                      <span className="text-text-secondary">{detail.date}</span>
+                      <span>{detail.shifts}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            // 配搭總覽表格
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
-              <div className="min-w-[640px] p-3 sm:p-0">
-                <table className="w-full border-separate border-spacing-1">
-                  <thead>
-                    <tr>
-                      <th className="p-1.5 sm:p-2 bg-surface/50 rounded-lg w-16 sm:w-20 text-center text-xs sm:text-sm">
-                        同事
-                      </th>
-                      {Object.values(NAME_MAPPINGS).map(name => (
-                        <th key={name} className="p-1.5 sm:p-2 bg-surface/50 rounded-lg w-16 sm:w-20 text-center text-xs sm:text-sm">
-                          {name}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(pairings).map(([name1, pairs]) => (
-                      <tr key={name1}>
-                        <td className="p-1.5 sm:p-2 font-medium bg-surface/30 rounded-lg text-center text-xs sm:text-sm">
-                          {name1}
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-x-auto -mx-3 sm:mx-0">
+          <div className="min-w-[640px] p-3 sm:p-0">
+            <table className="w-full border-separate border-spacing-1">
+              <thead>
+                <tr>
+                  <th className="p-1.5 sm:p-2 bg-surface/50 rounded-lg w-16 sm:w-20 text-center text-xs sm:text-sm">
+                    同事
+                  </th>
+                  {Object.values(NAME_MAPPINGS).map(name => (
+                    <th key={name} className="p-1.5 sm:p-2 bg-surface/50 rounded-lg w-16 sm:w-20 text-center text-xs sm:text-sm">
+                      {name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(pairings).map(([name1, pairs]) => (
+                  <tr key={name1}>
+                    <td className="p-1.5 sm:p-2 font-medium bg-surface/30 rounded-lg text-center text-xs sm:text-sm">
+                      {name1}
+                    </td>
+                    {Object.values(NAME_MAPPINGS).map(name2 => {
+                      const count = name1 === name2 ? null : pairs[name2] || 0
+                      return (
+                        <td 
+                          key={name2} 
+                          className={`
+                            p-1.5 sm:p-2 text-center rounded-lg text-xs sm:text-sm
+                            ${count === null ? 'bg-surface/10' : getColorClass(count)}
+                          `}
+                        >
+                          {count === null ? '-' : count}
                         </td>
-                        {Object.values(NAME_MAPPINGS).map(name2 => {
-                          const count = name1 === name2 ? null : pairs[name2] || 0
-                          return (
-                            <td 
-                              key={name2} 
-                              className={`
-                                p-1.5 sm:p-2 text-center rounded-lg text-xs sm:text-sm
-                                ${count === null ? 'bg-surface/10' : getColorClass(count)}
-                              `}
-                            >
-                              {count === null ? '-' : count}
-                            </td>
-                          )
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* 圖例 */}
-          <div className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm">
-            <div className="text-text-secondary">配搭頻率：</div>
-            {[0, 1, 2, 3, 4, 5].map(level => (
-              <div key={level} className="flex items-center gap-1 sm:gap-2">
-                <div className={`
-                  w-4 h-4 sm:w-6 sm:h-6 rounded 
-                  ${level === 0 ? 'bg-surface/30' : `bg-primary/${level * 10}`}
-                `} />
-                <span className="text-text-secondary">
-                  {level === 0 ? '無' : `${Math.floor((level / 5) * maxPairings)}次`}
-                </span>
-              </div>
-            ))}
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
+      )}
+
+      {/* 圖例 */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <div className="text-text-secondary">配搭頻率：</div>
+        {[0, 1, 2, 3, 4, 5].map(level => (
+          <div key={level} className="flex items-center gap-1 sm:gap-2">
+            <div className={`
+              w-4 h-4 sm:w-6 sm:h-6 rounded 
+              ${level === 0 ? 'bg-surface/30' : `bg-primary/${level * 10}`}
+            `} />
+            <span className="text-text-secondary">
+              {level === 0 ? '無' : `${Math.floor((level / 5) * maxPairings)}次`}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
+// 添加票價常量
+const TICKET_PRICES = {
+  A19_A13: {
+    single: 40,
+    monthly: 735,
+    quarterly: 2079,
+    fourMonths: 2268,
+  },
+  A21_A13: {
+    single: 65,
+    monthly: 1260,
+    quarterly: 3564,
+    fourMonths: 3888,
+  }
+}
+
+// 修改 TicketComparison 組件
+function TicketComparison({ scheduleData }) {
+  const [station, setStation] = useState('A19')
+  const [selectedStaff, setSelectedStaff] = useState(null)
+  
+  // 計算特定同事的乘車費用
+  const calculateStaffRideCosts = (staffName) => {
+    if (!scheduleData || scheduleData.length < 2) return null
+
+    // 找到該同事的班表行
+    const staffRow = scheduleData.slice(2).find(row => 
+      NAME_MAPPINGS[row[0]] === staffName
+    )
+    if (!staffRow) return null
+
+    const totalDays = scheduleData[1].slice(1).length
+    const projectedDays = 120 // 推算120天
+    const projectionRatio = projectedDays / totalDays
+
+    let singleRides = 0
+    let doubleRides = 0
+
+    // 統計該同事的班次
+    staffRow.slice(1).forEach(shift => {
+      if (shift.includes('4:30-13:00') || shift.includes('4：30-13：00') ||
+          shift.includes('6:00-14:30') || shift.includes('6：00-14：30')) {
+        singleRides++ // 早班和高鐵班算單程
+      } else if (shift.includes('7:30-16:00') || shift.includes('7：30-16：00') ||
+                shift.includes('13:00-21:30') || shift.includes('13：00-21：30')) {
+        doubleRides++ // 中班和晚班算雙程
+      }
+    })
+
+    // 推算120天的搭乘次數
+    const projectedSingleRides = Math.round(singleRides * projectionRatio)
+    const projectedDoubleRides = Math.round(doubleRides * projectionRatio)
+    const totalRides = projectedSingleRides + (projectedDoubleRides * 2)
+
+    const prices = TICKET_PRICES[`${station}_A13`]
+    
+    return {
+      name: staffName,
+      period: projectedDays,
+      rides: {
+        single: projectedSingleRides,
+        double: projectedDoubleRides,
+        total: totalRides
+      },
+      costs: {
+        regular: totalRides * prices.single,
+        citizen: Math.round(totalRides * prices.single * 0.7),
+        tpass: 799 * 4,
+        monthly: prices.monthly * 4,
+        quarterly: Math.ceil(prices.quarterly * (projectedDays / 90)),
+        fourMonths: prices.fourMonths
+      }
+    }
+  }
+
+  // 計算所有同事的費用
+  const allStaffCosts = Object.values(NAME_MAPPINGS).map(name => 
+    calculateStaffRideCosts(name)
+  ).filter(Boolean)
+
+  return (
+    <div className="space-y-6">
+      {/* 車站選擇 */}
+      <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-6">
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-3">
+            選擇同事
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedStaff(null)}
+              className={`
+                px-4 py-2 rounded-full text-sm font-medium
+                transition-all duration-200
+                border-2 border-white/10
+                ${!selectedStaff ? 
+                  'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
+                  'hover:border-white/20'
+                }
+              `}
+            >
+              全部
+            </button>
+            {Object.values(NAME_MAPPINGS).map(name => (
+              <button
+                key={name}
+                onClick={() => setSelectedStaff(name)}
+                className={`
+                  px-4 py-2 rounded-full text-sm font-medium
+                  transition-all duration-200 
+                  border-2
+                  ${selectedStaff === name ?
+                    `bg-gradient-to-r ${STAFF_COLORS[name] || 'from-primary/20 to-secondary/20'} border-l-2` :
+                    'border-white/10 hover:border-white/20'
+                  }
+                `}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-3">
+            選擇起點站
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStation('A19')}
+              className={`
+                px-4 py-2 rounded-lg text-sm font-medium
+                transition-all duration-200
+                ${station === 'A19' 
+                  ? 'bg-primary text-white' 
+                  : 'bg-surface/50 text-text-secondary hover:bg-surface/70'
+                }
+              `}
+            >
+              A19 體育園區站
+            </button>
+            <button
+              onClick={() => setStation('A21')}
+              className={`
+                px-4 py-2 rounded-lg text-sm font-medium
+                transition-all duration-200
+                ${station === 'A21' 
+                  ? 'bg-primary text-white' 
+                  : 'bg-surface/50 text-text-secondary hover:bg-surface/70'
+                }
+              `}
+            >
+              A21 環北站
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 費用顯示 */}
+      {selectedStaff ? (
+        <StaffCostDetail 
+          costs={allStaffCosts.find(c => c.name === selectedStaff)}
+          station={station}
+        />
+      ) : (
+        // 顯示所有同事的概覽
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {allStaffCosts
+            .map(staffCost => ({
+              ...staffCost,
+              monthlyExpenses: {
+                citizen: Math.round(staffCost.costs.citizen / 4),
+                tpass: 799,
+                fourMonths: Math.round(staffCost.costs.fourMonths / 4)
+              }
+            }))
+            // 按最低月花費排序
+            .sort((a, b) => {
+              const aMinCost = Math.min(
+                a.monthlyExpenses.citizen,
+                a.monthlyExpenses.tpass,
+                a.monthlyExpenses.fourMonths
+              )
+              const bMinCost = Math.min(
+                b.monthlyExpenses.citizen,
+                b.monthlyExpenses.tpass,
+                b.monthlyExpenses.fourMonths
+              )
+              return bMinCost - aMinCost // 從高到低排序
+            })
+            .map(staffCost => {
+              // 找出最便宜的方案
+              const minCost = Math.min(
+                staffCost.monthlyExpenses.citizen,
+                staffCost.monthlyExpenses.tpass,
+                staffCost.monthlyExpenses.fourMonths
+              )
+
+              return (
+                <div 
+                  key={staffCost.name}
+                  className="bg-surface/30 rounded-lg p-4 space-y-3"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="font-medium">{staffCost.name}</div>
+                    <div className="text-sm text-text-secondary">
+                      {staffCost.rides.total} 次/120天
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>市民卡 (7折)</span>
+                      <span className={`font-medium ${
+                        staffCost.monthlyExpenses.citizen === minCost ? 'text-primary' : ''
+                      }`}>
+                        ${staffCost.monthlyExpenses.citizen}/月
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>TPass 799</span>
+                      <span className={`font-medium ${
+                        staffCost.monthlyExpenses.tpass === minCost ? 'text-primary' : ''
+                      }`}>
+                        $799/月
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>定期票 (120天)</span>
+                      <span className={`font-medium ${
+                        staffCost.monthlyExpenses.fourMonths === minCost ? 'text-primary' : ''
+                      }`}>
+                        ${staffCost.monthlyExpenses.fourMonths}/月
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-white/10">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium">最佳方案</span>
+                        <span className="font-bold text-primary">
+                          ${minCost}/月
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// 添加單個同事的詳細資訊組件
+function StaffCostDetail({ costs, station }) {
+  if (!costs) return null;
+
+  const currentStation = station || 'A19';
+  const prices = TICKET_PRICES[`${currentStation}_A13`];
+
+  // 計算每月花費並排序
+  const monthlyExpenses = [
+    {
+      name: '原價',
+      total: costs.costs.regular,
+      monthly: Math.round(costs.costs.regular / 4),
+      description: '無折扣',
+      color: 'from-neutral-500/10 to-neutral-600/5'
+    },
+    {
+      name: '桃園市民卡',
+      total: costs.costs.citizen,
+      monthly: Math.round(costs.costs.citizen / 4),
+      description: '7折優惠',
+      color: 'from-amber-500/10 to-amber-600/5'
+    },
+    {
+      name: 'TPass 799',
+      total: costs.costs.tpass,
+      monthly: 799,
+      description: '不限搭乘次數',
+      color: 'from-sky-500/10 to-sky-600/5'
+    },
+    {
+      name: '定期票 30天',
+      total: costs.costs.monthly,
+      monthly: prices.monthly,
+      description: '每月購買一次',
+      color: 'from-emerald-500/10 to-emerald-600/5'
+    },
+    {
+      name: '定期票 120天',
+      total: costs.costs.fourMonths,
+      monthly: Math.round(costs.costs.fourMonths / 4),
+      description: '一次購買四個月',
+      color: 'from-violet-500/10 to-violet-600/5'
+    }
+  ].sort((a, b) => a.monthly - b.monthly);
+
+  const lowestCost = monthlyExpenses[0].monthly;
+
+  return (
+    <>
+      {/* 搭乘統計 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-surface/30 rounded-lg p-4">
+          <div className="text-sm text-text-secondary mb-1">預估期間</div>
+          <div className="text-xl font-bold">{costs.period} 天</div>
+        </div>
+        <div className="bg-surface/30 rounded-lg p-4">
+          <div className="text-sm text-text-secondary mb-1">總搭乘次數</div>
+          <div className="text-xl font-bold">{costs.rides.total} 次</div>
+          <div className="text-sm text-text-secondary mt-1">
+            單程 {costs.rides.single} 次 · 雙程 {costs.rides.double} 次
+          </div>
+        </div>
+        <div className="bg-surface/30 rounded-lg p-4">
+          <div className="text-sm text-text-secondary mb-1">每月平均</div>
+          <div className="text-xl font-bold">
+            {Math.round(costs.rides.total / 4)} 次
+          </div>
+        </div>
+      </div>
+
+      {/* 票價比較 */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-bold">票價方案比較</h3>
+          <div className="text-sm text-text-secondary">
+            按每月費用排序
+          </div>
+        </div>
+        <div className="space-y-3">
+          {monthlyExpenses.map((expense, index) => (
+            <div 
+              key={expense.name}
+              className={`
+                relative overflow-hidden
+                rounded-lg transition-all duration-200
+                ${index === 0 ? 'ring-2 ring-primary/30' : ''}
+                hover:shadow-lg hover:scale-[1.01]
+                bg-surface/20 backdrop-blur-sm
+              `}
+            >
+              <div className={`
+                absolute inset-0 bg-gradient-to-br ${expense.color}
+                ${index === 0 ? 'opacity-100' : 'opacity-50'}
+              `} />
+              <div className="relative p-4 space-y-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      {expense.name}
+                      {index === 0 && (
+                        <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full">
+                          最佳方案
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-text-secondary mt-0.5">
+                      {expense.description}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">
+                      ${expense.monthly}
+                      <span className="text-sm text-text-secondary ml-1">/月</span>
+                    </div>
+                    <div className="text-sm text-text-secondary">
+                      總計 ${expense.total}
+                    </div>
+                  </div>
+                </div>
+                {index === 0 && (
+                  <div className="text-xs text-text-secondary mt-3 pt-3 border-t border-white/10">
+                    比次低方案每月可省 ${monthlyExpenses[1].monthly - lowestCost} 元
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
 function Schedule() {
   const [scheduleData, setScheduleData] = useState([])
-  const [isEditing, setIsEditing] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState('')
   const [dateRange, setDateRange] = useState(-1)
   const [showTools, setShowTools] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [pairings, setPairings] = useState({})
   const [showPairings, setShowPairings] = useState(false)
+  const [activeView, setActiveView] = useState('schedule') // 'schedule', 'stats', 'pairings'
 
   // 添加測試用的初始數據
   useEffect(() => {
@@ -778,297 +1143,348 @@ function Schedule() {
     <div className="container-custom py-8">
       <div className="space-y-6">
         <div className="card">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h2 className="card-header mb-0">班表</h2>
+          {/* 主選單 */}
+          <div className="flex flex-col gap-4 mb-8">
+            {/* 主標題 */}
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="card-header mb-0">班表</h2>
+                <p className="text-sm text-text-secondary mt-1">
+                  {activeView === 'schedule' && '查看與管理班表'}
+                  {activeView === 'stats' && '查看班表統計數據'}
+                  {activeView === 'pairings' && '查看同事配搭情況'}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                {activeView === 'schedule' && (
+                  <>
+                    <button 
+                      onClick={() => setShowTools(!showTools)}
+                      className={`btn-icon group transition-all duration-200 ${showTools ? 'bg-primary/20 text-primary' : ''}`}
+                      title="轉換工具"
+                    >
+                      <ChevronDownIcon 
+                        className={`w-5 h-5 transition-transform duration-200 
+                          ${showTools ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    <button 
+                      onClick={exportToCSV}
+                      className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
+                      title="導出 CSV"
+                    >
+                      <DocumentArrowDownIcon className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowTools(!showTools)}
-                className={`btn-icon group transition-all duration-200 ${showTools ? 'bg-primary/20 text-primary' : ''}`}
-                title="轉換工具"
-              >
-                <ChevronDownIcon 
-                  className={`w-5 h-5 transition-transform duration-200 
-                    ${showTools ? 'rotate-180' : ''}`}
-                />
-              </button>
-              <button 
-                onClick={() => setIsEditing(!isEditing)}
-                className={`btn-icon transition-all duration-200 ${isEditing ? 'bg-primary/20 text-primary' : ''}`}
-                title={isEditing ? '完成編輯' : '編輯模式'}
-              >
-                <PencilSquareIcon className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={exportToCSV}
-                className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
-                title="導出 CSV"
-              >
-                <DocumentArrowDownIcon className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={() => setShowStats(true)}
-                className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
-                title="查看統計"
-              >
-                <ChartBarIcon className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={() => setShowPairings(true)}
-                className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
-                title="查看配搭統計"
-              >
-                <UsersIcon className="w-5 h-5" />
-              </button>
+
+            {/* 選單列 */}
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex bg-surface/50 backdrop-blur-sm rounded-lg p-1">
+                <button
+                  onClick={() => setActiveView('schedule')}
+                  className={`
+                    px-4 py-2 rounded-md text-sm font-medium
+                    transition-all duration-200
+                    ${activeView === 'schedule' 
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                    }
+                  `}
+                >
+                  班表
+                </button>
+                <button
+                  onClick={() => setActiveView('stats')}
+                  className={`
+                    px-4 py-2 rounded-md text-sm font-medium
+                    transition-all duration-200
+                    ${activeView === 'stats' 
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                    }
+                  `}
+                >
+                  班表統計
+                </button>
+                <button
+                  onClick={() => setActiveView('pairings')}
+                  className={`
+                    px-4 py-2 rounded-md text-sm font-medium
+                    transition-all duration-200
+                    ${activeView === 'pairings' 
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                    }
+                  `}
+                >
+                  配搭統計
+                </button>
+                <button
+                  onClick={() => setActiveView('tickets')}
+                  className={`
+                    px-4 py-2 rounded-md text-sm font-medium
+                    transition-all duration-200
+                    ${activeView === 'tickets' 
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                    }
+                  `}
+                >
+                  票價試算
+                </button>
+              </div>
             </div>
           </div>
 
           {/* 工具抽屜 */}
-          <div className={`
-            overflow-hidden transition-all duration-300 ease-in-out
-            ${showTools ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
-          `}>
-            <div className="border border-white/10 rounded-lg p-6 mb-8 bg-surface/30 backdrop-blur-sm">
-              <ExcelToJsonConverter onJsonGenerated={handleJsonGenerated} />
-              {/* JSON 貼上區域 */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">步驟 2: JSON 轉換班表</h3>
-                <div 
-                  className="w-full h-32 border-2 border-dashed border-white/20 
-                             rounded-lg p-4 focus:border-primary
-                             hover:border-white/30 transition-colors"
-                  contentEditable
-                  onPaste={handlePaste}
-                  placeholder="在此貼上 JSON 數據..."
-                />
+          {activeView === 'schedule' && (
+            <div className={`
+              overflow-hidden transition-all duration-300 ease-in-out
+              ${showTools ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
+            `}>
+              <div className="border border-white/10 rounded-lg p-6 mb-8 bg-surface/30 backdrop-blur-sm">
+                <ExcelToJsonConverter onJsonGenerated={handleJsonGenerated} />
+                {/* JSON 貼上區域 */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2">步驟 2: JSON 轉換班表</h3>
+                  <div 
+                    className="w-full h-32 border-2 border-dashed border-white/20 
+                               rounded-lg p-4 focus:border-primary
+                               hover:border-white/30 transition-colors"
+                    contentEditable
+                    onPaste={handlePaste}
+                    placeholder="在此貼上 JSON 數據..."
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* 替換原有的選擇同事下拉選單 */}
-          <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-6 mb-8">
-            {/* 人員標籤過濾器 */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-3">
-                選擇同事
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedPerson('')}
-                  className={`
-                    px-4 py-2 rounded-full text-sm font-medium
-                    transition-all duration-200
-                    border-2 border-white/10
-                    ${!selectedPerson ? 
-                      'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
-                      'hover:border-white/20'
-                    }
-                  `}
-                >
-                  全部
-                </button>
-                {Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => (
-                  <button
-                    key={nickname}
-                    onClick={() => setSelectedPerson(nickname)}
-                    className={`
-                      px-4 py-2 rounded-full text-sm font-medium
-                      transition-all duration-200 
-                      border-2
-                      ${selectedPerson === nickname ?
-                        `bg-gradient-to-r ${STAFF_COLORS[nickname]} border-l-4` :
-                        'border-white/10 hover:border-white/20'
-                      }
-                    `}
-                  >
-                    {nickname}
-                  </button>
-                ))}
+          {/* 內容區域 */}
+          {activeView === 'schedule' && (
+            <>
+              {/* 替換原有的選擇同事下拉選單 */}
+              <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-6 mb-8">
+                {/* 人員標籤過濾器 */}
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-3">
+                    選擇同事
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedPerson('')}
+                      className={`
+                        px-4 py-2 rounded-full text-sm font-medium
+                        transition-all duration-200
+                        border-2 border-white/10
+                        ${!selectedPerson ? 
+                          'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
+                          'hover:border-white/20'
+                        }
+                      `}
+                    >
+                      全部
+                    </button>
+                    {Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => (
+                      <button
+                        key={nickname}
+                        onClick={() => setSelectedPerson(nickname)}
+                        className={`
+                          px-4 py-2 rounded-full text-sm font-medium
+                          transition-all duration-200 
+                          border-2
+                          ${selectedPerson === nickname ?
+                            `bg-gradient-to-r ${STAFF_COLORS[nickname]} border-l-4` :
+                            'border-white/10 hover:border-white/20'
+                          }
+                        `}
+                      >
+                        {nickname}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 更新日期範圍選擇 */}
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-3">
+                    日期範圍
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {DATE_RANGES.map(range => (
+                      <button
+                        key={range.days}
+                        onClick={() => setDateRange(range.days)}
+                        className={`
+                          px-4 py-2 rounded-full text-sm font-medium
+                          transition-all duration-200
+                          border-2
+                          ${dateRange === range.days ?
+                            `bg-gradient-to-r ${range.color} border-l-4` :
+                            'border-white/10 hover:border-white/20'
+                          }
+                        `}
+                      >
+                        {range.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* 更新日期範圍選擇 */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-3">
-                日期範圍
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {DATE_RANGES.map(range => (
-                  <button
-                    key={range.days}
-                    onClick={() => setDateRange(range.days)}
-                    className={`
-                      px-4 py-2 rounded-full text-sm font-medium
-                      transition-all duration-200
-                      border-2
-                      ${dateRange === range.days ?
-                        `bg-gradient-to-r ${range.color} border-l-4` :
-                        'border-white/10 hover:border-white/20'
-                      }
-                    `}
-                  >
-                    {range.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 表格渲染 */}
-          {scheduleData && scheduleData.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
-              <table className="w-full border-collapse bg-surface/30">
-                <thead>
-                  <tr>
-                    <th className="
-                      sticky left-0 z-20 
-                      bg-surface/95 backdrop-blur-md
-                      p-4 border-b-2 border-r border-primary/30
-                      text-primary font-bold min-w-[150px]
-                      shadow-lg
-                    ">
-                      同事
-                    </th>
-                    
-                    {/* 日期列 */}
-                    {getFilteredData()[1].slice(1).map((header, index) => {
-                      const date = new Date(header);
-                      const isToday = new Date(header).toDateString() === new Date().toDateString();
-                      
-                      return (
-                        <th key={index} className={`
-                          relative
-                          p-4 border-b-2 border-primary/30
-                          text-center font-bold
-                          min-w-[100px] 
-                          bg-surface/40
-                          backdrop-blur-md
-                          transition-colors
-                          ${isToday ? 'bg-primary/10' : ''}
-                        `}>
-                          {isToday && (
-                            <span className="
-                              absolute top-1 right-1
-                              text-[10px] font-semibold
-                              bg-primary text-white
-                              px-2 py-0.5 rounded-full
-                              shadow-lg shadow-primary/20
-                              ring-2 ring-primary/50
-                              animate-pulse
-                            ">
-                              今天
-                            </span>
-                          )}
-                          <div className="text-lg text-primary">
-                            {formatDate(header)}
-                          </div>
-                          <div className="text-xs mt-1 text-text-secondary">
-                            {['日', '一', '二', '三', '四', '五', '六'][date.getDay()]}
-                          </div>
+              {/* 表格渲染 */}
+              {scheduleData && scheduleData.length > 0 ? (
+                <div className="overflow-x-auto rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
+                  <table className="w-full border-collapse bg-surface/30">
+                    <thead>
+                      <tr>
+                        <th className="
+                          sticky left-0 z-20 
+                          bg-surface/95 backdrop-blur-md
+                          p-4 border-b-2 border-r border-primary/30
+                          text-primary font-bold min-w-[150px]
+                          shadow-lg
+                        ">
+                          同事
                         </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {getFilteredData().slice(2).map((row, rowIndex) => (
-                    <tr key={rowIndex} className="group hover:bg-white/5 transition-colors">
-                      <td className="
-                        sticky left-0 z-20
-                        bg-surface/95 backdrop-blur-md
-                        p-4 border-r border-white/10 
-                        font-semibold text-primary text-center
-                        shadow-lg
-                        transition-colors
-                        group-hover:bg-surface/90
-                      ">
-                        {NAME_MAPPINGS[row[0]] || row[0]}
-                      </td>
-                      
-                      {/* 班次單元格 */}
-                      {row.slice(1).map((cell, cellIndex) => {
-                        const shiftStyle = getShiftStyle(cell);
-                        const isToday = new Date(getFilteredData()[1][cellIndex + 1]).toDateString() === new Date().toDateString();
                         
-                        return (
-                          <td key={cellIndex} className={`
-                            relative p-4 
-                            border-b border-white/5
-                            text-center
-                            transition-all duration-300
-                            ${shiftStyle ? `
-                              ${shiftStyle.background} 
-                              ${shiftStyle.text}
-                              ${shiftStyle.border}
-                              hover:shadow-lg hover:scale-[1.02]
-                            ` : ''}
-                            ${isToday ? 'ring-2 ring-primary/30 ring-inset' : ''}
-                          `}
-                          title={cell}
-                          >
-                            <span className="relative z-10 font-medium">
-                              {shiftStyle ? shiftStyle.label : cell}
-                            </span>
+                        {/* 日期列 */}
+                        {getFilteredData()[1].slice(1).map((header, index) => {
+                          const date = new Date(header);
+                          const isToday = new Date(header).toDateString() === new Date().toDateString();
+                          
+                          return (
+                            <th key={index} className={`
+                              relative
+                              p-4 border-b-2 border-primary/30
+                              text-center font-bold
+                              min-w-[100px] 
+                              bg-surface/40
+                              backdrop-blur-md
+                              transition-colors
+                              ${isToday ? 'bg-primary/10' : ''}
+                            `}>
+                              {isToday && (
+                                <span className="
+                                  absolute top-1 right-1
+                                  text-[10px] font-semibold
+                                  bg-primary text-white
+                                  px-2 py-0.5 rounded-full
+                                  shadow-lg shadow-primary/20
+                                  ring-2 ring-primary/50
+                                  animate-pulse
+                                ">
+                                  今天
+                                </span>
+                              )}
+                              <div className="text-lg text-primary">
+                                {formatDate(header)}
+                              </div>
+                              <div className="text-xs mt-1 text-text-secondary">
+                                {['日', '一', '二', '三', '四', '五', '六'][date.getDay()]}
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredData().slice(2).map((row, rowIndex) => (
+                        <tr key={rowIndex} className="group hover:bg-white/5 transition-colors">
+                          <td className="
+                            sticky left-0 z-20
+                            bg-surface/95 backdrop-blur-md
+                            p-4 border-r border-white/10 
+                            font-semibold text-primary text-center
+                            shadow-lg
+                            transition-colors
+                            group-hover:bg-surface/90
+                          ">
+                            {NAME_MAPPINGS[row[0]] || row[0]}
                           </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          
+                          {/* 班次單元格 */}
+                          {row.slice(1).map((cell, cellIndex) => {
+                            const shiftStyle = getShiftStyle(cell);
+                            const isToday = new Date(getFilteredData()[1][cellIndex + 1]).toDateString() === new Date().toDateString();
+                            
+                            return (
+                              <td key={cellIndex} className={`
+                                relative p-4 
+                                border-b border-white/5
+                                text-center
+                                transition-all duration-300
+                                ${shiftStyle ? `
+                                  ${shiftStyle.background} 
+                                  ${shiftStyle.text}
+                                  ${shiftStyle.border}
+                                  hover:shadow-lg hover:scale-[1.02]
+                                ` : ''}
+                                ${isToday ? 'ring-2 ring-primary/30 ring-inset' : ''}
+                              `}
+                              title={cell}
+                              >
+                                <span className="relative z-10 font-medium">
+                                  {shiftStyle ? shiftStyle.label : cell}
+                                </span>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+                </div>
+              )}
+            </>
+          )}
+
+          {activeView === 'stats' && (
+            <div className="p-6">
+              <ScheduleStats 
+                scheduleData={getFilteredData().slice(2).reduce((acc, row) => {
+                  const employeeId = row[0];
+                  acc[employeeId] = {
+                    morning: row.slice(1).filter(cell => 
+                      cell.includes('4:30-13:00') || cell.includes('4：30-13：00')
+                    ).length,
+                    evening: row.slice(1).filter(cell => 
+                      cell.includes('13:00-21:30') || cell.includes('13：00-21：30')
+                    ).length
+                  };
+                  return acc;
+                }, {})}
+                employees={Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => ({
+                  id: fullName,
+                  name: nickname
+                }))}
+              />
             </div>
-          ) : (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+          )}
+
+          {activeView === 'pairings' && Object.keys(pairings).length > 0 && (
+            <div className="p-6">
+              <PairingsStats 
+                pairings={pairings}
+                onClose={() => setActiveView('schedule')}
+              />
+            </div>
+          )}
+
+          {/* 添加票價比較視圖 */}
+          {activeView === 'tickets' && (
+            <div className="p-6">
+              <TicketComparison scheduleData={getFilteredData()} />
             </div>
           )}
         </div>
-
-        {/* 移除原本的統計面板，改為彈出式視窗 */}
-        {showStats && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-surface rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center p-6 border-b border-white/10">
-                <h2 className="text-xl font-bold">班表統計</h2>
-                <button 
-                  onClick={() => setShowStats(false)}
-                  className="btn-icon"
-                >
-                  <XMarkIcon className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-6">
-                <ScheduleStats 
-                  scheduleData={getFilteredData().slice(2).reduce((acc, row) => {
-                    const employeeId = row[0];
-                    acc[employeeId] = {
-                      morning: row.slice(1).filter(cell => 
-                        cell.includes('4:30-13:00') || cell.includes('4：30-13：00')
-                      ).length,
-                      evening: row.slice(1).filter(cell => 
-                        cell.includes('13:00-21:30') || cell.includes('13：00-21：30')
-                      ).length
-                    };
-                    return acc;
-                  }, {})}
-                  employees={Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => ({
-                    id: fullName,
-                    name: nickname
-                  }))}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 修改配搭統計顯示 */}
-        {showPairings && Object.keys(pairings).length > 0 && (
-          <PairingsStats 
-            pairings={pairings} 
-            onClose={() => setShowPairings(false)} 
-          />
-        )}
       </div>
     </div>
   )
