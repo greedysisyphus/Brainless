@@ -169,17 +169,17 @@ function PairingsStats({ pairings: { pairings, pairingDetails }, onClose }) {
   const maxPairings = Math.max(...Object.values(pairings).flatMap(p => Object.values(p)))
 
   const getColorClass = (count) => {
-    if (count === 0) return 'bg-surface/30'
-    const intensity = Math.ceil((count / maxPairings) * 5)
+    if (count === 0) return 'bg-surface/30';
+    const intensity = Math.ceil((count / maxPairings) * 5);
     switch (intensity) {
-      case 1: return 'bg-primary/10'
-      case 2: return 'bg-primary/20'
-      case 3: return 'bg-primary/30'
-      case 4: return 'bg-primary/400'
-      case 5: return 'bg-primary/50'
-      default: return 'bg-surface/30'
+      case 1: return 'bg-primary/10';
+      case 2: return 'bg-primary/20';
+      case 3: return 'bg-primary/30';
+      case 4: return 'bg-primary/40';  // 修正這裡，從 400 改為 40
+      case 5: return 'bg-primary/50';
+      default: return 'bg-surface/30';
     }
-  }
+  };
 
   // 獲取指定同事的配搭統計
   const getStaffPairings = (staffName) => {
@@ -933,18 +933,18 @@ function ScheduleStats({ scheduleData, employees }) {
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold
                       ${index === 0 ? 'bg-amber-400 text-black' :
-                        index === 1 ? 'bg-gray-400/80 text-white' : 'bg-amber-900/50 text-amber-300'}
+                        index === 1 ? 'bg-amber-600/80 text-amber-100' : 
+                        'bg-amber-900/50 text-amber-300'}
                     `}>
                       {index + 1}
                     </div>
-                    <span className={index === 0 ? 'font-bold text-amber-400' : ''}>{staff.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className={`font-bold ${index === 0 ? 'text-amber-400' : ''}`}>
-                      {staff.morning}
+                    <span className={index === 0 ? 'font-bold text-amber-400' : ''}>
+                      {staff.name}
                     </span>
-                    <span className="text-sm text-text-secondary">班</span>
                   </div>
+                  <span className={`font-bold ${index === 0 ? 'text-amber-400' : ''}`}>
+                    {staff.morning} 班
+                  </span>
                 </div>
               ))}
             </div>
@@ -970,18 +970,18 @@ function ScheduleStats({ scheduleData, employees }) {
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold
                       ${index === 0 ? 'bg-blue-400 text-black' :
-                        index === 1 ? 'bg-gray-400/80 text-white' : 'bg-blue-900/50 text-blue-300'}
+                        index === 1 ? 'bg-blue-600/80 text-blue-100' : 
+                        'bg-blue-900/50 text-blue-300'}
                     `}>
                       {index + 1}
                     </div>
-                    <span className={index === 0 ? 'font-bold text-blue-400' : ''}>{staff.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className={`font-bold ${index === 0 ? 'text-blue-400' : ''}`}>
-                      {staff.evening}
+                    <span className={index === 0 ? 'font-bold text-blue-400' : ''}>
+                      {staff.name}
                     </span>
-                    <span className="text-sm text-text-secondary">班</span>
                   </div>
+                  <span className={`font-bold ${index === 0 ? 'text-blue-400' : ''}`}>
+                    {staff.evening} 班
+                  </span>
                 </div>
               ))}
             </div>
@@ -1007,18 +1007,18 @@ function ScheduleStats({ scheduleData, employees }) {
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold
                       ${index === 0 ? 'bg-emerald-400 text-black' :
-                        index === 1 ? 'bg-gray-400/80 text-white' : 'bg-emerald-900/50 text-emerald-300'}
+                        index === 1 ? 'bg-emerald-600/80 text-emerald-100' : 
+                        'bg-emerald-900/50 text-emerald-300'}
                     `}>
                       {index + 1}
                     </div>
-                    <span className={index === 0 ? 'font-bold text-emerald-400' : ''}>{staff.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className={`font-bold ${index === 0 ? 'text-emerald-400' : ''}`}>
-                      {staff.consecutiveWork.max}
+                    <span className={index === 0 ? 'font-bold text-emerald-400' : ''}>
+                      {staff.name}
                     </span>
-                    <span className="text-sm text-text-secondary">天</span>
                   </div>
+                  <span className={`font-bold ${index === 0 ? 'text-emerald-400' : ''}`}>
+                    {staff.consecutiveWork.max} 天
+                  </span>
                 </div>
               ))}
             </div>
@@ -1044,18 +1044,18 @@ function ScheduleStats({ scheduleData, employees }) {
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold
                       ${index === 0 ? 'bg-violet-400 text-black' :
-                        index === 1 ? 'bg-gray-400/80 text-white' : 'bg-violet-900/50 text-violet-300'}
+                        index === 1 ? 'bg-violet-600/80 text-violet-100' : 
+                        'bg-violet-900/50 text-violet-300'}
                     `}>
                       {index + 1}
                     </div>
-                    <span className={index === 0 ? 'font-bold text-violet-400' : ''}>{staff.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className={`font-bold ${index === 0 ? 'text-violet-400' : ''}`}>
-                      {staff.consecutiveWork.average}
+                    <span className={index === 0 ? 'font-bold text-violet-400' : ''}>
+                      {staff.name}
                     </span>
-                    <span className="text-sm text-text-secondary">天</span>
                   </div>
+                  <span className={`font-bold ${index === 0 ? 'text-violet-400' : ''}`}>
+                    {staff.consecutiveWork.average} 天
+                  </span>
                 </div>
               ))}
             </div>
