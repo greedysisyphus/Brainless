@@ -9,10 +9,14 @@ import {
   ChevronDownIcon,
   ChartBarIcon,
   XMarkIcon,
-  UsersIcon
+  UsersIcon,
+  SunIcon,  // 早班
+  MoonIcon,  // 晚班
+  FireIcon,  // 最長連續
+  TrophyIcon,  // 獎盃
+  ArrowTrendingUpIcon  // 趨勢
 } from '@heroicons/react/24/outline'
 import ExcelToJsonConverter from '../components/ExcelToJsonConverter'
-import ScheduleStats from '../components/schedule/ScheduleStats'
 
 // 添加名字映射
 const NAME_MAPPINGS = {
@@ -171,7 +175,7 @@ function PairingsStats({ pairings: { pairings, pairingDetails }, onClose }) {
       case 1: return 'bg-primary/10'
       case 2: return 'bg-primary/20'
       case 3: return 'bg-primary/30'
-      case 4: return 'bg-primary/40'
+      case 4: return 'bg-primary/400'
       case 5: return 'bg-primary/50'
       default: return 'bg-surface/30'
     }
@@ -368,6 +372,110 @@ const TICKET_PRICES = {
   }
 }
 
+// 新增 StaffTicketCard 子組件
+function StaffTicketCard({ staffCost }) {
+  const minCost = Math.min(
+    staffCost.monthlyExpenses.citizen,
+    staffCost.monthlyExpenses.tpass,
+    staffCost.monthlyExpenses.fourMonths
+  );
+
+  const ticketOptions = [
+    {
+      name: '市民卡 (7折)',
+      cost: staffCost.monthlyExpenses.citizen,
+      color: 'amber'
+    },
+    {
+      name: 'TPass 799',
+      cost: staffCost.monthlyExpenses.tpass,
+      color: 'blue'
+    },
+    {
+      name: '定期票 (120天)',
+      cost: staffCost.monthlyExpenses.fourMonths,
+      color: 'emerald'
+    }
+  ];
+
+  return (
+    <div className="bg-surface/30 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300">
+      {/* 標題區 */}
+      <div className="bg-white/5 px-4 py-3 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`
+              w-8 h-8 rounded-full 
+              flex items-center justify-center
+              bg-gradient-to-br ${STAFF_COLORS[staffCost.name] || 'from-primary/20 to-secondary/20'}
+            `}>
+              {staffCost.name[0]}
+            </div>
+            <div className="font-medium text-lg">{staffCost.name}</div>
+          </div>
+          <div className="text-sm text-text-secondary px-2 py-1 bg-white/5 rounded-full">
+            {staffCost.rides.total} 次/120天
+          </div>
+        </div>
+      </div>
+
+      {/* 費用區 */}
+      <div className="p-4 space-y-3">
+        {/* 票價選項 */}
+        {ticketOptions.map(option => (
+          <div
+            key={option.name}
+            className={`
+              flex justify-between items-center p-2 rounded-lg
+              ${option.cost === minCost ? 
+                `bg-${option.color}-500/10 text-${option.color}-100` : 
+                'bg-white/5'
+              }
+            `}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full bg-${option.color}-400`} />
+              <span className="text-sm">{option.name}</span>
+            </div>
+            <span className={`font-medium ${
+              option.cost === minCost ? `text-${option.color}-400` : ''
+            }`}>
+              ${option.cost}/月
+            </span>
+          </div>
+        ))}
+
+        {/* 最佳方案 - 更新樣式 */}
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <div className="bg-primary/10 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-primary rounded-full" />
+                <div>
+                  <div className="text-sm text-text-secondary">最佳方案</div>
+                  <div className="text-xs text-primary/80 mt-0.5">
+                    每月可省 ${Math.max(
+                      staffCost.monthlyExpenses.citizen,
+                      staffCost.monthlyExpenses.tpass,
+                      staffCost.monthlyExpenses.fourMonths
+                    ) - minCost} 元
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">
+                  ${minCost}
+                </div>
+                <div className="text-xs text-text-secondary">每月</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 修改 TicketComparison 組件
 function TicketComparison({ scheduleData }) {
   const [station, setStation] = useState('A19')
@@ -528,76 +636,22 @@ function TicketComparison({ scheduleData }) {
                 fourMonths: Math.round(staffCost.costs.fourMonths / 4)
               }
             }))
-            // 按最低月花費排序
             .sort((a, b) => {
               const aMinCost = Math.min(
                 a.monthlyExpenses.citizen,
                 a.monthlyExpenses.tpass,
                 a.monthlyExpenses.fourMonths
-              )
+              );
               const bMinCost = Math.min(
                 b.monthlyExpenses.citizen,
                 b.monthlyExpenses.tpass,
                 b.monthlyExpenses.fourMonths
-              )
-              return bMinCost - aMinCost // 從高到低排序
+              );
+              return bMinCost - aMinCost;
             })
-            .map(staffCost => {
-              // 找出最便宜的方案
-              const minCost = Math.min(
-                staffCost.monthlyExpenses.citizen,
-                staffCost.monthlyExpenses.tpass,
-                staffCost.monthlyExpenses.fourMonths
-              )
-
-              return (
-                <div 
-                  key={staffCost.name}
-                  className="bg-surface/30 rounded-lg p-4 space-y-3"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="font-medium">{staffCost.name}</div>
-                    <div className="text-sm text-text-secondary">
-                      {staffCost.rides.total} 次/120天
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>市民卡 (7折)</span>
-                      <span className={`font-medium ${
-                        staffCost.monthlyExpenses.citizen === minCost ? 'text-primary' : ''
-                      }`}>
-                        ${staffCost.monthlyExpenses.citizen}/月
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>TPass 799</span>
-                      <span className={`font-medium ${
-                        staffCost.monthlyExpenses.tpass === minCost ? 'text-primary' : ''
-                      }`}>
-                        $799/月
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>定期票 (120天)</span>
-                      <span className={`font-medium ${
-                        staffCost.monthlyExpenses.fourMonths === minCost ? 'text-primary' : ''
-                      }`}>
-                        ${staffCost.monthlyExpenses.fourMonths}/月
-                      </span>
-                    </div>
-                    <div className="pt-2 border-t border-white/10">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium">最佳方案</span>
-                        <span className="font-bold text-primary">
-                          ${minCost}/月
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            .map(staffCost => (
+              <StaffTicketCard key={staffCost.name} staffCost={staffCost} />
+            ))}
         </div>
       )}
     </div>
@@ -736,6 +790,446 @@ function StaffCostDetail({ costs, station }) {
       </div>
     </>
   )
+}
+
+// 修改 ScheduleStats 組件
+function ScheduleStats({ scheduleData, employees }) {
+  const [selectedStaff, setSelectedStaff] = useState(null);
+
+  // 計算個人班次統計
+  const calculatePersonalStats = (employeeData) => {
+    // 確保 employeeData 存在
+    if (!employeeData || !Array.isArray(employeeData)) {
+      return {
+        morning: 0,
+        evening: 0,
+        middle: 0,
+        hsr: 0,
+        holidays: 0,
+        total: 0,
+        consecutiveWork: { max: 0, average: 0 },
+        weekends: 0
+      };
+    }
+
+    const shifts = employeeData;
+    return {
+      // 基本班次統計
+      morning: shifts.filter(cell => 
+        cell.includes('4:30-13:00') || 
+        cell.includes('4：30-13：00')
+      ).length,
+      evening: shifts.filter(cell => 
+        cell.includes('13:00-21:30') || 
+        cell.includes('13：00-21：30')
+      ).length,
+      middle: shifts.filter(cell => 
+        cell.includes('7:30-16:00') || 
+        cell.includes('7：30-16：00')
+      ).length,
+      hsr: shifts.filter(cell => 
+        cell.includes('6:00-14:30') || 
+        cell.includes('6：00-14：30')
+      ).length,
+      
+      // 國定假日統計
+      holidays: shifts.filter(cell => cell.includes('國')).length,
+      
+      // 計算總班次
+      total: shifts.filter(cell => cell.trim() !== '').length,
+      
+      // 計算連續工作天數
+      consecutiveWork: calculateConsecutiveWork(shifts),
+      
+      // 週末班次
+      weekends: calculateWeekendShifts(shifts)
+    }
+  }
+
+  // 修改計算連續工作天數的函數
+  const calculateConsecutiveWork = (shifts) => {
+    let current = 0;
+    let max = 0;
+    let sequences = [];
+
+    // 處理最後一個序列
+    const processLastSequence = () => {
+      if (current > 0) {
+        sequences.push(current);
+        max = Math.max(max, current);
+      }
+    };
+
+    shifts.forEach(shift => {
+      // 如果是工作日（不是空白且不是月休）
+      if (shift.trim() !== '' && !shift.includes('月休')) {
+        current++;
+      } else {
+        processLastSequence();
+        current = 0;
+      }
+    });
+
+    // 確保處理最後一個序列
+    processLastSequence();
+
+    return {
+      max,
+      average: sequences.length > 0 
+        ? Math.round(sequences.reduce((a, b) => a + b, 0) / sequences.length * 10) / 10
+        : 0,
+      sequences  // 可選：保存所有連續工作序列，用於除錯
+    };
+  };
+
+  // 計算週末班次
+  const calculateWeekendShifts = (shifts) => {
+    // 假設第一天的星期已知，可以從這裡計算每個班次是否在週末
+    return shifts.filter((shift, index) => {
+      const dayOfWeek = (index % 7);
+      return (dayOfWeek === 0 || dayOfWeek === 6) && shift.trim() !== '';
+    }).length;
+  }
+
+  // 計算排名數據
+  const getRankings = () => {
+    const stats = employees.map(employee => ({
+      name: employee.name,
+      ...calculatePersonalStats(scheduleData[employee.id])
+    }));
+
+    return {
+      morningShifts: [...stats].sort((a, b) => b.morning - a.morning),
+      eveningShifts: [...stats].sort((a, b) => b.evening - a.evening),
+      maxConsecutive: [...stats].sort((a, b) => b.consecutiveWork.max - a.consecutiveWork.max),
+      avgConsecutive: [...stats].sort((a, b) => b.consecutiveWork.average - a.consecutiveWork.average)
+    };
+  };
+
+  const rankings = getRankings();
+
+  return (
+    <div className="space-y-8">
+      {/* 排名榜 */}
+      {!selectedStaff && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {/* 早班王 */}
+          <div className="bg-surface/30 rounded-lg overflow-hidden">
+            <div className="bg-amber-500/10 px-4 py-3 border-b border-white/5">
+              <div className="text-lg font-bold text-amber-400 flex items-center gap-2">
+                <SunIcon className="w-5 h-5" />
+                早班王
+                <TrophyIcon className="w-4 h-4 ml-auto animate-bounce" />
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {rankings.morningShifts.slice(0, 3).map((staff, index) => (
+                <div 
+                  key={staff.name}
+                  className="flex items-center justify-between bg-white/5 rounded-lg p-2
+                           transition-all duration-200 hover:bg-white/10"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`
+                      w-8 h-8 rounded-full flex items-center justify-center font-bold
+                      ${index === 0 ? 'bg-amber-400 text-black' :
+                        index === 1 ? 'bg-gray-400/80 text-white' : 'bg-amber-900/50 text-amber-300'}
+                    `}>
+                      {index + 1}
+                    </div>
+                    <span className={index === 0 ? 'font-bold text-amber-400' : ''}>{staff.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className={`font-bold ${index === 0 ? 'text-amber-400' : ''}`}>
+                      {staff.morning}
+                    </span>
+                    <span className="text-sm text-text-secondary">班</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 晚班王 */}
+          <div className="bg-surface/30 rounded-lg overflow-hidden">
+            <div className="bg-blue-500/10 px-4 py-3 border-b border-white/5">
+              <div className="text-lg font-bold text-blue-400 flex items-center gap-2">
+                <MoonIcon className="w-5 h-5" />
+                晚班王
+                <TrophyIcon className="w-4 h-4 ml-auto animate-bounce" />
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {rankings.eveningShifts.slice(0, 3).map((staff, index) => (
+                <div 
+                  key={staff.name}
+                  className="flex items-center justify-between bg-white/5 rounded-lg p-2
+                           transition-all duration-200 hover:bg-white/10"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`
+                      w-8 h-8 rounded-full flex items-center justify-center font-bold
+                      ${index === 0 ? 'bg-blue-400 text-black' :
+                        index === 1 ? 'bg-gray-400/80 text-white' : 'bg-blue-900/50 text-blue-300'}
+                    `}>
+                      {index + 1}
+                    </div>
+                    <span className={index === 0 ? 'font-bold text-blue-400' : ''}>{staff.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className={`font-bold ${index === 0 ? 'text-blue-400' : ''}`}>
+                      {staff.evening}
+                    </span>
+                    <span className="text-sm text-text-secondary">班</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 最長連續 */}
+          <div className="bg-surface/30 rounded-lg overflow-hidden">
+            <div className="bg-emerald-500/10 px-4 py-3 border-b border-white/5">
+              <div className="text-lg font-bold text-emerald-400 flex items-center gap-2">
+                <FireIcon className="w-5 h-5" />
+                最長連續
+                <ArrowTrendingUpIcon className="w-4 h-4 ml-auto" />
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {rankings.maxConsecutive.slice(0, 3).map((staff, index) => (
+                <div 
+                  key={staff.name}
+                  className="flex items-center justify-between bg-white/5 rounded-lg p-2
+                           transition-all duration-200 hover:bg-white/10"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`
+                      w-8 h-8 rounded-full flex items-center justify-center font-bold
+                      ${index === 0 ? 'bg-emerald-400 text-black' :
+                        index === 1 ? 'bg-gray-400/80 text-white' : 'bg-emerald-900/50 text-emerald-300'}
+                    `}>
+                      {index + 1}
+                    </div>
+                    <span className={index === 0 ? 'font-bold text-emerald-400' : ''}>{staff.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className={`font-bold ${index === 0 ? 'text-emerald-400' : ''}`}>
+                      {staff.consecutiveWork.max}
+                    </span>
+                    <span className="text-sm text-text-secondary">天</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 平均連續 */}
+          <div className="bg-surface/30 rounded-lg overflow-hidden">
+            <div className="bg-violet-500/10 px-4 py-3 border-b border-white/5">
+              <div className="text-lg font-bold text-violet-400 flex items-center gap-2">
+                <ChartBarIcon className="w-5 h-5" />
+                平均連續
+                <ArrowTrendingUpIcon className="w-4 h-4 ml-auto" />
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {rankings.avgConsecutive.slice(0, 3).map((staff, index) => (
+                <div 
+                  key={staff.name}
+                  className="flex items-center justify-between bg-white/5 rounded-lg p-2
+                           transition-all duration-200 hover:bg-white/10"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`
+                      w-8 h-8 rounded-full flex items-center justify-center font-bold
+                      ${index === 0 ? 'bg-violet-400 text-black' :
+                        index === 1 ? 'bg-gray-400/80 text-white' : 'bg-violet-900/50 text-violet-300'}
+                    `}>
+                      {index + 1}
+                    </div>
+                    <span className={index === 0 ? 'font-bold text-violet-400' : ''}>{staff.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className={`font-bold ${index === 0 ? 'text-violet-400' : ''}`}>
+                      {staff.consecutiveWork.average}
+                    </span>
+                    <span className="text-sm text-text-secondary">天</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 人員過濾器 */}
+      <div>
+        <label className="block text-sm font-medium text-text-secondary mb-3">
+          選擇同事
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedStaff(null)}
+            className={`
+              px-4 py-2 rounded-full text-sm font-medium
+              transition-all duration-200
+              border-2 border-white/10
+              ${!selectedStaff ? 
+                'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
+                'hover:border-white/20'
+              }
+            `}
+          >
+            全部
+          </button>
+          {employees.map(employee => (
+            <button
+              key={employee.id}
+              onClick={() => setSelectedStaff(employee.name)}
+              className={`
+                px-4 py-2 rounded-full text-sm font-medium
+                transition-all duration-200 
+                border-2
+                ${selectedStaff === employee.name ?
+                  `bg-gradient-to-r ${STAFF_COLORS[employee.name] || 'from-primary/20 to-secondary/20'} border-l-4` :
+                  'border-white/10 hover:border-white/20'
+                }
+              `}
+            >
+              {employee.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 個人統計 */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold flex items-center gap-2">
+          <UsersIcon className="w-5 h-5" />
+          個人班次分析
+        </h3>
+        <div className="grid grid-cols-1 gap-4">
+          {employees
+            .filter(employee => !selectedStaff || employee.name === selectedStaff)
+            .map(employee => {
+              const stats = calculatePersonalStats(scheduleData[employee.id]);
+              const totalShifts = stats.total;
+              
+              return (
+                <div 
+                  key={employee.id}
+                  className={`
+                    bg-surface/30 rounded-lg overflow-hidden
+                    transition-all duration-300
+                    hover:shadow-lg
+                    ${selectedStaff === employee.name ? 'ring-2 ring-primary/30' : ''}
+                  `}
+                >
+                  {/* 標題區 */}
+                  <div className="bg-white/5 px-4 py-3 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        w-8 h-8 rounded-full 
+                        flex items-center justify-center
+                        bg-gradient-to-br ${STAFF_COLORS[employee.name] || 'from-primary/20 to-secondary/20'}
+                      `}>
+                        {employee.name[0]}
+                      </div>
+                      <div className="font-medium text-lg">{employee.name}</div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 space-y-6">
+                    {/* 班次分布 */}
+                    <div>
+                      <div className="text-sm font-medium text-text-secondary mb-3">班次分布</div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <SunIcon className="w-4 h-4 text-amber-400" />
+                            <div className="text-sm text-text-secondary">早班</div>
+                          </div>
+                          <div className="text-xl font-bold">{stats.morning}</div>
+                          <div className="text-xs text-text-secondary">
+                            {Math.round(stats.morning / totalShifts * 100)}%
+                          </div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <MoonIcon className="w-4 h-4 text-blue-400" />
+                            <div className="text-sm text-text-secondary">晚班</div>
+                          </div>
+                          <div className="text-xl font-bold">{stats.evening}</div>
+                          <div className="text-xs text-text-secondary">
+                            {Math.round(stats.evening / totalShifts * 100)}%
+                          </div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full bg-emerald-400/20" />
+                            <div className="text-sm text-text-secondary">中班</div>
+                          </div>
+                          <div className="text-xl font-bold">{stats.middle}</div>
+                          <div className="text-xs text-text-secondary">
+                            {Math.round(stats.middle / totalShifts * 100)}%
+                          </div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full bg-violet-400/20" />
+                            <div className="text-sm text-text-secondary">高鐵班</div>
+                          </div>
+                          <div className="text-xl font-bold">{stats.hsr}</div>
+                          <div className="text-xs text-text-secondary">
+                            {Math.round(stats.hsr / totalShifts * 100)}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 其他統計 */}
+                    <div>
+                      <div className="text-sm font-medium text-text-secondary mb-3">其他統計</div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                          <div className="text-sm text-text-secondary">國定假日</div>
+                          <div className="text-xl font-bold flex items-baseline gap-1">
+                            {stats.holidays}
+                            <span className="text-xs text-text-secondary">次</span>
+                          </div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                          <div className="text-sm text-text-secondary">週末班次</div>
+                          <div className="text-xl font-bold flex items-baseline gap-1">
+                            {stats.weekends}
+                            <span className="text-xs text-text-secondary">次</span>
+                          </div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                          <div className="text-sm text-text-secondary">最長連續</div>
+                          <div className="text-xl font-bold flex items-baseline gap-1">
+                            {stats.consecutiveWork.max}
+                            <span className="text-xs text-text-secondary">天</span>
+                          </div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                          <div className="text-sm text-text-secondary">平均連續</div>
+                          <div className="text-xl font-bold flex items-baseline gap-1">
+                            {stats.consecutiveWork.average}
+                            <span className="text-xs text-text-secondary">天</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Schedule() {
@@ -1301,9 +1795,9 @@ function Schedule() {
                             'border-white/10 hover:border-white/20'
                           }
                         `}
-                      >
-                        {nickname}
-                      </button>
+                        >
+                          {nickname}
+                        </button>
                     ))}
                   </div>
                 </div>
@@ -1449,17 +1943,13 @@ function Schedule() {
           {activeView === 'stats' && (
             <div className="p-6">
               <ScheduleStats 
-                scheduleData={getFilteredData().slice(2).reduce((acc, row) => {
+                scheduleData={scheduleData.slice(2).reduce((acc, row) => {
+                  if (!row || !row[0]) return acc;
                   const employeeId = row[0];
-                  acc[employeeId] = {
-                    morning: row.slice(1).filter(cell => 
-                      cell.includes('4:30-13:00') || cell.includes('4：30-13：00')
-                    ).length,
-                    evening: row.slice(1).filter(cell => 
-                      cell.includes('13:00-21:30') || cell.includes('13：00-21：30')
-                    ).length
+                  return {
+                    ...acc,
+                    [employeeId]: row.slice(1)
                   };
-                  return acc;
                 }, {})}
                 employees={Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => ({
                   id: fullName,
