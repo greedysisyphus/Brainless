@@ -912,150 +912,210 @@ function ScheduleStats({ scheduleData, employees }) {
     <div className="space-y-8">
       {/* 排名榜 */}
       {!selectedStaff && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* 早班王 */}
-          <div className="bg-surface/30 rounded-lg overflow-hidden">
-            <div className="bg-amber-500/10 px-4 py-3 border-b border-white/5">
+          <div className="bg-gradient-to-br from-amber-500/5 to-amber-600/10 rounded-lg overflow-hidden border border-amber-500/10 shadow-lg shadow-amber-500/5">
+            <div className="bg-amber-500/10 px-4 py-3 border-b border-amber-500/10">
               <div className="text-lg font-bold text-amber-400 flex items-center gap-2">
-                <SunIcon className="w-5 h-5" />
+                <div className="p-1.5 rounded-lg bg-amber-400/10">
+                  <SunIcon className="w-5 h-5" />
+                </div>
                 早班王
-                <TrophyIcon className="w-4 h-4 ml-auto animate-bounce" />
+                <TrophyIcon className="w-4 h-4 ml-auto animate-bounce text-amber-400/80" />
               </div>
             </div>
             <div className="p-4 space-y-3">
               {rankings.morningShifts.slice(0, 3).map((staff, index) => (
                 <div 
                   key={staff.name}
-                  className="flex items-center justify-between bg-white/5 rounded-lg p-2
-                           transition-all duration-200 hover:bg-white/10"
+                  className="flex items-center justify-between bg-amber-400/5 rounded-lg p-2.5
+                           transition-all duration-200 hover:bg-amber-400/10 hover:scale-[1.02]"
                 >
                   <div className="flex items-center gap-3">
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold
-                      ${index === 0 ? 'bg-amber-400 text-black' :
-                        index === 1 ? 'bg-amber-600/80 text-amber-100' : 
-                        'bg-amber-900/50 text-amber-300'}
-                    `}>
+                      shadow-lg ${index === 0 
+                        ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-black ring-2 ring-amber-400/50' 
+                        : index === 1 
+                          ? 'bg-gradient-to-br from-amber-600/90 to-amber-700/90 text-amber-100 ring-1 ring-amber-500/30'
+                          : 'bg-gradient-to-br from-amber-800/80 to-amber-900/80 text-amber-300'
+                        }
+                      `}>
                       {index + 1}
                     </div>
-                    <span className={index === 0 ? 'font-bold text-amber-400' : ''}>
-                      {staff.name}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className={`font-medium ${index === 0 ? 'text-amber-400' : 'text-amber-300/90'}`}>
+                        {staff.name}
+                      </span>
+                      {index === 0 && (
+                        <span className="text-xs text-amber-400/50">
+                          早班之王 👑
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className={`font-bold ${index === 0 ? 'text-amber-400' : ''}`}>
-                    {staff.morning} 班
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className={`font-bold ${index === 0 ? 'text-amber-400' : 'text-amber-300/90'}`}>
+                      {staff.morning}
+                    </span>
+                    <span className="text-xs text-amber-400/50">班次</span>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* 晚班王 */}
-          <div className="bg-surface/30 rounded-lg overflow-hidden">
-            <div className="bg-blue-500/10 px-4 py-3 border-b border-white/5">
+          <div className="bg-gradient-to-br from-blue-500/5 to-blue-600/10 rounded-lg overflow-hidden border border-blue-500/10 shadow-lg shadow-blue-500/5">
+            <div className="bg-blue-500/10 px-4 py-3 border-b border-blue-500/10">
               <div className="text-lg font-bold text-blue-400 flex items-center gap-2">
-                <MoonIcon className="w-5 h-5" />
+                <div className="p-1.5 rounded-lg bg-blue-400/10">
+                  <MoonIcon className="w-5 h-5" />
+                </div>
                 晚班王
-                <TrophyIcon className="w-4 h-4 ml-auto animate-bounce" />
+                <TrophyIcon className="w-4 h-4 ml-auto animate-bounce text-blue-400/80" />
               </div>
             </div>
             <div className="p-4 space-y-3">
               {rankings.eveningShifts.slice(0, 3).map((staff, index) => (
                 <div 
                   key={staff.name}
-                  className="flex items-center justify-between bg-white/5 rounded-lg p-2
-                           transition-all duration-200 hover:bg-white/10"
+                  className="flex items-center justify-between bg-blue-400/5 rounded-lg p-2.5
+                           transition-all duration-200 hover:bg-blue-400/10 hover:scale-[1.02]"
                 >
                   <div className="flex items-center gap-3">
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold
-                      ${index === 0 ? 'bg-blue-400 text-black' :
-                        index === 1 ? 'bg-blue-600/80 text-blue-100' : 
-                        'bg-blue-900/50 text-blue-300'}
-                    `}>
+                      shadow-lg ${index === 0 
+                        ? 'bg-gradient-to-br from-blue-400 to-blue-500 text-black ring-2 ring-blue-400/50' 
+                        : index === 1 
+                          ? 'bg-gradient-to-br from-blue-600/90 to-blue-700/90 text-blue-100 ring-1 ring-blue-500/30'
+                          : 'bg-gradient-to-br from-blue-800/80 to-blue-900/80 text-blue-300'
+                        }
+                      `}>
                       {index + 1}
                     </div>
-                    <span className={index === 0 ? 'font-bold text-blue-400' : ''}>
-                      {staff.name}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className={`font-medium ${index === 0 ? 'text-blue-400' : 'text-blue-300/90'}`}>
+                        {staff.name}
+                      </span>
+                      {index === 0 && (
+                        <span className="text-xs text-blue-400/50">
+                          晚班之王 👑
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className={`font-bold ${index === 0 ? 'text-blue-400' : ''}`}>
-                    {staff.evening} 班
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className={`font-bold ${index === 0 ? 'text-blue-400' : 'text-blue-300/90'}`}>
+                      {staff.evening}
+                    </span>
+                    <span className="text-xs text-blue-400/50">班次</span>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* 最長連續 */}
-          <div className="bg-surface/30 rounded-lg overflow-hidden">
-            <div className="bg-emerald-500/10 px-4 py-3 border-b border-white/5">
+          <div className="bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 rounded-lg overflow-hidden border border-emerald-500/10 shadow-lg shadow-emerald-500/5">
+            <div className="bg-emerald-500/10 px-4 py-3 border-b border-emerald-500/10">
               <div className="text-lg font-bold text-emerald-400 flex items-center gap-2">
-                <FireIcon className="w-5 h-5" />
+                <div className="p-1.5 rounded-lg bg-emerald-400/10">
+                  <FireIcon className="w-5 h-5" />
+                </div>
                 最長連續
-                <ArrowTrendingUpIcon className="w-4 h-4 ml-auto" />
+                <ArrowTrendingUpIcon className="w-4 h-4 ml-auto text-emerald-400/80" />
               </div>
             </div>
             <div className="p-4 space-y-3">
               {rankings.maxConsecutive.slice(0, 3).map((staff, index) => (
                 <div 
                   key={staff.name}
-                  className="flex items-center justify-between bg-white/5 rounded-lg p-2
-                           transition-all duration-200 hover:bg-white/10"
+                  className="flex items-center justify-between bg-emerald-400/5 rounded-lg p-2.5
+                           transition-all duration-200 hover:bg-emerald-400/10 hover:scale-[1.02]"
                 >
                   <div className="flex items-center gap-3">
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold
-                      ${index === 0 ? 'bg-emerald-400 text-black' :
-                        index === 1 ? 'bg-emerald-600/80 text-emerald-100' : 
-                        'bg-emerald-900/50 text-emerald-300'}
-                    `}>
+                      shadow-lg ${index === 0 
+                        ? 'bg-gradient-to-br from-emerald-400 to-emerald-500 text-black ring-2 ring-emerald-400/50' 
+                        : index === 1 
+                          ? 'bg-gradient-to-br from-emerald-600/90 to-emerald-700/90 text-emerald-100 ring-1 ring-emerald-500/30'
+                          : 'bg-gradient-to-br from-emerald-800/80 to-emerald-900/80 text-emerald-300'
+                        }
+                      `}>
                       {index + 1}
                     </div>
-                    <span className={index === 0 ? 'font-bold text-emerald-400' : ''}>
-                      {staff.name}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className={`font-medium ${index === 0 ? 'text-emerald-400' : 'text-emerald-300/90'}`}>
+                        {staff.name}
+                      </span>
+                      {index === 0 && (
+                        <span className="text-xs text-emerald-400/50">
+                          連續之王 👑
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className={`font-bold ${index === 0 ? 'text-emerald-400' : ''}`}>
-                    {staff.consecutiveWork.max} 天
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className={`font-bold ${index === 0 ? 'text-emerald-400' : 'text-emerald-300/90'}`}>
+                      {staff.consecutiveWork.max}
+                    </span>
+                    <span className="text-xs text-emerald-400/50">天</span>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* 平均連續 */}
-          <div className="bg-surface/30 rounded-lg overflow-hidden">
-            <div className="bg-violet-500/10 px-4 py-3 border-b border-white/5">
+          <div className="bg-gradient-to-br from-violet-500/5 to-violet-600/10 rounded-lg overflow-hidden border border-violet-500/10 shadow-lg shadow-violet-500/5">
+            <div className="bg-violet-500/10 px-4 py-3 border-b border-violet-500/10">
               <div className="text-lg font-bold text-violet-400 flex items-center gap-2">
-                <ChartBarIcon className="w-5 h-5" />
+                <div className="p-1.5 rounded-lg bg-violet-400/10">
+                  <ChartBarIcon className="w-5 h-5" />
+                </div>
                 平均連續
-                <ArrowTrendingUpIcon className="w-4 h-4 ml-auto" />
+                <ArrowTrendingUpIcon className="w-4 h-4 ml-auto text-violet-400/80" />
               </div>
             </div>
             <div className="p-4 space-y-3">
               {rankings.avgConsecutive.slice(0, 3).map((staff, index) => (
                 <div 
                   key={staff.name}
-                  className="flex items-center justify-between bg-white/5 rounded-lg p-2
-                           transition-all duration-200 hover:bg-white/10"
+                  className="flex items-center justify-between bg-violet-400/5 rounded-lg p-2.5
+                           transition-all duration-200 hover:bg-violet-400/10 hover:scale-[1.02]"
                 >
                   <div className="flex items-center gap-3">
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold
-                      ${index === 0 ? 'bg-violet-400 text-black' :
-                        index === 1 ? 'bg-violet-600/80 text-violet-100' : 
-                        'bg-violet-900/50 text-violet-300'}
-                    `}>
+                      shadow-lg ${index === 0 
+                        ? 'bg-gradient-to-br from-violet-400 to-violet-500 text-black ring-2 ring-violet-400/50' 
+                        : index === 1 
+                          ? 'bg-gradient-to-br from-violet-600/90 to-violet-700/90 text-violet-100 ring-1 ring-violet-500/30'
+                          : 'bg-gradient-to-br from-violet-800/80 to-violet-900/80 text-violet-300'
+                        }
+                      `}>
                       {index + 1}
                     </div>
-                    <span className={index === 0 ? 'font-bold text-violet-400' : ''}>
-                      {staff.name}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className={`font-medium ${index === 0 ? 'text-violet-400' : 'text-violet-300/90'}`}>
+                        {staff.name}
+                      </span>
+                      {index === 0 && (
+                        <span className="text-xs text-violet-400/50">
+                          平均之王 👑
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className={`font-bold ${index === 0 ? 'text-violet-400' : ''}`}>
-                    {staff.consecutiveWork.average} 天
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className={`font-bold ${index === 0 ? 'text-violet-400' : 'text-violet-300/90'}`}>
+                      {staff.consecutiveWork.average}
+                    </span>
+                    <span className="text-xs text-violet-400/50">天</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1103,26 +1163,27 @@ function ScheduleStats({ scheduleData, employees }) {
         </div>
       </div>
 
-      {/* 個人統計 */}
+      {/* 個人班次分析 */}
       <div className="space-y-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
-          <UsersIcon className="w-5 h-5" />
+          <div className="p-1.5 rounded-lg bg-primary/10">
+            <UsersIcon className="w-5 h-5 text-primary" />
+          </div>
           個人班次分析
         </h3>
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-6">
           {employees
             .filter(employee => !selectedStaff || employee.name === selectedStaff)
             .map(employee => {
               const stats = calculatePersonalStats(scheduleData[employee.id]);
-              const totalShifts = stats.total;
               
               return (
                 <div 
                   key={employee.id}
                   className={`
-                    bg-surface/30 rounded-lg overflow-hidden
-                    transition-all duration-300
-                    hover:shadow-lg
+                    bg-gradient-to-br from-surface/30 to-surface/20
+                    rounded-lg overflow-hidden border border-white/5
+                    transition-all duration-300 hover:shadow-lg
                     ${selectedStaff === employee.name ? 'ring-2 ring-primary/30' : ''}
                   `}
                 >
@@ -1133,6 +1194,7 @@ function ScheduleStats({ scheduleData, employees }) {
                         w-8 h-8 rounded-full 
                         flex items-center justify-center
                         bg-gradient-to-br ${STAFF_COLORS[employee.name] || 'from-primary/20 to-secondary/20'}
+                        shadow-lg
                       `}>
                         {employee.name[0]}
                       </div>
@@ -1143,46 +1205,60 @@ function ScheduleStats({ scheduleData, employees }) {
                   <div className="p-4 space-y-6">
                     {/* 班次分布 */}
                     <div>
-                      <div className="text-sm font-medium text-text-secondary mb-3">班次分布</div>
+                      <div className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
+                        <div className="w-1 h-4 bg-primary/50 rounded-full" />
+                        班次分布
+                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+                        <div className="bg-amber-400/5 rounded-lg p-3 space-y-1 border border-amber-400/10">
                           <div className="flex items-center gap-2">
-                            <SunIcon className="w-4 h-4 text-amber-400" />
-                            <div className="text-sm text-text-secondary">早班</div>
+                            <div className="p-1 rounded-lg bg-amber-400/10">
+                              <SunIcon className="w-4 h-4 text-amber-400" />
+                            </div>
+                            <div className="text-sm text-amber-400/80">早班</div>
                           </div>
-                          <div className="text-xl font-bold">{stats.morning}</div>
-                          <div className="text-xs text-text-secondary">
-                            {Math.round(stats.morning / totalShifts * 100)}%
+                          <div className="text-xl font-bold text-amber-400">{stats.morning}</div>
+                          <div className="text-xs text-amber-400/50">
+                            {Math.round(stats.morning / stats.total * 100)}%
                           </div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+
+                        <div className="bg-blue-400/5 rounded-lg p-3 space-y-1 border border-blue-400/10">
                           <div className="flex items-center gap-2">
-                            <MoonIcon className="w-4 h-4 text-blue-400" />
-                            <div className="text-sm text-text-secondary">晚班</div>
+                            <div className="p-1 rounded-lg bg-blue-400/10">
+                              <MoonIcon className="w-4 h-4 text-blue-400" />
+                            </div>
+                            <div className="text-sm text-blue-400/80">晚班</div>
                           </div>
-                          <div className="text-xl font-bold">{stats.evening}</div>
-                          <div className="text-xs text-text-secondary">
-                            {Math.round(stats.evening / totalShifts * 100)}%
+                          <div className="text-xl font-bold text-blue-400">{stats.evening}</div>
+                          <div className="text-xs text-blue-400/50">
+                            {Math.round(stats.evening / stats.total * 100)}%
                           </div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+
+                        <div className="bg-emerald-400/5 rounded-lg p-3 space-y-1 border border-emerald-400/10">
                           <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-full bg-emerald-400/20" />
-                            <div className="text-sm text-text-secondary">中班</div>
+                            <div className="p-1 rounded-lg bg-emerald-400/10">
+                              <div className="w-4 h-4 rounded-full bg-emerald-400/20" />
+                            </div>
+                            <div className="text-sm text-emerald-400/80">中班</div>
                           </div>
-                          <div className="text-xl font-bold">{stats.middle}</div>
-                          <div className="text-xs text-text-secondary">
-                            {Math.round(stats.middle / totalShifts * 100)}%
+                          <div className="text-xl font-bold text-emerald-400">{stats.middle}</div>
+                          <div className="text-xs text-emerald-400/50">
+                            {Math.round(stats.middle / stats.total * 100)}%
                           </div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
+
+                        <div className="bg-violet-400/5 rounded-lg p-3 space-y-1 border border-violet-400/10">
                           <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-full bg-violet-400/20" />
-                            <div className="text-sm text-text-secondary">高鐵班</div>
+                            <div className="p-1 rounded-lg bg-violet-400/10">
+                              <div className="w-4 h-4 rounded-full bg-violet-400/20" />
+                            </div>
+                            <div className="text-sm text-violet-400/80">高鐵班</div>
                           </div>
-                          <div className="text-xl font-bold">{stats.hsr}</div>
-                          <div className="text-xs text-text-secondary">
-                            {Math.round(stats.hsr / totalShifts * 100)}%
+                          <div className="text-xl font-bold text-violet-400">{stats.hsr}</div>
+                          <div className="text-xs text-violet-400/50">
+                            {Math.round(stats.hsr / stats.total * 100)}%
                           </div>
                         </div>
                       </div>
@@ -1190,35 +1266,33 @@ function ScheduleStats({ scheduleData, employees }) {
 
                     {/* 其他統計 */}
                     <div>
-                      <div className="text-sm font-medium text-text-secondary mb-3">其他統計</div>
+                      <div className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
+                        <div className="w-1 h-4 bg-primary/50 rounded-full" />
+                        其他統計
+                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
-                          <div className="text-sm text-text-secondary">國定假日</div>
-                          <div className="text-xl font-bold flex items-baseline gap-1">
-                            {stats.holidays}
-                            <span className="text-xs text-text-secondary">次</span>
-                          </div>
+                        <div className="bg-rose-400/5 rounded-lg p-3 space-y-1 border border-rose-400/10">
+                          <div className="text-sm text-rose-400/80">國定假日</div>
+                          <div className="text-xl font-bold text-rose-400">{stats.holidays}</div>
+                          <div className="text-xs text-rose-400/50">次</div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
-                          <div className="text-sm text-text-secondary">週末班次</div>
-                          <div className="text-xl font-bold flex items-baseline gap-1">
-                            {stats.weekends}
-                            <span className="text-xs text-text-secondary">次</span>
-                          </div>
+
+                        <div className="bg-pink-400/5 rounded-lg p-3 space-y-1 border border-pink-400/10">
+                          <div className="text-sm text-pink-400/80">週末班次</div>
+                          <div className="text-xl font-bold text-pink-400">{stats.weekends}</div>
+                          <div className="text-xs text-pink-400/50">次</div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
-                          <div className="text-sm text-text-secondary">最長連續</div>
-                          <div className="text-xl font-bold flex items-baseline gap-1">
-                            {stats.consecutiveWork.max}
-                            <span className="text-xs text-text-secondary">天</span>
-                          </div>
+
+                        <div className="bg-emerald-400/5 rounded-lg p-3 space-y-1 border border-emerald-400/10">
+                          <div className="text-sm text-emerald-400/80">最長連續</div>
+                          <div className="text-xl font-bold text-emerald-400">{stats.consecutiveWork.max}</div>
+                          <div className="text-xs text-emerald-400/50">天</div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-3 space-y-1">
-                          <div className="text-sm text-text-secondary">平均連續</div>
-                          <div className="text-xl font-bold flex items-baseline gap-1">
-                            {stats.consecutiveWork.average}
-                            <span className="text-xs text-text-secondary">天</span>
-                          </div>
+
+                        <div className="bg-violet-400/5 rounded-lg p-3 space-y-1 border border-violet-400/10">
+                          <div className="text-sm text-violet-400/80">平均連續</div>
+                          <div className="text-xl font-bold text-violet-400">{stats.consecutiveWork.average}</div>
+                          <div className="text-xs text-violet-400/50">天</div>
                         </div>
                       </div>
                     </div>
