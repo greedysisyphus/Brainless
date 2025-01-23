@@ -2,8 +2,28 @@ import { NavLink } from 'react-router-dom'
 import { 
   CalculatorIcon, 
   BanknotesIcon, 
-  CalendarIcon
+  CalendarIcon,
+  CloudIcon
 } from '@heroicons/react/24/outline'
+
+function WaterDropIcon(props) {
+  return (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      {...props}
+    >
+      <path 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth={1.5}
+        d="M12 21.5c4.5 0 7.5-3 7.5-7.5C19.5 8.5 12 2.5 12 2.5S4.5 8.5 4.5 14c0 4.5 3 7.5 7.5 7.5z" 
+      />
+    </svg>
+  );
+}
 
 const MENU_ITEMS = [
   { 
@@ -20,6 +40,11 @@ const MENU_ITEMS = [
     path: '/schedule', 
     label: '班表', 
     icon: <CalendarIcon className="w-5 h-5" />
+  },
+  { 
+    path: '/poursteady', 
+    label: '手沖機調整', 
+    icon: <WaterDropIcon className="w-5 h-5" />
   }
 ]
 
