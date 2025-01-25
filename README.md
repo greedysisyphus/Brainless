@@ -4,6 +4,12 @@ A tool to simplify my coffee career.
 
 ## Features
 
+- **Schedule Management**
+  - Monthly staff scheduling
+  - Shift tracking and statistics
+  - Pickup coordination for morning shifts
+  - API endpoint for automated pickup statistics
+
 - **Sandwich Calculator**
   - Calculates the required number of bread slices
   - Automatically allocates extra slices
@@ -20,6 +26,13 @@ A tool to simplify my coffee career.
 - Vite
 - Tailwind CSS
 - React Router
+- Firebase
+  - Firestore (Database)
+  - Cloud Functions (API)
+
+## API Endpoints
+
+### Pickup Statistics
 
 ## Live Demo
 Visit [https://greedysisyphus.github.io/Brainless/](https://greedysisyphus.github.io/Brainless/)
