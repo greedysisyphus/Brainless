@@ -85,18 +85,19 @@ export default function PoursteadyAdjustment() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto p-4 space-y-6 sm:space-y-8">
+      {/* 標題區域 */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10">
             <WaterDropIcon className="w-6 h-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Poursteady 注水量調整</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">Poursteady 注水量調整</h1>
         </div>
         <button
           onClick={handleReset}
           className={`
-            px-4 py-2 rounded-lg font-medium
+            w-full sm:w-auto px-4 py-2 rounded-lg font-medium
             transition-all duration-200
             border border-white/10
             hover:bg-white/5
@@ -107,11 +108,11 @@ export default function PoursteadyAdjustment() {
       </div>
       
       {/* 模式切換 */}
-      <div className="flex gap-3 bg-surface/30 p-1.5 rounded-xl w-fit">
+      <div className="flex gap-2 bg-surface/30 p-1.5 rounded-xl w-full sm:w-fit">
         <button
           onClick={() => setMode('hot')}
           className={`
-            px-6 py-2.5 rounded-lg font-medium
+            flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg font-medium
             transition-all duration-200
             ${mode === 'hot' 
               ? 'bg-gradient-to-br from-rose-500 to-amber-500 text-white shadow-lg shadow-rose-500/20' 
@@ -124,7 +125,7 @@ export default function PoursteadyAdjustment() {
         <button
           onClick={() => setMode('cold')}
           className={`
-            px-6 py-2.5 rounded-lg font-medium
+            flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg font-medium
             transition-all duration-200
             ${mode === 'cold' 
               ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/20' 
@@ -155,7 +156,7 @@ export default function PoursteadyAdjustment() {
                 ${mode === 'hot' ? 'hover:border-rose-500/20' : 'hover:border-blue-500/20'}
               `}
             >
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div className="flex items-center gap-3">
                   <div className={`
                     w-8 h-8 rounded-full flex items-center justify-center font-bold
@@ -170,31 +171,23 @@ export default function PoursteadyAdjustment() {
                     <div className="font-medium">第 {index + 1} 段注水</div>
                     <div className="text-sm text-text-secondary">
                       累計標準: {standardVolume} ml
-                      <span className="ml-2">
+                      <span className="block sm:inline sm:ml-2">
                         單段標準: {standardSegmentVolume} ml
                       </span>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-6">
-                <div className="flex-1">
-                  <div className="text-sm text-text-secondary mb-2">
-                    單段注水量: {segmentVolume} ml
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="w-32 text-center">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <div className="w-full sm:w-32 text-center">
                     <input
                       type="number"
-                      value={currentVolumes[mode][index]}  // 直接使用存儲的值
+                      value={currentVolumes[mode][index]}
                       onChange={(e) => handleDirectInput(index, e.target.value)}
-                      placeholder={STANDARD_VOLUMES[mode][index]}  // 使用標準值作為提示
+                      placeholder={STANDARD_VOLUMES[mode][index]}
                       step="0.1"
                       className={`
-                        w-24 text-center rounded-lg px-2 py-1.5 text-lg font-bold
+                        w-full sm:w-24 text-center rounded-lg px-2 py-1.5 text-lg font-bold
                         bg-white/5 border border-white/10 focus:outline-none
                         focus:ring-1 ${mode === 'hot' ? 'focus:ring-rose-500' : 'focus:ring-blue-500'}
                       `}
@@ -221,11 +214,11 @@ export default function PoursteadyAdjustment() {
         rounded-xl p-5 border border-white/5
         ${mode === 'hot' ? 'hover:border-rose-500/20' : 'hover:border-blue-500/20'}
       `}>
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
             <div className="text-sm text-text-secondary">總注水量</div>
-            <div className="text-3xl font-bold mt-1">
-              {getDisplayVolume(5)} ml  {/* 使用最後一段的累計水量 */}
+            <div className="text-2xl sm:text-3xl font-bold mt-1">
+              {getDisplayVolume(5)} ml
             </div>
             {(() => {
               const currentTotal = getDisplayVolume(5);
@@ -241,7 +234,7 @@ export default function PoursteadyAdjustment() {
               ) : null;
             })()}
           </div>
-          <div className="text-right">
+          <div className="text-right w-full sm:w-auto">
             <div className="text-sm text-text-secondary">標準總量</div>
             <div className="text-xl mt-1">
               {STANDARD_VOLUMES[mode][5]} ml
@@ -259,92 +252,51 @@ export default function PoursteadyAdjustment() {
         </div>
       </div>
 
-      {/* 在總水量顯示後添加調整建議 */}
-      <div className={`
-        bg-gradient-to-br from-surface/30 to-surface/20
-        rounded-xl p-5 border border-white/5
-        ${mode === 'hot' ? 'hover:border-rose-500/20' : 'hover:border-blue-500/20'}
-      `}>
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className={`
-              w-1.5 h-6 rounded-full
-              ${mode === 'hot' ? 'bg-rose-400' : 'bg-blue-400'}
-            `} />
-            <div className="font-medium text-lg">調整建議</div>
-          </div>
+      {/* 調整建議區塊 */}
+      <div className="grid gap-2">
+        {STANDARD_SEGMENTS[mode].map((standardSegment, index) => {
+          const displayVolume = getDisplayVolume(index);
+          const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
+          const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
+          const adjustment = Math.round(standardSegment - segmentVolume);
           
-          <div className="grid gap-2">
-            {STANDARD_SEGMENTS[mode].map((standardSegment, index) => {
-              const displayVolume = getDisplayVolume(index);
-              const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
-              const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
-              const adjustment = Math.round(standardSegment - segmentVolume);
-              
-              if (adjustment === 0) return null;  // 只顯示需要調整的段落
-              
-              return (
-                <div 
-                  key={index}
-                  className={`
-                    flex items-center justify-between
-                    px-4 py-2 rounded-lg
-                    ${mode === 'hot' ? 'bg-rose-500/5' : 'bg-blue-500/5'}
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`
-                      w-6 h-6 rounded-full 
-                      flex items-center justify-center 
-                      text-sm font-medium
-                      ${mode === 'hot' 
-                        ? 'bg-rose-400/10 text-rose-400' 
-                        : 'bg-blue-400/10 text-blue-400'
-                      }
-                    `}>
-                      {index + 1}
-                    </div>
-                    <span>第 {index + 1} 段注水</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-text-secondary">
-                      目前: {segmentVolume} ml
-                    </span>
-                    <span className="text-lg font-medium">
-                      →
-                    </span>
-                    <span className={`font-medium ${
-                      adjustment > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {standardSegment} ml
-                    </span>
-                    <span className={`
-                      text-sm px-2 rounded-full
-                      ${adjustment > 0 
-                        ? 'bg-green-400/10 text-green-400' 
-                        : 'bg-red-400/10 text-red-400'
-                      }
-                    `}>
-                      {adjustment > 0 ? `+${adjustment}` : adjustment} ml
-                    </span>
-                  </div>
+          if (adjustment === 0) return null;  // 只顯示需要調整的段落
+          
+          return (
+            <div 
+              key={index}
+              className={`
+                flex items-center justify-between
+                px-4 py-2 rounded-lg
+                ${mode === 'hot' ? 'bg-rose-500/5' : 'bg-blue-500/5'}
+              `}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`
+                  w-6 h-6 rounded-full 
+                  flex items-center justify-center 
+                  text-sm font-medium
+                  ${mode === 'hot' 
+                    ? 'bg-rose-400/10 text-rose-400' 
+                    : 'bg-blue-400/10 text-blue-400'
+                  }
+                `}>
+                  {index + 1}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* 如果沒有需要調整的段落 */}
-          {!STANDARD_SEGMENTS[mode].some((standardSegment, index) => {
-            const displayVolume = getDisplayVolume(index);
-            const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
-            const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
-            return Math.round(segmentVolume - standardSegment) !== 0;
-          }) && (
-            <div className="text-text-secondary text-center py-2">
-              目前所有段落都符合標準水量
+                <span>第 {index + 1} 段注水</span>
+              </div>
+              <span className={`
+                text-sm px-3 py-1 rounded-full font-medium
+                ${adjustment > 0 
+                  ? 'bg-green-400/10 text-green-400' 
+                  : 'bg-red-400/10 text-red-400'
+                }
+              `}>
+                {adjustment > 0 ? `+${adjustment}` : adjustment} ml
+              </span>
             </div>
-          )}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
