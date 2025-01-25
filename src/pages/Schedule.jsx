@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { db } from '../firebase'
 import { collection, onSnapshot, addDoc, query, orderBy, limit } from 'firebase/firestore'
 import { 
@@ -14,7 +14,14 @@ import {
   MoonIcon,  // 晚班
   FireIcon,  // 最長連續
   TrophyIcon,  // 獎盃
-  ArrowTrendingUpIcon  // 趨勢
+  ArrowTrendingUpIcon,  // 趨勢
+  ClipboardIcon,  // 剪貼板
+  TruckIcon,  // 新增：使用卡車圖示代表搭車
+  UserGroupIcon,  // 群組圖示
+  MapPinIcon,     // 定位圖示
+  BuildingOfficeIcon, // 建築圖示
+  BriefcaseIcon,  // 公事包圖示
+  ClockIcon,      // 時鐘圖示
 } from '@heroicons/react/24/outline'
 import ExcelToJsonConverter from '../components/ExcelToJsonConverter'
 
@@ -1306,6 +1313,320 @@ function ScheduleStats({ scheduleData, employees }) {
   );
 }
 
+// 添加上車地點資料
+const PICKUP_LOCATIONS = {
+  'A21環北站': [
+    'A45-余盛煌 Noah 店長',
+    'A51-蕭弘業 Eric 副店長',
+    'A88-沈恩廷 Lydia 咖啡師'
+  ],
+  'A20興南站': [],
+  '7-11高萱門市': [
+    'A89-林渭麟 Jovi 咖啡師',
+    'A102-張敏涵 Roxie 咖啡師'
+  ],
+  '桃園高鐵站': [
+    'A93-陳世芬 Nina 咖啡師'
+  ],
+  '大園農會': []
+};
+
+// 修改判斷早班的邏輯
+const isMorningShift = (shift) => {
+  if (!shift) return false;
+  return (
+    shift.includes('4:30-13:00') || 
+    shift.includes('國-4:30-13:00')
+  );
+};
+
+// 添加導出 CSV 的函數
+const exportToCSV = (scheduleData) => {
+  // 獲取當前月份
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  
+  // 使用陣列來儲存每一行
+  const rows = [];
+  
+  // 添加表頭
+  const headers = ['地點'];
+  for (let day = 1; day <= daysInMonth; day++) {
+    headers.push(`${month}/${day}`);
+  }
+  rows.push(headers.join(','));
+  
+  // 處理每個地點的數據
+  Object.entries(PICKUP_LOCATIONS).forEach(([location, staffIds]) => {
+    const row = [location];
+    
+    // 填充每天的數據
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayOffset = day - 1;
+      
+      // 獲取當天早班人員
+      const morningStaff = Object.entries(scheduleData)
+        .filter(([staffId, shifts]) => {
+          if (!shifts || !shifts[dayOffset]) return false;
+          const shift = shifts[dayOffset];
+          return isMorningShift(shift);
+        })
+        .map(([staffId]) => staffId);
+      
+      // 篩選出該地點的早班人員數量
+      const count = staffIds.filter(id => morningStaff.includes(id)).length;
+      row.push(count === 0 ? '-' : count);
+    }
+    
+    rows.push(row.join(','));
+  });
+  
+  // 添加合計行
+  const totalRow = ['合計'];
+  for (let day = 1; day <= daysInMonth; day++) {
+    let dayTotal = 0;
+    Object.values(PICKUP_LOCATIONS).forEach(staffIds => {
+      const morningStaff = Object.entries(scheduleData)
+        .filter(([staffId, shifts]) => {
+          if (!shifts || !shifts[day - 1]) return false;
+          const shift = shifts[day - 1];
+          return isMorningShift(shift);
+        })
+        .map(([staffId]) => staffId);
+      
+      dayTotal += staffIds.filter(id => morningStaff.includes(id)).length;
+    });
+    
+    totalRow.push(dayTotal === 0 ? '-' : dayTotal);
+  }
+  rows.push(totalRow.join(','));
+  
+  // 生成 CSV 內容
+  const csvContent = rows.join('\n');
+  
+  // 創建並下載檔案
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${year}年${month}月搭車統計表.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+// 修改 TomorrowPickup 組件
+function TomorrowPickup({ scheduleData, isOpen, onClose }) {
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState(null);
+
+  // 檢查是否為下個月
+  const isNextMonth = () => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    return today.getMonth() !== tomorrow.getMonth();
+  };
+
+  // 取得明天日期
+  const getTomorrowDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return `${tomorrow.getMonth() + 1}/${tomorrow.getDate()}`;
+  };
+
+  // 取得明天早班的同事
+  const getTomorrowMorningStaff = () => {
+    // 如果是下個月，直接返回空數組
+    if (isNextMonth()) {
+      return [];
+    }
+
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const dayOffset = tomorrow.getDate() - 1;
+
+    return Object.entries(scheduleData)
+      .filter(([staffId, shifts]) => {
+        if (!shifts || !shifts[dayOffset]) return false;
+        
+        const shift = shifts[dayOffset];
+        console.log(`檢查 ${staffId} 的班次:`, shift);
+        
+        const needsPickup = isMorningShift(shift);
+        
+        if (needsPickup) {
+          console.log(`${staffId} 明天需要搭車`);
+        }
+        
+        return needsPickup;
+      })
+      .map(([staffId]) => staffId);
+  };
+
+  // 計算各站點人數
+  const getPickupStats = () => {
+    const morningStaff = getTomorrowMorningStaff();
+    console.log('明天早班同事:', morningStaff);
+    
+    const stats = {};
+    
+    Object.entries(PICKUP_LOCATIONS).forEach(([location, staffIds]) => {
+      const count = staffIds.filter(staffId => {
+        const isMorning = morningStaff.includes(staffId);
+        console.log(`${location} 的 ${staffId} 是否早班:`, isMorning);
+        return isMorning;
+      }).length;
+      
+      if (count > 0) {
+        stats[location] = count;
+      }
+    });
+    
+    return stats;
+  };
+
+  // 生成文字內容
+  const generateText = () => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const dateStr = `${tomorrow.getMonth() + 1}/${tomorrow.getDate()}`;
+    
+    // 如果是下個月，顯示等待更新訊息
+    if (isNextMonth()) {
+      return `${dateStr} 搭車統計\n\n請等待下個月班表更新，謝謝`;
+    }
+    
+    const stats = getPickupStats();
+    const total = Object.values(stats).reduce((sum, count) => sum + count, 0);
+    
+    if (total === 0) {
+      return `${dateStr} 搭車統計\n\n明天無人需要搭車，謝謝`;
+    }
+    
+    return `${dateStr} 搭車統計\n\n${
+      Object.entries(stats)
+        .map(([location, count]) => `${location} ${count} 人`)
+        .join('\n')
+    }\n\n共${total}人，謝謝`;
+  };
+
+  // 複製到剪貼板
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generateText());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const modalRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;  // 加回這行
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div 
+        ref={modalRef}
+        className="w-full max-w-md mx-4 bg-surface rounded-lg overflow-hidden shadow-xl"
+      >
+        {/* 標題區 */}
+        <div className="bg-surface/50 px-4 py-3 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <MapPinIcon className="w-5 h-5 text-primary" />
+              </div>
+              <div className="text-base font-medium">
+                {getTomorrowDate()} 搭車統計
+              </div>
+            </div>
+            {/* 添加關閉按鈕 */}
+            <button
+              onClick={onClose}
+              className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+              title="關閉"
+            >
+              <XMarkIcon className="w-5 h-5 text-text-secondary" />
+            </button>
+          </div>
+        </div>
+
+        {/* 內容區 */}
+        <div className="p-4">
+          {isNextMonth() ? (
+            <div className="text-amber-400 text-base">
+              請等待下個月班表更新
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* 統計內容 */}
+              <div className="space-y-2">
+                {Object.entries(getPickupStats()).map(([location, count]) => (
+                  <div key={location} 
+                    className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    <span className="text-text-secondary">{location}</span>
+                    <span className="font-medium">{count} 人</span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* 總計 */}
+              <div className="flex justify-between items-center py-2 px-3 mt-2 rounded-lg bg-primary/10">
+                <span className="text-text-secondary font-medium">總計</span>
+                <span className="font-bold text-primary">
+                  {Object.values(getPickupStats()).reduce((sum, count) => sum + count, 0)} 人
+                </span>
+              </div>
+
+              {/* 按鈕區 */}
+              <div className="flex gap-3 mt-4 pt-4 border-t border-white/10">
+                <button
+                  onClick={handleCopy}
+                  className={`
+                    flex-1 py-2.5 rounded-lg text-sm font-medium
+                    transition-all duration-200
+                    ${copied 
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-primary/20 text-primary hover:bg-primary/30'
+                    }
+                  `}
+                >
+                  {copied ? '已複製' : '複製統計'}
+                </button>
+                <button
+                  onClick={() => exportToCSV(scheduleData)}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-surface/50 text-text-secondary hover:bg-surface/70 transition-all duration-200"
+                >
+                  月報表
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Schedule() {
   const [scheduleData, setScheduleData] = useState([])
   const [selectedPerson, setSelectedPerson] = useState('')
@@ -1315,6 +1636,7 @@ function Schedule() {
   const [pairings, setPairings] = useState({})
   const [showPairings, setShowPairings] = useState(false)
   const [activeView, setActiveView] = useState('schedule') // 'schedule', 'stats', 'pairings'
+  const [showPickup, setShowPickup] = useState(false);
 
   // 添加測試用的初始數據
   useEffect(() => {
@@ -1745,6 +2067,14 @@ function Schedule() {
                     </button>
                   </>
                 )}
+                {/* 搭車統計按鈕移到最右邊 */}
+                <button
+                  onClick={() => setShowPickup(true)}
+                  className="btn-icon group transition-all duration-200 hover:bg-primary/20 hover:text-primary"
+                  title="搭車統計"
+                >
+                  <MapPinIcon className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
@@ -2050,6 +2380,21 @@ function Schedule() {
           )}
         </div>
       </div>
+      
+      {/* 添加搭車統計 */}
+      <TomorrowPickup 
+        scheduleData={scheduleData.slice(2).reduce((acc, row) => {
+          if (!row || !row[0]) return acc;
+          const employeeId = row[0];
+          const shifts = row.slice(1).map(shift => shift?.trim() || '');
+          return {
+            ...acc,
+            [employeeId]: shifts
+          };
+        }, {})}
+        isOpen={showPickup}
+        onClose={() => setShowPickup(false)}
+      />
     </div>
   )
 }
