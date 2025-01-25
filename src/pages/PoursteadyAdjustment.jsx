@@ -253,50 +253,60 @@ export default function PoursteadyAdjustment() {
       </div>
 
       {/* 調整建議區塊 */}
-      <div className="grid gap-2">
-        {STANDARD_SEGMENTS[mode].map((standardSegment, index) => {
-          const displayVolume = getDisplayVolume(index);
-          const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
-          const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
-          const adjustment = Math.round(standardSegment - segmentVolume);
-          
-          if (adjustment === 0) return null;  // 只顯示需要調整的段落
-          
-          return (
-            <div 
-              key={index}
-              className={`
-                flex items-center justify-between
-                px-4 py-2 rounded-lg
-                ${mode === 'hot' ? 'bg-rose-500/5' : 'bg-blue-500/5'}
-              `}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`
-                  w-6 h-6 rounded-full 
-                  flex items-center justify-center 
-                  text-sm font-medium
-                  ${mode === 'hot' 
-                    ? 'bg-rose-400/10 text-rose-400' 
-                    : 'bg-blue-400/10 text-blue-400'
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className={`
+            w-1 h-5 rounded-full
+            ${mode === 'hot' ? 'bg-rose-400' : 'bg-blue-400'}
+          `} />
+          <h2 className="font-medium">需調整水量</h2>
+        </div>
+
+        <div className="grid gap-2">
+          {STANDARD_SEGMENTS[mode].map((standardSegment, index) => {
+            const displayVolume = getDisplayVolume(index);
+            const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
+            const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
+            const adjustment = Math.round(standardSegment - segmentVolume);
+            
+            if (adjustment === 0) return null;  // 只顯示需要調整的段落
+            
+            return (
+              <div 
+                key={index}
+                className={`
+                  flex items-center justify-between
+                  px-4 py-2 rounded-lg
+                  ${mode === 'hot' ? 'bg-rose-500/5' : 'bg-blue-500/5'}
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`
+                    w-6 h-6 rounded-full 
+                    flex items-center justify-center 
+                    text-sm font-medium
+                    ${mode === 'hot' 
+                      ? 'bg-rose-400/10 text-rose-400' 
+                      : 'bg-blue-400/10 text-blue-400'
+                    }
+                  `}>
+                    {index + 1}
+                  </div>
+                  <span>第 {index + 1} 段注水</span>
+                </div>
+                <span className={`
+                  text-sm px-3 py-1 rounded-full font-medium
+                  ${adjustment > 0 
+                    ? 'bg-green-400/10 text-green-400' 
+                    : 'bg-red-400/10 text-red-400'
                   }
                 `}>
-                  {index + 1}
-                </div>
-                <span>第 {index + 1} 段注水</span>
+                  {adjustment > 0 ? `+${adjustment}` : adjustment} ml
+                </span>
               </div>
-              <span className={`
-                text-sm px-3 py-1 rounded-full font-medium
-                ${adjustment > 0 
-                  ? 'bg-green-400/10 text-green-400' 
-                  : 'bg-red-400/10 text-red-400'
-                }
-              `}>
-                {adjustment > 0 ? `+${adjustment}` : adjustment} ml
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
