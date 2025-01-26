@@ -5,6 +5,7 @@ import {
   CalendarIcon,
   CloudIcon
 } from '@heroicons/react/24/outline'
+import React from 'react'
 
 function WaterDropIcon(props) {
   return (
@@ -51,25 +52,34 @@ const MENU_ITEMS = [
 function Navigation() {
   return (
     <nav className="bg-surface sticky top-0 z-50 shadow-lg">
-      <div className="container-custom py-4">
-        <div className="flex justify-center gap-4">
-          {MENU_ITEMS.map(item => (
-            <NavLink 
-              key={item.path}
-              to={item.path}
+      <div className="container-custom py-2 sm:py-4">
+        <div className="flex justify-center gap-2 sm:gap-4">
+          {MENU_ITEMS.map(({ path, label, icon }) => (
+            <NavLink
+              key={path}
+              to={path}
               className={({ isActive }) => `
-                flex flex-col items-center justify-center
-                p-4 rounded-xl font-medium
-                transition-all duration-300
-                hover:bg-white/10
+                flex flex-col items-center
+                w-[5.5rem] sm:w-28  /* 手機 88px，平板/桌面 112px */
+                min-h-[4.5rem] sm:min-h-20  /* 手機 72px，平板/桌面 80px */
+                p-2 sm:p-3
+                rounded-lg
+                transition-colors duration-200
                 ${isActive 
-                  ? 'bg-primary/10 text-primary ring-1 ring-primary'
-                  : 'text-text-secondary hover:text-white'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
                 }
               `}
             >
-              {item.icon}
-              <span className="hidden sm:block mt-2">{item.label}</span>
+              <div className="mb-1.5 sm:mb-2">
+                {/* 放大圖示 */}
+                {React.cloneElement(icon, { 
+                  className: "w-6 h-6 sm:w-7 sm:h-7" 
+                })}
+              </div>
+              <div className="text-xs sm:text-sm text-center leading-tight">
+                {label}
+              </div>
             </NavLink>
           ))}
         </div>

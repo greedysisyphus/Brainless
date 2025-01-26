@@ -1340,83 +1340,171 @@ const isMorningShift = (shift) => {
   );
 };
 
-// 添加導出 CSV 的函數
-const exportToCSV = (scheduleData) => {
-  // 獲取當前月份
+// 修改為導出月報表函數
+const exportMonthlyReport = (scheduleData) => {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
   const daysInMonth = new Date(year, month, 0).getDate();
   
-  // 使用陣列來儲存每一行
-  const rows = [];
-  
-  // 添加表頭
-  const headers = ['地點'];
-  for (let day = 1; day <= daysInMonth; day++) {
-    headers.push(`${month}/${day}`);
-  }
-  rows.push(headers.join(','));
-  
-  // 處理每個地點的數據
-  Object.entries(PICKUP_LOCATIONS).forEach(([location, staffIds]) => {
-    const row = [location];
-    
-    // 填充每天的數據
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayOffset = day - 1;
-      
-      // 獲取當天早班人員
+  // 檢查每個地點是否在本月有被使用
+  const activeLocations = Object.entries(PICKUP_LOCATIONS).filter(([location, staffIds]) => {
+    return Array.from({length: daysInMonth}, (_, day) => {
+      const dayOffset = day;
       const morningStaff = Object.entries(scheduleData)
         .filter(([staffId, shifts]) => {
           if (!shifts || !shifts[dayOffset]) return false;
-          const shift = shifts[dayOffset];
-          return isMorningShift(shift);
+          return isMorningShift(shifts[dayOffset]);
         })
         .map(([staffId]) => staffId);
       
-      // 篩選出該地點的早班人員數量
-      const count = staffIds.filter(id => morningStaff.includes(id)).length;
-      row.push(count === 0 ? '-' : count);
-    }
-    
-    rows.push(row.join(','));
+      return staffIds.some(id => morningStaff.includes(id));
+    }).some(Boolean);
   });
-  
-  // 添加合計行
-  const totalRow = ['合計'];
-  for (let day = 1; day <= daysInMonth; day++) {
-    let dayTotal = 0;
-    Object.values(PICKUP_LOCATIONS).forEach(staffIds => {
-      const morningStaff = Object.entries(scheduleData)
-        .filter(([staffId, shifts]) => {
-          if (!shifts || !shifts[day - 1]) return false;
-          const shift = shifts[day - 1];
-          return isMorningShift(shift);
-        })
-        .map(([staffId]) => staffId);
-      
-      dayTotal += staffIds.filter(id => morningStaff.includes(id)).length;
-    });
-    
-    totalRow.push(dayTotal === 0 ? '-' : dayTotal);
+
+  // 計算週數
+  const weeks = [];
+  for (let day = 1; day <= daysInMonth; day += 7) {
+    weeks.push(Array.from({length: Math.min(7, daysInMonth - day + 1)}, (_, i) => day + i));
   }
-  rows.push(totalRow.join(','));
-  
-  // 生成 CSV 內容
-  const csvContent = rows.join('\n');
-  
-  // 創建並下載檔案
-  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+
+  // 生成 HTML 內容
+  let htmlContent = `
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { 
+          font-family: Arial, sans-serif; 
+          padding: 20px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        .title { 
+          font-size: 24px; 
+          font-weight: bold; 
+          margin-bottom: 15px; 
+        }
+        .calendar { 
+          border-collapse: collapse; 
+          width: 100%; 
+          margin-bottom: 10px;
+          table-layout: fixed;  /* 固定表格布局 */
+        }
+        .calendar th, .calendar td { 
+          border: 1px solid #ddd; 
+          padding: 8px; 
+          text-align: center;
+        }
+        .calendar th { 
+          background: #f5f5f5;
+          white-space: nowrap;
+        }
+        .calendar th:first-child,
+        .calendar td:first-child {
+          width: 120px;  /* 固定地點欄位寬度 */
+        }
+        .calendar th:not(:first-child),
+        .calendar td:not(:first-child) {
+          width: calc((100% - 120px) / 7);  /* 其他欄位平均分配剩餘寬度 */
+        }
+        .location { 
+          font-weight: bold; 
+          text-align: left;
+          padding-left: 12px;
+        }
+        .weekend { background: #f9f9f9; }
+        .total { background: #e9e9e9; font-weight: bold; }
+        .empty-cell { visibility: hidden; }  /* 隱藏空單元格但保持寬度 */
+      </style>
+    </head>
+    <body>
+      <div class="title">${year}年${month}月搭車統計表</div>
+  `;
+
+  // 為每週生成表格，移除週數標題
+  weeks.forEach((weekDays, weekIndex) => {
+    htmlContent += `
+      <table class="calendar">
+        <tr>
+          <th>地點</th>
+          ${Array.from({length: 7}, (_, i) => {
+            if (i < weekDays.length) {
+              const day = weekDays[i];
+              const date = new Date(year, month - 1, day);
+              const weekDay = ['日','一','二','三','四','五','六'][date.getDay()];
+              return `<th>${month}/${day} (${weekDay})</th>`;
+            }
+            return `<th class="empty-cell">-</th>`;  // 填充空欄位
+          }).join('')}
+        </tr>
+    `;
+
+    // 添加每個地點的數據
+    activeLocations.forEach(([location, staffIds]) => {
+      htmlContent += `
+        <tr>
+          <td class="location">${location}</td>
+          ${Array.from({length: 7}, (_, i) => {
+            if (i < weekDays.length) {
+              const day = weekDays[i];
+              const dayOffset = day - 1;
+              const morningStaff = Object.entries(scheduleData)
+                .filter(([staffId, shifts]) => {
+                  if (!shifts || !shifts[dayOffset]) return false;
+                  return isMorningShift(shifts[dayOffset]);
+                })
+                .map(([staffId]) => staffId);
+              
+              const count = staffIds.filter(id => morningStaff.includes(id)).length;
+              const isWeekend = new Date(year, month - 1, day).getDay() % 6 === 0;
+              return `<td class="${isWeekend ? 'weekend' : ''}">${count || '-'}</td>`;
+            }
+            return `<td class="empty-cell">-</td>`;  // 填充空欄位
+          }).join('')}
+        </tr>
+      `;
+    });
+
+    // 添加合計行
+    htmlContent += `
+        <tr>
+          <td class="total">合計</td>
+          ${Array.from({length: 7}, (_, i) => {
+            if (i < weekDays.length) {
+              const day = weekDays[i];
+              let dayTotal = 0;
+              activeLocations.forEach(([_, staffIds]) => {
+                const morningStaff = Object.entries(scheduleData)
+                  .filter(([staffId, shifts]) => {
+                    if (!shifts || !shifts[day - 1]) return false;
+                    return isMorningShift(shifts[day - 1]);
+                  })
+                  .map(([staffId]) => staffId);
+                
+                dayTotal += staffIds.filter(id => morningStaff.includes(id)).length;
+              });
+              const isWeekend = new Date(year, month - 1, day).getDay() % 6 === 0;
+              return `<td class="${isWeekend ? 'weekend total' : 'total'}">${dayTotal || '-'}</td>`;
+            }
+            return `<td class="empty-cell total">-</td>`;  // 填充空欄位
+          }).join('')}
+        </tr>
+      </table>
+    `;
+  });
+
+  htmlContent += `
+    </body>
+    </html>
+  `;
+
+  // 創建並下載 HTML 文件
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
   const link = document.createElement('a');
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', `${year}年${month}月搭車統計表.csv`);
-  document.body.appendChild(link);
+  link.href = URL.createObjectURL(blob);
+  link.download = `${year}年${month}月搭車統計表.html`;
   link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 };
 
 // 修改 TomorrowPickup 組件
@@ -1613,7 +1701,7 @@ function TomorrowPickup({ scheduleData, isOpen, onClose }) {
                   {copied ? '已複製' : '複製統計'}
                 </button>
                 <button
-                  onClick={() => exportToCSV(scheduleData)}
+                  onClick={() => exportMonthlyReport(scheduleData)}
                   className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-surface/50 text-text-secondary hover:bg-surface/70 transition-all duration-200"
                 >
                   月報表
