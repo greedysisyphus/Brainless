@@ -6,6 +6,7 @@ import ErrorPage from './pages/ErrorPage'
 import Schedule from './pages/Schedule'
 import { checkFirebaseConnection } from './utils/firebase'
 import PoursteadyAdjustment from './pages/PoursteadyAdjustment'
+import AlcoholCalculator from './pages/AlcoholCalculator'
 
 // 懶加載頁面
 const SandwichCalculator = lazy(() => import('./pages/SandwichCalculator'))
@@ -26,6 +27,7 @@ function App() {
             <Route path="/cashier" element={<CashierManagement />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/poursteady" element={<PoursteadyAdjustment />} />
+            <Route path="/alcohol" element={<AlcoholCalculator />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>

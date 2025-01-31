@@ -5,7 +5,7 @@ A tool to simplify my coffee career.
 ## Features
 
 - **Schedule Management**
-  - Monthly staff scheduling
+  - Monthly staff schedule
   - Shift tracking and statistics
   - Pickup coordination for morning shifts
   - API endpoint for automated pickup statistics

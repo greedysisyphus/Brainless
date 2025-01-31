@@ -3,7 +3,8 @@ import {
   CalculatorIcon, 
   BanknotesIcon, 
   CalendarIcon,
-  CloudIcon
+  CloudIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
 
@@ -21,6 +22,26 @@ function WaterDropIcon(props) {
         strokeLinejoin="round" 
         strokeWidth={1.5}
         d="M12 21.5c4.5 0 7.5-3 7.5-7.5C19.5 8.5 12 2.5 12 2.5S4.5 8.5 4.5 14c0 4.5 3 7.5 7.5 7.5z" 
+      />
+    </svg>
+  );
+}
+
+// 添加自定義雞尾酒圖示
+function CocktailIcon(props) {
+  return (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      {...props}
+    >
+      <path 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth={1.5}
+        d="M12 20v-7m0 0l6-6.5H6L12 13zm-4-9h8m-8 0l-2-2m10 2l2-2" 
       />
     </svg>
   );
@@ -46,6 +67,11 @@ const MENU_ITEMS = [
     path: '/poursteady', 
     label: '手沖機調整', 
     icon: <WaterDropIcon className="w-5 h-5" />
+  },
+  {
+    path: '/alcohol',
+    label: '酒精計算',
+    icon: <CocktailIcon className="w-5 h-5" /> // 使用新的雞尾酒圖示
   }
 ]
 
