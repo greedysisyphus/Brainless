@@ -803,56 +803,6 @@ function StaffCostDetail({ costs, station }) {
 function ScheduleStats({ scheduleData, employees }) {
   const [selectedStaff, setSelectedStaff] = useState(null);
 
-  // 計算個人班次統計
-  const calculatePersonalStats = (employeeData) => {
-    // 確保 employeeData 存在
-    if (!employeeData || !Array.isArray(employeeData)) {
-      return {
-        morning: 0,
-        evening: 0,
-        middle: 0,
-        hsr: 0,
-        holidays: 0,
-        total: 0,
-        consecutiveWork: { max: 0, average: 0 },
-        weekends: 0
-      };
-    }
-
-    const shifts = employeeData;
-    return {
-      // 基本班次統計
-      morning: shifts.filter(cell => 
-        cell.includes('4:30-13:00') || 
-        cell.includes('4：30-13：00')
-      ).length,
-      evening: shifts.filter(cell => 
-        cell.includes('13:00-21:30') || 
-        cell.includes('13：00-21：30')
-      ).length,
-      middle: shifts.filter(cell => 
-        cell.includes('7:30-16:00') || 
-        cell.includes('7：30-16：00')
-      ).length,
-      hsr: shifts.filter(cell => 
-        cell.includes('6:00-14:30') || 
-        cell.includes('6：00-14：30')
-      ).length,
-      
-      // 國定假日統計
-      holidays: shifts.filter(cell => cell.includes('國')).length,
-      
-      // 計算總班次
-      total: shifts.filter(cell => cell.trim() !== '').length,
-      
-      // 計算連續工作天數
-      consecutiveWork: calculateConsecutiveWork(shifts),
-      
-      // 週末班次
-      weekends: calculateWeekendShifts(shifts)
-    }
-  }
-
   // 修改計算連續工作天數的函數
   const calculateConsecutiveWork = (shifts) => {
     let current = 0;
@@ -891,18 +841,98 @@ function ScheduleStats({ scheduleData, employees }) {
 
   // 計算週末班次
   const calculateWeekendShifts = (shifts) => {
-    // 假設第一天的星期已知，可以從這裡計算每個班次是否在週末
     return shifts.filter((shift, index) => {
-      const dayOfWeek = (index % 7);
+      const dayOfWeek = new Date(scheduleData.dates[index]).getDay();
       return (dayOfWeek === 0 || dayOfWeek === 6) && shift.trim() !== '';
     }).length;
-  }
+  };
+
+  // 計算個人班次統計
+  const calculatePersonalStats = (employeeData) => {
+    // 確保 employeeData 存在
+    if (!employeeData || !Array.isArray(employeeData)) {
+      return {
+        morning: 0,
+        evening: 0,
+        middle: 0,
+        hsr: 0,
+        holidays: 0,
+        total: 0,
+        consecutiveWork: { max: 0, average: 0 },
+        weekends: 0,
+        restocking: {
+          count: 0,
+          dates: []
+        }
+      };
+    }
+
+    const shifts = employeeData;
+
+    // 計算進貨班
+    const restockingShifts = shifts.reduce((acc, cell, index) => {
+      if (!scheduleData.dates || !scheduleData.dates[index]) return acc;
+      
+      const date = scheduleData.dates[index];
+      const dayOfWeek = new Date(date).getDay();
+      
+      if (dayOfWeek === 3) {  // 星期三
+        const isRestockingShift = 
+          (cell.includes('7:30-16:00') || cell.includes('7：30-16：00')) ||  // 中班
+          (cell.includes('13:00-21:30') || cell.includes('13：00-21：30'));   // 晚班
+
+        if (isRestockingShift) {
+          acc.dates.push({
+            date: date,
+            shift: cell.includes('7:30-16:00') || cell.includes('7：30-16：00') ? '中班' : '晚班'
+          });
+          acc.count++;
+        }
+      }
+      return acc;
+    }, { count: 0, dates: [] });
+
+    return {
+      // 基本班次統計
+      morning: shifts.filter(cell => 
+        cell.includes('4:30-13:00') || 
+        cell.includes('4：30-13：00')
+      ).length,
+      evening: shifts.filter(cell => 
+        cell.includes('13:00-21:30') || 
+        cell.includes('13：00-21：30')
+      ).length,
+      middle: shifts.filter(cell => 
+        cell.includes('7:30-16:00') || 
+        cell.includes('7：30-16：00')
+      ).length,
+      hsr: shifts.filter(cell => 
+        cell.includes('6:00-14:30') || 
+        cell.includes('6：00-14：30')
+      ).length,
+      
+      // 國定假日統計
+      holidays: shifts.filter(cell => cell.includes('國')).length,
+      
+      // 計算總班次
+      total: shifts.filter(cell => cell.trim() !== '').length,
+      
+      // 計算連續工作天數
+      consecutiveWork: calculateConsecutiveWork(shifts),
+      
+      // 週末班次
+      weekends: calculateWeekendShifts(shifts),
+
+      // 進貨班統計
+      restocking: restockingShifts
+    }
+  };
 
   // 計算排名數據
   const getRankings = () => {
     const stats = employees.map(employee => ({
       name: employee.name,
-      ...calculatePersonalStats(scheduleData[employee.id])
+      ...calculatePersonalStats(scheduleData.employees[employee.id])
     }));
 
     return {
@@ -1182,7 +1212,7 @@ function ScheduleStats({ scheduleData, employees }) {
           {employees
             .filter(employee => !selectedStaff || employee.name === selectedStaff)
             .map(employee => {
-              const stats = calculatePersonalStats(scheduleData[employee.id]);
+              const stats = calculatePersonalStats(scheduleData.employees[employee.id]);
               
               return (
                 <div 
@@ -1216,58 +1246,95 @@ function ScheduleStats({ scheduleData, employees }) {
                         <div className="w-1 h-4 bg-primary/50 rounded-full" />
                         班次分布
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-amber-400/5 rounded-lg p-3 space-y-1 border border-amber-400/10">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-lg bg-amber-400/10">
-                              <SunIcon className="w-4 h-4 text-amber-400" />
-                            </div>
-                            <div className="text-sm text-amber-400/80">早班</div>
-                          </div>
-                          <div className="text-xl font-bold text-amber-400">{stats.morning}</div>
-                          <div className="text-xs text-amber-400/50">
-                            {Math.round(stats.morning / stats.total * 100)}%
-                          </div>
-                        </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {(() => {
+                          // 計算主要班次總數（不包含進貨班）
+                          const mainShiftsTotal = stats.morning + stats.evening + stats.middle + stats.hsr;
+                          
+                          return (
+                            <>
+                              <div className="bg-amber-400/5 rounded-lg p-3 space-y-1 border border-amber-400/10">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-lg bg-amber-400/10">
+                                    <SunIcon className="w-4 h-4 text-amber-400" />
+                                  </div>
+                                  <div className="text-sm text-amber-400/80">早班</div>
+                                </div>
+                                <div className="text-xl font-bold text-amber-400">{stats.morning}</div>
+                                <div className="text-xs text-amber-400/50">
+                                  {mainShiftsTotal > 0 ? Math.round(stats.morning / mainShiftsTotal * 100) : 0}%
+                                </div>
+                              </div>
 
-                        <div className="bg-blue-400/5 rounded-lg p-3 space-y-1 border border-blue-400/10">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-lg bg-blue-400/10">
-                              <MoonIcon className="w-4 h-4 text-blue-400" />
-                            </div>
-                            <div className="text-sm text-blue-400/80">晚班</div>
-                          </div>
-                          <div className="text-xl font-bold text-blue-400">{stats.evening}</div>
-                          <div className="text-xs text-blue-400/50">
-                            {Math.round(stats.evening / stats.total * 100)}%
-                          </div>
-                        </div>
+                              <div className="bg-blue-400/5 rounded-lg p-3 space-y-1 border border-blue-400/10">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-lg bg-blue-400/10">
+                                    <MoonIcon className="w-4 h-4 text-blue-400" />
+                                  </div>
+                                  <div className="text-sm text-blue-400/80">晚班</div>
+                                </div>
+                                <div className="text-xl font-bold text-blue-400">{stats.evening}</div>
+                                <div className="text-xs text-blue-400/50">
+                                  {mainShiftsTotal > 0 ? Math.round(stats.evening / mainShiftsTotal * 100) : 0}%
+                                </div>
+                              </div>
 
-                        <div className="bg-emerald-400/5 rounded-lg p-3 space-y-1 border border-emerald-400/10">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-lg bg-emerald-400/10">
-                              <div className="w-4 h-4 rounded-full bg-emerald-400/20" />
-                            </div>
-                            <div className="text-sm text-emerald-400/80">中班</div>
-                          </div>
-                          <div className="text-xl font-bold text-emerald-400">{stats.middle}</div>
-                          <div className="text-xs text-emerald-400/50">
-                            {Math.round(stats.middle / stats.total * 100)}%
-                          </div>
-                        </div>
+                              <div className="bg-emerald-400/5 rounded-lg p-3 space-y-1 border border-emerald-400/10">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-lg bg-emerald-400/10">
+                                    <div className="w-4 h-4 rounded-full bg-emerald-400/20" />
+                                  </div>
+                                  <div className="text-sm text-emerald-400/80">中班</div>
+                                </div>
+                                <div className="text-xl font-bold text-emerald-400">{stats.middle}</div>
+                                <div className="text-xs text-emerald-400/50">
+                                  {mainShiftsTotal > 0 ? Math.round(stats.middle / mainShiftsTotal * 100) : 0}%
+                                </div>
+                              </div>
 
-                        <div className="bg-violet-400/5 rounded-lg p-3 space-y-1 border border-violet-400/10">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-lg bg-violet-400/10">
-                              <div className="w-4 h-4 rounded-full bg-violet-400/20" />
-                            </div>
-                            <div className="text-sm text-violet-400/80">高鐵班</div>
-                          </div>
-                          <div className="text-xl font-bold text-violet-400">{stats.hsr}</div>
-                          <div className="text-xs text-violet-400/50">
-                            {Math.round(stats.hsr / stats.total * 100)}%
-                          </div>
-                        </div>
+                              <div className="bg-violet-400/5 rounded-lg p-3 space-y-1 border border-violet-400/10">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-lg bg-violet-400/10">
+                                    <div className="w-4 h-4 rounded-full bg-violet-400/20" />
+                                  </div>
+                                  <div className="text-sm text-violet-400/80">高鐵班</div>
+                                </div>
+                                <div className="text-xl font-bold text-violet-400">{stats.hsr}</div>
+                                <div className="text-xs text-violet-400/50">
+                                  {mainShiftsTotal > 0 ? Math.round(stats.hsr / mainShiftsTotal * 100) : 0}%
+                                </div>
+                              </div>
+
+                              <div className="bg-orange-400/5 rounded-lg p-3 space-y-1 border border-orange-400/10">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-lg bg-orange-400/10">
+                                    <TruckIcon className="w-4 h-4 text-orange-400" />
+                                  </div>
+                                  <div className="text-sm text-orange-400/80">進貨班</div>
+                                </div>
+                                <div className="text-xl font-bold text-orange-400">{stats.restocking.count}</div>
+                                {/* 進貨班不顯示百分比 */}
+                                <div className="text-xs text-orange-400/50">
+                                  星期三專屬
+                                </div>
+                                {/* 進貨班日期詳情 */}
+                                {stats.restocking.dates.length > 0 && (
+                                  <div className="mt-2 pt-2 border-t border-orange-400/10">
+                                    <div className="text-xs text-orange-400/70">進貨班日期：</div>
+                                    <div className="mt-1 space-y-1">
+                                      {stats.restocking.dates.map((item, index) => (
+                                        <div key={index} className="text-xs text-orange-400/60 flex justify-between">
+                                          <span>{formatDate(item.date)}</span>
+                                          <span>{item.shift}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -2435,14 +2502,18 @@ function Schedule() {
           {activeView === 'stats' && (
             <div className="p-6">
               <ScheduleStats 
-                scheduleData={scheduleData.slice(2).reduce((acc, row) => {
-                  if (!row || !row[0]) return acc;
-                  const employeeId = row[0];
-                  return {
-                    ...acc,
-                    [employeeId]: row.slice(1)
-                  };
-                }, {})}
+                scheduleData={{
+                  dates: scheduleData[1]?.slice(1),  // 日期行
+                  employees: scheduleData.slice(2).reduce((acc, row) => {
+                    if (!row || !row[0]) return acc;
+                    const employeeId = row[0];
+                    const shifts = row.slice(1);
+                    return {
+                      ...acc,
+                      [employeeId]: shifts
+                    };
+                  }, {})
+                }}
                 employees={Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => ({
                   id: fullName,
                   name: nickname
