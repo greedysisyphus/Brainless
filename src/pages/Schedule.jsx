@@ -868,8 +868,8 @@ function ScheduleStats({ scheduleData, employees }) {
     };
 
     shifts.forEach(shift => {
-      // 如果是工作日（不是空白且不是月休）
-      if (shift.trim() !== '' && !shift.includes('月休')) {
+      // 修改判斷條件：如果是工作日（不是空白、不是月休、不是排班）
+      if (shift.trim() !== '' && !shift.includes('月休') && !shift.includes('8:00-17:00') && !shift.includes('8：00-17：00')) {
         current++;
       } else {
         processLastSequence();
@@ -1914,8 +1914,8 @@ function Schedule() {
       };
     }
 
-    // 其他排班時間：漸層綠色背景
-    if (cell.match(/\d{1,2}[:：]\d{2}-\d{1,2}[:：]\d{2}/)) {
+    // 排班:漸層綠色背景
+    if (cell.includes('8:00-17:00') || cell.includes('8：00-17：00')) {
       return {
         background: 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20',
         text: 'text-emerald-100 font-medium',
