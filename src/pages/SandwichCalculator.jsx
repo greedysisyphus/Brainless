@@ -3,8 +3,8 @@ import { useState } from 'react'
 function SandwichCalculator() {
   const [settings, setSettings] = useState({
     breadPerBag: 8,
-    targetHam: 68,
-    targetSalami: 36
+    targetHam: 60,
+    targetSalami: 30
   })
   
   const [values, setValues] = useState({
