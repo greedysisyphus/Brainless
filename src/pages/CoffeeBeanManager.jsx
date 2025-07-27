@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 // 咖啡豆種類定義
 const BEAN_TYPES = {
@@ -21,6 +21,8 @@ const DEFAULT_WEIGHTS = {
 }
 
 function CoffeeBeanManager() {
+  const [showWeightCalculator, setShowWeightCalculator] = useState(false)
+
   const inventoryRef = useRef(null)
   
   // 盤點表狀態
@@ -778,164 +780,273 @@ function CoffeeBeanManager() {
             })}
           </div>
         </div>
+
+        {/* 豆種詳細總計 */}
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-1 h-6 bg-gradient-to-b from-primary to-purple-400 rounded-full"></div>
+            <h3 className="text-lg font-bold text-primary">豆種詳細總計</h3>
+          </div>
+          
+          {/* 出杯豆詳細 */}
+          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10">
+            <div className="flex items-center gap-3 mb-3">
+              <h4 className="font-semibold text-primary">出杯豆</h4>
+              <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const tableData = createSummaryTable()
+                return tableData
+                  .filter(row => row.category === '出杯豆')
+                  .map(row => (
+                    <div key={row.beanType} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                      <span className="font-medium text-primary">{row.beanType}</span>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-blue-400">店面 {row.storeTotal}包</span>
+                        <span className="text-green-400">員休 {row.breakRoomTotal}包</span>
+                        <span className="font-bold text-white bg-gradient-to-r from-primary/20 to-purple-500/20 px-2 py-1 rounded">
+                          總計 {row.grandTotal}包
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              })()}
+            </div>
+          </div>
+
+          {/* 義式豆詳細 */}
+          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10">
+            <div className="flex items-center gap-3 mb-3">
+              <h4 className="font-semibold text-primary">義式豆</h4>
+              <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const tableData = createSummaryTable()
+                return tableData
+                  .filter(row => row.category === '義式豆')
+                  .map(row => (
+                    <div key={row.beanType} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                      <span className="font-medium text-primary">{row.beanType}</span>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-blue-400">店面 {row.storeTotal}包</span>
+                        <span className="text-green-400">員休 {row.breakRoomTotal}包</span>
+                        <span className="font-bold text-white bg-gradient-to-r from-primary/20 to-purple-500/20 px-2 py-1 rounded">
+                          總計 {row.grandTotal}包
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              })()}
+            </div>
+          </div>
+
+          {/* 賣豆詳細 */}
+          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10">
+            <div className="flex items-center gap-3 mb-3">
+              <h4 className="font-semibold text-primary">賣豆</h4>
+              <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const tableData = createSummaryTable()
+                return tableData
+                  .filter(row => row.category === '賣豆')
+                  .map(row => (
+                    <div key={row.beanType} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                      <span className="font-medium text-primary">{row.beanType}</span>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-blue-400">店面 {row.storeTotal}包</span>
+                        <span className="text-green-400">員休 {row.breakRoomTotal}包</span>
+                        <span className="font-bold text-white bg-gradient-to-r from-primary/20 to-purple-500/20 px-2 py-1 rounded">
+                          總計 {row.grandTotal}包
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              })()}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* 二、重量換算計算器 */}
-      <div className="card backdrop-blur-sm bg-surface/80 border border-white/20">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h2 className="text-xl font-bold text-primary mb-1">重量換算計算器</h2>
-            <p className="text-sm text-text-secondary">估算豆包數量</p>
-          </div>
-          <button
-            onClick={resetWeightSettings}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-1"
-          >
-            <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-            回復設定
-          </button>
-        </div>
-        
-        {/* 模式切換 */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-6 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full"></div>
-            <h3 className="text-lg font-bold text-primary">計算模式</h3>
-          </div>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-amber-400/30 transition-all duration-200 cursor-pointer bg-gradient-to-br from-surface/40 to-surface/20">
-              <input
-                type="radio"
-                value="bag"
-                checked={weightMode === 'bag'}
-                onChange={(e) => setWeightMode(e.target.value)}
-                className="text-amber-400 w-4 h-4"
-              />
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                <span className="font-medium">外包裝袋</span>
-              </div>
-            </label>
-            <label className="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-amber-400/30 transition-all duration-200 cursor-pointer bg-gradient-to-br from-surface/40 to-surface/20">
-              <input
-                type="radio"
-                value="ikea"
-                checked={weightMode === 'ikea'}
-                onChange={(e) => setWeightMode(e.target.value)}
-                className="text-amber-400 w-4 h-4"
-              />
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                <span className="font-medium">IKEA 盒子</span>
-              </div>
-            </label>
-          </div>
-        </div>
+      {/* 浮動重量換算計算器按鈕 */}
+      <button
+        onClick={() => setShowWeightCalculator(true)}
+        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50"
+      >
+        <CalculatorIcon className="w-6 h-6" />
+      </button>
 
-        {/* 重量設定 */}
-        <div className="space-y-4 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></div>
-            <h3 className="text-lg font-bold text-primary">重量設定</h3>
-          </div>
-          
-          {/* 重量輸入欄位 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
-              <label className="block text-sm font-semibold mb-3 text-primary flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                {weightMode === 'bag' ? '外包裝袋重量' : 'IKEA 盒重量'} (g)
-              </label>
-              <input
-                type="number"
-                value={weightMode === 'bag' ? weightSettings.bagWeight : weightSettings.ikeaBoxWeight}
-                onChange={(e) => updateWeightSetting(
-                  weightMode === 'bag' ? 'bagWeight' : 'ikeaBoxWeight', 
-                  e.target.value
-                )}
-                className="input-field w-full text-sm py-2.5 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
-                placeholder="輸入重量"
-              />
+      {/* 浮動重量換算計算器彈窗 */}
+      {showWeightCalculator && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-primary mb-1">重量換算計算器</h2>
+                <p className="text-sm text-text-secondary">估算豆包數量</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={resetWeightSettings}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-1"
+                >
+                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                  回復設定
+                </button>
+                <button
+                  onClick={() => setShowWeightCalculator(false)}
+                  className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
-              <label className="block text-sm font-semibold mb-3 text-primary flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                每包豆子重量 (g)
-              </label>
-              <input
-                type="number"
-                value={weightSettings.beanWeightPerPack}
-                onChange={(e) => updateWeightSetting('beanWeightPerPack', e.target.value)}
-                className="input-field w-full text-sm py-2.5 px-3 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
-                placeholder="輸入重量"
-              />
+            
+            {/* 模式切換 */}
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-6 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full"></div>
+                <h3 className="text-lg font-bold text-primary">計算模式</h3>
+              </div>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-amber-400/30 transition-all duration-200 cursor-pointer bg-gradient-to-br from-surface/40 to-surface/20">
+                  <input
+                    type="radio"
+                    value="bag"
+                    checked={weightMode === 'bag'}
+                    onChange={(e) => setWeightMode(e.target.value)}
+                    className="text-amber-400 w-4 h-4"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                    <span className="font-medium">外包裝袋</span>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-amber-400/30 transition-all duration-200 cursor-pointer bg-gradient-to-br from-surface/40 to-surface/20">
+                  <input
+                    type="radio"
+                    value="ikea"
+                    checked={weightMode === 'ikea'}
+                    onChange={(e) => setWeightMode(e.target.value)}
+                    className="text-amber-400 w-4 h-4"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                    <span className="font-medium">IKEA 盒子</span>
+                  </div>
+                </label>
+              </div>
             </div>
-          </div>
-          
-          {/* 操作按鈕 */}
-          <div className="flex justify-end">
-            <button
-              onClick={addCalculation}
-              className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 flex items-center gap-2"
-            >
-              <PlusIcon className="w-4 h-4" />
-              新增計算欄位
-            </button>
-          </div>
-        </div>
 
-        {/* 計算欄位 */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-6 bg-gradient-to-b from-green-400 to-emerald-400 rounded-full"></div>
-            <h3 className="text-lg font-bold text-primary">計算結果</h3>
-          </div>
-          
-          {calculations.map((calc) => (
-            <div key={calc.id} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10 hover:border-primary/30 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <h5 className="font-semibold text-primary">計算欄位 #{calc.id}</h5>
-                  <div className="w-2 h-2 rounded-full bg-primary/60"></div>
-                </div>
-                {calculations.length > 1 && (
-                  <button
-                    onClick={() => removeCalculation(calc.id)}
-                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                )}
+            {/* 重量設定 */}
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></div>
+                <h3 className="text-lg font-bold text-primary">重量設定</h3>
               </div>
               
+              {/* 重量輸入欄位 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-lg p-3 border border-white/10">
-                  <label className="block text-sm font-semibold mb-2 text-text-secondary flex items-center gap-2">
+                <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
+                  <label className="block text-sm font-semibold mb-3 text-primary flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                    總重量 (g)
+                    {weightMode === 'bag' ? '外包裝袋重量' : 'IKEA 盒重量'} (g)
                   </label>
                   <input
                     type="number"
-                    value={calc.totalWeight}
-                    onChange={(e) => updateCalculation(calc.id, e.target.value)}
-                    placeholder="輸入總重量"
-                    className="input-field w-full text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                    value={weightMode === 'bag' ? weightSettings.bagWeight : weightSettings.ikeaBoxWeight}
+                    onChange={(e) => updateWeightSetting(
+                      weightMode === 'bag' ? 'bagWeight' : 'ikeaBoxWeight', 
+                      e.target.value
+                    )}
+                    className="input-field w-full text-sm py-2.5 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                    placeholder="輸入重量"
                   />
                 </div>
-                <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-lg p-3 border border-white/10">
-                  <label className="block text-sm font-semibold mb-2 text-text-secondary flex items-center gap-2">
+                <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
+                  <label className="block text-sm font-semibold mb-3 text-primary flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                    估算包數
+                    每包豆子重量 (g)
                   </label>
-                  <div className="w-full text-sm py-2 px-3 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-center font-bold text-green-400">
-                    {calc.estimatedPacks} 包
-                  </div>
+                  <input
+                    type="number"
+                    value={weightSettings.beanWeightPerPack}
+                    onChange={(e) => updateWeightSetting('beanWeightPerPack', e.target.value)}
+                    className="input-field w-full text-sm py-2.5 px-3 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
+                    placeholder="輸入重量"
+                  />
                 </div>
               </div>
+              
+              {/* 操作按鈕 */}
+              <div className="flex justify-end">
+                <button
+                  onClick={addCalculation}
+                  className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 flex items-center gap-2"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  新增計算欄位
+                </button>
+              </div>
             </div>
-          ))}
+
+            {/* 計算欄位 */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-6 bg-gradient-to-b from-green-400 to-emerald-400 rounded-full"></div>
+                <h3 className="text-lg font-bold text-primary">計算結果</h3>
+              </div>
+              
+              {calculations.map((calc) => (
+                <div key={calc.id} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10 hover:border-primary/30 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <h5 className="font-semibold text-primary">計算欄位 #{calc.id}</h5>
+                      <div className="w-2 h-2 rounded-full bg-primary/60"></div>
+                    </div>
+                    {calculations.length > 1 && (
+                      <button
+                        onClick={() => removeCalculation(calc.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-lg p-3 border border-white/10">
+                      <label className="block text-sm font-semibold mb-2 text-text-secondary flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                        總重量 (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={calc.totalWeight}
+                        onChange={(e) => updateCalculation(calc.id, e.target.value)}
+                        placeholder="輸入總重量"
+                        className="input-field w-full text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                      />
+                    </div>
+                    <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-lg p-3 border border-white/10">
+                      <label className="block text-sm font-semibold mb-2 text-text-secondary flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                        估算包數
+                      </label>
+                      <div className="w-full text-sm py-2 px-3 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-center font-bold text-green-400">
+                        {calc.estimatedPacks} 包
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
