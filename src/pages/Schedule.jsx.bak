@@ -802,6 +802,18 @@ function StaffCostDetail({ costs, station }) {
 // 修改 ScheduleStats 組件
 function ScheduleStats({ scheduleData, employees }) {
   const [selectedStaff, setSelectedStaff] = useState(null);
+  
+  // 安全檢查 scheduleData 和 employees 參數
+  useEffect(() => {
+    // 驗證輸入數據
+    if (!scheduleData || !Array.isArray(scheduleData) || scheduleData.length < 2) {
+      console.warn('ScheduleStats: scheduleData 格式無效');
+    }
+    
+    if (!employees || !Array.isArray(employees)) {
+      console.warn('ScheduleStats: employees 格式無效');
+    }
+  }, [scheduleData, employees]);
 
   // 修改計算連續工作天數的函數
   const calculateConsecutiveWork = (shifts) => {
@@ -841,90 +853,136 @@ function ScheduleStats({ scheduleData, employees }) {
 
   // 計算週末班次
   const calculateWeekendShifts = (shifts) => {
+    if (!Array.isArray(shifts) || shifts.length === 0) return 0;
+    
+    // 安全檢查 scheduleData.dates
+    if (!scheduleData || !Array.isArray(scheduleData) || scheduleData.length < 2) {
+      return 0;
+    }
+    
+    // 安全獲取日期行
+    const dateRow = scheduleData[1] || [];
+    
     return shifts.filter((shift, index) => {
-      const dayOfWeek = new Date(scheduleData.dates[index]).getDay();
-      return (dayOfWeek === 0 || dayOfWeek === 6) && shift.trim() !== '';
+      // 確保日期存在並有效
+      if (!dateRow[index]) return false;
+      
+      try {
+        const dateStr = dateRow[index];
+        const dayOfWeek = new Date(dateStr).getDay();
+        // 確保日期有效
+        if (isNaN(dayOfWeek)) return false;
+        
+        return (dayOfWeek === 0 || dayOfWeek === 6) && shift && shift.trim && shift.trim() !== '';
+      } catch (error) {
+        console.error('日期解析錯誤:', dateRow[index], error);
+        return false;
+      }
     }).length;
   };
 
   // 計算個人班次統計
   const calculatePersonalStats = (employeeData) => {
-    // 確保 employeeData 存在
-    if (!employeeData || !Array.isArray(employeeData)) {
+    // 安全檢查
+    if (!employeeData || !Array.isArray(employeeData) || employeeData.length === 0) {
       return {
         morning: 0,
-        evening: 0,
         middle: 0,
+        evening: 0,
         hsr: 0,
-        holidays: 0,
+        restocking: { count: 0, dates: [] },
         total: 0,
-        consecutiveWork: { max: 0, average: 0 },
-        weekends: 0,
+        totalWeekend: 0,
+        consecutiveWork: { max: 0, average: 0 }
+      };
+    }
+    
+    try {
+      const shifts = employeeData;
+      
+      // 安全獲取日期行
+      const dateRow = Array.isArray(scheduleData) && scheduleData.length > 1 
+        ? scheduleData[1] || [] 
+        : [];
+
+      // 計算各類班次
+      const shiftsCount = shifts.reduce((acc, shift, index) => {
+        if (!shift || shift.trim() === '' || shift.includes('月休')) {
+          return acc;
+        }
+
+        // 提高安全性
+        if (typeof shift !== 'string') {
+          console.warn('無效的班次格式:', shift);
+          return acc;
+        }
+
+        // 班次類型檢測
+        if (shift.includes('4:30-13:00')) acc.morning++;
+        else if (shift.includes('13:00-21:30')) acc.middle++;
+        else if (shift.includes('12:30-21:00')) acc.evening++;
+        else if (shift.includes('高鐵') || shift.includes('桃園')) acc.hsr++;
+
+        // 進貨班檢測 (星期三的中班或晚班)
+        try {
+          // 安全獲取日期
+          const date = dateRow[index] ? new Date(dateRow[index]) : null;
+          
+          // 檢查日期是否有效
+          if (date && !isNaN(date.getTime())) {
+            // 檢查是否星期三
+            if (date.getDay() === 3) {
+              // 如果是中班或晚班
+              if (shift.includes('13:00-21:30') || shift.includes('12:30-21:00')) {
+                acc.restocking.count++;
+                acc.restocking.dates.push({
+                  date: date,
+                  shift: shift.includes('13:00-21:30') ? '中班' : '晚班'
+                });
+              }
+            }
+          }
+        } catch (dateError) {
+          console.error('日期處理錯誤:', dateError);
+        }
+
+        acc.total++;
+        return acc;
+      }, { 
+        morning: 0, 
+        middle: 0, 
+        evening: 0, 
+        hsr: 0, 
+        total: 0,
         restocking: {
           count: 0,
           dates: []
         }
-      };
-    }
+      });
 
-    const shifts = employeeData;
-
-    // 計算進貨班
-    const restockingShifts = shifts.reduce((acc, cell, index) => {
-      if (!scheduleData.dates || !scheduleData.dates[index]) return acc;
-      
-      const date = scheduleData.dates[index];
-      const dayOfWeek = new Date(date).getDay();
-      
-      if (dayOfWeek === 3) {  // 星期三
-        const isRestockingShift = 
-          (cell.includes('7:30-16:00') || cell.includes('7：30-16：00')) ||  // 中班
-          (cell.includes('13:00-21:30') || cell.includes('13：00-21：30'));   // 晚班
-
-        if (isRestockingShift) {
-          acc.dates.push({
-            date: date,
-            shift: cell.includes('7:30-16:00') || cell.includes('7：30-16：00') ? '中班' : '晚班'
-          });
-          acc.count++;
-        }
-      }
-      return acc;
-    }, { count: 0, dates: [] });
-
-    return {
-      // 基本班次統計
-      morning: shifts.filter(cell => 
-        cell.includes('4:30-13:00') || 
-        cell.includes('4：30-13：00')
-      ).length,
-      evening: shifts.filter(cell => 
-        cell.includes('13:00-21:30') || 
-        cell.includes('13：00-21：30')
-      ).length,
-      middle: shifts.filter(cell => 
-        cell.includes('7:30-16:00') || 
-        cell.includes('7：30-16：00')
-      ).length,
-      hsr: shifts.filter(cell => 
-        cell.includes('6:00-14:30') || 
-        cell.includes('6：00-14：30')
-      ).length,
-      
-      // 國定假日統計
-      holidays: shifts.filter(cell => cell.includes('國')).length,
-      
-      // 計算總班次
-      total: shifts.filter(cell => cell.trim() !== '').length,
-      
       // 計算連續工作天數
-      consecutiveWork: calculateConsecutiveWork(shifts),
+      const consecutiveWork = calculateConsecutiveWork(shifts);
       
-      // 週末班次
-      weekends: calculateWeekendShifts(shifts),
+      // 計算週末班次
+      const totalWeekend = calculateWeekendShifts(shifts);
 
-      // 進貨班統計
-      restocking: restockingShifts
+      return {
+        ...shiftsCount,
+        consecutiveWork,
+        totalWeekend
+      };
+    } catch (error) {
+      console.error('計算個人統計時出錯:', error);
+      return {
+        morning: 0,
+        middle: 0,
+        evening: 0,
+        hsr: 0,
+        restocking: { count: 0, dates: [] },
+        total: 0,
+        totalWeekend: 0,
+        consecutiveWork: { max: 0, average: 0 }
+      };
     }
   };
 
@@ -1782,8 +1840,48 @@ function TomorrowPickup({ scheduleData, isOpen, onClose }) {
   );
 }
 
+// 添加 ErrorBoundary 組件
+function ErrorBoundary({ children }) {
+  const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // 捕獲並記錄錯誤
+    const errorHandler = (error) => {
+      console.error('全局錯誤捕獲:', error);
+      setHasError(true);
+      setError(error);
+      return true; // 防止默認處理
+    };
+
+    window.addEventListener('error', errorHandler);
+    return () => window.removeEventListener('error', errorHandler);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="p-8 bg-red-500/10 rounded-xl text-center">
+        <h2 className="text-xl font-bold text-red-500 mb-4">出現錯誤</h2>
+        <p className="mb-4 text-text-secondary">應用程序遇到了問題，請刷新頁面或聯繫管理員。</p>
+        <pre className="bg-surface p-4 rounded-lg text-xs overflow-auto max-h-40 text-left">
+          {error?.toString() || '未知錯誤'}
+        </pre>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
+        >
+          刷新頁面
+        </button>
+      </div>
+    );
+  }
+
+  return children;
+}
+
+// 在 Schedule 組件的 return 部分包裹內容
 function Schedule() {
-  const [scheduleData, setScheduleData] = useState([])
+  const [scheduleData, setScheduleData] = useState([['', ''], ['', '']])  // 提供一個有效的初始結構
   const [selectedPerson, setSelectedPerson] = useState('')
   const [dateRange, setDateRange] = useState(-1)
   const [showTools, setShowTools] = useState(false)
@@ -1846,10 +1944,26 @@ function Schedule() {
     e.preventDefault()
     
     try {
+      // 檢查剪貼板數據
+      const clipboardText = e.clipboardData.getData('text');
+      if (!clipboardText || clipboardText.trim() === '') {
+        throw new Error('剪貼板無數據');
+      }
+      
       // 嘗試解析 JSON 數據
-      const jsonData = JSON.parse(e.clipboardData.getData('text'))
+      let jsonData;
+      try {
+        jsonData = JSON.parse(clipboardText);
+      } catch (parseError) {
+        console.error('JSON 解析錯誤:', parseError);
+        throw new Error('無法解析 JSON 數據，請確保格式正確');
+      }
       
       // 驗證數據格式
+      if (!jsonData || typeof jsonData !== 'object') {
+        throw new Error('無效的 JSON 數據');
+      }
+      
       if (!jsonData.schedule || !jsonData.schedule.dates || !jsonData.schedule.employees) {
         throw new Error('無效的數據格式')
       }
@@ -1858,703 +1972,432 @@ function Schedule() {
       const convertedData = [
         // 第一行：星期幾
         [''].concat(jsonData.schedule.dates.map(date => {
-          const day = new Date(date).getDay()
-          return ['日', '一', '二', '三', '四', '五', '六'][day]
+          if (!date) return '?';
+          try {
+            const day = new Date(date).getDay()
+            return ['日', '一', '二', '三', '四', '五', '六'][day] || '?'
+          } catch (e) {
+            console.warn('日期解析錯誤:', date, e);
+            return '?';
+          }
         })),
         // 第二行：日期
         [''].concat(jsonData.schedule.dates),
         // 員工班次
-        ...jsonData.schedule.employees.map(emp => {
-          const shifts = new Array(jsonData.schedule.dates.length).fill('月休')
-          emp.shifts.forEach(shift => {
-            const dateIndex = jsonData.schedule.dates.indexOf(shift.date)
-            if (dateIndex !== -1) {
-              shifts[dateIndex] = shift.time
+        ...jsonData.schedule.employees
+          .filter(emp => emp && typeof emp === 'object')
+          .map(emp => {
+            try {
+              const shifts = new Array(jsonData.schedule.dates.length).fill('月休')
+              if (emp.shifts && Array.isArray(emp.shifts)) {
+                emp.shifts.forEach(shift => {
+                  if (shift && shift.date) {
+                    const dateIndex = jsonData.schedule.dates.indexOf(shift.date)
+                    if (dateIndex !== -1) {
+                      shifts[dateIndex] = shift.time || '月休'
+                    }
+                  }
+                })
+              }
+              const empId = emp.id || '';
+              const empName = emp.fullName || '未知';
+              return [`${empId ? `${empId}-` : ''}${empName}`, ...shifts]
+            } catch (e) {
+                    shifts[dateIndex] = shift.time || '月休';
+                  }
+                }
+              });
             }
-          })
-          return [`${emp.id}-${emp.fullName}`, ...shifts]
+            
+            return [`${emp.id || ''}-${emp.fullName || '未知'}`, ...shifts];
+          } catch (e) {
+            console.warn('員工數據處理錯誤:', emp, e);
+            return ['錯誤數據'];
+          }
         })
-      ]
+      ];
 
-      setScheduleData(convertedData)
-
-      // 保存到 Firebase - 將數組轉換為對象格式
-      try {
-        const firestoreData = {
-          metadata: jsonData.metadata,
-          scheduleData: {
-            rows: convertedData.map((row, rowIndex) => ({
-              id: rowIndex.toString(),
-              cells: row.map((cell, cellIndex) => ({
-                id: cellIndex.toString(),
-                value: cell
-              }))
-            }))
-          },
-          timestamp: new Date(),
-          updatedBy: 'anonymous'
-        }
-
-        await addDoc(collection(db, 'schedules'), firestoreData)
-        console.log('保存成功')
-        alert('班表已成功保存！')
-      } catch (error) {
-        console.error('保存失敗:', error)
-        alert(`保存失敗: ${error.message}\n請檢查網絡連接或重新整理頁面`)
-      }
+      setScheduleData(convertedData);
     } catch (error) {
-      console.error('解析錯誤:', error)
-      alert('無法解析 JSON 數據，請確保格式正確')
+      console.error('處理 JSON 數據時出錯:', error);
     }
-  }
-
-  // 導出為 CSV
-  const exportToCSV = () => {
-    const csvContent = scheduleData
-      .map(row => row.join(','))
-      .join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `schedule_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-  }
-
-  // 編輯單元格
-  const handleCellEdit = (rowIndex, cellIndex, value) => {
-    const newData = [...scheduleData]
-    newData[rowIndex][cellIndex] = value
-    setScheduleData(newData)
-  }
-
-  // 更新班次樣式
-  const getShiftStyle = (cell) => {
-    if (!cell) return '';
-    
-    // 特休假
-    if (cell.includes('特休假')) {
-      return {
-        background: 'bg-gradient-to-r from-amber-500/20 to-amber-600/20',
-        text: 'text-amber-100 font-medium',
-        border: 'border-l-4 border-l-amber-500',
-        label: '特休'
-      };
-    }
-    
-    // 早班：漸層藍色背景
-    if (cell.includes('4:30-13:00') || cell.includes('4：30-13：00')) {
-      return {
-        background: 'bg-gradient-to-r from-sky-500/20 to-blue-500/20',
-        text: 'text-sky-100 font-medium',
-        border: 'border-l-4 border-l-sky-500',
-        label: '早班'
-      };
-    }
-    
-    // 中班：漸層紅色背景
-    if (cell.includes('7:30-16:00') || cell.includes('7：30-16：00')) {
-      return {
-        background: 'bg-gradient-to-r from-rose-500/20 to-pink-500/20',
-        text: 'text-rose-100 font-medium',
-        border: 'border-l-4 border-l-rose-500',
-        label: '中班'
-      };
-    }
-    
-    // 高鐵班：漸層青色背景
-    if (cell.includes('6:00-14:30') || cell.includes('6：00-14：30')) {
-      return {
-        background: 'bg-gradient-to-r from-cyan-500/20 to-teal-500/20',
-        text: 'text-cyan-100 font-medium',
-        border: 'border-l-4 border-l-cyan-500',
-        label: '高鐵'
-      };
-    }
-    
-    // 晚班：漸層紫色背景
-    if (cell.includes('13:00-21:30') || cell.includes('13：00-21：30')) {
-      return {
-        background: 'bg-gradient-to-r from-purple-500/20 to-fuchsia-500/20',
-        text: 'text-purple-100 font-medium',
-        border: 'border-l-4 border-l-purple-500',
-        label: '晚班'
-      };
-    }
-
-    // 排班:漸層綠色背景
-    if (cell.includes('8:00-17:00') || cell.includes('8：00-17：00')) {
-      return {
-        background: 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20',
-        text: 'text-emerald-100 font-medium',
-        border: 'border-l-4 border-l-emerald-500',
-        label: '排班'
-      };
-    }
-
-    // 月休
-    if (cell === '月休') {
-      return {
-        background: 'bg-gradient-to-r from-gray-500/10 to-gray-600/10',
-        text: 'text-gray-400 font-medium',
-        border: 'border-l-4 border-l-gray-500',
-        label: '休'
-      };
-    }
-
-    return null;
-  }
-
-  // 格式化表格
-  const getFormattedCell = (cell, rowIndex, cellIndex) => {
-    if (!formatOptions.showWeekend && (cellIndex === 6 || cellIndex === 7)) {
-      return null;
-    }
-    
-    const isToday = formatOptions.highlightToday && 
-      cell === new Date().toLocaleDateString('zh-TW');
-    
-    const isHeader = rowIndex === 0;
-    const isFirstColumn = cellIndex === 0;
-    const shiftStyle = getShiftStyle(cell);
-    
-    // 處理日期顯示
-    let displayText = cell;
-    if (isHeader && cellIndex > 0) {
-      displayText = formatDate(cell);
-    } else if (isFirstColumn && NAME_MAPPINGS[cell]) {
-      displayText = NAME_MAPPINGS[cell];
-    } else if (shiftStyle) {
-      displayText = shiftStyle.label;
-    }
-    
-    return (
-      <td 
-        key={cellIndex} 
-        className={`
-          p-4 border border-white/10
-          ${isHeader ? 'font-bold bg-surface/50' : ''}
-          ${isFirstColumn ? 'font-semibold sticky left-0 bg-surface text-primary' : ''}
-          ${isToday ? 'bg-primary/20 font-bold' : ''}
-          ${shiftStyle ? `${shiftStyle.background} ${shiftStyle.text}` : ''}
-          ${cell === '月休' ? 'bg-gray-500/20 text-gray-400' : ''}
-          ${cell.includes('特休假') ? 'bg-yellow-500/20 text-yellow-200' : ''}
-          ${isEditing ? 'cursor-pointer hover:bg-white/5' : ''}
-          transition-colors duration-200
-          whitespace-nowrap text-center
-        `}
-        title={cell}  // 顯示完整信息
-      >
-        {displayText}
-      </td>
-    );
-  }
-
-  // 生成分享連結
-  const generateShareLink = () => {
-    const encodedData = btoa(JSON.stringify(scheduleData))
-    const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`
-    
-    // 複製到剪貼板
-    navigator.clipboard.writeText(shareUrl)
-      .then(() => alert('分享連結已複製到剪貼板！'))
-      .catch(err => {
-        console.error('複製失敗:', err)
-        alert('分享連結：' + shareUrl)
-      })
-  }
-
-  // 過濾數據
-  const getFilteredData = () => {
-    if (!scheduleData.length) return []
-    
-    let filtered = [...scheduleData]
-    
-    // 過濾人名
-    if (selectedPerson) {
-      filtered = [
-        filtered[0],  // 保留表頭（星期幾）
-        filtered[1],  // 保留日期行
-        ...filtered.slice(2).filter(row => {
-          const fullName = row[0]
-          const shortName = NAME_MAPPINGS[fullName]
-          return shortName === selectedPerson || fullName.includes(selectedPerson)
-        })
-      ]
-    }
-
-    // 過濾日期
-    if (dateRange >= 0) {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      
-      // 找到班表的起始日期
-      const firstDate = new Date(filtered[1][1])  // 第二行第二列的日期
-      const lastDate = new Date(filtered[1][filtered[1].length - 1])  // 最後一個日期
-      
-      // 如果今天不在班表的日期範圍內，使用班表的第一天作為考點
-      const referenceDate = today >= firstDate && today <= lastDate ? today : firstDate
-      
-      // 設置目標日期
-      const targetDate = new Date(referenceDate)
-      if (dateRange > 0) {
-        targetDate.setDate(referenceDate.getDate() + dateRange)
-      }
-
-      const validColumns = [0]
-      const dateRow = filtered[1]
-      
-      for (let i = 1; i < dateRow.length; i++) {
-        const dateStr = dateRow[i]
-        if (!dateStr) continue
-
-        try {
-          const date = new Date(dateStr)
-          date.setHours(0, 0, 0, 0)
-          
-          if (isNaN(date.getTime())) {
-            console.warn('無效的日期:', dateStr)
-            continue
-          }
-
-          // 根據不同的日期範圍進行過濾
-          if (dateRange === 0) {
-            // 只顯示參考日期
-            if (date.getTime() === referenceDate.getTime()) {
-              validColumns.push(i)
-            }
-          } else if (dateRange === 1) {
-            // 顯示參考日期的下一天
-            const nextDay = new Date(referenceDate)
-            nextDay.setDate(referenceDate.getDate() + 1)
-            if (date.getTime() === nextDay.getTime()) {
-              validColumns.push(i)
-            }
-          } else if (dateRange === 2) {
-            // 顯示參考日期的後天
-            const dayAfterNext = new Date(referenceDate)
-            dayAfterNext.setDate(referenceDate.getDate() + 2)
-            if (date.getTime() === dayAfterNext.getTime()) {
-              validColumns.push(i)
-            }
-          } else if (dateRange > 2) {
-            // 顯示從參考日期開始到指定天數的範圍
-            if (date >= referenceDate && date < targetDate) {
-              validColumns.push(i)
-            }
-          }
-        } catch (error) {
-          console.error('日期解析錯誤:', dateStr, error)
-        }
-      }
-
-      if (validColumns.length > 1) {
-        filtered = filtered.map(row => 
-          validColumns.map(index => row[index])
-        )
-      }
-    }
-
-    return filtered
-  }
-
-  // 處理從 Excel 轉換來的 JSON 數據
-  const handleJsonGenerated = (jsonData) => {
-    // 將 JSON 據轉換為表格格式
-    const convertedData = [
-      // 第一行：星期幾
-      [''].concat(jsonData.schedule.dates.map(date => {
-        const day = new Date(date).getDay()
-        return ['日', '一', '二', '三', '四', '五', '六'][day]
-      })),
-      // 第二行：日期
-      [''].concat(jsonData.schedule.dates),
-      // 員工班次
-      ...jsonData.schedule.employees.map(emp => {
-        const shifts = new Array(jsonData.schedule.dates.length).fill('月休')
-        emp.shifts.forEach(shift => {
-          const dateIndex = jsonData.schedule.dates.indexOf(shift.date)
-          if (dateIndex !== -1) {
-            shifts[dateIndex] = shift.time
-          }
-        })
-        return [`${emp.id}-${emp.fullName}`, ...shifts]
-      })
-    ]
-
-    setScheduleData(convertedData)
-  }
+  };
 
   return (
-    <div className="container-custom py-8">
-      <div className="space-y-6">
-        <div className="card">
-          {/* 主選單 */}
-          <div className="flex flex-col gap-4 mb-8">
-            {/* 主標題 */}
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="card-header mb-0">班表</h2>
-                <p className="text-sm text-text-secondary mt-1">
-                  {activeView === 'schedule' && '查看與管理班表'}
-                  {activeView === 'stats' && '查看班表統計數據'}
-                  {activeView === 'pairings' && '查看同事配搭情況'}
-                </p>
-              </div>
-              <div className="flex gap-3">
-                {activeView === 'schedule' && (
-                  <>
-                    <button 
-                      onClick={() => setShowTools(!showTools)}
-                      className={`btn-icon group transition-all duration-200 ${showTools ? 'bg-primary/20 text-primary' : ''}`}
-                      title="轉換工具"
-                    >
-                      <ChevronDownIcon 
-                        className={`w-5 h-5 transition-transform duration-200 
-                          ${showTools ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                    <button 
-                      onClick={exportToCSV}
-                      className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
-                      title="導出 CSV"
-                    >
-                      <DocumentArrowDownIcon className="w-5 h-5" />
-                    </button>
-                  </>
-                )}
-                {/* 搭車統計按鈕移到最右邊 */}
-                <button
-                  onClick={() => setShowPickup(true)}
-                  className="btn-icon group transition-all duration-200 hover:bg-primary/20 hover:text-primary"
-                  title="搭車統計"
-                >
-                  <MapPinIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* 選單列 */}
-            <div className="flex items-center gap-2 px-1">
-              <div className="flex bg-surface/50 backdrop-blur-sm rounded-lg p-1">
-                <button
-                  onClick={() => setActiveView('schedule')}
-                  className={`
-                    px-4 py-2 rounded-md text-sm font-medium
-                    transition-all duration-200
-                    ${activeView === 'schedule' 
-                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
-                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
-                    }
-                  `}
-                >
-                  班表
-                </button>
-                <button
-                  onClick={() => setActiveView('stats')}
-                  className={`
-                    px-4 py-2 rounded-md text-sm font-medium
-                    transition-all duration-200
-                    ${activeView === 'stats' 
-                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
-                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
-                    }
-                  `}
-                >
-                  班表統計
-                </button>
-                <button
-                  onClick={() => setActiveView('pairings')}
-                  className={`
-                    px-4 py-2 rounded-md text-sm font-medium
-                    transition-all duration-200
-                    ${activeView === 'pairings' 
-                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
-                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
-                    }
-                  `}
-                >
-                  配搭統計
-                </button>
-                <button
-                  onClick={() => setActiveView('tickets')}
-                  className={`
-                    px-4 py-2 rounded-md text-sm font-medium
-                    transition-all duration-200
-                    ${activeView === 'tickets' 
-                      ? 'bg-primary text-white shadow-lg shadow-primary/25' 
-                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
-                    }
-                  `}
-                >
-                  票價試算
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* 工具抽屜 */}
-          {activeView === 'schedule' && (
-            <div className={`
-              overflow-hidden transition-all duration-300 ease-in-out
-              ${showTools ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
-            `}>
-              <div className="border border-white/10 rounded-lg p-6 mb-8 bg-surface/30 backdrop-blur-sm">
-                <ExcelToJsonConverter onJsonGenerated={handleJsonGenerated} />
-                {/* JSON 貼上區域 */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">步驟 2: JSON 轉換班表</h3>
-                  <div 
-                    className="w-full h-32 border-2 border-dashed border-white/20 
-                               rounded-lg p-4 focus:border-primary
-                               hover:border-white/30 transition-colors"
-                    contentEditable
-                    onPaste={handlePaste}
-                    placeholder="在此貼上 JSON 數據..."
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 內容區域 */}
-          {activeView === 'schedule' && (
-            <>
-              {/* 替換原有的選擇同事下拉選單 */}
-              <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-6 mb-8">
-                {/* 人員標籤過濾器 */}
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-3">
-                    選擇同事
-                  </label>
-                  <div className="flex flex-wrap gap-2">
+    <ErrorBoundary>
+      <div className="h-full flex flex-col">
+        <div className="container-custom py-8">
+          <div className="space-y-6">
+            <div className="card">
+              {/* 主選單 */}
+              <div className="flex flex-col gap-4 mb-8">
+                {/* 主標題 */}
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="card-header mb-0">班表</h2>
+                    <p className="text-sm text-text-secondary mt-1">
+                      {activeView === 'schedule' && '查看與管理班表'}
+                      {activeView === 'stats' && '查看班表統計數據'}
+                      {activeView === 'pairings' && '查看同事配搭情況'}
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    {activeView === 'schedule' && (
+                      <>
+                        <button 
+                          onClick={() => setShowTools(!showTools)}
+                          className={`btn-icon group transition-all duration-200 ${showTools ? 'bg-primary/20 text-primary' : ''}`}
+                          title="轉換工具"
+                        >
+                          <ChevronDownIcon 
+                            className={`w-5 h-5 transition-transform duration-200 
+                              ${showTools ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+                        <button 
+                          onClick={exportToCSV}
+                          className="btn-icon transition-all duration-200 hover:bg-primary/20 hover:text-primary"
+                          title="導出 CSV"
+                        >
+                          <DocumentArrowDownIcon className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+                    {/* 搭車統計按鈕移到最右邊 */}
                     <button
-                      onClick={() => setSelectedPerson('')}
+                      onClick={() => setShowPickup(true)}
+                      className="btn-icon group transition-all duration-200 hover:bg-primary/20 hover:text-primary"
+                      title="搭車統計"
+                    >
+                      <MapPinIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 選單列 */}
+                <div className="flex items-center gap-2 px-1">
+                  <div className="flex bg-surface/50 backdrop-blur-sm rounded-lg p-1">
+                    <button
+                      onClick={() => setActiveView('schedule')}
                       className={`
-                        px-4 py-2 rounded-full text-sm font-medium
+                        px-4 py-2 rounded-md text-sm font-medium
                         transition-all duration-200
-                        border-2 border-white/10
-                        ${!selectedPerson ? 
-                          'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
-                          'hover:border-white/20'
+                        ${activeView === 'schedule' 
+                          ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                          : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
                         }
                       `}
                     >
-                      全部
+                      班表
                     </button>
-                    {Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => (
-                      <button
-                        key={nickname}
-                        onClick={() => setSelectedPerson(nickname)}
-                        className={`
-                          px-4 py-2 rounded-full text-sm font-medium
-                          transition-all duration-200 
-                          border-2
-                          ${selectedPerson === nickname ?
-                            `bg-gradient-to-r ${STAFF_COLORS[nickname]} border-l-4` :
-                            'border-white/10 hover:border-white/20'
-                          }
-                        `}
-                        >
-                          {nickname}
-                        </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 更新日期範圍選擇 */}
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-3">
-                    日期範圍
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {DATE_RANGES.map(range => (
-                      <button
-                        key={range.days}
-                        onClick={() => setDateRange(range.days)}
-                        className={`
-                          px-4 py-2 rounded-full text-sm font-medium
-                          transition-all duration-200
-                          border-2
-                          ${dateRange === range.days ?
-                            `bg-gradient-to-r ${range.color} border-l-4` :
-                            'border-white/10 hover:border-white/20'
-                          }
-                        `}
-                      >
-                        {range.label}
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => setActiveView('stats')}
+                      className={`
+                        px-4 py-2 rounded-md text-sm font-medium
+                        transition-all duration-200
+                        ${activeView === 'stats' 
+                          ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                          : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                        }
+                      `}
+                    >
+                      班表統計
+                    </button>
+                    <button
+                      onClick={() => setActiveView('pairings')}
+                      className={`
+                        px-4 py-2 rounded-md text-sm font-medium
+                        transition-all duration-200
+                        ${activeView === 'pairings' 
+                          ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                          : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                        }
+                      `}
+                    >
+                      配搭統計
+                    </button>
+                    <button
+                      onClick={() => setActiveView('tickets')}
+                      className={`
+                        px-4 py-2 rounded-md text-sm font-medium
+                        transition-all duration-200
+                        ${activeView === 'tickets' 
+                          ? 'bg-primary text-white shadow-lg shadow-primary/25' 
+                          : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                        }
+                      `}
+                    >
+                      票價試算
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* 表格渲染 */}
-              {scheduleData && scheduleData.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
-                  <table className="w-full border-collapse bg-surface/30">
-                    <thead>
-                      <tr>
-                        <th className="
-                          sticky left-0 z-20 
-                          bg-surface/95 backdrop-blur-md
-                          p-4 border-b-2 border-r border-primary/30
-                          text-primary font-bold min-w-[150px]
-                          shadow-lg
-                        ">
-                          同事
-                        </th>
-                        
-                        {/* 日期列 */}
-                        {getFilteredData()[1].slice(1).map((header, index) => {
-                          const date = new Date(header);
-                          const isToday = new Date(header).toDateString() === new Date().toDateString();
-                          
-                          return (
-                            <th key={index} className={`
-                              relative
-                              p-4 border-b-2 border-primary/30
-                              text-center font-bold
-                              min-w-[100px] 
-                              bg-surface/40
-                              backdrop-blur-md
-                              transition-colors
-                              ${isToday ? 'bg-primary/10' : ''}
-                            `}>
-                              {isToday && (
-                                <span className="
-                                  absolute top-1 right-1
-                                  text-[10px] font-semibold
-                                  bg-primary text-white
-                                  px-2 py-0.5 rounded-full
-                                  shadow-lg shadow-primary/20
-                                  ring-2 ring-primary/50
-                                  animate-pulse
-                                ">
-                                  今天
-                                </span>
-                              )}
-                              <div className="text-lg text-primary">
-                                {formatDate(header)}
-                              </div>
-                              <div className="text-xs mt-1 text-text-secondary">
-                                {['日', '一', '二', '三', '四', '五', '六'][date.getDay()]}
-                              </div>
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getFilteredData().slice(2).map((row, rowIndex) => (
-                        <tr key={rowIndex} className="group hover:bg-white/5 transition-colors">
-                          <td className="
-                            sticky left-0 z-20
-                            bg-surface/95 backdrop-blur-md
-                            p-4 border-r border-white/10 
-                            font-semibold text-primary text-center
-                            shadow-lg
-                            transition-colors
-                            group-hover:bg-surface/90
-                          ">
-                            {NAME_MAPPINGS[row[0]] || row[0]}
-                          </td>
-                          
-                          {/* 班次單元格 */}
-                          {row.slice(1).map((cell, cellIndex) => {
-                            const shiftStyle = getShiftStyle(cell);
-                            const isToday = new Date(getFilteredData()[1][cellIndex + 1]).toDateString() === new Date().toDateString();
-                            
-                            return (
-                              <td key={cellIndex} className={`
-                                relative p-4 
-                                border-b border-white/5
-                                text-center
-                                transition-all duration-300
-                                ${shiftStyle ? `
-                                  ${shiftStyle.background} 
-                                  ${shiftStyle.text}
-                                  ${shiftStyle.border}
-                                  hover:shadow-lg hover:scale-[1.02]
-                                ` : ''}
-                                ${isToday ? 'ring-2 ring-primary/30 ring-inset' : ''}
-                              `}
-                              title={cell}
-                              >
-                                <span className="relative z-10 font-medium">
-                                  {shiftStyle ? shiftStyle.label : cell}
-                                </span>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+              {/* 工具抽屜 */}
+              {activeView === 'schedule' && (
+                <div className={`
+                  overflow-hidden transition-all duration-300 ease-in-out
+                  ${showTools ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
+                `}>
+                  <div className="border border-white/10 rounded-lg p-6 mb-8 bg-surface/30 backdrop-blur-sm">
+                    <ExcelToJsonConverter onJsonGenerated={handleJsonGenerated} />
+                    {/* JSON 貼上區域 */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2">步驟 2: JSON 轉換班表</h3>
+                      <div 
+                        className="w-full h-32 border-2 border-dashed border-white/20 
+                                   rounded-lg p-4 focus:border-primary
+                                   hover:border-white/30 transition-colors"
+                        contentEditable
+                        onPaste={handlePaste}
+                        placeholder="在此貼上 JSON 數據..."
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
-            </>
-          )}
 
-          {activeView === 'stats' && (
-            <div className="p-6">
-              <ScheduleStats 
-                scheduleData={{
-                  dates: scheduleData[1]?.slice(1),  // 日期行
-                  employees: scheduleData.slice(2).reduce((acc, row) => {
-                    if (!row || !row[0]) return acc;
-                    const employeeId = row[0];
-                    const shifts = row.slice(1);
-                    return {
-                      ...acc,
-                      [employeeId]: shifts
-                    };
-                  }, {})
-                }}
-                employees={Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => ({
-                  id: fullName,
-                  name: nickname
-                }))}
-              />
-            </div>
-          )}
+              {/* 內容區域 */}
+              {activeView === 'schedule' && (
+                <>
+                  {/* 替換原有的選擇同事下拉選單 */}
+                  <div className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-6 mb-8">
+                    {/* 人員標籤過濾器 */}
+                    <div>
+                      <label className="block text-sm font-medium text-text-secondary mb-3">
+                        選擇同事
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setSelectedPerson('')}
+                          className={`
+                            px-4 py-2 rounded-full text-sm font-medium
+                            transition-all duration-200
+                            border-2 border-white/10
+                            ${!selectedPerson ? 
+                              'bg-gradient-to-r from-primary/20 to-secondary/20 border-primary' : 
+                              'hover:border-white/20'
+                            }
+                          `}
+                        >
+                          全部
+                        </button>
+                        {Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => (
+                          <button
+                            key={nickname}
+                            onClick={() => setSelectedPerson(nickname)}
+                            className={`
+                              px-4 py-2 rounded-full text-sm font-medium
+                              transition-all duration-200 
+                              border-2
+                              ${selectedPerson === nickname ?
+                                `bg-gradient-to-r ${STAFF_COLORS[nickname]} border-l-4` :
+                                'border-white/10 hover:border-white/20'
+                              }
+                            `}
+                            >
+                              {nickname}
+                            </button>
+                        ))}
+                      </div>
+                    </div>
 
-          {activeView === 'pairings' && Object.keys(pairings).length > 0 && (
-            <div className="p-6">
-              <PairingsStats 
-                pairings={pairings}
-                onClose={() => setActiveView('schedule')}
-              />
-            </div>
-          )}
+                    {/* 更新日期範圍選擇 */}
+                    <div>
+                      <label className="block text-sm font-medium text-text-secondary mb-3">
+                        日期範圍
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {DATE_RANGES.map(range => (
+                          <button
+                            key={range.days}
+                            onClick={() => setDateRange(range.days)}
+                            className={`
+                              px-4 py-2 rounded-full text-sm font-medium
+                              transition-all duration-200
+                              border-2
+                              ${dateRange === range.days ?
+                                `bg-gradient-to-r ${range.color} border-l-4` :
+                                'border-white/10 hover:border-white/20'
+                              }
+                            `}
+                          >
+                            {range.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
-          {/* 添加票價比較視圖 */}
-          {activeView === 'tickets' && (
-            <div className="p-6">
-              <TicketComparison scheduleData={getFilteredData()} />
+                  {/* 表格渲染 */}
+                  {scheduleData && scheduleData.length > 0 ? (
+                    <div className="overflow-x-auto rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
+                      <table className="w-full border-collapse bg-surface/30">
+                        <thead>
+                          <tr>
+                            <th className="
+                              sticky left-0 z-20 
+                              bg-surface/95 backdrop-blur-md
+                              p-4 border-b-2 border-r border-primary/30
+                              text-primary font-bold min-w-[150px]
+                              shadow-lg
+                            ">
+                              同事
+                            </th>
+                            
+                            {/* 日期列 */}
+                            {getFilteredData()[1].slice(1).map((header, index) => {
+                              const date = new Date(header);
+                              const isToday = new Date(header).toDateString() === new Date().toDateString();
+                              
+                              return (
+                                <th key={index} className={`
+                                  relative
+                                  p-4 border-b-2 border-primary/30
+                                  text-center font-bold
+                                  min-w-[100px] 
+                                  bg-surface/40
+                                  backdrop-blur-md
+                                  transition-colors
+                                  ${isToday ? 'bg-primary/10' : ''}
+                                `}>
+                                  {isToday && (
+                                    <span className="
+                                      absolute top-1 right-1
+                                      text-[10px] font-semibold
+                                      bg-primary text-white
+                                      px-2 py-0.5 rounded-full
+                                      shadow-lg shadow-primary/20
+                                      ring-2 ring-primary/50
+                                      animate-pulse
+                                    ">
+                                      今天
+                                    </span>
+                                  )}
+                                  <div className="text-lg text-primary">
+                                    {formatDate(header)}
+                                  </div>
+                                  <div className="text-xs mt-1 text-text-secondary">
+                                    {['日', '一', '二', '三', '四', '五', '六'][date.getDay()]}
+                                  </div>
+                                </th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getFilteredData().slice(2).map((row, rowIndex) => (
+                            <tr key={rowIndex} className="group hover:bg-white/5 transition-colors">
+                              <td className="
+                                sticky left-0 z-20
+                                bg-surface/95 backdrop-blur-md
+                                p-4 border-r border-white/10 
+                                font-semibold text-primary text-center
+                                shadow-lg
+                                transition-colors
+                                group-hover:bg-surface/90
+                              ">
+                                {NAME_MAPPINGS[row[0]] || row[0]}
+                              </td>
+                              
+                              {/* 班次單元格 */}
+                              {row.slice(1).map((cell, cellIndex) => {
+                                const shiftStyle = getShiftStyle(cell);
+                                const isToday = new Date(getFilteredData()[1][cellIndex + 1]).toDateString() === new Date().toDateString();
+                                
+                                return (
+                                  <td key={cellIndex} className={`
+                                    relative p-4 
+                                    border-b border-white/5
+                                    text-center
+                                    transition-all duration-300
+                                    ${shiftStyle ? `
+                                      ${shiftStyle.background} 
+                                      ${shiftStyle.text}
+                                      ${shiftStyle.border}
+                                      hover:shadow-lg hover:scale-[1.02]
+                                    ` : ''}
+                                    ${isToday ? 'ring-2 ring-primary/30 ring-inset' : ''}
+                                  `}
+                                  title={cell}
+                                  >
+                                    <span className="relative z-10 font-medium">
+                                      {shiftStyle ? shiftStyle.label : cell}
+                                    </span>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {activeView === 'stats' && (
+                <div className="p-6">
+                  <ScheduleStats 
+                    scheduleData={{
+                      dates: scheduleData[1]?.slice(1),  // 日期行
+                      employees: scheduleData.slice(2).reduce((acc, row) => {
+                        if (!row || !row[0]) return acc;
+                        const employeeId = row[0];
+                        const shifts = row.slice(1);
+                        return {
+                          ...acc,
+                          [employeeId]: shifts
+                        };
+                      }, {})
+                    }}
+                    employees={Object.entries(NAME_MAPPINGS).map(([fullName, nickname]) => ({
+                      id: fullName,
+                      name: nickname
+                    }))}
+                  />
+                </div>
+              )}
+
+              {activeView === 'pairings' && Object.keys(pairings).length > 0 && (
+                <div className="p-6">
+                  <PairingsStats 
+                    pairings={pairings}
+                    onClose={() => setActiveView('schedule')}
+                  />
+                </div>
+              )}
+
+              {/* 添加票價比較視圖 */}
+              {activeView === 'tickets' && (
+                <div className="p-6">
+                  <TicketComparison scheduleData={getFilteredData()} />
+                </div>
+              )}
             </div>
-          )}
+          </div>
+          
+          {/* 添加搭車統計 */}
+          <TomorrowPickup 
+            scheduleData={scheduleData.slice(2).reduce((acc, row) => {
+              if (!row || !row[0]) return acc;
+              const employeeId = row[0];
+              const shifts = row.slice(1).map(shift => shift?.trim() || '');
+              return {
+                ...acc,
+                [employeeId]: shifts
+              };
+            }, {})}
+            isOpen={showPickup}
+            onClose={() => setShowPickup(false)}
+          />
         </div>
       </div>
-      
-      {/* 添加搭車統計 */}
-      <TomorrowPickup 
-        scheduleData={scheduleData.slice(2).reduce((acc, row) => {
-          if (!row || !row[0]) return acc;
-          const employeeId = row[0];
-          const shifts = row.slice(1).map(shift => shift?.trim() || '');
-          return {
-            ...acc,
-            [employeeId]: shifts
-          };
-        }, {})}
-        isOpen={showPickup}
-        onClose={() => setShowPickup(false)}
-      />
-    </div>
+    </ErrorBoundary>
   )
 }
 

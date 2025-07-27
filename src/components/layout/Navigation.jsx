@@ -2,9 +2,9 @@ import { NavLink } from 'react-router-dom'
 import { 
   CalculatorIcon, 
   BanknotesIcon, 
-  CalendarIcon,
   CloudIcon,
-  BeakerIcon
+  BeakerIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
 
@@ -57,11 +57,6 @@ const MENU_ITEMS = [
     path: '/cashier', 
     label: '收銀管理', 
     icon: <BanknotesIcon className="w-5 h-5" />
-  },
-  { 
-    path: '/schedule', 
-    label: '班表', 
-    icon: <CalendarIcon className="w-5 h-5" />
   },
   { 
     path: '/poursteady', 

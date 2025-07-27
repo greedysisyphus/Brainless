@@ -1,4 +1,4 @@
-import { BeakerIcon } from '@heroicons/react/24/outline';  // 或其他適合的圖標
+import { BeakerIcon, CalculatorIcon, ChartBarIcon } from '@heroicons/react/24/outline';  // 或其他適合的圖標
 
 // 在導航項目中添加
 const navigation = [
@@ -7,5 +7,10 @@ const navigation = [
     name: '手沖機調整',
     href: '/poursteady',
     icon: BeakerIcon
+  },
+  {
+    name: '三明治計算',
+    href: '/sandwich',
+    icon: CalculatorIcon
   }
 ]; 
