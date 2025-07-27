@@ -700,7 +700,35 @@ function CoffeeBeanManager() {
                         店面庫存
                       </h6>
                       <button
-                        onClick={() => addQuantityField('retail', '', beanType, 'store')}
+                        onClick={() => {
+                          // 為賣豆初始化結構
+                          if (!inventory.retail[beanType]) {
+                            const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
+                            const initialStructure = isStoreOnly 
+                              ? { store: [''] }
+                              : { store: [''], breakRoom: [''] }
+                            
+                            setInventory(prev => ({
+                              ...prev,
+                              retail: {
+                                ...prev.retail,
+                                [beanType]: initialStructure
+                              }
+                            }))
+                          }
+                          
+                          // 新增數量欄位
+                          setInventory(prev => ({
+                            ...prev,
+                            retail: {
+                              ...prev.retail,
+                              [beanType]: {
+                                ...prev.retail[beanType],
+                                store: [...(prev.retail[beanType]?.store || ['']), '']
+                              }
+                            }
+                          }))
+                        }}
                         className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
                       >
                         <PlusIcon className="w-3 h-3" />
@@ -713,13 +741,54 @@ function CoffeeBeanManager() {
                           <input
                             type="number"
                             value={quantity}
-                            onChange={(e) => updateQuantity('retail', '', beanType, 'store', index, e.target.value)}
+                            onChange={(e) => {
+                              // 為賣豆初始化結構
+                              if (!inventory.retail[beanType]) {
+                                const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
+                                const initialStructure = isStoreOnly 
+                                  ? { store: [''] }
+                                  : { store: [''], breakRoom: [''] }
+                                
+                                setInventory(prev => ({
+                                  ...prev,
+                                  retail: {
+                                    ...prev.retail,
+                                    [beanType]: initialStructure
+                                  }
+                                }))
+                              }
+                              
+                              // 更新數量
+                              setInventory(prev => ({
+                                ...prev,
+                                retail: {
+                                  ...prev.retail,
+                                  [beanType]: {
+                                    ...prev.retail[beanType],
+                                    store: prev.retail[beanType]?.store?.map((q, i) => 
+                                      i === index ? e.target.value : q
+                                    ) || ['']
+                                  }
+                                }
+                              }))
+                            }}
                             placeholder="數量"
                             className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
                           />
                           {(beanData?.store || []).length > 1 && (
                             <button
-                              onClick={() => removeQuantityField('retail', '', beanType, 'store', index)}
+                              onClick={() => {
+                                setInventory(prev => ({
+                                  ...prev,
+                                  retail: {
+                                    ...prev.retail,
+                                    [beanType]: {
+                                      ...prev.retail[beanType],
+                                      store: prev.retail[beanType]?.store?.filter((_, i) => i !== index) || ['']
+                                    }
+                                  }
+                                }))
+                              }}
                               className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
                             >
                               <TrashIcon className="w-3 h-3" />
@@ -739,7 +808,35 @@ function CoffeeBeanManager() {
                           員休室庫存
                         </h6>
                         <button
-                          onClick={() => addQuantityField('retail', '', beanType, 'breakRoom')}
+                          onClick={() => {
+                            // 為賣豆初始化結構
+                            if (!inventory.retail[beanType]) {
+                              const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
+                              const initialStructure = isStoreOnly 
+                                ? { store: [''] }
+                                : { store: [''], breakRoom: [''] }
+                              
+                              setInventory(prev => ({
+                                ...prev,
+                                retail: {
+                                  ...prev.retail,
+                                  [beanType]: initialStructure
+                                }
+                              }))
+                            }
+                            
+                            // 新增數量欄位
+                            setInventory(prev => ({
+                              ...prev,
+                              retail: {
+                                ...prev.retail,
+                                [beanType]: {
+                                  ...prev.retail[beanType],
+                                  breakRoom: [...(prev.retail[beanType]?.breakRoom || ['']), '']
+                                }
+                              }
+                            }))
+                          }}
                           className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
                         >
                           <PlusIcon className="w-3 h-3" />
@@ -752,13 +849,54 @@ function CoffeeBeanManager() {
                             <input
                               type="number"
                               value={quantity}
-                              onChange={(e) => updateQuantity('retail', '', beanType, 'breakRoom', index, e.target.value)}
+                              onChange={(e) => {
+                                // 為賣豆初始化結構
+                                if (!inventory.retail[beanType]) {
+                                  const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
+                                  const initialStructure = isStoreOnly 
+                                    ? { store: [''] }
+                                    : { store: [''], breakRoom: [''] }
+                                  
+                                  setInventory(prev => ({
+                                    ...prev,
+                                    retail: {
+                                      ...prev.retail,
+                                      [beanType]: initialStructure
+                                    }
+                                  }))
+                                }
+                                
+                                // 更新數量
+                                setInventory(prev => ({
+                                  ...prev,
+                                  retail: {
+                                    ...prev.retail,
+                                    [beanType]: {
+                                      ...prev.retail[beanType],
+                                      breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => 
+                                        i === index ? e.target.value : q
+                                      ) || ['']
+                                    }
+                                  }
+                                }))
+                              }}
                               placeholder="數量"
                               className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
                             />
                             {(beanData?.breakRoom || []).length > 1 && (
                               <button
-                                onClick={() => removeQuantityField('retail', '', beanType, 'breakRoom', index)}
+                                onClick={() => {
+                                  setInventory(prev => ({
+                                    ...prev,
+                                    retail: {
+                                      ...prev.retail,
+                                      [beanType]: {
+                                        ...prev.retail[beanType],
+                                        breakRoom: prev.retail[beanType]?.breakRoom?.filter((_, i) => i !== index) || ['']
+                                      }
+                                    }
+                                  }))
+                                }}
                                 className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
                               >
                                 <TrashIcon className="w-3 h-3" />
