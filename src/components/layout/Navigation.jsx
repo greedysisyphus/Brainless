@@ -4,7 +4,8 @@ import {
   BanknotesIcon, 
   CloudIcon,
   BeakerIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
 
@@ -58,6 +59,11 @@ const MENU_ITEMS = [
     label: '收銀管理', 
     icon: <BanknotesIcon className="w-5 h-5" />
   },
+  {
+    path: '/coffee-beans',
+    label: '咖啡豆管理',
+    icon: <ClipboardDocumentListIcon className="w-5 h-5" />
+  },
   { 
     path: '/poursteady', 
     label: '手沖機調整', 
@@ -66,7 +72,7 @@ const MENU_ITEMS = [
   {
     path: '/alcohol',
     label: '酒精計算',
-    icon: <CocktailIcon className="w-5 h-5" /> // 使用新的雞尾酒圖示
+    icon: <CocktailIcon className="w-5 h-5" />
   }
 ]
 
