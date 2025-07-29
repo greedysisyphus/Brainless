@@ -436,7 +436,7 @@ function CoffeeBeanManager() {
 
       {/* 一、咖啡豆盤點表 */}
       <div className="card backdrop-blur-sm bg-surface/80 border border-white/20" ref={inventoryRef}>
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <div>
             <h2 className="text-xl font-bold text-primary mb-1">咖啡豆盤點表</h2>
             <p className="text-sm text-text-secondary">即時更新庫存數量</p>
@@ -444,9 +444,9 @@ function CoffeeBeanManager() {
           <div className="flex gap-2">
             <button
               onClick={exportInventoryAsImage}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all duration-200 flex items-center gap-1"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 text-blue-400 hover:from-blue-500/30 hover:to-cyan-500/30 hover:border-blue-500/50 transition-all duration-200 flex items-center gap-2"
             >
-              <ArrowDownTrayIcon className="w-3 h-3" />
+              <ArrowDownTrayIcon className="w-4 h-4" />
               匯出圖片
             </button>
           </div>
@@ -486,9 +486,9 @@ function CoffeeBeanManager() {
                         </h6>
                         <button
                           onClick={() => addQuantityField('brewing', 'pourOver', beanType, 'store')}
-                          className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors hover:scale-110 transform"
                         >
-                          <PlusIcon className="w-3 h-3" />
+                          <PlusIcon className="w-4 h-4" />
                         </button>
                       </div>
                       
@@ -500,7 +500,7 @@ function CoffeeBeanManager() {
                               value={quantity}
                               onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
                               placeholder="數量"
-                              className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                              className="input-field flex-1 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all"
                             />
                             {(beanData?.store || []).length > 1 && (
                               <button
@@ -920,30 +920,30 @@ function CoffeeBeanManager() {
         </div>
 
         {/* 豆種詳細總計 */}
-        <div className="mt-6 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-6 bg-gradient-to-b from-primary to-purple-400 rounded-full"></div>
-            <h3 className="text-lg font-bold text-primary">豆種詳細總計</h3>
+        <div className="mt-8 space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-1 h-8 bg-gradient-to-b from-primary to-purple-400 rounded-full"></div>
+            <h3 className="text-xl font-bold text-primary">豆種詳細總計</h3>
           </div>
           
           {/* 出杯豆詳細 */}
-          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10">
-            <div className="flex items-center gap-3 mb-3">
-              <h4 className="font-semibold text-primary">出杯豆</h4>
+          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-5 border border-white/10 hover:border-primary/30 transition-all duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <h4 className="font-semibold text-primary text-lg">出杯豆</h4>
               <div className="w-2 h-2 rounded-full bg-blue-400"></div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {(() => {
                 const tableData = createSummaryTable()
                 return tableData
                   .filter(row => row.category === '出杯豆')
                   .map(row => (
-                    <div key={row.beanType} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                      <span className="font-medium text-primary">{row.beanType}</span>
+                    <div key={row.beanType} className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                      <span className="font-medium text-primary text-base">{row.beanType}</span>
                       <div className="flex items-center gap-4 text-sm">
-                        <span className="text-blue-400">店面 {row.storeTotal}包</span>
-                        <span className="text-green-400">員休 {row.breakRoomTotal}包</span>
-                        <span className="font-bold text-white bg-gradient-to-r from-primary/20 to-purple-500/20 px-2 py-1 rounded">
+                        <span className="text-blue-400 font-medium">店面 {row.storeTotal}包</span>
+                        <span className="text-green-400 font-medium">員休 {row.breakRoomTotal}包</span>
+                        <span className="font-bold text-white bg-gradient-to-r from-primary/20 to-purple-500/20 px-3 py-1.5 rounded-lg">
                           總計 {row.grandTotal}包
                         </span>
                       </div>
@@ -1012,15 +1012,15 @@ function CoffeeBeanManager() {
       {/* 浮動重量換算計算器按鈕 */}
       <button
         onClick={() => setShowWeightCalculator(true)}
-        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50"
+        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50 hover:scale-110 transform"
       >
         <CalculatorIcon className="w-6 h-6" />
       </button>
 
       {/* 浮動重量換算計算器彈窗 */}
-      {showWeightCalculator && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              {showWeightCalculator && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-xl font-bold text-primary mb-1">重量換算計算器</h2>
@@ -1100,7 +1100,7 @@ function CoffeeBeanManager() {
                       weightMode === 'bag' ? 'bagWeight' : 'ikeaBoxWeight', 
                       e.target.value
                     )}
-                    className="input-field w-full text-sm py-2.5 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                    className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all"
                     placeholder="輸入重量"
                   />
                 </div>
@@ -1174,7 +1174,7 @@ function CoffeeBeanManager() {
                         <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
                         估算包數
                       </label>
-                      <div className="w-full text-sm py-2 px-3 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-center font-bold text-green-400">
+                      <div className="w-full text-sm py-3 px-4 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-center font-bold text-green-400 hover:border-green-500/50 transition-all">
                         {calc.estimatedPacks} 包
                       </div>
                     </div>

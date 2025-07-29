@@ -23,16 +23,25 @@ function WaterDropIcon(props) {
 
 const STANDARD_VOLUMES = {
   hot: [40, 78, 120, 162, 200, 230],  // 改為累計水量
-  cold: [40, 58, 80, 102, 120, 150]   // 改為累計水量
+  cold: {
+    '150ml': [40, 58, 80, 102, 120, 150],   // 原本方案
+    '140ml': [40, 58, 80, 102, 120, 140],   // 新方案1
+    '130ml': [40, 58, 80, 102, 120, 130]    // 新方案2
+  }
 };
 
 const STANDARD_SEGMENTS = {  // 新增：每段實際注水量
   hot: [40, 38, 42, 42, 38, 30],
-  cold: [40, 18, 22, 22, 18, 30]
+  cold: {
+    '150ml': [40, 18, 22, 22, 18, 30],
+    '140ml': [40, 18, 22, 22, 18, 20],
+    '130ml': [40, 18, 22, 22, 18, 10]
+  }
 };
 
 export default function PoursteadyAdjustment() {
   const [mode, setMode] = useState('hot');
+  const [coldScheme, setColdScheme] = useState('150ml'); // 新增：冰手沖方案選擇
   const [currentVolumes, setCurrentVolumes] = useState({
     hot: Array(6).fill(''),  // 改為空字串陣列
     cold: Array(6).fill('')
@@ -78,10 +87,24 @@ export default function PoursteadyAdjustment() {
     });
   };
 
+  // 處理冰手沖方案切換
+  const handleColdSchemeChange = (scheme) => {
+    setColdScheme(scheme);
+    // 切換方案時重設當前輸入
+    setCurrentVolumes({
+      ...currentVolumes,
+      cold: Array(6).fill('')
+    });
+  };
+
   // 獲取顯示用的水量（空值顯示標準值）
   const getDisplayVolume = (index) => {
     const value = currentVolumes[mode][index];
-    return value === '' ? STANDARD_VOLUMES[mode][index] : Number(value);
+    if (mode === 'hot') {
+      return value === '' ? STANDARD_VOLUMES.hot[index] : Number(value);
+    } else {
+      return value === '' ? STANDARD_VOLUMES.cold[coldScheme][index] : Number(value);
+    }
   };
 
   return (
@@ -137,13 +160,58 @@ export default function PoursteadyAdjustment() {
         </button>
       </div>
 
+      {/* 冰手沖方案選擇 */}
+      {mode === 'cold' && (
+        <div className="flex gap-2 bg-surface/30 p-1.5 rounded-xl w-full sm:w-fit">
+          <button
+            onClick={() => handleColdSchemeChange('150ml')}
+            className={`
+              flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg font-medium
+              transition-all duration-200
+              ${coldScheme === '150ml' 
+                ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/20' 
+                : 'text-text-secondary hover:bg-white/5'
+              }
+            `}
+          >
+            150ml
+          </button>
+          <button
+            onClick={() => handleColdSchemeChange('140ml')}
+            className={`
+              flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg font-medium
+              transition-all duration-200
+              ${coldScheme === '140ml' 
+                ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/20' 
+                : 'text-text-secondary hover:bg-white/5'
+              }
+            `}
+          >
+            140ml
+          </button>
+          <button
+            onClick={() => handleColdSchemeChange('130ml')}
+            className={`
+              flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg font-medium
+              transition-all duration-200
+              ${coldScheme === '130ml' 
+                ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/20' 
+                : 'text-text-secondary hover:bg-white/5'
+              }
+            `}
+          >
+            130ml
+          </button>
+        </div>
+      )}
+
       {/* 注水量調整表 */}
       <div className="grid gap-4">
-        {STANDARD_VOLUMES[mode].map((standardVolume, index) => {
+        {(mode === 'hot' ? STANDARD_VOLUMES.hot : STANDARD_VOLUMES.cold[coldScheme]).map((standardVolume, index) => {
           const displayVolume = getDisplayVolume(index);
           const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
           const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
-          const standardSegmentVolume = STANDARD_SEGMENTS[mode][index];
+          const standardSegmentVolume = mode === 'hot' ? STANDARD_SEGMENTS.hot[index] : STANDARD_SEGMENTS.cold[coldScheme][index];
           const adjustment = Math.round(segmentVolume - standardSegmentVolume);
           
           return (
@@ -222,7 +290,7 @@ export default function PoursteadyAdjustment() {
             </div>
             {(() => {
               const currentTotal = getDisplayVolume(5);
-              const standardTotal = STANDARD_VOLUMES[mode][5];
+              const standardTotal = mode === 'hot' ? STANDARD_VOLUMES.hot[5] : STANDARD_VOLUMES.cold[coldScheme][5];
               const difference = Math.round(currentTotal - standardTotal);
               return difference !== 0 ? (
                 <div className={`text-sm mt-1 ${
@@ -237,7 +305,7 @@ export default function PoursteadyAdjustment() {
           <div className="text-right w-full sm:w-auto">
             <div className="text-sm text-text-secondary">標準總量</div>
             <div className="text-xl mt-1">
-              {STANDARD_VOLUMES[mode][5]} ml
+              {mode === 'hot' ? STANDARD_VOLUMES.hot[5] : STANDARD_VOLUMES.cold[coldScheme][5]} ml
             </div>
             <div className={`
               text-xs mt-2 px-2 py-1 rounded-full w-fit ml-auto
@@ -263,7 +331,7 @@ export default function PoursteadyAdjustment() {
         </div>
 
         <div className="grid gap-2">
-          {STANDARD_SEGMENTS[mode].map((standardSegment, index) => {
+          {(mode === 'hot' ? STANDARD_SEGMENTS.hot : STANDARD_SEGMENTS.cold[coldScheme]).map((standardSegment, index) => {
             const displayVolume = getDisplayVolume(index);
             const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
             const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
