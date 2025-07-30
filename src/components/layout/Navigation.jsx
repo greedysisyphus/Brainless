@@ -5,7 +5,8 @@ import {
   CloudIcon,
   BeakerIcon,
   ChartBarIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
 
@@ -63,6 +64,11 @@ const MENU_ITEMS = [
     path: '/coffee-beans',
     label: '咖啡豆管理',
     icon: <ClipboardDocumentListIcon className="w-5 h-5" />
+  },
+  {
+    path: '/daily-reports',
+    label: '報表生成器',
+    icon: <DocumentTextIcon className="w-5 h-5" />
   },
   { 
     path: '/poursteady', 

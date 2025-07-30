@@ -8,6 +8,7 @@ import PoursteadyAdjustment from './pages/PoursteadyAdjustment'
 import AlcoholCalculator from './pages/AlcoholCalculator'
 import SandwichCalculator from './pages/SandwichCalculator'
 import CoffeeBeanManager from './pages/CoffeeBeanManager'
+import DailyReportGenerator from './pages/DailyReportGenerator'
 
 // 懶加載頁面
 const CashierManagement = lazy(() => import('./pages/CashierManagement'))
@@ -64,6 +65,7 @@ function App() {
             <Route path="/poursteady" element={<PoursteadyAdjustment />} />
             <Route path="/alcohol" element={<AlcoholCalculator />} />
             <Route path="/coffee-beans" element={<CoffeeBeanManager />} />
+            <Route path="/daily-reports" element={<DailyReportGenerator />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>
