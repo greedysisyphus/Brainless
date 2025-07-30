@@ -66,14 +66,9 @@ const MENU_ITEMS = [
     icon: <ClipboardDocumentListIcon className="w-5 h-5" />
   },
   {
-    path: '/daily-reports',
-    label: '報表生成器',
-    icon: <DocumentTextIcon className="w-5 h-5" />
-  },
-  { 
     path: '/poursteady', 
     label: '手沖機調整', 
-    icon: <WaterDropIcon className="w-5 h-5" />
+    icon: <BeakerIcon className="w-5 h-5" />
   },
   {
     path: '/alcohol',

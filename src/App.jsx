@@ -62,10 +62,10 @@ function App() {
             <Route path="/" element={<Navigate to="/sandwich" replace />} />
             <Route path="/sandwich" element={<SandwichCalculator />} />
             <Route path="/cashier" element={<CashierManagement />} />
-            <Route path="/poursteady" element={<PoursteadyAdjustment />} />
             <Route path="/alcohol" element={<AlcoholCalculator />} />
             <Route path="/coffee-beans" element={<CoffeeBeanManager />} />
             <Route path="/daily-reports" element={<DailyReportGenerator />} />
+            <Route path="/poursteady" element={<PoursteadyAdjustment />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>
