@@ -17,6 +17,7 @@ const template = fs.readFileSync(templatePath);
     const zip = new JSZip();
     for(let d=1; d<=months[m-1]; d++) {
       const name = `桃機日結表 ${m}-${d}.numbers`;
+      // 直接複製原始檔案，不修改內容
       zip.file(name, Buffer.from(template));
     }
     const content = await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
