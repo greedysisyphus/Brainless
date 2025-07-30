@@ -126,27 +126,18 @@ function DailyReportGenerator() {
       const zip = new JSZip()
       const daysInMonth = getDaysInMonth(selectedMonth)
       
-      // 創建範本檔案
-      const templateBlob = await createTemplateFile()
+      // 取得 template 檔案
+      const response = await fetch('/reports/template.numbers');
+      const templateBlob = await response.blob();
+      const arrayBuffer = await templateBlob.arrayBuffer();
 
       // 為每一天建立檔案
       for (let day = 1; day <= daysInMonth; day++) {
-        // 中文檔名格式
-        const fileName = `桃機日結表 ${selectedMonth}-${day}.numbers`
-        
-        // 添加檔案到 ZIP
-        zip.file(fileName, templateBlob, {
-          binary: true,
-          comment: `桃機日結表 ${selectedMonth}-${day}`,
-          date: new Date(),
-          unixPermissions: 0o644
-        })
-        
-        // 更新進度
-        setProgress((day / daysInMonth) * 100)
-        
-        // 模擬處理時間
-        await new Promise(resolve => setTimeout(resolve, 50))
+        const fileName = `桃機日結表 ${selectedMonth}-${day}.numbers`;
+        // 直接用 arrayBuffer 加入 zip，確保二進位內容不變
+        zip.file(fileName, arrayBuffer, { binary: true });
+        setProgress((day / daysInMonth) * 100);
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       // 生成 ZIP 檔案
