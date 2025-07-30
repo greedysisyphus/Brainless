@@ -109,7 +109,7 @@ function DailyReportGenerator() {
     const fileName = `桃機日結表_${selectedMonth}月.zip`;
     const url = `/reports/${fileName}`;
     const a = document.createElement('a');
-    a.href = url;
+    a.href = encodeURI(url); // 修正：確保中文路徑正確
     a.download = fileName;
     document.body.appendChild(a);
     a.click();
