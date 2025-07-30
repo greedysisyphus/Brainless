@@ -103,77 +103,18 @@ function DailyReportGenerator() {
     }
   }
 
-  // 生成日報表
-  const generateReports = async () => {
-    if (!selectedMonth) {
-      setError('請選擇月份')
-      return
-    }
-
-    setIsGenerating(true)
-    setShowProgress(true)
-    setProgress(0)
-    setError('')
-    setIsComplete(false)
-
-    try {
-      // 動態載入 JSZip 和 FileSaver
-      const [{ default: JSZip }, { saveAs }] = await Promise.all([
-        import('jszip'),
-        import('file-saver')
-      ])
-
-      const zip = new JSZip()
-      const daysInMonth = getDaysInMonth(selectedMonth)
-      
-      // 取得 template 檔案
-      const response = await fetch('/reports/template.numbers', { cache: 'no-store' });
-      const templateBlob = await response.blob();
-      const arrayBuffer = await templateBlob.arrayBuffer();
-
-      // 為每一天建立檔案
-      for (let day = 1; day <= daysInMonth; day++) {
-        const fileName = `桃機日結表 ${selectedMonth}-${day}.numbers`;
-        // 每個檔案都用 slice(0) 複製一份新的 ArrayBuffer
-        zip.file(fileName, arrayBuffer.slice(0), { binary: true });
-        setProgress((day / daysInMonth) * 100);
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-
-      // 生成 ZIP 檔案
-      const zipBlob = await zip.generateAsync({ 
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: {
-          level: 6
-        },
-        mimeType: 'application/zip',
-        encodeFileName: (fileName) => {
-          return fileName
-        }
-      })
-      const zipFileName = `桃機日結表_${selectedMonth}月.zip`
-      
-      // 下載檔案
-      saveAs(zipBlob, zipFileName)
-      
-      setIsComplete(true)
-      setProgress(100)
-      
-      // 3秒後隱藏進度條
-      setTimeout(() => {
-        setShowProgress(false)
-        setIsGenerating(false)
-        setIsComplete(false)
-      }, 3000)
-
-    } catch (err) {
-      console.error('生成日報表時出錯:', err)
-      setError('生成日報表時發生錯誤，請重試')
-      setIsGenerating(false)
-      setShowProgress(false)
-    }
-  }
+  // 生成日報表（改為直接下載現成 zip）
+  const handleDownload = () => {
+    if (!selectedMonth) return;
+    const fileName = `桃機日結表_${selectedMonth}月.zip`;
+    const url = `/reports/${fileName}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   return (
     <div className="container-custom py-6">
@@ -244,11 +185,11 @@ function DailyReportGenerator() {
                 </p>
                 
                 <button
-                  onClick={generateReports}
-                  disabled={isGenerating || !selectedMonth}
+                  onClick={handleDownload}
+                  disabled={!selectedMonth}
                   className="btn-primary w-full max-w-xs disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isGenerating ? '生成中...' : '生成日報表'}
+                  下載日報表
                 </button>
               </div>
             </div>
