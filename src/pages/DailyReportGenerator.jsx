@@ -107,7 +107,7 @@ function DailyReportGenerator() {
   const handleDownload = () => {
     if (!selectedMonth) return;
     const fileName = `DailyReport_${selectedMonth}_Month.zip`;
-    const url = `/reports/${fileName}`;
+    const url = `https://raw.githubusercontent.com/greedysisyphus/Brainless/main/public/reports/${fileName}`;
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
