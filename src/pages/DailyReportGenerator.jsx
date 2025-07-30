@@ -106,10 +106,10 @@ function DailyReportGenerator() {
   // 生成日報表（改為直接下載現成 zip）
   const handleDownload = () => {
     if (!selectedMonth) return;
-    const fileName = `桃機日結表_${selectedMonth}月.zip`;
+    const fileName = `DailyReport_${selectedMonth}_Month.zip`;
     const url = `/reports/${fileName}`;
     const a = document.createElement('a');
-    a.href = encodeURI(url); // 修正：確保中文路徑正確
+    a.href = url;
     a.download = fileName;
     document.body.appendChild(a);
     a.click();

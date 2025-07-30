@@ -20,7 +20,7 @@ const template = fs.readFileSync(templatePath);
       zip.file(name, Buffer.from(template));
     }
     const content = await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
-    const zipName = `桃機日結表_${m}月.zip`;
+    const zipName = `DailyReport_${m}_Month.zip`;
     fs.writeFileSync(path.join(outDir, zipName), content);
     console.log(`已產生: ${zipName}`);
   }
