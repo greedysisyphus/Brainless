@@ -127,15 +127,15 @@ function DailyReportGenerator() {
       const daysInMonth = getDaysInMonth(selectedMonth)
       
       // 取得 template 檔案
-      const response = await fetch('/reports/template.numbers');
+      const response = await fetch('/reports/template.numbers', { cache: 'no-store' });
       const templateBlob = await response.blob();
       const arrayBuffer = await templateBlob.arrayBuffer();
 
       // 為每一天建立檔案
       for (let day = 1; day <= daysInMonth; day++) {
         const fileName = `桃機日結表 ${selectedMonth}-${day}.numbers`;
-        // 直接用 arrayBuffer 加入 zip，確保二進位內容不變
-        zip.file(fileName, arrayBuffer, { binary: true });
+        // 每個檔案都用 slice(0) 複製一份新的 ArrayBuffer
+        zip.file(fileName, arrayBuffer.slice(0), { binary: true });
         setProgress((day / daysInMonth) * 100);
         await new Promise(resolve => setTimeout(resolve, 50));
       }
