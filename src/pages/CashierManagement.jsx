@@ -72,10 +72,10 @@ function CashierManagement() {
     const foreignAmountNum = parseFloat(foreignAmount)
     const productPriceNum = parseFloat(productPrice)
 
-    // 顧客付的台幣等值金額（無條件進位後）
-    const customerPaymentInTWD = Math.ceil(foreignAmountNum * rateNum)
+    // 顧客付的台幣等值金額（無條件捨去後）
+    const customerPaymentInTWD = Math.floor(foreignAmountNum * rateNum)
     
-    // 找零（台幣）＝ 顧客付的台幣等值金額（無條件進位後）－ 商品價格
+    // 找零（台幣）＝ 顧客付的台幣等值金額（無條件捨去後）－ 商品價格
     const changeInTWD = customerPaymentInTWD - productPriceNum
 
     return {
@@ -226,7 +226,7 @@ function CashierManagement() {
                     </div>
                     <div className="border-t border-green-400/20 pt-3">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-text-secondary">顧客付的台幣等值（無條件進位）：</span>
+                        <span className="text-sm text-text-secondary">顧客付的台幣等值（無條件捨去）：</span>
                         <span className="font-semibold text-purple-400">
                           ${result.customerPaymentInTWD.toFixed(2)}
                         </span>
