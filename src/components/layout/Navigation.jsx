@@ -7,7 +7,8 @@ import {
   ChartBarIcon,
   ClipboardDocumentListIcon,
   DocumentTextIcon,
-  FunnelIcon
+  FunnelIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
 
@@ -65,6 +66,11 @@ const MENU_ITEMS = [
     path: '/coffee-beans',
     label: '咖啡豆管理',
     icon: <ClipboardDocumentListIcon className="w-5 h-5" />
+  },
+  {
+    path: '/schedule',
+    label: '班表管理',
+    icon: <CalendarIcon className="w-5 h-5" />
   },
   {
     path: '/daily-reports',
