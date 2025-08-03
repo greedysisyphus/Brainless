@@ -813,56 +813,62 @@ function ScheduleManager() {
     <div className="container-custom py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-center mb-2">班表管理工具</h1>
-        <p className="text-center text-text-secondary">管理每日排班資訊、同事姓名與上車地點</p>
+        <p className="text-center text-text-secondary">早班好</p>
       </div>
       
       {/* 分頁切換 */}
-      <div className="flex justify-center mb-8">
-        <div className="bg-surface/40 rounded-xl p-1 border border-white/10">
-          <button
-            onClick={() => setActiveTab('display')}
-            className={`px-6 py-3 rounded-lg transition-all ${
-              activeTab === 'display'
-                ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400 border border-blue-400/30'
-                : 'text-text-secondary hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <CalendarIcon className="w-5 h-5 inline mr-2" />
-            顯示班表
-          </button>
-          <button
-            onClick={() => setActiveTab('transport')}
-            className={`px-6 py-3 rounded-lg transition-all ${
-              activeTab === 'transport'
-                ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 border border-yellow-400/30'
-                : 'text-text-secondary hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <TruckIcon className="w-5 h-5 inline mr-2" />
-            交通及車費試算
-          </button>
-          <button
-            onClick={() => setActiveTab('statistics')}
-            className={`px-6 py-3 rounded-lg transition-all ${
-              activeTab === 'statistics'
-                ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-400/30'
-                : 'text-text-secondary hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <ChartBarIcon className="w-5 h-5 inline mr-2" />
-            統計功能
-          </button>
-          <button
-            onClick={() => setActiveTab('import')}
-            className={`px-6 py-3 rounded-lg transition-all ${
-              activeTab === 'import'
-                ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-400/30'
-                : 'text-text-secondary hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <DocumentArrowUpIcon className="w-5 h-5 inline mr-2" />
-            匯入與轉換班表
-          </button>
+      <div className="flex justify-center mb-6">
+        <div className="bg-surface/40 rounded-xl p-1 border border-white/10 w-full max-w-4xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+            <button
+              onClick={() => setActiveTab('display')}
+              className={`px-3 py-3 md:px-6 rounded-lg transition-all text-sm md:text-base ${
+                activeTab === 'display'
+                  ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400 border border-blue-400/30'
+                  : 'text-text-secondary hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <CalendarIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <span className="hidden sm:inline">顯示班表</span>
+              <span className="sm:hidden">班表</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('transport')}
+              className={`px-3 py-3 md:px-6 rounded-lg transition-all text-sm md:text-base ${
+                activeTab === 'transport'
+                  ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 border border-yellow-400/30'
+                  : 'text-text-secondary hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <TruckIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <span className="hidden sm:inline">交通及車費試算</span>
+              <span className="sm:hidden">交通</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('statistics')}
+              className={`px-3 py-3 md:px-6 rounded-lg transition-all text-sm md:text-base ${
+                activeTab === 'statistics'
+                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-400/30'
+                  : 'text-text-secondary hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <ChartBarIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <span className="hidden sm:inline">統計功能</span>
+              <span className="sm:hidden">統計</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('import')}
+              className={`px-3 py-3 md:px-6 rounded-lg transition-all text-sm md:text-base ${
+                activeTab === 'import'
+                  ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-400/30'
+                  : 'text-text-secondary hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <DocumentArrowUpIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <span className="hidden sm:inline">匯入與轉換班表</span>
+              <span className="sm:hidden">匯入</span>
+            </button>
+          </div>
         </div>
       </div>
       
@@ -870,8 +876,8 @@ function ScheduleManager() {
       {activeTab === 'display' && (
         <div className="space-y-6">
                       {/* 控制面板 */}
-            <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-8 border border-white/20 shadow-xl backdrop-blur-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 md:p-6 lg:p-8 border border-white/20 shadow-xl backdrop-blur-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {/* 月份選擇 */}
                 <div className="group">
                   <label className="block text-sm font-semibold mb-3 text-blue-300 group-hover:text-blue-200 transition-colors">月份</label>
@@ -879,7 +885,7 @@ function ScheduleManager() {
                     <select
                       value={selectedMonth}
                       onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-blue-400/50 focus:bg-white/20 focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 appearance-none cursor-pointer"
+                      className="w-full px-3 py-2 md:px-4 md:py-3 bg-white/10 border border-white/20 rounded-xl focus:border-blue-400/50 focus:bg-white/20 focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 appearance-none cursor-pointer text-sm md:text-base"
                     >
                       <option value="current">當月</option>
                       <option value="next">下個月</option>
@@ -1133,7 +1139,7 @@ function ScheduleManager() {
           </div>
           
                     {/* 有趣統計資料 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {/* 早班統計 */}
                           <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
                 <div className="flex items-center justify-center mb-4">
@@ -1184,14 +1190,14 @@ function ScheduleManager() {
           </div>
           
           {/* 搭班統計表格 */}
-          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-8 border border-white/20 shadow-xl backdrop-blur-sm">
-            <div className="flex items-center justify-center mb-8">
-              <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center mr-3">
-                <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 md:p-6 lg:p-8 border border-white/20 shadow-xl backdrop-blur-sm">
+            <div className="flex items-center justify-center mb-6 md:mb-8">
+              <div className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center mr-2 md:mr-3">
+                <svg className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-blue-300">搭班統計表</h3>
+              <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-blue-300">搭班統計表</h3>
             </div>
             <ShiftOverlapTable 
               schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
@@ -1487,16 +1493,16 @@ function DateView({ schedule, names, displayDates, filteredEmployees }) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <div className="bg-surface/60 rounded-xl shadow-xl border border-white/20 backdrop-blur-sm">
+    <div className="overflow-x-auto -mx-4 md:mx-0">
+      <div className="bg-surface/60 rounded-xl shadow-xl border border-white/20 backdrop-blur-sm min-w-full">
         <div className="w-full">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm" style={{ borderCollapse: 'collapse', borderSpacing: 0, border: 'none' }}>
+            <table className="w-full text-xs md:text-sm" style={{ borderCollapse: 'collapse', borderSpacing: 0, border: 'none' }}>
               <thead>
                 <tr className="bg-surface/40 border-b border-white/20">
-                  <th className="text-left p-3 text-purple-300 font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>姓名</th>
+                  <th className="text-left p-2 md:p-3 text-purple-300 font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>姓名</th>
                   {displayDates.map((date) => (
-                    <th key={date} className="text-center p-3 text-green-300 font-medium" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
+                    <th key={date} className="text-center p-1 md:p-3 text-green-300 font-medium" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
                       <div className="text-xs font-semibold">{date}</div>
                       <div className="text-xs text-gray-400">
                         {['日', '一', '二', '三', '四', '五', '六'][new Date(2024, 7, date).getDay()]}
@@ -1508,14 +1514,14 @@ function DateView({ schedule, names, displayDates, filteredEmployees }) {
               <tbody>
                 {filteredEmployees.map((employeeId) => (
                   <tr key={employeeId} className="border-b border-white/10 hover:bg-white/5 transition-all duration-200">
-                    <td className="p-3 text-white font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{names[employeeId] || employeeId}</td>
+                    <td className="p-2 md:p-3 text-white font-semibold text-xs md:text-sm" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{names[employeeId] || employeeId}</td>
                     {displayDates.map((date) => {
                       const shift = schedule[employeeId]?.[date]
                       return (
-                        <td key={date} className="p-2 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
+                        <td key={date} className="p-1 md:p-2 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
                           {shift ? (
                             <div className={`
-                              px-3 py-2 rounded-lg text-center text-xs font-bold
+                              px-2 py-1 md:px-3 md:py-2 rounded-lg text-center text-xs font-bold
                               ${shift === '早' ? 'bg-pink-500 text-white' :
                                 shift === '中' ? 'bg-cyan-500 text-white' :
                                 shift === '晚' ? 'bg-blue-500 text-white' :
@@ -1527,7 +1533,7 @@ function DateView({ schedule, names, displayDates, filteredEmployees }) {
                               {shift}
                             </div>
                           ) : (
-                            <div className="w-full h-8 rounded-lg bg-surface/20 border border-white/10"></div>
+                            <div className="w-full h-6 md:h-8 rounded-lg bg-surface/20 border border-white/10"></div>
                           )}
                         </td>
                       )
