@@ -44,7 +44,7 @@ const SHIFT_CODES = {
   'Y': '晚',
   '月休': '休',
   'SS': '特',
-  'R': '排',
+  'R': '休',
   'KK': '早',
   'YY': '晚',
   '早班': '早',
@@ -1487,7 +1487,6 @@ function DateView({ schedule, names, displayDates, filteredEmployees }) {
       case '晚': return 'bg-blue-500 text-white'
       case '休': return 'bg-gray-500 text-white'
       case '特': return 'bg-orange-500 text-white'
-      case '排': return 'bg-yellow-500 text-white'
       default: return 'bg-gray-700 text-gray-300'
     }
   }
@@ -1527,7 +1526,6 @@ function DateView({ schedule, names, displayDates, filteredEmployees }) {
                                 shift === '晚' ? 'bg-blue-500 text-white' :
                                 shift === '休' ? 'bg-gray-500 text-white' :
                                 shift === '特' ? 'bg-orange-500 text-white' :
-                                shift === '排' ? 'bg-yellow-500 text-white' :
                                 'bg-gray-700 text-gray-300'}
                             `}>
                               {shift}
@@ -1559,7 +1557,6 @@ function EmployeeView({ schedule, names, displayDates, filteredEmployees }) {
       case '晚': return 'bg-blue-500 text-white'
       case '休': return 'bg-gray-500 text-white'
       case '特': return 'bg-orange-500 text-white'
-      case '排': return 'bg-yellow-500 text-white'
       default: return 'bg-gray-700 text-gray-300'
     }
   }
@@ -1882,7 +1879,6 @@ function ShiftTypeStats({ schedule, names }) {
         middle: 0,
         night: 0,
         special: 0,
-        arrange: 0,
         total: 0
       }
       
@@ -1902,9 +1898,6 @@ function ShiftTypeStats({ schedule, names }) {
               break
             case '特':
               stats[employeeId].special++
-              break
-            case '排':
-              stats[employeeId].arrange++
               break
           }
         }
