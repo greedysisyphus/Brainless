@@ -72,18 +72,28 @@ function CashierManagement() {
     const foreignAmountNum = parseFloat(foreignAmount)
     const productPriceNum = parseFloat(productPrice)
 
+    // 將商品價格轉換為外幣等值，然後無條件進位
+    const productPriceInForeign = productPriceNum / rateNum
+    const roundedProductPriceInForeign = Math.ceil(productPriceInForeign)
+    
+    // 將進位後的外幣價格轉回台幣，並再次無條件進位
+    const roundedProductPriceInTWD = Math.ceil(roundedProductPriceInForeign * rateNum)
+
     // 顧客付的台幣等值金額（無條件捨去後）
     const customerPaymentInTWD = Math.floor(foreignAmountNum * rateNum)
     
-    // 找零（台幣）＝ 顧客付的台幣等值金額（無條件捨去後）－ 商品價格
-    const changeInTWD = customerPaymentInTWD - productPriceNum
+    // 找零（台幣）＝ 顧客付的台幣等值金額（無條件捨去後）－ 進位後的商品價格
+    const changeInTWD = customerPaymentInTWD - roundedProductPriceInTWD
 
     return {
       customerPaymentInTWD,
       changeInTWD,
       foreignAmount: foreignAmountNum,
       rate: rateNum,
-      productPrice: productPriceNum
+      productPrice: productPriceNum,
+      productPriceInForeign,
+      roundedProductPriceInForeign,
+      roundedProductPriceInTWD
     }
   }
 
@@ -219,9 +229,27 @@ function CashierManagement() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-text-secondary">商品價格：</span>
+                      <span className="text-sm text-text-secondary">原始商品價格：</span>
                       <span className="font-semibold text-orange-400">
                         ${result.productPrice.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-text-secondary">商品價格（外幣等值）：</span>
+                      <span className="font-semibold text-yellow-400">
+                        {result.productPriceInForeign.toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-text-secondary">進位後商品價格（外幣）：</span>
+                      <span className="font-semibold text-cyan-400">
+                        {result.roundedProductPriceInForeign.toFixed(0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-text-secondary">進位後商品價格（台幣，再次進位）：</span>
+                      <span className="font-semibold text-orange-400">
+                        ${result.roundedProductPriceInTWD.toFixed(0)}
                       </span>
                     </div>
                     <div className="border-t border-green-400/20 pt-3">
