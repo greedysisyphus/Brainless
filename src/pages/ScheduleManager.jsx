@@ -1504,7 +1504,7 @@ function DateView({ schedule, names, displayDates, filteredEmployees }) {
                     <th key={date} className="text-center p-1 md:p-3 text-green-300 font-medium" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
                       <div className="text-xs font-semibold">{date}</div>
                       <div className="text-xs text-gray-400">
-                        {['日', '一', '二', '三', '四', '五', '六'][new Date(2024, 7, date).getDay()]}
+                        {['日', '一', '二', '三', '四', '五', '六'][new Date(new Date().getFullYear(), new Date().getMonth(), date).getDay()]}
                       </div>
                     </th>
                   ))}
@@ -1657,7 +1657,7 @@ function TransportChart({ schedule, names, pickupLocations }) {
                 <th key={day} className="text-center p-2 text-green-300 font-medium" style={{ border: 'none !important' }}>
                   <div className="text-xs font-semibold">{day}</div>
                   <div className="text-xs text-gray-400">
-                    {['日', '一', '二', '三', '四', '五', '六'][new Date(2024, 7, day).getDay()]}
+                    {['日', '一', '二', '三', '四', '五', '六'][new Date(new Date().getFullYear(), new Date().getMonth(), day).getDay()]}
                   </div>
                 </th>
               ))}

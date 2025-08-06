@@ -76,24 +76,20 @@ function CashierManagement() {
     const productPriceInForeign = productPriceNum / rateNum
     const roundedProductPriceInForeign = Math.ceil(productPriceInForeign)
     
-    // 將進位後的外幣價格轉回台幣，並再次無條件進位
-    const roundedProductPriceInTWD = Math.ceil(roundedProductPriceInForeign * rateNum)
-
-    // 顧客付的台幣等值金額（無條件捨去後）
-    const customerPaymentInTWD = Math.floor(foreignAmountNum * rateNum)
+    // 客人付的外幣減去進位後的外幣商品價格
+    const changeInForeign = foreignAmountNum - roundedProductPriceInForeign
     
-    // 找零（台幣）＝ 顧客付的台幣等值金額（無條件捨去後）－ 進位後的商品價格
-    const changeInTWD = customerPaymentInTWD - roundedProductPriceInTWD
+    // 找零的外幣金額轉換為台幣，並無條件捨去
+    const changeInTWD = Math.floor(changeInForeign * rateNum)
 
     return {
-      customerPaymentInTWD,
+      changeInForeign,
       changeInTWD,
       foreignAmount: foreignAmountNum,
       rate: rateNum,
       productPrice: productPriceNum,
       productPriceInForeign,
-      roundedProductPriceInForeign,
-      roundedProductPriceInTWD
+      roundedProductPriceInForeign
     }
   }
 
@@ -246,23 +242,29 @@ function CashierManagement() {
                         {result.roundedProductPriceInForeign.toFixed(0)}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-text-secondary">進位後商品價格（台幣，再次進位）：</span>
-                      <span className="font-semibold text-orange-400">
-                        ${result.roundedProductPriceInTWD.toFixed(0)}
-                      </span>
-                    </div>
                     <div className="border-t border-green-400/20 pt-3">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-text-secondary">顧客付的台幣等值（無條件捨去）：</span>
+                        <span className="text-sm text-text-secondary">客人付的外幣：</span>
                         <span className="font-semibold text-purple-400">
-                          ${result.customerPaymentInTWD.toFixed(2)}
+                          {result.foreignAmount.toFixed(0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-text-secondary">減去商品價格（外幣）：</span>
+                        <span className="font-semibold text-red-400">
+                          -{result.roundedProductPriceInForeign.toFixed(0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-text-secondary">找零（外幣）：</span>
+                        <span className="font-semibold text-yellow-400">
+                          {result.changeInForeign.toFixed(0)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold text-green-400">找零金額：</span>
+                        <span className="text-lg font-bold text-green-400">找零金額（台幣，無條件捨去）：</span>
                         <span className={`text-xl font-bold ${result.changeInTWD >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          ${result.changeInTWD.toFixed(2)}
+                          ${result.changeInTWD.toFixed(0)}
                         </span>
                       </div>
                     </div>
