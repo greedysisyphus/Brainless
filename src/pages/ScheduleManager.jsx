@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import { 
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
+} from 'recharts'
+import { 
   CalendarIcon, 
   DocumentArrowUpIcon, 
   UserGroupIcon,
@@ -67,11 +71,19 @@ function ScheduleManager() {
   const [pickupLocations, setPickupLocations] = useState({})
   
   // 顯示設定
-  const [viewMode, setViewMode] = useState('date') // 'date' 或 'employee'
+  const [viewMode, setViewMode] = useState('date') // 'date', 'employee', 'timeline', '3d'
   const [filterMode, setFilterMode] = useState('all') // 'all', 'today', '3days', '7days'
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [selectedWeek, setSelectedWeek] = useState('week1')
   const [selectedStatsEmployee, setSelectedStatsEmployee] = useState(null)
+  
+  // 新增篩選功能
+  const [selectedShifts, setSelectedShifts] = useState([]) // 選中的班次
+  const [dateRange, setDateRange] = useState({ start: 1, end: 31 }) // 日期範圍
+  const [selectedEmployees, setSelectedEmployees] = useState([]) // 選中的多個同事
+  
+  // 統計分頁狀態
+  const [statsTab, setStatsTab] = useState('charts') // 'charts' 或 'overlap'
   
   // 匯入資料
   const [importData, setImportData] = useState('')
@@ -416,11 +428,18 @@ function ScheduleManager() {
       return numA - numB
     }
     
+    let filteredEmployees = employees
+    
+    // 單一同事篩選
     if (selectedEmployee) {
-      return [selectedEmployee]
+      filteredEmployees = [selectedEmployee]
+    }
+    // 多個同事篩選
+    else if (selectedEmployees.length > 0) {
+      filteredEmployees = selectedEmployees
     }
     
-    return employees.sort(sortByNumber)
+    return filteredEmployees.sort(sortByNumber)
   }
   
   // 取得今天的日期
@@ -450,6 +469,8 @@ function ScheduleManager() {
         return getNextDays(3)
       case '7days':
         return getNextDays(7)
+      case 'custom':
+        return Array.from({ length: dateRange.end - dateRange.start + 1 }, (_, i) => dateRange.start + i)
       default:
         return Array.from({ length: 31 }, (_, i) => i + 1)
     }
@@ -909,6 +930,8 @@ function ScheduleManager() {
                     >
                       <option value="date">日期視圖</option>
                       <option value="employee">同事視圖</option>
+                      <option value="timeline">時間軸視圖</option>
+                      <option value="3d">3D 視圖</option>
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -931,6 +954,7 @@ function ScheduleManager() {
                       <option value="today">今天</option>
                       <option value="3days">接下來 3 天</option>
                       <option value="7days">接下來 7 天</option>
+                      <option value="custom">自定義範圍</option>
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -986,6 +1010,115 @@ function ScheduleManager() {
                 </div>
               )}
             </div>
+            
+            {/* 進階篩選面板 */}
+            {(filterMode === 'custom' || selectedShifts.length > 0 || selectedEmployees.length > 0) && (
+              <div className="bg-gradient-to-br from-surface/50 to-surface/30 rounded-2xl p-4 md:p-6 border border-white/15 shadow-lg backdrop-blur-sm">
+                <h4 className="text-lg font-semibold mb-4 text-cyan-300">進階篩選</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  
+                  {/* 日期範圍選擇 */}
+                  {filterMode === 'custom' && (
+                    <div className="group">
+                      <label className="block text-sm font-semibold mb-3 text-cyan-300">日期範圍</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={dateRange.start}
+                          onChange={(e) => setDateRange(prev => ({ ...prev, start: parseInt(e.target.value) }))}
+                          className="w-1/2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg focus:border-cyan-400/50 focus:bg-white/20 text-sm"
+                          placeholder="開始日期"
+                        />
+                        <span className="text-gray-400 self-center">至</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={dateRange.end}
+                          onChange={(e) => setDateRange(prev => ({ ...prev, end: parseInt(e.target.value) }))}
+                          className="w-1/2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg focus:border-cyan-400/50 focus:bg-white/20 text-sm"
+                          placeholder="結束日期"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 班次篩選 */}
+                  <div className="group">
+                    <label className="block text-sm font-semibold mb-3 text-pink-300">班次篩選</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['早', '中', '晚', '休', '特'].map(shift => (
+                        <button
+                          key={shift}
+                          onClick={() => {
+                            if (selectedShifts.includes(shift)) {
+                              setSelectedShifts(prev => prev.filter(s => s !== shift))
+                            } else {
+                              setSelectedShifts(prev => [...prev, shift])
+                            }
+                          }}
+                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                            selectedShifts.includes(shift)
+                              ? 'bg-pink-500 text-white border border-pink-400'
+                              : 'bg-white/10 text-gray-300 border border-white/20 hover:bg-white/20'
+                          }`}
+                        >
+                          {shift}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* 多同事選擇 */}
+                  <div className="group">
+                    <label className="block text-sm font-semibold mb-3 text-orange-300">多同事選擇</label>
+                    <div className="max-h-32 overflow-y-auto">
+                      {Object.keys(selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule)
+                        .filter(key => key !== '_lastUpdated')
+                        .sort((a, b) => {
+                          const numA = parseInt(a.match(/\d+/)?.[0] || '0')
+                          const numB = parseInt(b.match(/\d+/)?.[0] || '0')
+                          return numA - numB
+                        })
+                        .map(employeeId => (
+                          <label key={employeeId} className="flex items-center gap-2 mb-1 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedEmployees.includes(employeeId)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedEmployees(prev => [...prev, employeeId])
+                                } else {
+                                  setSelectedEmployees(prev => prev.filter(id => id !== employeeId))
+                                }
+                              }}
+                              className="w-4 h-4 text-orange-500 bg-white/10 border-white/20 rounded focus:ring-orange-400/50"
+                            />
+                            <span className="text-sm text-gray-300">{names[employeeId] || employeeId}</span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 清除篩選按鈕 */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => {
+                      setSelectedShifts([])
+                      setSelectedEmployees([])
+                      setDateRange({ start: 1, end: 31 })
+                      setFilterMode('all')
+                    }}
+                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 text-red-300 rounded-lg transition-all text-sm"
+                  >
+                    清除所有篩選
+                  </button>
+                </div>
+              </div>
+            )}
           
            
            
@@ -997,13 +1130,31 @@ function ScheduleManager() {
                  names={names}
                  displayDates={getDisplayDates()}
                  filteredEmployees={getFilteredEmployees()}
+                 selectedShifts={selectedShifts}
                />
-             ) : (
+             ) : viewMode === 'employee' ? (
                <EmployeeView 
                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
                  names={names}
                  displayDates={getDisplayDates()}
                  filteredEmployees={getFilteredEmployees()}
+                 selectedShifts={selectedShifts}
+               />
+             ) : viewMode === 'timeline' ? (
+               <TimelineView 
+                 schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                 names={names}
+                 displayDates={getDisplayDates()}
+                 filteredEmployees={getFilteredEmployees()}
+                 selectedShifts={selectedShifts}
+               />
+             ) : (
+               <ThreeDView 
+                 schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                 names={names}
+                 displayDates={getDisplayDates()}
+                 filteredEmployees={getFilteredEmployees()}
+                 selectedShifts={selectedShifts}
                />
              )}
            </div>
@@ -1100,12 +1251,12 @@ function ScheduleManager() {
         </div>
       )}
       
-      {/* 統計功能分頁 */}
+                {/* 統計功能分頁 */}
       {activeTab === 'statistics' && (
         <div className="space-y-6">
           {/* 控制面板 */}
           <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-8 border border-white/20 shadow-xl backdrop-blur-sm">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* 左側：月份選擇 */}
               <div className="group">
                 <label className="block text-sm font-semibold mb-3 text-purple-300 group-hover:text-purple-200 transition-colors">月份</label>
@@ -1126,6 +1277,35 @@ function ScheduleManager() {
                 </div>
               </div>
               
+              {/* 中間：統計分頁切換 */}
+              <div className="group">
+                <label className="block text-sm font-semibold mb-3 text-blue-300 group-hover:text-blue-200 transition-colors">統計類型</label>
+                <div className="bg-surface/40 rounded-xl p-1 border border-white/10">
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      onClick={() => setStatsTab('charts')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        statsTab === 'charts'
+                          ? 'bg-green-500/20 text-green-300 border border-green-400/30'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      圖表分析
+                    </button>
+                    <button
+                      onClick={() => setStatsTab('overlap')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        statsTab === 'overlap'
+                          ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      搭班統計表
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               {/* 右側：更新時間 */}
               <div className="group">
                 <label className="block text-sm font-semibold mb-3 text-gray-300 group-hover:text-gray-200 transition-colors">更新時間</label>
@@ -1138,82 +1318,160 @@ function ScheduleManager() {
             </div>
           </div>
           
-                    {/* 有趣統計資料 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {/* 早班統計 */}
-                          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-10 h-10 rounded-full bg-pink-500/20 border border-pink-400/30 flex items-center justify-center mr-3">
-                    <svg className="w-5 h-5 text-pink-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          {/* TAB1: 搭班統計表 */}
+          {statsTab === 'overlap' && (
+            <div className="space-y-6">
+              {/* 搭班統計表格 */}
+              <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 md:p-6 lg:p-8 border border-white/20 shadow-xl backdrop-blur-sm">
+                <div className="flex items-center justify-center mb-6 md:mb-8">
+                  <div className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center mr-2 md:mr-3">
+                    <svg className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-pink-300">早班統計</h3>
+                  <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-blue-300">搭班統計表</h3>
                 </div>
-              <EarlyShiftStats 
-                schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
-                names={names}
-              />
-            </div>
-            
-            {/* 晚班統計 */}
-            <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center mr-3">
-                  <svg className="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-blue-300">晚班統計</h3>
+                <ShiftOverlapTable 
+                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                  names={names}
+                  onEmployeeClick={setSelectedStatsEmployee}
+                />
               </div>
-              <NightShiftStats 
-                schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
-                names={names}
-              />
+              
+              {/* 個人搭班詳情彈窗 */}
+              {selectedStatsEmployee && (
+                <EmployeeOverlapDetail 
+                  employeeId={selectedStatsEmployee}
+                  employeeName={names[selectedStatsEmployee] || selectedStatsEmployee}
+                  ranking={getEmployeeOverlapRanking(selectedStatsEmployee)}
+                  onClose={() => setSelectedStatsEmployee(null)}
+                />
+              )}
             </div>
-            
-            {/* 連續上班統計 */}
-            <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center mr-3">
-                  <svg className="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-orange-300">連續上班統計</h3>
-              </div>
-              <ConsecutiveWorkStats 
-                schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
-                names={names}
-              />
-            </div>
-          </div>
+          )}
           
-          {/* 搭班統計表格 */}
-          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 md:p-6 lg:p-8 border border-white/20 shadow-xl backdrop-blur-sm">
-            <div className="flex items-center justify-center mb-6 md:mb-8">
-              <div className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center mr-2 md:mr-3">
-                <svg className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+          {/* TAB2: 圖表分析 */}
+          {statsTab === 'charts' && (
+            <div className="space-y-6">
+              {/* 有趣統計資料 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {/* 早班統計 */}
+                <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="w-10 h-10 rounded-full bg-pink-500/20 border border-pink-400/30 flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-pink-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-pink-300">早班統計</h3>
+                  </div>
+                  <EarlyShiftStats 
+                    schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                    names={names}
+                  />
+                </div>
+                
+                {/* 晚班統計 */}
+                <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-blue-300">晚班統計</h3>
+                  </div>
+                  <NightShiftStats 
+                    schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                    names={names}
+                  />
+                </div>
+                
+                {/* 連續上班統計 */}
+                <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-orange-300">連續上班統計</h3>
+                  </div>
+                  <ConsecutiveWorkStats 
+                    schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                    names={names}
+                  />
+                </div>
               </div>
-              <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-blue-300">搭班統計表</h3>
+              
+              {/* 圖表分析區域 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* 班次類型分布圓餅圖 */}
+                <ShiftTypePieChart 
+                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                />
+                
+                {/* 班次趨勢變化折線圖 */}
+                <ShiftTrendChart 
+                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                  names={names}
+                />
+              </div>
+              
+              {/* 班次分布圖表 */}
+              <ShiftDistributionChart 
+                schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                names={names}
+              />
+              
+              {/* 班次分配偏差度分析 */}
+              <ShiftBiasAnalysis 
+                schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                names={names}
+              />
+              
+              {/* 個人統計儀表板 */}
+              <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+                <h3 className="text-xl font-bold mb-4 text-purple-300 text-center">個人統計儀表板</h3>
+                
+                {/* 同事選擇器 */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold mb-3 text-purple-300">選擇同事</label>
+                  <div className="relative">
+                    <select
+                      value={selectedStatsEmployee || ''}
+                      onChange={(e) => setSelectedStatsEmployee(e.target.value || null)}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-purple-400/50 focus:bg-white/20 focus:ring-2 focus:ring-purple-400/20 transition-all duration-200 appearance-none cursor-pointer"
+                    >
+                      <option value="">請選擇一個同事查看個人統計</option>
+                      {Object.keys(selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule)
+                        .filter(key => key !== '_lastUpdated')
+                        .sort((a, b) => {
+                          const numA = parseInt(a.match(/\d+/)?.[0] || '0')
+                          const numB = parseInt(b.match(/\d+/)?.[0] || '0')
+                          return numA - numB
+                        })
+                        .map(employeeId => (
+                          <option key={employeeId} value={employeeId}>
+                            {names[employeeId] || employeeId}
+                          </option>
+                        ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <PersonalDashboard 
+                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                  names={names}
+                  selectedEmployee={selectedStatsEmployee}
+                />
+              </div>
             </div>
-            <ShiftOverlapTable 
-              schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
-              names={names}
-              onEmployeeClick={setSelectedStatsEmployee}
-            />
-          </div>
-          
-          {/* 個人搭班詳情彈窗 */}
-          {selectedStatsEmployee && (
-            <EmployeeOverlapDetail 
-              employeeId={selectedStatsEmployee}
-              employeeName={names[selectedStatsEmployee] || selectedStatsEmployee}
-              ranking={getEmployeeOverlapRanking(selectedStatsEmployee)}
-              onClose={() => setSelectedStatsEmployee(null)}
-            />
           )}
 
         </div>
@@ -1478,7 +1736,7 @@ function ScheduleManager() {
 }
 
 // 日期視圖組件
-function DateView({ schedule, names, displayDates, filteredEmployees }) {
+function DateView({ schedule, names, displayDates, filteredEmployees, selectedShifts }) {
   // 班別顏色對應 - 深色甘特圖風格
   const getShiftColor = (shift) => {
     switch (shift) {
@@ -1516,6 +1774,18 @@ function DateView({ schedule, names, displayDates, filteredEmployees }) {
                     <td className="p-2 md:p-3 text-white font-semibold text-xs md:text-sm" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{names[employeeId] || employeeId}</td>
                     {displayDates.map((date) => {
                       const shift = schedule[employeeId]?.[date]
+                      
+                      // 班次篩選邏輯
+                      if (selectedShifts && selectedShifts.length > 0) {
+                        if (!shift || !selectedShifts.includes(shift)) {
+                          return (
+                            <td key={date} className="p-1 md:p-2 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
+                              <div className="w-full h-6 md:h-8 rounded-lg bg-surface/10 border border-white/5 opacity-50"></div>
+                            </td>
+                          )
+                        }
+                      }
+                      
                       return (
                         <td key={date} className="p-1 md:p-2 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
                           {shift ? (
@@ -1548,7 +1818,7 @@ function DateView({ schedule, names, displayDates, filteredEmployees }) {
 }
 
 // 同事視圖組件
-function EmployeeView({ schedule, names, displayDates, filteredEmployees }) {
+function EmployeeView({ schedule, names, displayDates, filteredEmployees, selectedShifts }) {
   // 班別顏色對應 - 深色甘特圖風格
   const getShiftColor = (shift) => {
     switch (shift) {
@@ -1575,6 +1845,21 @@ function EmployeeView({ schedule, names, displayDates, filteredEmployees }) {
           <div className="grid grid-cols-7 gap-3">
             {displayDates.map(date => {
               const shift = schedule[employeeId]?.[date]
+              
+              // 班次篩選邏輯
+              if (selectedShifts && selectedShifts.length > 0) {
+                if (!shift || !selectedShifts.includes(shift)) {
+                  return (
+                    <div key={date} className="text-center">
+                      <div className="text-xs text-gray-400 mb-2 font-medium">
+                        {date}
+                      </div>
+                      <div className="w-full h-8 rounded-lg bg-surface/10 border border-white/5 opacity-50"></div>
+                    </div>
+                  )
+                }
+              }
+              
               return (
                 <div key={date} className="text-center">
                   <div className="text-xs text-gray-400 mb-2 font-medium">
@@ -1692,13 +1977,16 @@ function TransportChart({ schedule, names, pickupLocations }) {
 
 // 搭班統計表格組件
 function ShiftOverlapTable({ schedule, names, onEmployeeClick }) {
+  
   const calculateShiftOverlap = () => {
     const overlapStats = {}
+    const overlapDetails = {} // 儲存詳細的搭班日期
     
     // 初始化統計資料
     Object.keys(schedule).forEach(employeeId => {
       if (employeeId === '_lastUpdated') return
       overlapStats[employeeId] = {}
+      overlapDetails[employeeId] = {}
     })
     
     // 取得當月天數
@@ -1730,8 +2018,13 @@ function ShiftOverlapTable({ schedule, names, onEmployeeClick }) {
             
             if (!overlapStats[emp1][emp2]) overlapStats[emp1][emp2] = 0
             if (!overlapStats[emp2][emp1]) overlapStats[emp2][emp1] = 0
+            if (!overlapDetails[emp1][emp2]) overlapDetails[emp1][emp2] = []
+            if (!overlapDetails[emp2][emp1]) overlapDetails[emp2][emp1] = []
+            
             overlapStats[emp1][emp2]++
             overlapStats[emp2][emp1]++
+            overlapDetails[emp1][emp2].push({ day, shift })
+            overlapDetails[emp2][emp1].push({ day, shift })
           }
         }
       })
@@ -1743,8 +2036,13 @@ function ShiftOverlapTable({ schedule, names, onEmployeeClick }) {
           dayShifts['中'].forEach(emp2 => {
             if (!overlapStats[emp1][emp2]) overlapStats[emp1][emp2] = 0
             if (!overlapStats[emp2][emp1]) overlapStats[emp2][emp1] = 0
+            if (!overlapDetails[emp1][emp2]) overlapDetails[emp1][emp2] = []
+            if (!overlapDetails[emp2][emp1]) overlapDetails[emp2][emp1] = []
+            
             overlapStats[emp1][emp2]++
             overlapStats[emp2][emp1]++
+            overlapDetails[emp1][emp2].push({ day, shift: '早-中' })
+            overlapDetails[emp2][emp1].push({ day, shift: '中-早' })
           })
         })
       }
@@ -1755,17 +2053,22 @@ function ShiftOverlapTable({ schedule, names, onEmployeeClick }) {
           dayShifts['晚'].forEach(emp2 => {
             if (!overlapStats[emp1][emp2]) overlapStats[emp1][emp2] = 0
             if (!overlapStats[emp2][emp1]) overlapStats[emp2][emp1] = 0
+            if (!overlapDetails[emp1][emp2]) overlapDetails[emp1][emp2] = []
+            if (!overlapDetails[emp2][emp1]) overlapDetails[emp2][emp1] = []
+            
             overlapStats[emp1][emp2]++
             overlapStats[emp2][emp1]++
+            overlapDetails[emp1][emp2].push({ day, shift: '中-晚' })
+            overlapDetails[emp2][emp1].push({ day, shift: '晚-中' })
           })
         })
       }
     }
     
-    return overlapStats
+    return { overlapStats, overlapDetails }
   }
   
-  const overlapStats = calculateShiftOverlap()
+  const { overlapStats, overlapDetails } = calculateShiftOverlap()
   const employees = Object.keys(schedule).filter(key => key !== '_lastUpdated').sort((a, b) => {
     // 提取數字部分進行數值排序
     const numA = parseInt(a.match(/\d+/)?.[0] || '0')
@@ -1773,9 +2076,48 @@ function ShiftOverlapTable({ schedule, names, onEmployeeClick }) {
     return numA - numB
   })
   
+  // 計算統計摘要
+  const calculateSummary = () => {
+    let totalOverlaps = 0
+    let maxOverlap = 0
+    let totalPairs = 0
+    
+    employees.forEach(emp1 => {
+      employees.forEach(emp2 => {
+        if (emp1 !== emp2) {
+          const count = overlapStats[emp1]?.[emp2] || 0
+          if (count > 0) {
+            totalOverlaps += count
+            maxOverlap = Math.max(maxOverlap, count)
+            totalPairs++
+          }
+        }
+      })
+    })
+    
+    return {
+      totalOverlaps,
+      maxOverlap,
+      averageOverlap: totalPairs > 0 ? (totalOverlaps / totalPairs).toFixed(1) : 0,
+      totalPairs
+    }
+  }
+  
+  const summary = calculateSummary()
+  
+  // 取得顏色深淺
+  const getOverlapColor = (count, maxCount) => {
+    if (count === 0) return 'bg-surface/20 border-white/10 text-gray-400'
+    const intensity = Math.min(count / maxCount, 1)
+    if (intensity > 0.7) return 'bg-purple-500/40 border-purple-400/50 text-purple-200'
+    if (intensity > 0.4) return 'bg-purple-500/30 border-purple-400/40 text-purple-300'
+    return 'bg-purple-500/20 border-purple-400/30 text-purple-300'
+  }
+  
   return (
     <div>
       <h3 className="text-xl font-bold mb-6 text-purple-300 text-center">搭班統計表</h3>
+      
       <div className="overflow-x-auto">
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse', borderSpacing: 0 }}>
           <thead>
@@ -1800,16 +2142,20 @@ function ShiftOverlapTable({ schedule, names, onEmployeeClick }) {
                 </td>
                 {employees.map(otherId => {
                   const count = overlapStats[employeeId]?.[otherId] || 0
+                  
                   return (
                     <td key={otherId} className="p-3 text-center" style={{ border: 'none !important' }}>
                       {employeeId === otherId ? (
                         <div className="w-8 h-8 rounded-lg bg-surface/20 border border-white/10 flex items-center justify-center text-gray-400">-</div>
                       ) : count > 0 ? (
-                        <div className="px-3 py-2 rounded-lg text-center text-xs font-bold bg-purple-500/20 border border-purple-400/30 text-purple-300">
+                        <div 
+                          className={`px-3 py-2 rounded-lg text-center text-xs font-bold border cursor-pointer hover:scale-105 transition-all ${getOverlapColor(count, summary.maxOverlap)}`}
+                          title={`${names[employeeId] || employeeId} 與 ${names[otherId] || otherId} 搭班 ${count} 次`}
+                        >
                           {count}
                         </div>
                       ) : (
-                        <div className="w-8 h-8 rounded-lg bg-surface/20 border border-white/10 flex items-center justify-center text-gray-400">0</div>
+                        <div className="w-8 h-8 rounded-lg bg-surface/10 border border-white/5 flex items-center justify-center text-gray-500 opacity-50">-</div>
                       )}
                     </td>
                   )
@@ -1825,11 +2171,24 @@ function ShiftOverlapTable({ schedule, names, onEmployeeClick }) {
 
 // 個人搭班詳情彈窗組件
 function EmployeeOverlapDetail({ employeeId, employeeName, ranking, onClose }) {
+  const [selectedPartner, setSelectedPartner] = useState(null)
+  
+  // 計算搭班統計
+  const calculateOverlapStats = () => {
+    const totalOverlaps = ranking.reduce((sum, item) => sum + item.count, 0)
+    const avgOverlaps = ranking.length > 0 ? (totalOverlaps / ranking.length).toFixed(1) : 0
+    const maxOverlaps = ranking.length > 0 ? ranking[0].count : 0
+    
+    return { totalOverlaps, avgOverlaps, maxOverlaps }
+  }
+  
+  const stats = calculateOverlapStats()
+  
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface/95 rounded-2xl p-8 border border-white/20 shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+      <div className="bg-surface/95 rounded-2xl p-8 border border-white/20 shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-purple-300">{employeeName} 的搭班排行</h3>
+          <h3 className="text-xl font-bold text-purple-300">{employeeName} 的搭班詳情</h3>
           <button
             onClick={onClose}
             className="p-2 hover:bg-surface/30 rounded-lg text-gray-300 hover:text-white transition-all duration-200"
@@ -1840,17 +2199,54 @@ function EmployeeOverlapDetail({ employeeId, employeeName, ranking, onClose }) {
           </button>
         </div>
         
+        {/* 統計摘要 */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-surface/40 rounded-lg p-4 border border-white/10">
+            <div className="text-2xl font-bold text-purple-300">{stats.totalOverlaps}</div>
+            <div className="text-sm text-gray-400">總搭班次數</div>
+          </div>
+          <div className="bg-surface/40 rounded-lg p-4 border border-white/10">
+            <div className="text-2xl font-bold text-blue-300">{stats.avgOverlaps}</div>
+            <div className="text-sm text-gray-400">平均搭班次數</div>
+          </div>
+          <div className="bg-surface/40 rounded-lg p-4 border border-white/10">
+            <div className="text-2xl font-bold text-green-300">{stats.maxOverlaps}</div>
+            <div className="text-sm text-gray-400">最高搭班次數</div>
+          </div>
+        </div>
+        
         {ranking.length > 0 ? (
           <div className="space-y-3">
+            <h4 className="text-lg font-semibold text-purple-300 mb-4">搭班排行</h4>
             {ranking.map((item, index) => (
-              <div key={item.employeeId} className="flex items-center justify-between p-4 bg-surface/20 rounded-xl border border-white/10">
+              <div 
+                key={item.employeeId} 
+                className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all hover:scale-105 ${
+                  selectedPartner === item.employeeId 
+                    ? 'bg-purple-500/30 border-purple-400/50' 
+                    : 'bg-surface/20 border-white/10 hover:bg-surface/30'
+                }`}
+                onClick={() => setSelectedPartner(selectedPartner === item.employeeId ? null : item.employeeId)}
+              >
                 <div className="flex items-center space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300 font-bold text-sm">
+                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm ${
+                    index === 0 ? 'bg-yellow-500/20 border-yellow-400/30 text-yellow-300' :
+                    index === 1 ? 'bg-gray-500/20 border-gray-400/30 text-gray-300' :
+                    index === 2 ? 'bg-orange-500/20 border-orange-400/30 text-orange-300' :
+                    'bg-purple-500/20 border-purple-400/30 text-purple-300'
+                  }`}>
                     {index + 1}
                   </div>
-                  <span className="text-white font-medium">{item.name}</span>
+                  <div>
+                    <span className="text-white font-medium">{item.name}</span>
+                  </div>
                 </div>
-                <div className="text-purple-300 font-bold">{item.count} 次</div>
+                <div className="text-right">
+                  <div className="text-purple-300 font-bold">{item.count} 次</div>
+                  <div className="text-xs text-gray-400">
+                    {((item.count / stats.totalOverlaps) * 100).toFixed(1)}%
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -1859,6 +2255,8 @@ function EmployeeOverlapDetail({ employeeId, employeeName, ranking, onClose }) {
             本月無搭班記錄
           </div>
         )}
+        
+
       </div>
     </div>
   )
@@ -2107,6 +2505,614 @@ function NightShiftStats({ schedule, names }) {
           <div className="text-blue-300 font-bold">{stat.nightCount} 次</div>
         </div>
       ))}
+    </div>
+  )
+}
+
+// 時間軸視圖組件
+function TimelineView({ schedule, names, displayDates, filteredEmployees, selectedShifts }) {
+  const getShiftColor = (shift) => {
+    switch (shift) {
+      case '早': return 'bg-pink-500 text-white'
+      case '中': return 'bg-cyan-500 text-white'
+      case '晚': return 'bg-blue-500 text-white'
+      case '休': return 'bg-gray-500 text-white'
+      case '特': return 'bg-orange-500 text-white'
+      default: return 'bg-gray-700 text-gray-300'
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      {filteredEmployees.map(employeeId => (
+        <div key={employeeId} className="bg-surface/60 rounded-xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+          <div className="mb-6">
+            <h4 className="text-xl font-semibold text-white mb-2">
+              {names[employeeId] || employeeId}
+            </h4>
+            <p className="text-sm text-gray-400">職員編號：{employeeId}</p>
+          </div>
+          
+          {/* 時間軸 */}
+          <div className="relative">
+            {/* 時間軸線 */}
+            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400"></div>
+            
+            <div className="space-y-4">
+              {displayDates.map((date, index) => {
+                const shift = schedule[employeeId]?.[date]
+                
+                // 班次篩選邏輯
+                if (selectedShifts && selectedShifts.length > 0) {
+                  if (!shift || !selectedShifts.includes(shift)) {
+                    return (
+                      <div key={date} className="relative flex items-center">
+                        {/* 時間點 */}
+                        <div className="absolute left-2 w-4 h-4 bg-gray-400 rounded-full border-2 border-white/20 transform -translate-x-1/2"></div>
+                        
+                        {/* 日期標籤 */}
+                        <div className="ml-8 flex-shrink-0">
+                          <div className="text-sm font-medium text-gray-400">{date}日</div>
+                          <div className="text-xs text-gray-500">
+                            {['日', '一', '二', '三', '四', '五', '六'][new Date(new Date().getFullYear(), new Date().getMonth(), date).getDay()]}
+                          </div>
+                        </div>
+                        
+                        {/* 班次內容 */}
+                        <div className="ml-6 flex-1">
+                          <div className="w-full h-8 rounded-lg bg-surface/10 border border-white/5 opacity-50"></div>
+                        </div>
+                      </div>
+                    )
+                  }
+                }
+                
+                return (
+                  <div key={date} className="relative flex items-center group">
+                    {/* 時間點 */}
+                    <div className="absolute left-2 w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full border-2 border-white/20 transform -translate-x-1/2 shadow-lg group-hover:scale-125 transition-transform duration-200"></div>
+                    
+                    {/* 日期標籤 */}
+                    <div className="ml-8 flex-shrink-0">
+                      <div className="text-sm font-medium text-white">{date}日</div>
+                      <div className="text-xs text-gray-400">
+                        {['日', '一', '二', '三', '四', '五', '六'][new Date(new Date().getFullYear(), new Date().getMonth(), date).getDay()]}
+                      </div>
+                    </div>
+                    
+                    {/* 班次內容 */}
+                    <div className="ml-6 flex-1">
+                      {shift ? (
+                        <div className={`
+                          px-4 py-3 rounded-lg text-center text-sm font-bold
+                          transition-all duration-300 hover:scale-105 hover:shadow-lg
+                          ${getShiftColor(shift)}
+                        `}>
+                          {shift}
+                        </div>
+                      ) : (
+                        <div className="w-full h-12 rounded-lg bg-surface/20 border border-white/10 flex items-center justify-center text-gray-400 text-sm">
+                          無班次
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// 3D 視圖組件
+function ThreeDView({ schedule, names, displayDates, filteredEmployees, selectedShifts }) {
+  const getShiftColor = (shift) => {
+    switch (shift) {
+      case '早': return 'bg-pink-500 text-white'
+      case '中': return 'bg-cyan-500 text-white'
+      case '晚': return 'bg-blue-500 text-white'
+      case '休': return 'bg-gray-500 text-white'
+      case '特': return 'bg-orange-500 text-white'
+      default: return 'bg-gray-700 text-gray-300'
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="text-center mb-8">
+        <h3 className="text-2xl font-bold text-white mb-2">3D 班表視圖</h3>
+        <p className="text-gray-400">立體展示班次安排</p>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredEmployees.map(employeeId => (
+          <div key={employeeId} className="group perspective-1000">
+            <div className="relative transform-style-preserve-3d transition-all duration-500 group-hover:rotate-y-12">
+              {/* 3D 卡片 */}
+              <div className="bg-gradient-to-br from-surface/80 to-surface/60 rounded-2xl p-6 border border-white/20 shadow-2xl backdrop-blur-sm transform-style-preserve-3d">
+                {/* 卡片正面 */}
+                <div className="transform-style-preserve-3d">
+                  <div className="mb-6 text-center">
+                    <h4 className="text-xl font-bold text-white mb-2">
+                      {names[employeeId] || employeeId}
+                    </h4>
+                    <p className="text-sm text-gray-400">職員編號：{employeeId}</p>
+                  </div>
+                  
+                  {/* 3D 班次網格 */}
+                  <div className="grid grid-cols-7 gap-2">
+                    {displayDates.map((date, index) => {
+                      const shift = schedule[employeeId]?.[date]
+                      
+                      // 班次篩選邏輯
+                      if (selectedShifts && selectedShifts.length > 0) {
+                        if (!shift || !selectedShifts.includes(shift)) {
+                          return (
+                            <div key={date} className="relative group/item">
+                              <div className="w-full h-16 rounded-lg bg-surface/10 border border-white/5 opacity-50 transform transition-all duration-300 group-hover/item:scale-110 group-hover/item:rotate-y-6"></div>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center text-xs text-gray-500">
+                                <span>{date}</span>
+                              </div>
+                            </div>
+                          )
+                        }
+                      }
+                      
+                      return (
+                        <div key={date} className="relative group/item">
+                          <div className={`
+                            w-full h-16 rounded-lg text-center text-xs font-bold
+                            transform transition-all duration-300 
+                            group-hover/item:scale-110 group-hover/item:rotate-y-6 group-hover/item:shadow-xl
+                            ${shift ? getShiftColor(shift) : 'bg-surface/20 border border-white/10'}
+                          `}>
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <span className="text-xs opacity-75">{date}</span>
+                              <span className="font-bold">{shift || ''}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+                
+                {/* 卡片陰影效果 */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// 班次分布圖表組件
+function ShiftDistributionChart({ schedule, names }) {
+  const calculateShiftDistribution = () => {
+    const distribution = {}
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    
+    Object.keys(schedule).forEach(employeeId => {
+      if (employeeId === '_lastUpdated') return
+      
+      const employeeName = names[employeeId] || employeeId
+      distribution[employeeName] = {
+        name: employeeName,
+        early: 0,
+        middle: 0,
+        night: 0,
+        rest: 0,
+        special: 0,
+        total: 0
+      }
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const shift = schedule[employeeId]?.[day]
+        if (shift) {
+          distribution[employeeName].total++
+          switch (shift) {
+            case '早':
+              distribution[employeeName].early++
+              break
+            case '中':
+              distribution[employeeName].middle++
+              break
+            case '晚':
+              distribution[employeeName].night++
+              break
+            case '休':
+              distribution[employeeName].rest++
+              break
+            case '特':
+              distribution[employeeName].special++
+              break
+          }
+        }
+      }
+    })
+    
+    return Object.values(distribution).filter(item => item.total > 0)
+  }
+  
+  const data = calculateShiftDistribution()
+  
+  return (
+    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+      <h3 className="text-xl font-bold mb-6 text-purple-300 text-center">各同事班次分布</h3>
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+          <XAxis dataKey="name" stroke="#ffffff80" />
+          <YAxis stroke="#ffffff80" />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              color: '#ffffff'
+            }}
+          />
+          <Legend />
+          <Bar dataKey="early" stackId="a" fill="#ec4899" name="早班" />
+          <Bar dataKey="middle" stackId="a" fill="#06b6d4" name="中班" />
+          <Bar dataKey="night" stackId="a" fill="#3b82f6" name="晚班" />
+          <Bar dataKey="rest" stackId="a" fill="#6b7280" name="休假" />
+          <Bar dataKey="special" stackId="a" fill="#f97316" name="特殊" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// 班次分配偏差度分析組件
+function ShiftBiasAnalysis({ schedule, names }) {
+  const calculateBiasAnalysis = () => {
+    const biasData = {}
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    
+    // 計算總班次數
+    let totalShifts = { early: 0, middle: 0, night: 0, rest: 0, special: 0 }
+    Object.keys(schedule).forEach(employeeId => {
+      if (employeeId === '_lastUpdated') return
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const shift = schedule[employeeId]?.[day]
+        if (shift) {
+          switch (shift) {
+            case '早': totalShifts.early++; break
+            case '中': totalShifts.middle++; break
+            case '晚': totalShifts.night++; break
+            case '休': totalShifts.rest++; break
+            case '特': totalShifts.special++; break
+          }
+        }
+      }
+    })
+    
+    // 計算理想分配（平均分配）
+    const totalEmployees = Object.keys(schedule).filter(key => key !== '_lastUpdated').length
+    const idealPerEmployee = {
+      early: totalShifts.early / totalEmployees,
+      middle: totalShifts.middle / totalEmployees,
+      night: totalShifts.night / totalEmployees,
+      rest: totalShifts.rest / totalEmployees,
+      special: totalShifts.special / totalEmployees
+    }
+    
+    // 計算每個同事的偏差
+    Object.keys(schedule).forEach(employeeId => {
+      if (employeeId === '_lastUpdated') return
+      
+      const employeeName = names[employeeId] || employeeId
+      const actual = { early: 0, middle: 0, night: 0, rest: 0, special: 0 }
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const shift = schedule[employeeId]?.[day]
+        if (shift) {
+          switch (shift) {
+            case '早': actual.early++; break
+            case '中': actual.middle++; break
+            case '晚': actual.night++; break
+            case '休': actual.rest++; break
+            case '特': actual.special++; break
+          }
+        }
+      }
+      
+      // 計算偏差度
+      const bias = {
+        name: employeeName,
+        earlyBias: ((actual.early - idealPerEmployee.early) / idealPerEmployee.early * 100).toFixed(1),
+        middleBias: ((actual.middle - idealPerEmployee.middle) / idealPerEmployee.middle * 100).toFixed(1),
+        nightBias: ((actual.night - idealPerEmployee.night) / idealPerEmployee.night * 100).toFixed(1),
+        restBias: ((actual.rest - idealPerEmployee.rest) / idealPerEmployee.rest * 100).toFixed(1),
+        specialBias: ((actual.special - idealPerEmployee.special) / idealPerEmployee.special * 100).toFixed(1)
+      }
+      
+      biasData[employeeName] = bias
+    })
+    
+    return Object.values(biasData)
+  }
+  
+  const biasData = calculateBiasAnalysis()
+  
+  return (
+    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+      <h3 className="text-xl font-bold mb-6 text-orange-300 text-center">班次分配偏差度分析</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/20">
+              <th className="text-left p-3 text-white font-semibold">同事</th>
+              <th className="text-center p-3 text-pink-300 font-semibold">早班偏差</th>
+              <th className="text-center p-3 text-cyan-300 font-semibold">中班偏差</th>
+              <th className="text-center p-3 text-blue-300 font-semibold">晚班偏差</th>
+              <th className="text-center p-3 text-gray-300 font-semibold">休假偏差</th>
+              <th className="text-center p-3 text-orange-300 font-semibold">特殊偏差</th>
+            </tr>
+          </thead>
+          <tbody>
+            {biasData.map((item, index) => (
+              <tr key={index} className="border-b border-white/10 hover:bg-white/5">
+                <td className="p-3 text-white font-medium">{item.name}</td>
+                <td className={`p-3 text-center font-bold ${parseFloat(item.earlyBias) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.earlyBias}%
+                </td>
+                <td className={`p-3 text-center font-bold ${parseFloat(item.middleBias) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.middleBias}%
+                </td>
+                <td className={`p-3 text-center font-bold ${parseFloat(item.nightBias) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.nightBias}%
+                </td>
+                <td className={`p-3 text-center font-bold ${parseFloat(item.restBias) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.restBias}%
+                </td>
+                <td className={`p-3 text-center font-bold ${parseFloat(item.specialBias) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.specialBias}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// 班次類型分布圓餅圖組件
+function ShiftTypePieChart({ schedule }) {
+  const calculateShiftTypeDistribution = () => {
+    const distribution = { early: 0, middle: 0, night: 0, rest: 0, special: 0 }
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    
+    Object.keys(schedule).forEach(employeeId => {
+      if (employeeId === '_lastUpdated') return
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const shift = schedule[employeeId]?.[day]
+        if (shift) {
+          switch (shift) {
+            case '早': distribution.early++; break
+            case '中': distribution.middle++; break
+            case '晚': distribution.night++; break
+            case '休': distribution.rest++; break
+            case '特': distribution.special++; break
+          }
+        }
+      }
+    })
+    
+    return [
+      { name: '早班', value: distribution.early, color: '#ec4899' },
+      { name: '中班', value: distribution.middle, color: '#06b6d4' },
+      { name: '晚班', value: distribution.night, color: '#3b82f6' },
+      { name: '休假', value: distribution.rest, color: '#6b7280' },
+      { name: '特殊', value: distribution.special, color: '#f97316' }
+    ].filter(item => item.value > 0)
+  }
+  
+  const data = calculateShiftTypeDistribution()
+  
+  return (
+    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+      <h3 className="text-xl font-bold mb-6 text-green-300 text-center">班次類型分布</h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              color: '#ffffff'
+            }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// 班次趨勢變化折線圖組件
+function ShiftTrendChart({ schedule, names }) {
+  const calculateShiftTrend = () => {
+    const trendData = []
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayData = {
+        date: `${day}日`,
+        early: 0,
+        middle: 0,
+        night: 0,
+        rest: 0,
+        special: 0
+      }
+      
+      Object.keys(schedule).forEach(employeeId => {
+        if (employeeId === '_lastUpdated') return
+        
+        const shift = schedule[employeeId]?.[day]
+        if (shift) {
+          switch (shift) {
+            case '早': dayData.early++; break
+            case '中': dayData.middle++; break
+            case '晚': dayData.night++; break
+            case '休': dayData.rest++; break
+            case '特': dayData.special++; break
+          }
+        }
+      })
+      
+      trendData.push(dayData)
+    }
+    
+    return trendData
+  }
+  
+  const data = calculateShiftTrend()
+  
+  return (
+    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+      <h3 className="text-xl font-bold mb-6 text-blue-300 text-center">班次趨勢變化</h3>
+      <ResponsiveContainer width="100%" height={400}>
+        <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+          <XAxis dataKey="date" stroke="#ffffff80" />
+          <YAxis stroke="#ffffff80" />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              color: '#ffffff'
+            }}
+          />
+          <Legend />
+          <Line type="monotone" dataKey="early" stroke="#ec4899" strokeWidth={2} name="早班" />
+          <Line type="monotone" dataKey="middle" stroke="#06b6d4" strokeWidth={2} name="中班" />
+          <Line type="monotone" dataKey="night" stroke="#3b82f6" strokeWidth={2} name="晚班" />
+          <Line type="monotone" dataKey="rest" stroke="#6b7280" strokeWidth={2} name="休假" />
+          <Line type="monotone" dataKey="special" stroke="#f97316" strokeWidth={2} name="特殊" />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// 個人統計儀表板組件
+function PersonalDashboard({ schedule, names, selectedEmployee }) {
+  if (!selectedEmployee) {
+    return (
+      <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+        <h3 className="text-xl font-bold mb-4 text-purple-300 text-center">個人統計儀表板</h3>
+        <p className="text-center text-gray-400">請選擇一個同事查看個人統計</p>
+      </div>
+    )
+  }
+  
+  const calculatePersonalStats = () => {
+    const stats = {
+      name: names[selectedEmployee] || selectedEmployee,
+      early: 0,
+      middle: 0,
+      night: 0,
+      rest: 0,
+      special: 0,
+      total: 0
+    }
+    
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const shift = schedule[selectedEmployee]?.[day]
+      if (shift) {
+        switch (shift) {
+          case '早': 
+            stats.early++; 
+            stats.total++; // 只有實際上班才計入工作天數
+            break
+          case '中': 
+            stats.middle++; 
+            stats.total++; // 只有實際上班才計入工作天數
+            break
+          case '晚': 
+            stats.night++; 
+            stats.total++; // 只有實際上班才計入工作天數
+            break
+          case '休': 
+            stats.rest++; 
+            // 休假不計入工作天數
+            break
+          case '特': 
+            stats.special++; 
+            stats.total++; // 只有實際上班才計入工作天數
+            break
+        }
+      }
+    }
+    
+    return stats
+  }
+  
+  const personalStats = calculatePersonalStats()
+  
+  return (
+    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+      <h3 className="text-xl font-bold mb-6 text-purple-300 text-center">
+        {personalStats.name} 的個人統計
+      </h3>
+      
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="text-center p-4 bg-pink-500/20 rounded-lg border border-pink-400/30">
+          <div className="text-2xl font-bold text-pink-300">{personalStats.early}</div>
+          <div className="text-sm text-pink-200">早班</div>
+        </div>
+        <div className="text-center p-4 bg-cyan-500/20 rounded-lg border border-cyan-400/30">
+          <div className="text-2xl font-bold text-cyan-300">{personalStats.middle}</div>
+          <div className="text-sm text-cyan-200">中班</div>
+        </div>
+        <div className="text-center p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
+          <div className="text-2xl font-bold text-blue-300">{personalStats.night}</div>
+          <div className="text-sm text-blue-200">晚班</div>
+        </div>
+        <div className="text-center p-4 bg-gray-500/20 rounded-lg border border-gray-400/30">
+          <div className="text-2xl font-bold text-gray-300">{personalStats.rest}</div>
+          <div className="text-sm text-gray-200">休假</div>
+        </div>
+        <div className="text-center p-4 bg-orange-500/20 rounded-lg border border-orange-400/30">
+          <div className="text-2xl font-bold text-orange-300">{personalStats.special}</div>
+          <div className="text-sm text-orange-200">特殊</div>
+        </div>
+      </div>
+      
+      <div className="text-center">
+        <div className="text-lg font-semibold text-white">
+          總工作天數：{personalStats.total} 天
+        </div>
+        <div className="text-sm text-gray-400">
+          工作率：{((personalStats.total / 31) * 100).toFixed(1)}%
+        </div>
+      </div>
     </div>
   )
 }
