@@ -83,6 +83,7 @@ function Summary({
             }}
             className="input-field w-full mb-3"
             placeholder="請輸入POS機金額"
+            inputMode="decimal"
           />
           <button 
             onClick={handleCalculate}

@@ -59,6 +59,7 @@ function DenominationCounter({ title, onTotalChange, savedKey }) {
               onChange={e => handleCountChange(value, parseInt(e.target.value))}
               className="input-field flex-1"
               placeholder="0"
+              inputMode="decimal"
             />
             <span className="w-28 text-right text-text-secondary">
               ${((counts[value] || 0) * value).toLocaleString()}

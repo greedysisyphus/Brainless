@@ -147,29 +147,33 @@ function CashierManagement() {
       {/* 浮動外幣找零計算器彈窗 */}
       {showForeignChangeCalculator && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 touch-manipulation"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center p-4 touch-manipulation overflow-y-auto"
           onClick={() => setShowForeignChangeCalculator(false)}
         >
           <div 
-            className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-md shadow-2xl touch-manipulation"
+            className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl w-full max-w-md shadow-2xl touch-manipulation my-8"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-green-400 mb-1">外幣找零計算器</h2>
-                <p className="text-sm text-text-secondary">計算外幣找零金額</p>
+            {/* 固定的標題和關閉按鈕區域 */}
+            <div className="sticky top-0 bg-surface/95 backdrop-blur-md border-b border-white/10 rounded-t-2xl p-6 pb-4 z-10">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-bold text-green-400 mb-1">外幣找零計算器</h2>
+                  <p className="text-sm text-text-secondary">計算外幣找零金額</p>
+                </div>
+                <button
+                  onClick={() => setShowForeignChangeCalculator(false)}
+                  className="p-4 rounded-xl hover:bg-red-500/20 text-red-400 transition-all duration-200 touch-manipulation active:scale-95"
+                  style={{ minWidth: '56px', minHeight: '56px' }}
+                  aria-label="關閉外幣找零計算器"
+                >
+                  <XMarkIcon className="w-7 h-7" />
+                </button>
               </div>
-              <button
-                onClick={() => setShowForeignChangeCalculator(false)}
-                className="p-4 rounded-xl hover:bg-red-500/20 text-red-400 transition-all duration-200 touch-manipulation active:scale-95"
-                style={{ minWidth: '56px', minHeight: '56px' }}
-                aria-label="關閉外幣找零計算器"
-              >
-                <XMarkIcon className="w-7 h-7" />
-              </button>
             </div>
 
-            <div className="space-y-4">
+            {/* 可滾動的內容區域 */}
+            <div className="p-6 pt-4 space-y-4 max-h-[70vh] overflow-y-auto">
               {/* 匯率輸入 */}
               <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
                 <label className="block text-sm font-semibold mb-3 text-blue-400 flex items-center gap-2">

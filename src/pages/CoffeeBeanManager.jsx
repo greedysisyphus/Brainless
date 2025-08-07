@@ -501,6 +501,7 @@ function CoffeeBeanManager() {
                               onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
                               placeholder="數量"
                               className="input-field flex-1 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all"
+                              inputMode="decimal"
                             />
                             {(beanData?.store || []).length > 1 && (
                               <button
@@ -540,6 +541,7 @@ function CoffeeBeanManager() {
                                 onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)}
                                 placeholder="數量"
                                 className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
+                                inputMode="decimal"
                               />
                               {(beanData?.breakRoom || []).length > 1 && (
                                 <button
@@ -608,6 +610,7 @@ function CoffeeBeanManager() {
                               onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)}
                               placeholder="數量"
                               className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                              inputMode="decimal"
                             />
                             {(beanData?.store || []).length > 1 && (
                               <button
@@ -647,6 +650,7 @@ function CoffeeBeanManager() {
                                 onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)}
                                 placeholder="數量"
                                 className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
+                                inputMode="decimal"
                               />
                               {(beanData?.breakRoom || []).length > 1 && (
                                 <button
@@ -774,6 +778,7 @@ function CoffeeBeanManager() {
                             }}
                             placeholder="數量"
                             className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                            inputMode="decimal"
                           />
                           {(beanData?.store || []).length > 1 && (
                             <button
@@ -882,6 +887,7 @@ function CoffeeBeanManager() {
                               }}
                               placeholder="數量"
                               className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
+                              inputMode="decimal"
                             />
                             {(beanData?.breakRoom || []).length > 1 && (
                               <button
@@ -1102,6 +1108,7 @@ function CoffeeBeanManager() {
                     )}
                     className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all"
                     placeholder="輸入重量"
+                    inputMode="decimal"
                   />
                 </div>
                 <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
@@ -1115,6 +1122,7 @@ function CoffeeBeanManager() {
                     onChange={(e) => updateWeightSetting('beanWeightPerPack', e.target.value)}
                     className="input-field w-full text-sm py-2.5 px-3 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
                     placeholder="輸入重量"
+                    inputMode="decimal"
                   />
                 </div>
               </div>
@@ -1167,6 +1175,7 @@ function CoffeeBeanManager() {
                         onChange={(e) => updateCalculation(calc.id, e.target.value)}
                         placeholder="輸入總重量"
                         className="input-field w-full text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                        inputMode="decimal"
                       />
                     </div>
                     <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-lg p-3 border border-white/10">
