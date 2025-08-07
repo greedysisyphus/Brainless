@@ -137,20 +137,21 @@ function CashierManagement() {
       {/* 浮動外幣找零計算器按鈕 */}
       <button
         onClick={() => setShowForeignChangeCalculator(true)}
-        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-green-400 hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-500/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50 hover:scale-110 transform touch-manipulation"
-        style={{ minWidth: '56px', minHeight: '56px' }}
+        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-green-400 hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-500/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50 hover:scale-110 transform touch-manipulation active:scale-95"
+        style={{ minWidth: '64px', minHeight: '64px' }}
+        aria-label="開啟外幣找零計算器"
       >
-        <CurrencyDollarIcon className="w-6 h-6" />
+        <CurrencyDollarIcon className="w-7 h-7" />
       </button>
 
       {/* 浮動外幣找零計算器彈窗 */}
       {showForeignChangeCalculator && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 touch-manipulation"
           onClick={() => setShowForeignChangeCalculator(false)}
         >
           <div 
-            className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-md shadow-2xl touch-manipulation"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-start mb-6">
@@ -160,10 +161,11 @@ function CashierManagement() {
               </div>
               <button
                 onClick={() => setShowForeignChangeCalculator(false)}
-                className="p-3 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors touch-manipulation"
-                style={{ minWidth: '44px', minHeight: '44px' }}
+                className="p-4 rounded-xl hover:bg-red-500/20 text-red-400 transition-all duration-200 touch-manipulation active:scale-95"
+                style={{ minWidth: '56px', minHeight: '56px' }}
+                aria-label="關閉外幣找零計算器"
               >
-                <XMarkIcon className="w-6 h-6" />
+                <XMarkIcon className="w-7 h-7" />
               </button>
             </div>
 
@@ -178,9 +180,10 @@ function CashierManagement() {
                   type="number"
                   value={foreignChangeData.rate}
                   onChange={(e) => setForeignChangeData(prev => ({ ...prev, rate: e.target.value }))}
-                  className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all"
+                  className="input-field w-full text-sm py-4 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all touch-manipulation"
                   placeholder="輸入匯率"
                   step="0.01"
+                  inputMode="decimal"
                 />
               </div>
 
@@ -194,9 +197,10 @@ function CashierManagement() {
                   type="number"
                   value={foreignChangeData.foreignAmount}
                   onChange={(e) => setForeignChangeData(prev => ({ ...prev, foreignAmount: e.target.value }))}
-                  className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-purple-400/50 focus:bg-white/10 hover:border-purple-400/30 transition-all"
+                  className="input-field w-full text-sm py-4 px-4 rounded-lg bg-white/5 border-white/10 focus:border-purple-400/50 focus:bg-white/10 hover:border-purple-400/30 transition-all touch-manipulation"
                   placeholder="輸入外幣金額"
                   step="0.01"
+                  inputMode="decimal"
                 />
               </div>
 
@@ -210,9 +214,10 @@ function CashierManagement() {
                   type="number"
                   value={foreignChangeData.productPrice}
                   onChange={(e) => setForeignChangeData(prev => ({ ...prev, productPrice: e.target.value }))}
-                  className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10 hover:border-orange-400/30 transition-all"
+                  className="input-field w-full text-sm py-4 px-4 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10 hover:border-orange-400/30 transition-all touch-manipulation"
                   placeholder="輸入商品價格"
                   step="0.01"
+                  inputMode="decimal"
                 />
               </div>
 
@@ -287,8 +292,8 @@ function CashierManagement() {
                   foreignAmount: '',
                   productPrice: ''
                 })}
-                className="w-full px-4 py-2 bg-white/5 hover:bg-white/10 
-                          text-text-secondary rounded-lg transition-colors"
+                className="w-full px-4 py-3 bg-white/5 hover:bg-white/10 
+                          text-text-secondary rounded-lg transition-all duration-200 touch-manipulation active:scale-95"
               >
                 清除輸入
               </button>
