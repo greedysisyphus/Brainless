@@ -76,6 +76,7 @@ function ScheduleManager() {
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [selectedWeek, setSelectedWeek] = useState('week1')
   const [selectedStatsEmployee, setSelectedStatsEmployee] = useState(null)
+  const [selectedOverlapEmployee, setSelectedOverlapEmployee] = useState(null)
   
   // 新增篩選功能
   const [selectedShifts, setSelectedShifts] = useState([]) // 選中的班次
@@ -103,6 +104,15 @@ function ScheduleManager() {
     loadScheduleData()
     loadEmployeeData()
   }, [])
+  
+  // 當切換統計標籤頁時，清除另一個標籤頁的選中狀態
+  useEffect(() => {
+    if (statsTab === 'charts') {
+      setSelectedOverlapEmployee(null)
+    } else if (statsTab === 'overlap') {
+      setSelectedStatsEmployee(null)
+    }
+  }, [statsTab])
   
   // 監聽班表更新
   useEffect(() => {
@@ -1334,17 +1344,17 @@ function ScheduleManager() {
                 <ShiftOverlapTable 
                   schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
                   names={names}
-                  onEmployeeClick={setSelectedStatsEmployee}
+                  onEmployeeClick={setSelectedOverlapEmployee}
                 />
               </div>
               
               {/* 個人搭班詳情彈窗 */}
-              {selectedStatsEmployee && (
+              {selectedOverlapEmployee && (
                 <EmployeeOverlapDetail 
-                  employeeId={selectedStatsEmployee}
-                  employeeName={names[selectedStatsEmployee] || selectedStatsEmployee}
-                  ranking={getEmployeeOverlapRanking(selectedStatsEmployee)}
-                  onClose={() => setSelectedStatsEmployee(null)}
+                  employeeId={selectedOverlapEmployee}
+                  employeeName={names[selectedOverlapEmployee] || selectedOverlapEmployee}
+                  ranking={getEmployeeOverlapRanking(selectedOverlapEmployee)}
+                  onClose={() => setSelectedOverlapEmployee(null)}
                 />
               )}
             </div>
@@ -2955,38 +2965,36 @@ function ShiftTypePieChart({ schedule }) {
 // 班次趨勢變化折線圖組件
 function ShiftTrendChart({ schedule, names }) {
   const calculateShiftTrend = () => {
-    const trendData = []
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const data = []
     
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayData = {
-        date: `${day}日`,
-        early: 0,
-        middle: 0,
-        night: 0,
-        rest: 0,
-        special: 0
-      }
+      let early = 0, middle = 0, night = 0, rest = 0, special = 0
       
       Object.keys(schedule).forEach(employeeId => {
         if (employeeId === '_lastUpdated') return
         
         const shift = schedule[employeeId]?.[day]
-        if (shift) {
-          switch (shift) {
-            case '早': dayData.early++; break
-            case '中': dayData.middle++; break
-            case '晚': dayData.night++; break
-            case '休': dayData.rest++; break
-            case '特': dayData.special++; break
-          }
+        switch (shift) {
+          case '早': early++; break
+          case '中': middle++; break
+          case '晚': night++; break
+          case '休': rest++; break
+          case '特': special++; break
         }
       })
       
-      trendData.push(dayData)
+      data.push({
+        date: `${day}日`,
+        early,
+        middle,
+        night,
+        rest,
+        special
+      })
     }
     
-    return trendData
+    return data
   }
   
   const data = calculateShiftTrend()
@@ -3076,13 +3084,262 @@ function PersonalDashboard({ schedule, names, selectedEmployee }) {
   
   const personalStats = calculatePersonalStats()
   
-  return (
-    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
-      <h3 className="text-xl font-bold mb-6 text-purple-300 text-center">
-        {personalStats.name} 的個人統計
-      </h3>
+  // 計算圓餅圖數據
+  const pieChartData = [
+    { name: '早班', value: personalStats.early, color: '#ec4899' },
+    { name: '中班', value: personalStats.middle, color: '#06b6d4' },
+    { name: '晚班', value: personalStats.night, color: '#3b82f6' },
+    { name: '休假', value: personalStats.rest, color: '#6b7280' },
+    { name: '特殊', value: personalStats.special, color: '#f97316' }
+  ].filter(item => item.value > 0)
+  
+  // 計算連續上班分析數據
+  const calculateConsecutiveWorkData = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const consecutivePeriods = []
+    let currentStreak = 0
+    let periodCount = 0
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const shift = schedule[selectedEmployee]?.[day]
       
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      if (shift && shift !== '休') {
+        currentStreak++
+      } else {
+        if (currentStreak > 0) {
+          periodCount++
+          consecutivePeriods.push({
+            period: `期間${periodCount}`,
+            consecutiveDays: currentStreak,
+            trend: currentStreak >= 6 ? '高' : currentStreak >= 4 ? '中' : '低'
+          })
+        }
+        currentStreak = 0
+      }
+    }
+    
+    // 處理最後一個連續期
+    if (currentStreak > 0) {
+      periodCount++
+      consecutivePeriods.push({
+        period: `期間${periodCount}`,
+        consecutiveDays: currentStreak,
+                    trend: currentStreak >= 6 ? '高' : currentStreak >= 4 ? '中' : '低'
+      })
+    }
+    
+    return consecutivePeriods
+  }
+  
+  // 計算班次轉換分析數據
+  const calculateShiftTransitions = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const transitions = []
+    
+    for (let day = 1; day < daysInMonth; day++) {
+      const currentShift = schedule[selectedEmployee]?.[day]
+      const nextShift = schedule[selectedEmployee]?.[day + 1]
+      
+      if (currentShift && nextShift) {
+        transitions.push({
+          from: currentShift,
+          to: nextShift,
+          day: day
+        })
+      }
+    }
+    
+    return transitions
+  }
+  
+  // 渲染班次轉換流程圖
+  const renderShiftTransitionFlow = () => {
+    const transitions = calculateShiftTransitions()
+    const transitionCounts = {}
+    
+    // 統計轉換頻率
+    transitions.forEach(t => {
+      const key = `${t.from}→${t.to}`
+      transitionCounts[key] = (transitionCounts[key] || 0) + 1
+    })
+    
+    // 排序顯示最常見的轉換
+    const sortedTransitions = Object.entries(transitionCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+    
+    return (
+      <div className="space-y-3">
+        <div className="text-sm text-gray-400 text-center mb-4">
+          最常見的班次轉換模式
+        </div>
+        {sortedTransitions.map(([transition, count], index) => {
+          const [from, to] = transition.split('→')
+          const getShiftColor = (shift) => {
+            switch (shift) {
+              case '早': return 'bg-pink-500'
+              case '中': return 'bg-cyan-500'
+              case '晚': return 'bg-blue-500'
+              case '休': return 'bg-gray-500'
+              case '特': return 'bg-orange-500'
+              default: return 'bg-gray-400'
+            }
+          }
+          
+          return (
+            <div key={transition} className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full ${getShiftColor(from)} flex items-center justify-center text-white text-xs font-bold`}>
+                  {from}
+                </div>
+                <div className="text-gray-400">→</div>
+                <div className={`w-8 h-8 rounded-full ${getShiftColor(to)} flex items-center justify-center text-white text-xs font-bold`}>
+                  {to}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-green-400">{count}</div>
+                <div className="text-xs text-gray-400">次</div>
+              </div>
+            </div>
+          )
+        })}
+        
+        {sortedTransitions.length === 0 && (
+          <div className="text-center text-gray-400 py-8">
+            本月無班次轉換記錄
+          </div>
+        )}
+      </div>
+    )
+  }
+  
+  // 計算每日班次分布數據
+  const dailyShiftData = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const data = []
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const shift = schedule[selectedEmployee]?.[day]
+      data.push({
+        day: `${day}日`,
+        shift: shift || '無班次',
+        value: shift ? 1 : 0
+      })
+    }
+    
+    return data
+  }
+  
+  // 計算連續上班趨勢數據
+  const calculateConsecutiveTrendData = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const trendData = []
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      let currentStreak = 0
+      let riskLevel = 0
+      
+      // 計算到當天為止的連續上班天數
+      for (let d = 1; d <= day; d++) {
+        const shift = schedule[selectedEmployee]?.[d]
+        if (shift && shift !== '休') {
+          currentStreak++
+        } else {
+          if (currentStreak > 0) {
+            if (currentStreak >= 7) riskLevel = 3
+            else if (currentStreak >= 5) riskLevel = 2
+            else riskLevel = 1
+          }
+          currentStreak = 0
+        }
+      }
+      
+      // 處理跨月的情況
+      if (currentStreak > 0) {
+        if (currentStreak >= 7) riskLevel = 3
+        else if (currentStreak >= 5) riskLevel = 2
+        else riskLevel = 1
+      }
+      
+      trendData.push({
+        date: `${day}日`,
+        consecutiveDays: currentStreak,
+        riskLevel: riskLevel
+      })
+    }
+    
+    return trendData
+  }
+  
+  // 計算班次轉換數據
+  const calculateShiftTransitionData = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const transitionCounts = {}
+    
+    for (let day = 1; day < daysInMonth; day++) {
+      const currentShift = schedule[selectedEmployee]?.[day]
+      const nextShift = schedule[selectedEmployee]?.[day + 1]
+      
+      if (currentShift && nextShift) {
+        const key = `${currentShift}→${nextShift}`
+        transitionCounts[key] = (transitionCounts[key] || 0) + 1
+      }
+    }
+    
+    return Object.entries(transitionCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([transition, value]) => ({
+        transition,
+        value
+      }))
+  }
+  
+  // 計算班次轉換統計
+  const calculateShiftTransitionStats = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const transitionCounts = {}
+    
+    for (let day = 1; day < daysInMonth; day++) {
+      const currentShift = schedule[selectedEmployee]?.[day]
+      const nextShift = schedule[selectedEmployee]?.[day + 1]
+      
+      if (currentShift && nextShift) {
+        const key = `${currentShift}→${nextShift}`
+        if (!transitionCounts[key]) {
+          const [from, to] = key.split('→')
+          transitionCounts[key] = {
+            from,
+            to,
+            count: 0
+          }
+        }
+        transitionCounts[key].count++
+      }
+    }
+    
+    return Object.values(transitionCounts).sort((a, b) => b.count - a.count)
+  }
+  
+
+  
+  // 獲取班次顏色
+  const getShiftColor = (shift) => {
+    switch (shift) {
+      case '早': return '#ec4899'
+      case '中': return '#06b6d4'
+      case '晚': return '#3b82f6'
+      case '休': return '#6b7280'
+      case '特': return '#f97316'
+      default: return '#9ca3af'
+    }
+  }
+  
+  return (
+    <div className="space-y-6">
+      {/* 統計卡片 */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="text-center p-4 bg-pink-500/20 rounded-lg border border-pink-400/30">
           <div className="text-2xl font-bold text-pink-300">{personalStats.early}</div>
           <div className="text-sm text-pink-200">早班</div>
@@ -3105,12 +3362,685 @@ function PersonalDashboard({ schedule, names, selectedEmployee }) {
         </div>
       </div>
       
-      <div className="text-center">
+      {/* 工作統計 */}
+      <div className="text-center p-4 bg-surface/40 rounded-lg border border-white/10">
         <div className="text-lg font-semibold text-white">
           總工作天數：{personalStats.total} 天
         </div>
         <div className="text-sm text-gray-400">
           工作率：{((personalStats.total / 31) * 100).toFixed(1)}%
+        </div>
+      </div>
+      
+      {/* 視覺化圖表 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 班次佔比圓餅圖 */}
+        <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+          <h4 className="text-lg font-bold mb-4 text-purple-300 text-center">班次佔比</h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={pieChartData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {pieChartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#ffffff'
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        
+        {/* 每日班次分布熱力圖 */}
+        <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+          <h4 className="text-lg font-bold mb-4 text-blue-300 text-center">每日班次分布</h4>
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {/* 星期標題 */}
+            {['日', '一', '二', '三', '四', '五', '六'].map(day => (
+              <div key={day} className="text-center text-sm font-semibold text-gray-400 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {/* 空白天數（當月第一天前的空白） */}
+            {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth(), 1).getDay() }, (_, i) => (
+              <div key={`empty-${i}`} className="h-8 bg-surface/20 rounded border border-white/5"></div>
+            ))}
+            {/* 當月天數 */}
+            {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() }, (_, i) => {
+              const day = i + 1
+              const shift = schedule[selectedEmployee]?.[day]
+              const getShiftColor = (shift) => {
+                switch (shift) {
+                  case '早': return 'bg-pink-500 text-white'
+                  case '中': return 'bg-cyan-500 text-white'
+                  case '晚': return 'bg-blue-500 text-white'
+                  case '休': return 'bg-gray-500 text-white'
+                  case '特': return 'bg-orange-500 text-white'
+                  default: return 'bg-surface/20 text-gray-400 border border-white/10'
+                }
+              }
+              const getShiftTooltip = (shift) => {
+                switch (shift) {
+                  case '早': return '早班'
+                  case '中': return '中班'
+                  case '晚': return '晚班'
+                  case '休': return '休假'
+                  case '特': return '特殊班'
+                  default: return '無班次'
+                }
+              }
+              
+              return (
+                <div 
+                  key={day}
+                  className={`h-8 rounded border flex items-center justify-center text-xs font-bold transition-all hover:scale-110 cursor-pointer ${getShiftColor(shift)}`}
+                  title={`${day}日 - ${getShiftTooltip(shift)}`}
+                >
+                  {day}
+                </div>
+              )
+            })}
+          </div>
+          {/* 圖例 */}
+          <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-pink-500 rounded"></div>
+              <span className="text-gray-300">早班</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-cyan-500 rounded"></div>
+              <span className="text-gray-300">中班</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-blue-500 rounded"></div>
+              <span className="text-gray-300">晚班</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-gray-500 rounded"></div>
+              <span className="text-gray-300">休假</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-orange-500 rounded"></div>
+              <span className="text-gray-300">特殊</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* 連續上班分析圖 */}
+      <div className="space-y-6">
+        {/* 連續上班堆疊長條圖 */}
+        <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+          <h4 className="text-lg font-bold mb-4 text-orange-300 text-center">連續上班天數分析</h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={calculateConsecutiveWorkData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+              <XAxis dataKey="period" stroke="#ffffff80" />
+              <YAxis stroke="#ffffff80" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#ffffff'
+                }}
+                formatter={(value, name) => {
+                  const riskLabels = {
+                    highRisk: '高 (≥6天)',
+                    mediumRisk: '中 (4-5天)',
+                    lowRisk: '低 (1-3天)'
+                  }
+                  return [value, riskLabels[name] || name]
+                }}
+              />
+              <Legend />
+              <Bar dataKey="consecutiveDays" fill="#f97316" name="連續天數" />
+            </BarChart>
+          </ResponsiveContainer>
+          
+          {/* 等級說明 */}
+          <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center justify-center p-2 bg-red-500/20 rounded-lg border border-red-400/30">
+              <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+              <span className="text-red-300">高 (≥6天)</span>
+            </div>
+            <div className="flex items-center justify-center p-2 bg-orange-500/20 rounded-lg border border-orange-400/30">
+              <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
+              <span className="text-orange-300">中 (4-5天)</span>
+            </div>
+            <div className="flex items-center justify-center p-2 bg-green-500/20 rounded-lg border border-green-400/30">
+              <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+              <span className="text-green-300">低 (1-3天)</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* 連續上班趨勢線 */}
+        <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+          <h4 className="text-lg font-bold mb-4 text-blue-300 text-center">連續上班頻率趨勢</h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={calculateConsecutiveTrendData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+              <XAxis dataKey="date" stroke="#ffffff80" />
+              <YAxis stroke="#ffffff80" domain={[0, 6]} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#ffffff'
+                }}
+              />
+              <Legend />
+              <Line type="monotone" dataKey="consecutiveDays" stroke="#8b5cf6" strokeWidth={3} name="連續天數" />
+              <Line type="monotone" dataKey="riskLevel" stroke="#ef4444" strokeWidth={2} name="等級" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      
+      {/* 班次轉換分析圖 */}
+      <div className="space-y-6">
+        {/* 班次轉換桑基圖 */}
+        <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+          <h4 className="text-lg font-bold mb-4 text-purple-300 text-center">班次轉換關係圖</h4>
+          
+          {/* 簡化版桑基圖 - 使用長條圖表示轉換關係 */}
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={calculateShiftTransitionData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+              <XAxis dataKey="transition" stroke="#ffffff80" />
+              <YAxis stroke="#ffffff80" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#ffffff'
+                }}
+                formatter={(value, name, props) => [
+                  `${props.payload.transition}: ${value}次`,
+                  '轉換次數'
+                ]}
+              />
+              <Bar dataKey="value" fill="#8b5cf6" />
+            </BarChart>
+          </ResponsiveContainer>
+          
+          {/* 班次轉換統計 */}
+          <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {calculateShiftTransitionStats().slice(0, 8).map((transition, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                    style={{ backgroundColor: getShiftColor(transition.from) }}
+                  >
+                    {transition.from}
+                  </div>
+                  <span className="text-gray-400">→</span>
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                    style={{ backgroundColor: getShiftColor(transition.to) }}
+                  >
+                    {transition.to}
+                  </div>
+                </div>
+                <div className="text-purple-300 font-bold">{transition.count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+
+      </div>
+    </div>
+  )
+}
+
+// 連續上班分析圖組件
+function ConsecutiveWorkAnalysisChart({ schedule, names }) {
+  const calculateConsecutiveWorkData = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const employeeData = []
+    
+    Object.keys(schedule).forEach(employeeId => {
+      if (employeeId === '_lastUpdated') return
+      
+      const employeeName = names[employeeId] || employeeId
+      const consecutivePeriods = []
+      let currentStreak = 0
+      let periodCount = 0
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const shift = schedule[employeeId]?.[day]
+        
+        if (shift && shift !== '休') {
+          currentStreak++
+        } else {
+          if (currentStreak > 0) {
+            periodCount++
+            consecutivePeriods.push({
+              period: `期間${periodCount}`,
+              days: currentStreak,
+              risk: currentStreak >= 6 ? 'high' : currentStreak >= 4 ? 'medium' : 'low'
+            })
+            currentStreak = 0
+          }
+        }
+      }
+      
+      // 處理最後一個連續期間
+      if (currentStreak > 0) {
+        periodCount++
+        consecutivePeriods.push({
+          period: `期間${periodCount}`,
+          days: currentStreak,
+          risk: currentStreak >= 6 ? 'high' : currentStreak >= 4 ? 'medium' : 'low'
+        })
+      }
+      
+      if (consecutivePeriods.length > 0) {
+        // 計算各等級的天數
+        let highRiskDays = 0
+        let mediumRiskDays = 0
+        let lowRiskDays = 0
+        
+        consecutivePeriods.forEach(period => {
+          if (period.risk === 'high') {
+            highRiskDays += period.days
+          } else if (period.risk === 'medium') {
+            mediumRiskDays += period.days
+          } else {
+            lowRiskDays += period.days
+          }
+        })
+        
+        employeeData.push({
+          name: employeeName,
+          periods: consecutivePeriods,
+          totalConsecutiveDays: consecutivePeriods.reduce((sum, p) => sum + p.days, 0),
+          maxConsecutiveDays: Math.max(...consecutivePeriods.map(p => p.days)),
+          highRisk: highRiskDays,
+          mediumRisk: mediumRiskDays,
+          lowRisk: lowRiskDays,
+          riskLevel: consecutivePeriods.some(p => p.risk === 'high') ? 'high' : 
+                    consecutivePeriods.some(p => p.risk === 'medium') ? 'medium' : 'low'
+        })
+      }
+    })
+    
+    return employeeData.sort((a, b) => b.totalConsecutiveDays - a.totalConsecutiveDays)
+  }
+  
+  const calculateTrendData = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const trendData = []
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      let consecutiveCount = 0
+      let highRiskCount = 0
+      let mediumRiskCount = 0
+      let lowRiskCount = 0
+      
+      Object.keys(schedule).forEach(employeeId => {
+        if (employeeId === '_lastUpdated') return
+        
+        // 計算該員工到當天為止的連續上班天數
+        let currentStreak = 0
+        for (let d = 1; d <= day; d++) {
+          const shift = schedule[employeeId]?.[d]
+          if (shift && shift !== '休') {
+            currentStreak++
+          } else {
+            if (currentStreak > 0) {
+              if (currentStreak >= 6) highRiskCount++
+              else if (currentStreak >= 4) mediumRiskCount++
+              else lowRiskCount++
+              consecutiveCount++
+            }
+            currentStreak = 0
+          }
+        }
+        
+        // 處理跨月的情況
+        if (currentStreak > 0) {
+          if (currentStreak >= 6) highRiskCount++
+          else if (currentStreak >= 4) mediumRiskCount++
+          else lowRiskCount++
+          consecutiveCount++
+        }
+      })
+      
+      trendData.push({
+        date: `${day}日`,
+        consecutivePeriods: consecutiveCount,
+        highRisk: highRiskCount,
+        mediumRisk: mediumRiskCount,
+        lowRisk: lowRiskCount
+      })
+    }
+    
+    return trendData
+  }
+  
+  const employeeData = calculateConsecutiveWorkData()
+  const trendData = calculateTrendData()
+  
+  return (
+    <div className="space-y-6">
+      {/* 連續上班堆疊長條圖 */}
+      <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+        <h3 className="text-xl font-bold mb-6 text-orange-300 text-center">連續上班天數分析</h3>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={employeeData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+            <XAxis dataKey="name" stroke="#ffffff80" />
+            <YAxis stroke="#ffffff80" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }}
+              formatter={(value, name) => {
+                const riskLabels = {
+                  highRisk: '高 (≥6天)',
+                  mediumRisk: '中 (4-5天)',
+                  lowRisk: '低 (1-3天)'
+                }
+                return [value, riskLabels[name] || name]
+              }}
+            />
+            <Legend />
+            <Bar dataKey="highRisk" stackId="a" fill="#ef4444" name="highRisk" />
+            <Bar dataKey="mediumRisk" stackId="a" fill="#f97316" name="mediumRisk" />
+            <Bar dataKey="lowRisk" stackId="a" fill="#22c55e" name="lowRisk" />
+          </BarChart>
+        </ResponsiveContainer>
+        
+        {/* 等級說明 */}
+        <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+          <div className="flex items-center justify-center p-2 bg-red-500/20 rounded-lg border border-red-400/30">
+            <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+            <span className="text-red-300">高 (≥6天)</span>
+          </div>
+          <div className="flex items-center justify-center p-2 bg-orange-500/20 rounded-lg border border-orange-400/30">
+            <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
+            <span className="text-orange-300">中 (4-5天)</span>
+          </div>
+          <div className="flex items-center justify-center p-2 bg-green-500/20 rounded-lg border border-green-400/30">
+            <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+            <span className="text-green-300">低 (1-3天)</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* 連續上班趨勢線 */}
+      <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+        <h3 className="text-xl font-bold mb-6 text-blue-300 text-center">連續上班頻率趨勢</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+            <XAxis dataKey="date" stroke="#ffffff80" />
+            <YAxis stroke="#ffffff80" domain={[0, 6]} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }}
+            />
+            <Legend />
+            <Line type="monotone" dataKey="consecutivePeriods" stroke="#8b5cf6" strokeWidth={3} name="連續期間數" />
+            <Line type="monotone" dataKey="highRisk" stroke="#ef4444" strokeWidth={2} name="高期間" />
+            <Line type="monotone" dataKey="mediumRisk" stroke="#f97316" strokeWidth={2} name="中期間" />
+            <Line type="monotone" dataKey="lowRisk" stroke="#22c55e" strokeWidth={2} name="低期間" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
+// 班次轉換分析圖組件
+function ShiftTransitionAnalysisChart({ schedule, names }) {
+  const calculateShiftTransitionData = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const transitions = []
+    const transitionCounts = {}
+    
+    // 計算所有員工的班次轉換
+    Object.keys(schedule).forEach(employeeId => {
+      if (employeeId === '_lastUpdated') return
+      
+      for (let day = 1; day < daysInMonth; day++) {
+        const currentShift = schedule[employeeId]?.[day]
+        const nextShift = schedule[employeeId]?.[day + 1]
+        
+        if (currentShift && nextShift) {
+          const key = `${currentShift}→${nextShift}`
+          transitionCounts[key] = (transitionCounts[key] || 0) + 1
+          
+          transitions.push({
+            from: currentShift,
+            to: nextShift,
+            employee: names[employeeId] || employeeId,
+            day: day
+          })
+        }
+      }
+    })
+    
+    // 轉換為桑基圖數據格式
+    const sankeyData = Object.entries(transitionCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10) // 只顯示前10個最常見的轉換
+      .map(([transition, value]) => {
+        const [from, to] = transition.split('→')
+        return {
+          transition: `${from}→${to}`,
+          source: from,
+          target: to,
+          value: value
+        }
+      })
+    
+    return {
+      transitions,
+      transitionCounts,
+      sankeyData
+    }
+  }
+  
+  const calculateFlowData = () => {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const flowData = []
+    
+    // 分析班次安排的邏輯性
+    for (let day = 1; day <= daysInMonth - 2; day++) {
+      const dayTransitions = []
+      
+      Object.keys(schedule).forEach(employeeId => {
+        if (employeeId === '_lastUpdated') return
+        
+        const day1 = schedule[employeeId]?.[day]
+        const day2 = schedule[employeeId]?.[day + 1]
+        const day3 = schedule[employeeId]?.[day + 2]
+        
+        if (day1 && day2 && day3) {
+          dayTransitions.push({
+            employee: names[employeeId] || employeeId,
+            pattern: `${day1}→${day2}→${day3}`,
+            logical: isLogicalTransition(day1, day2, day3)
+          })
+        }
+      })
+      
+      if (dayTransitions.length > 0) {
+        flowData.push({
+          date: `${day}日`,
+          totalTransitions: dayTransitions.length,
+          logicalTransitions: dayTransitions.filter(t => t.logical).length,
+          illogicalTransitions: dayTransitions.filter(t => !t.logical).length,
+          patterns: dayTransitions.map(t => t.pattern)
+        })
+      }
+    }
+    
+    return flowData
+  }
+  
+  const isLogicalTransition = (shift1, shift2, shift3) => {
+    // 定義合理的班次轉換邏輯
+    const logicalPatterns = [
+      '早→中→晚', '早→中→休', '早→晚→休',
+      '中→晚→休', '中→早→休', '晚→休→早',
+      '休→早→中', '休→早→晚', '休→中→晚',
+      '早→休→中', '中→休→晚', '晚→休→中'
+    ]
+    
+    const pattern = `${shift1}→${shift2}→${shift3}`
+    return logicalPatterns.includes(pattern)
+  }
+  
+  const { transitions, transitionCounts, sankeyData } = calculateShiftTransitionData()
+  const flowData = calculateFlowData()
+  
+  const getShiftColor = (shift) => {
+    switch (shift) {
+      case '早': return '#ec4899'
+      case '中': return '#06b6d4'
+      case '晚': return '#3b82f6'
+      case '休': return '#6b7280'
+      case '特': return '#f97316'
+      default: return '#9ca3af'
+    }
+  }
+  
+  return (
+    <div className="space-y-6">
+      {/* 班次轉換桑基圖 */}
+      <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+        <h3 className="text-xl font-bold mb-6 text-purple-300 text-center">班次轉換關係圖</h3>
+        
+        {/* 簡化版桑基圖 - 使用長條圖表示轉換關係 */}
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={sankeyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+            <XAxis dataKey="transition" stroke="#ffffff80" />
+            <YAxis stroke="#ffffff80" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }}
+              formatter={(value, name, props) => [
+                `${props.payload.transition}: ${value}次`,
+                '轉換次數'
+              ]}
+            />
+            <Bar dataKey="value" fill="#8b5cf6" />
+          </BarChart>
+        </ResponsiveContainer>
+        
+        {/* 班次轉換統計 */}
+        <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Object.entries(transitionCounts)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 8)
+            .map(([transition, count]) => {
+              const [from, to] = transition.split('→')
+              return (
+                <div key={transition} className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: getShiftColor(from) }}
+                    >
+                      {from}
+                    </div>
+                    <span className="text-gray-400">→</span>
+                    <div 
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: getShiftColor(to) }}
+                    >
+                      {to}
+                    </div>
+                  </div>
+                  <div className="text-purple-300 font-bold">{count}</div>
+                </div>
+              )
+            })}
+        </div>
+      </div>
+      
+      {/* 班次安排邏輯性分析 */}
+      <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+        <h3 className="text-xl font-bold mb-6 text-green-300 text-center">班次安排邏輯性分析</h3>
+        
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={flowData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+            <XAxis dataKey="date" stroke="#ffffff80" />
+            <YAxis stroke="#ffffff80" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }}
+            />
+            <Legend />
+            <Line type="monotone" dataKey="logicalTransitions" stroke="#22c55e" strokeWidth={2} name="合理轉換" />
+            <Line type="monotone" dataKey="illogicalTransitions" stroke="#ef4444" strokeWidth={2} name="不合理轉換" />
+            <Line type="monotone" dataKey="totalTransitions" stroke="#8b5cf6" strokeWidth={3} name="總轉換數" />
+          </LineChart>
+        </ResponsiveContainer>
+        
+        {/* 邏輯性統計 */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+            <div className="text-2xl font-bold text-green-300">
+              {flowData.reduce((sum, d) => sum + d.logicalTransitions, 0)}
+            </div>
+            <div className="text-sm text-green-200">合理轉換</div>
+          </div>
+          <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-400/30">
+            <div className="text-2xl font-bold text-red-300">
+              {flowData.reduce((sum, d) => sum + d.illogicalTransitions, 0)}
+            </div>
+            <div className="text-sm text-red-200">不合理轉換</div>
+          </div>
+          <div className="text-center p-4 bg-purple-500/20 rounded-lg border border-purple-400/30">
+            <div className="text-2xl font-bold text-purple-300">
+              {flowData.length > 0 ? 
+                Math.round((flowData.reduce((sum, d) => sum + d.logicalTransitions, 0) / 
+                flowData.reduce((sum, d) => sum + d.totalTransitions, 0)) * 100) : 0}%
+            </div>
+            <div className="text-sm text-purple-200">邏輯性比例</div>
+          </div>
         </div>
       </div>
     </div>

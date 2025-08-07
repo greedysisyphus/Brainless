@@ -137,15 +137,22 @@ function CashierManagement() {
       {/* 浮動外幣找零計算器按鈕 */}
       <button
         onClick={() => setShowForeignChangeCalculator(true)}
-        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-green-400 hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-500/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50 hover:scale-110 transform"
+        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-green-400 hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-500/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50 hover:scale-110 transform touch-manipulation"
+        style={{ minWidth: '56px', minHeight: '56px' }}
       >
         <CurrencyDollarIcon className="w-6 h-6" />
       </button>
 
       {/* 浮動外幣找零計算器彈窗 */}
       {showForeignChangeCalculator && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowForeignChangeCalculator(false)}
+        >
+          <div 
+            className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-xl font-bold text-green-400 mb-1">外幣找零計算器</h2>
@@ -153,9 +160,10 @@ function CashierManagement() {
               </div>
               <button
                 onClick={() => setShowForeignChangeCalculator(false)}
-                className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                className="p-3 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors touch-manipulation"
+                style={{ minWidth: '44px', minHeight: '44px' }}
               >
-                <XMarkIcon className="w-5 h-5" />
+                <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
 
