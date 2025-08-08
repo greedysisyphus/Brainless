@@ -1768,14 +1768,25 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
               <thead>
                 <tr className="bg-surface/40 border-b border-white/20">
                   <th className="text-left p-2 md:p-3 text-purple-300 font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>姓名</th>
-                  {displayDates.map((date) => (
-                    <th key={date} className="text-center p-1 md:p-3 text-green-300 font-medium" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
-                      <div className="text-xs font-semibold">{date}</div>
-                      <div className="text-xs text-gray-400">
-                        {['日', '一', '二', '三', '四', '五', '六'][new Date(new Date().getFullYear(), new Date().getMonth(), date).getDay()]}
-                      </div>
-                    </th>
-                  ))}
+                  {displayDates.map((date) => {
+                    const isToday = date === new Date().getDate()
+                    return (
+                      <th
+                        key={date}
+                        className={`text-center p-1 md:p-3 font-medium relative ${isToday ? 'text-primary' : 'text-green-300'}`}
+                        style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}
+                        title={isToday ? '今天' : undefined}
+                        data-today={isToday ? 'true' : undefined}
+                      >
+                        <div className={`relative text-xs font-semibold inline-flex items-center justify-center w-7 h-7 rounded ${isToday ? 'bg-primary/20 ring-2 ring-primary' : ''}`}>
+                          {date}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {['日', '一', '二', '三', '四', '五', '六'][new Date(new Date().getFullYear(), new Date().getMonth(), date).getDay()]}
+                        </div>
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -1784,24 +1795,25 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
                     <td className="p-2 md:p-3 text-white font-semibold text-xs md:text-sm" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{names[employeeId] || employeeId}</td>
                     {displayDates.map((date) => {
                       const shift = schedule[employeeId]?.[date]
+                      const isToday = date === new Date().getDate()
                       
                       // 班次篩選邏輯
                       if (selectedShifts && selectedShifts.length > 0) {
                         if (!shift || !selectedShifts.includes(shift)) {
                           return (
                             <td key={date} className="p-1 md:p-2 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
-                              <div className="w-full h-6 md:h-8 rounded-lg bg-surface/10 border border-white/5 opacity-50"></div>
+                              <div className={`w-full h-6 md:h-8 rounded-lg border ${isToday ? 'bg-primary/5 border-primary/30' : 'bg-surface/10 border-white/5'} opacity-50`}></div>
                             </td>
                           )
                         }
                       }
                       
                       return (
-                        <td key={date} className="p-1 md:p-2 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
+                        <td key={date} className={`p-1 md:p-2 text-center ${isToday ? 'bg-primary/5' : ''}`} style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
                           {shift ? (
                             <div className={`
                               px-2 py-1 md:px-3 md:py-2 rounded-lg text-center text-xs font-bold
-                              ${shift === '早' ? 'bg-pink-500 text-white' :
+                              ${isToday ? 'ring-2 ring-primary/50 ' : ''}${shift === '早' ? 'bg-pink-500 text-white' :
                                 shift === '中' ? 'bg-cyan-500 text-white' :
                                 shift === '晚' ? 'bg-blue-500 text-white' :
                                 shift === '休' ? 'bg-gray-500 text-white' :
@@ -1811,7 +1823,7 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
                               {shift}
                             </div>
                           ) : (
-                            <div className="w-full h-6 md:h-8 rounded-lg bg-surface/20 border border-white/10"></div>
+                            <div className={`w-full h-6 md:h-8 rounded-lg border ${isToday ? 'bg-primary/5 border-primary/30' : 'bg-surface/20 border-white/10'}`}></div>
                           )}
                         </td>
                       )

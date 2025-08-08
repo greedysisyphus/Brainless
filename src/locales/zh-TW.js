@@ -9,5 +9,55 @@ export default {
     delete: '刪除',
     edit: '編輯'
   },
-  // ... 其他翻譯
+  sandwich: {
+    title: '三明治計算器',
+    subtitle: '選擇拉奶，選擇成功',
+    inputsTitle: '計算輸入',
+    inputsSubtitle: '輸入現有數量',
+    existingHam: '現有的火腿三明治',
+    existingSalami: '現有的臘腸三明治',
+    distribution: '分配方式',
+    distributionEven: '平均分配',
+    distributionHam: '優先火腿',
+    distributionSalami: '優先臘腸',
+    extraBagsLabel: '額外需要的麵包包數',
+    calculate: '計算結果',
+    reset: '重設輸入',
+    resultsTitle: '計算結果',
+    resultsSubtitle: '製作需求總覽',
+    needHam: '需製作的火腿三明治',
+    needSalami: '需製作的臘腸三明治',
+    needBags: '需要的麵包數量',
+    totalNeed: '總計需求',
+    emptyHint: '點擊計算按鈕查看結果'
+  },
+  sandwichUi: {
+    summaryTarget: '目標',
+    summaryExisting: '現有',
+    summaryToMake: '需製作',
+    unitPiece: '個',
+    unitBag: '包',
+    capacityTitle: '容量與分配資訊',
+    capacityFormula: '容量 = 包數 × 每包數量',
+    capacityLeftover: '剩餘切片 = 容量 − 需求',
+    capacityDistributionTitle: '分配方式',
+    capacityEvenDetail: '平均分配：多出的切片會均分到火腿與臘腸',
+    capacityHamDetail: '優先火腿：多出的切片全分給火腿',
+    capacitySalamiDetail: '優先臘腸：多出的切片全分給臘腸',
+    capacityActual: '本次實際分配',
+    hamProgress: '火腿達成度',
+    salamiProgress: '臘腸達成度',
+    inputPlaceholderNumber: '輸入個數',
+    tooltipEven: '平均分配多出的切片',
+    tooltipHam: '多出的切片優先給火腿',
+    tooltipSalami: '多出的切片優先給臘腸'
+  },
+  settings: {
+    title: '基本設定',
+    subtitle: '調整計算參數',
+    breadPerBag: '每包麵包的數量',
+    targetHam: '目標火腿三明治數量',
+    targetSalami: '目標臘腸三明治數量',
+    done: '完成設定'
+  }
 } 

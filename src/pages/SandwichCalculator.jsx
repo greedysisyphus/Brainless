@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { db } from '../utils/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { 
@@ -8,13 +8,13 @@ import {
   ArrowPathIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
+import { useLocalStorage } from '../hooks/useLocalStorage'
+import zhtw from '../locales/zh-TW'
+import { calculateSandwichPlan } from '../services/sandwichCalculator'
 
 function SandwichCalculator() {
-  const [settings, setSettings] = useState({
-    breadPerBag: 8,
-    targetHam: 60,
-    targetSalami: 30
-  })
+  const defaultSettings = { breadPerBag: 8, targetHam: 60, targetSalami: 30 }
+  const [settings, setSettings] = useLocalStorage('sandwich_settings', defaultSettings)
   
   const [values, setValues] = useState({
     existingHam: '',
@@ -24,9 +24,11 @@ function SandwichCalculator() {
   })
   
   const [showSettings, setShowSettings] = useState(false)
+  const [draftSettings, setDraftSettings] = useState(settings)
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showExtraBagsBubble, setShowExtraBagsBubble] = useState(false)
 
   // 監聽 Firebase 設定變更
   useEffect(() => {
@@ -65,56 +67,36 @@ function SandwichCalculator() {
       }
     }
   }, [])
+  
+  // 開啟設定視窗時帶入當前設定作為草稿
+  useEffect(() => {
+    if (showSettings) setDraftSettings(settings)
+  }, [showSettings, settings])
 
   // 更新 Firebase 設定
   const updateSettings = async (newSettings) => {
+    // 先更新本地（含 localStorage）
+    setSettings(newSettings)
     try {
       await setDoc(doc(db, 'settings', 'sandwich'), newSettings)
     } catch (error) {
       console.error('更新設定錯誤:', error)
-      // 如果 Firebase 更新失敗，只更新本地狀態
-      setSettings(newSettings)
       setError('無法同步到 Firebase，設定已保存到本地')
     }
   }
 
-  const calculate = () => {
-    const { breadPerBag, targetHam, targetSalami } = settings
-    const { existingHam, existingSalami, extraBags, distribution } = values
-    
-    let totalHamNeeded = targetHam - (parseInt(existingHam) || 0)
-    let totalSalamiNeeded = targetSalami - (parseInt(existingSalami) || 0)
-    let totalNeeded = totalHamNeeded + totalSalamiNeeded
-    let bagsNeeded = Math.ceil(totalNeeded / breadPerBag) + parseInt(extraBags)
-    
-    let extraSlices = bagsNeeded * breadPerBag - totalNeeded
-    let extraHam = 0
-    let extraSalami = 0
-    
-    switch(distribution) {
-      case 'even':
-        extraHam = Math.floor(extraSlices / 2)
-        extraSalami = extraSlices - extraHam
-        break
-      case 'ham':
-        extraHam = extraSlices
-        break
-      case 'salami':
-        extraSalami = extraSlices
-        break
-    }
-    
-    totalHamNeeded += extraHam
-    totalSalamiNeeded += extraSalami
-    
-    setResults({
-      totalHamNeeded,
-      totalSalamiNeeded,
-      bagsNeeded,
-      totalTarget: targetHam + targetSalami,
-      totalExisting: (parseInt(existingHam) || 0) + (parseInt(existingSalami) || 0)
-    })
+  const saveSettings = async () => {
+    await updateSettings(draftSettings)
+    setShowSettings(false)
   }
+
+  const calculate = () => {
+    const r = calculateSandwichPlan(values, settings)
+    setResults(r)
+  }
+
+  // 預覽用（摘要條）：即時根據當前輸入與設定顯示總結
+  const preview = useMemo(() => calculateSandwichPlan(values, settings), [values, settings])
 
   const resetFields = () => {
     setValues({
@@ -128,20 +110,20 @@ function SandwichCalculator() {
   
   // 分配方式選項
   const distributionMethods = [
-    { value: 'even', label: '平均分配' },
-    { value: 'ham', label: '優先火腿' },
-    { value: 'salami', label: '優先臘腸' }
+    { value: 'even', label: zhtw.sandwich.distributionEven },
+    { value: 'ham', label: zhtw.sandwich.distributionHam },
+    { value: 'salami', label: zhtw.sandwich.distributionSalami }
   ]
   
   return (
     <div className="container-custom py-8">
       <div className="max-w-6xl mx-auto">
-        {/* 頁面標題 */}
+          {/* 頁面標題 */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-            三明治計算器
+            {zhtw.sandwich.title}
           </h1>
-          <p className="text-text-secondary">選擇拉奶，選擇成功</p>
+            <p className="text-text-secondary">{zhtw.sandwich.subtitle}</p>
         </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
@@ -149,18 +131,18 @@ function SandwichCalculator() {
           <div className="card bg-gradient-to-br from-surface/80 to-surface/60 border-primary/20">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
+                 <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
                   <CalculatorIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-primary">計算輸入</h2>
-                  <p className="text-xs sm:text-sm text-text-secondary">輸入現有數量</p>
+                  <h2 className="text-lg sm:text-xl font-bold text-primary">{zhtw.sandwich.inputsTitle}</h2>
+                  <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.inputsSubtitle}</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowSettings(true)}
                 className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary transition-all duration-200 hover:scale-110"
-                title="基本設定"
+                title={zhtw.settings.title}
               >
                 <Cog6ToothIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -182,46 +164,79 @@ function SandwichCalculator() {
               </div>
             ) : (
               <div className="space-y-4">
-                                 <div>
+                 {/* 一行摘要條 */}
+                 <div className="grid grid-cols-3 gap-2">
+                   <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-center">
+                     <div className="text-xs text-text-secondary">{zhtw.sandwichUi.summaryTarget}</div>
+                     <div className="text-base font-semibold">{preview.totalTarget}</div>
+                   </div>
+                   <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-center">
+                     <div className="text-xs text-text-secondary">{zhtw.sandwichUi.summaryExisting}</div>
+                     <div className="text-base font-semibold text-text-secondary">{preview.totalExisting}</div>
+                   </div>
+                   <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 text-center">
+                     <div className="text-xs text-text-secondary">{zhtw.sandwichUi.summaryToMake}</div>
+                     <div className="text-lg sm:text-xl font-bold text-primary">{preview.totalHamNeeded + preview.totalSalamiNeeded}</div>
+                   </div>
+                 </div>
+                 
+                 <div>
                    <label className="block text-sm text-text-secondary mb-2">
-                     現有的火腿三明治
+                     {zhtw.sandwich.existingHam}
                    </label>
-                  <input
-                    type="number"
-                    className="input-field w-full"
-                    placeholder="請輸入數量"
-                    value={values.existingHam}
-                    onChange={e => setValues({
-                      ...values,
-                      existingHam: e.target.value
-                    })}
-                  />
+                   <div className="relative">
+                     <input
+                       type="number"
+                       className="input-field w-full pr-10"
+                       placeholder={zhtw.sandwichUi.inputPlaceholderNumber}
+                       min={0}
+                       inputMode="numeric"
+                       pattern="[0-9]*"
+                       onWheel={e => e.target.blur()}
+                       value={values.existingHam}
+                       onChange={e => setValues({
+                         ...values,
+                         existingHam: e.target.value
+                       })}
+                     />
+                     <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-secondary text-sm">{zhtw.sandwichUi.unitPiece}</span>
+                   </div>
                 </div>
 
-                                 <div>
+                 <div>
                    <label className="block text-sm text-text-secondary mb-2">
-                     現有的臘腸三明治
+                     {zhtw.sandwich.existingSalami}
                    </label>
-                  <input
-                    type="number"
-                    className="input-field w-full"
-                    placeholder="請輸入數量"
-                    value={values.existingSalami}
-                    onChange={e => setValues({
-                      ...values,
-                      existingSalami: e.target.value
-                    })}
-                  />
+                   <div className="relative">
+                     <input
+                       type="number"
+                       className="input-field w-full pr-10"
+                       placeholder={zhtw.sandwichUi.inputPlaceholderNumber}
+                       min={0}
+                       inputMode="numeric"
+                       pattern="[0-9]*"
+                       onWheel={e => e.target.blur()}
+                       value={values.existingSalami}
+                       onChange={e => setValues({
+                         ...values,
+                         existingSalami: e.target.value
+                       })}
+                     />
+                     <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-secondary text-sm">{zhtw.sandwichUi.unitPiece}</span>
+                   </div>
                 </div>
 
-                                 <div>
+                 <div>
                    <label className="block text-sm text-text-secondary mb-2">
-                     分配方式
+                     {zhtw.sandwich.distribution}
                    </label>
-                                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                   <div role="radiogroup" aria-label={zhtw.sandwich.distribution} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                    {distributionMethods.map((method) => (
                      <button
                        key={method.value}
+                       role="radio"
+                       aria-checked={values.distribution === method.value}
+                        title={method.value === 'even' ? zhtw.sandwichUi.tooltipEven : method.value === 'ham' ? zhtw.sandwichUi.tooltipHam : zhtw.sandwichUi.tooltipSalami}
                        onClick={() => setValues({
                          ...values,
                          distribution: method.value
@@ -239,9 +254,9 @@ function SandwichCalculator() {
                 </div>
 
                 <div>
-                                     <label className="block text-sm text-text-secondary mb-2">
-                     額外需要的麵包包數：{values.extraBags}
-                   </label>
+                  <label className="block text-sm text-text-secondary mb-2">
+                    {zhtw.sandwich.extraBagsLabel}：{values.extraBags}
+                  </label>
                   <div className="relative">
                     <input
                       type="range"
@@ -249,11 +264,16 @@ function SandwichCalculator() {
                       max="5"
                       step="1"
                       value={values.extraBags}
-                      onChange={e => setValues({
-                        ...values,
-                        extraBags: parseInt(e.target.value)
-                      })}
-                                           className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer
+                      aria-label={zhtw.sandwich.extraBagsLabel}
+                      onMouseEnter={() => setShowExtraBagsBubble(true)}
+                      onMouseLeave={() => setShowExtraBagsBubble(false)}
+                      onTouchStart={() => setShowExtraBagsBubble(true)}
+                      onTouchEnd={() => setShowExtraBagsBubble(false)}
+                      onChange={e => setValues(v => ({
+                        ...v,
+                        extraBags: parseInt(e.target.value, 10) || 0
+                      }))}
+                      className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer
                                 touch-manipulation
                                 [&::-webkit-slider-thumb]:appearance-none
                                 [&::-webkit-slider-thumb]:w-6
@@ -275,14 +295,24 @@ function SandwichCalculator() {
                                 [&::-moz-range-thumb]:transition-all
                                 [&::-moz-range-thumb]:shadow-lg"
                     />
-                    <div className="flex justify-between text-xs text-text-secondary mt-2 px-1">
-                      <span>0</span>
-                      <span>1</span>
-                      <span>2</span>
-                      <span>3</span>
-                      <span>4</span>
-                      <span>5</span>
-                    </div>
+                    {showExtraBagsBubble && (
+                      <div
+                        className="absolute -top-7"
+                        style={{ left: `${(values.extraBags / 5) * 100}%`, transform: 'translateX(-50%)' }}
+                      >
+                        <div className="px-2 py-0.5 rounded bg-primary/80 text-white text-xs shadow">
+                          {values.extraBags}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-between text-xs text-text-secondary mt-2 px-1">
+                    <span>0</span>
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
                   </div>
                 </div>
 
@@ -291,68 +321,78 @@ function SandwichCalculator() {
                      onClick={calculate}
                      className="btn-primary w-full py-3 sm:py-4 text-sm sm:text-base"
                    >
-                     計算結果
+                     {zhtw.sandwich.calculate}
                    </button>
                    <button 
                      onClick={resetFields}
                      className="w-full px-3 py-2 sm:px-4 sm:py-3 bg-white/5 hover:bg-white/10 
                               text-text-secondary rounded-lg transition-all duration-200 text-sm sm:text-base"
                    >
-                     重設輸入
+                     {zhtw.sandwich.reset}
                    </button>
                  </div>
               </div>
             )}
           </div>
 
-          {/* 結果卡片 */}
+           {/* 結果卡片 */}
           <div className="card bg-gradient-to-br from-surface/60 to-surface/40 border-primary/20">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
                 <ChartBarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-primary">計算結果</h2>
-                <p className="text-xs sm:text-sm text-text-secondary">製作需求總覽</p>
+                <h2 className="text-lg sm:text-xl font-bold text-primary">{zhtw.sandwich.resultsTitle}</h2>
+                <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.resultsSubtitle}</p>
               </div>
             </div>
 
             {results ? (
               <div className="space-y-4 animate-fade-in">
-                                                  <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/30">
-                   <div className="mb-2">
-                     <span className="text-sm text-text-secondary font-medium">需製作的火腿三明治</span>
-                   </div>
-                   <div className="text-xl sm:text-2xl font-bold text-white">{results.totalHamNeeded} 個</div>
-                 </div>
+                  <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/30">
+                    <div className="text-2xl font-bold text-white">{results.totalHamNeeded}</div>
+                    <div className="text-xs text-text-secondary mt-1">{zhtw.sandwich.needHam}（{zhtw.sandwichUi.unitPiece}）</div>
+                  </div>
                  
-                 <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/30">
-                   <div className="mb-2">
-                     <span className="text-sm text-text-secondary font-medium">需製作的臘腸三明治</span>
-                   </div>
-                   <div className="text-xl sm:text-2xl font-bold text-white">{results.totalSalamiNeeded} 個</div>
-                 </div>
+                  <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/30">
+                    <div className="text-2xl font-bold text-white">{results.totalSalamiNeeded}</div>
+                    <div className="text-xs text-text-secondary mt-1">{zhtw.sandwich.needSalami}（{zhtw.sandwichUi.unitPiece}）</div>
+                  </div>
                  
-                 <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/30">
-                   <div className="mb-2">
-                     <span className="text-sm text-text-secondary font-medium">需要的麵包數量</span>
-                   </div>
-                   <div className="text-xl sm:text-2xl font-bold text-white">{results.bagsNeeded} 包</div>
-                 </div>
+                  <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/30">
+                    <div className="text-2xl font-bold text-white">{results.bagsNeeded}</div>
+                    <div className="text-xs text-text-secondary mt-1">{zhtw.sandwich.needBags}（{zhtw.sandwichUi.unitBag}）</div>
+                  </div>
 
-                 <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/30">
-                   <div className="mb-2">
-                     <span className="text-sm text-text-secondary font-medium">總計需求</span>
-                   </div>
-                   <div className="text-lg sm:text-xl font-bold text-white">
-                     {results.totalHamNeeded + results.totalSalamiNeeded} 個三明治
-                   </div>
-                 </div>
+                  <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-4 border border-primary/30">
+                    <div className="text-2xl font-bold text-white">{results.totalHamNeeded + results.totalSalamiNeeded}</div>
+                    <div className="text-xs text-text-secondary mt-1">{zhtw.sandwich.totalNeed}（{zhtw.sandwichUi.unitPiece}）</div>
+                  </div>
+
+                  {/* 容量與分配資訊 */}
+                  <div className="rounded-xl p-4 bg-white/5 border border-white/10 space-y-1.5">
+                    <div className="text-sm font-semibold">{zhtw.sandwichUi.capacityTitle}</div>
+                    <div className="text-xs text-text-secondary">{zhtw.sandwichUi.capacityFormula}：{results.bagsNeeded} × {settings.breadPerBag} = <span className="text-white font-medium">{results.totalSlices}</span></div>
+                    <div className="text-xs text-text-secondary">{zhtw.sandwichUi.capacityLeftover}：<span className="text-white font-medium">{results.extraSlices}</span></div>
+                    <div className="text-xs text-text-secondary mt-2">{zhtw.sandwichUi.capacityDistributionTitle}：
+                      <span className="ml-1">
+                        {values.distribution === 'even' && zhtw.sandwichUi.capacityEvenDetail}
+                        {values.distribution === 'ham' && zhtw.sandwichUi.capacityHamDetail}
+                        {values.distribution === 'salami' && zhtw.sandwichUi.capacitySalamiDetail}
+                      </span>
+                    </div>
+                    <div className="text-xs text-text-secondary">
+                      {zhtw.sandwichUi.capacityActual}：
+                      <span className="ml-1 text-white font-medium">火腿 +{results.extraHam}</span>
+                      <span className="mx-2">/</span>
+                      <span className="text-white font-medium">臘腸 +{results.extraSalami}</span>
+                    </div>
+                  </div>
               </div>
             ) : (
               <div className="text-center py-12 text-text-secondary">
                 <CalculatorIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>點擊計算按鈕查看結果</p>
+                <p>{zhtw.sandwich.emptyHint}</p>
               </div>
             )}
           </div>
@@ -368,8 +408,8 @@ function SandwichCalculator() {
                   <Cog6ToothIcon className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-primary">基本設定</h2>
-                  <p className="text-sm text-text-secondary">調整計算參數</p>
+                  <h2 className="text-xl font-bold text-primary">{zhtw.settings.title}</h2>
+                  <p className="text-sm text-text-secondary">{zhtw.settings.subtitle}</p>
                 </div>
               </div>
                 <button
@@ -385,72 +425,63 @@ function SandwichCalculator() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm text-text-secondary mb-2">
-                    每包麵包的數量
+                    {zhtw.settings.breadPerBag}
                   </label>
                   <input
                     type="number"
                     className="input-field w-full"
-                    value={settings.breadPerBag}
-                    onChange={e => {
-                      const newSettings = {
-                        ...settings,
-                        breadPerBag: parseInt(e.target.value)
-                      }
-                      setSettings(newSettings)
-                      updateSettings(newSettings)
-                    }}
+                    min={1}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    onWheel={e => e.target.blur()}
+                    value={draftSettings.breadPerBag}
+                    onChange={e => setDraftSettings(s => ({ ...s, breadPerBag: parseInt(e.target.value, 10) || 1 }))}
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-text-secondary mb-2">
-                    目標火腿三明治數量
+                    {zhtw.settings.targetHam}
                   </label>
                   <input
                     type="number"
                     className="input-field w-full"
-                    value={settings.targetHam}
-                    onChange={e => {
-                      const newSettings = {
-                        ...settings,
-                        targetHam: parseInt(e.target.value)
-                      }
-                      setSettings(newSettings)
-                      updateSettings(newSettings)
-                    }}
+                    min={0}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    onWheel={e => e.target.blur()}
+                    value={draftSettings.targetHam}
+                    onChange={e => setDraftSettings(s => ({ ...s, targetHam: parseInt(e.target.value, 10) || 0 }))}
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-text-secondary mb-2">
-                    目標臘腸三明治數量
+                    {zhtw.settings.targetSalami}
                   </label>
                   <input
                     type="number"
                     className="input-field w-full"
-                    value={settings.targetSalami}
-                    onChange={e => {
-                      const newSettings = {
-                        ...settings,
-                        targetSalami: parseInt(e.target.value)
-                      }
-                      setSettings(newSettings)
-                      updateSettings(newSettings)
-                    }}
+                    min={0}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    onWheel={e => e.target.blur()}
+                    value={draftSettings.targetSalami}
+                    onChange={e => setDraftSettings(s => ({ ...s, targetSalami: parseInt(e.target.value, 10) || 0 }))}
                   />
                 </div>
               </div>
 
               <div className="flex gap-3 mt-6">
-                               <button 
+               <button 
                  className="flex-1 px-4 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors"
-                 onClick={() => setShowSettings(false)}
+                 onClick={saveSettings}
                >
-                 完成設定
+                 {zhtw.settings.done}
                </button>
                 <button 
                   className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-text-secondary rounded-lg transition-colors"
                   onClick={() => setShowSettings(false)}
                 >
-                  取消
+                  {zhtw.common.cancel}
                 </button>
               </div>
             </div>
