@@ -72,6 +72,22 @@
     @apply opacity-100 transform translate-x-0 transition-all duration-300;
   }
 
+  /* 淡入動畫 */
+  .animate-fadeIn {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   /* 漸變標題 */
   .gradient-text {
     @apply font-bold bg-gradient-to-r from-primary via-purple-500 to-secondary 
