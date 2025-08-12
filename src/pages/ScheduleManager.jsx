@@ -41,6 +41,54 @@ const PICKUP_LOCATIONS = [
   '不搭車'
 ]
 
+// 車費方案常數
+const FARE_PLANS = {
+  'A21 環北站': {
+    name: 'A21 環北站',
+    originalPrice: 65,
+    monthlyPass: {
+      30: 1260,
+      90: 3564,
+      120: 3888
+    }
+  },
+  'A19 體育園區站': {
+    name: 'A19 體育園區站',
+    originalPrice: 40,
+    monthlyPass: {
+      30: 735,
+      90: 2079,
+      120: 2268
+    }
+  },
+  '7-11 高萱門市': {
+    name: 'A19 體育園區站',
+    originalPrice: 40,
+    monthlyPass: {
+      30: 735,
+      90: 2079,
+      120: 2268
+    }
+  },
+  'A18 桃園高鐵站': {
+    name: 'A18 桃園高鐵站',
+    originalPrice: 35,
+    monthlyPass: {
+      30: 630,
+      90: 1782,
+      120: 1944
+    }
+  }
+}
+
+// TPass 方案
+const TPASS_PLAN = {
+  name: 'TPass 799',
+  price: 799,
+  days: 30,
+  description: 'A7-A22 無限搭乘 30天'
+}
+
 // 班別代碼對應
 const SHIFT_CODES = {
   'K': '早',
@@ -71,7 +119,7 @@ function ScheduleManager() {
   const [pickupLocations, setPickupLocations] = useState({})
   
   // 顯示設定
-  const [viewMode, setViewMode] = useState('date') // 'date', 'employee', 'timeline', '3d'
+  const [viewMode, setViewMode] = useState('date') // 'date', 'employee', 'partner'
   const [filterMode, setFilterMode] = useState('all') // 'all', 'today', '3days', '7days'
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [selectedWeek, setSelectedWeek] = useState('week1')
@@ -85,6 +133,12 @@ function ScheduleManager() {
   
   // 統計分頁狀態
   const [statsTab, setStatsTab] = useState('charts') // 'charts' 或 'overlap'
+  
+  // 交通分頁狀態
+  const [transportTab, setTransportTab] = useState('chart') // 'chart' 或 'fare'
+  
+  // 車費試算狀態
+  const [fareCalculationEmployee, setFareCalculationEmployee] = useState(null)
   
   // 匯入資料
   const [importData, setImportData] = useState('')
@@ -483,6 +537,102 @@ function ScheduleManager() {
         return Array.from({ length: dateRange.end - dateRange.start + 1 }, (_, i) => dateRange.start + i)
       default:
         return Array.from({ length: 31 }, (_, i) => i + 1)
+    }
+  }
+  
+  // 計算車費
+  const calculateFare = (employeeId) => {
+    // 自動計算整個月的日期範圍
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    const startDate = 1
+    const endDate = daysInMonth
+    if (!employeeId || !pickupLocations[employeeId]) return null
+    
+    const location = pickupLocations[employeeId]
+    if (location === '不搭車' || !FARE_PLANS[location]) return null
+    
+    const schedule = selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule
+    const employeeSchedule = schedule[employeeId]
+    if (!employeeSchedule) return null
+    
+    let totalTrips = 0
+    let workDays = 0
+    
+    // 計算指定日期範圍內的乘車次數
+    for (let day = startDate; day <= endDate; day++) {
+      const shift = employeeSchedule[day]
+      if (shift && shift !== '休' && shift !== '特') {
+        workDays++
+        // 早班：1次，中班：2次，晚班：2次
+        if (shift === '早') {
+          totalTrips += 1
+        } else if (shift === '中' || shift === '晚') {
+          totalTrips += 2
+        }
+      }
+    }
+    
+    if (totalTrips === 0) return null
+    
+    const farePlan = FARE_PLANS[location]
+    const originalTotal = totalTrips * farePlan.originalPrice
+    const citizenCardTotal = Math.ceil(originalTotal * 0.7) // 桃園市民卡 7折
+    
+    // 計算各種定期票方案
+    const monthlyPassOptions = []
+    Object.entries(farePlan.monthlyPass).forEach(([days, price]) => {
+      const daysInt = parseInt(days)
+      const totalDays = endDate - startDate + 1
+      
+      // 定期票都按1個月計算，用平均價格比較
+      const totalCost = price // 使用票券原價作為總費用
+      // 平均每月價格 = 票券價格 ÷ 票券涵蓋的月數
+      const averagePricePerMonth = price / (daysInt / 30)
+      
+      monthlyPassOptions.push({
+        days: daysInt,
+        price: price, // 單張票券原價
+        totalCost: totalCost, // 總費用（等於票券原價）
+        averagePricePerMonth: averagePricePerMonth, // 平均每月價格
+        savings: originalTotal - totalCost
+      })
+    })
+    
+    // TPass 分析 (一個月799元)
+    const tpassTotal = TPASS_PLAN.price // 固定799元一個月
+    const totalDays = endDate - startDate + 1
+    const tpassDailyCost = tpassTotal / 30 // 每日平均成本
+    
+    // 計算需要多少額外搭乘才能讓 TPass 划算
+    const breakEvenTrips = Math.ceil((tpassTotal - originalTotal) / farePlan.originalPrice)
+    
+    // TPass 使用建議
+    const tpassRecommendation = () => {
+      if (originalTotal >= tpassTotal) {
+        return { type: 'recommended', text: 'TPass比原價划算，強烈推薦！' }
+      } else if (breakEvenTrips <= 5) {
+        return { type: 'consider', text: `只需額外搭乘${breakEvenTrips}次即可回本，建議考慮` }
+      } else if (breakEvenTrips <= 10) {
+        return { type: 'maybe', text: `需要額外搭乘${breakEvenTrips}次才回本，可考慮其他方案` }
+      } else {
+        return { type: 'not-recommended', text: `需要額外搭乘${breakEvenTrips}次才回本，不建議` }
+      }
+    }
+    
+    return {
+      employeeId,
+      employeeName: names[employeeId] || employeeId,
+      location,
+      workDays,
+      totalTrips,
+      originalTotal,
+      citizenCardTotal,
+      monthlyPassOptions,
+      tpassTotal,
+      tpassDailyCost,
+      breakEvenTrips,
+      tpassRecommendation: tpassRecommendation(),
+      recommendations: []
     }
   }
   
@@ -940,8 +1090,7 @@ function ScheduleManager() {
                     >
                       <option value="date">日期視圖</option>
                       <option value="employee">同事視圖</option>
-                      <option value="timeline">時間軸視圖</option>
-                      <option value="3d">3D 視圖</option>
+                      <option value="partner">搭班視圖</option>
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1021,6 +1170,8 @@ function ScheduleManager() {
               )}
             </div>
             
+
+
             {/* 進階篩選面板 */}
             {(filterMode === 'custom' || selectedShifts.length > 0 || selectedEmployees.length > 0) && (
               <div className="bg-gradient-to-br from-surface/50 to-surface/30 rounded-2xl p-4 md:p-6 border border-white/15 shadow-lg backdrop-blur-sm">
@@ -1150,13 +1301,12 @@ function ScheduleManager() {
                  filteredEmployees={getFilteredEmployees()}
                  selectedShifts={selectedShifts}
                />
-             ) : viewMode === 'timeline' ? (
-               <TimelineView 
+             ) : viewMode === 'partner' ? (
+               <DailyPartnerView 
                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
                  names={names}
                  displayDates={getDisplayDates()}
-                 filteredEmployees={getFilteredEmployees()}
-                 selectedShifts={selectedShifts}
+                 selectedEmployee={selectedEmployee}
                />
              ) : (
                <ThreeDView 
@@ -1174,8 +1324,37 @@ function ScheduleManager() {
       {/* 交通及車費試算分頁 */}
       {activeTab === 'transport' && (
         <div className="space-y-6">
-                    {/* 控制面板 */}
-          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-8 border border-white/20 shadow-xl backdrop-blur-sm">
+          {/* 標籤頁切換 */}
+          <div className="bg-surface/60 rounded-2xl p-2 border border-white/20">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setTransportTab('chart')}
+                className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                  transportTab === 'chart'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                乘車表
+              </button>
+              <button
+                onClick={() => setTransportTab('fare')}
+                className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                  transportTab === 'fare'
+                    ? 'bg-purple-500 text-white shadow-lg'
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                車費試算
+              </button>
+            </div>
+          </div>
+
+          {/* 乘車表標籤頁 */}
+          {transportTab === 'chart' && (
+            <>
+              {/* 控制面板 */}
+              <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-8 border border-white/20 shadow-xl backdrop-blur-sm">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* 左側：月份選擇和匯出 */}
               <div className="space-y-6">
@@ -1256,8 +1435,80 @@ function ScheduleManager() {
               pickupLocations={pickupLocations}
             />
           </div>
-          
+            </>
+          )}
 
+          {/* 車費試算標籤頁 */}
+          {transportTab === 'fare' && (
+            <>
+              {/* 控制面板 */}
+              <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-8 border border-white/20 shadow-xl backdrop-blur-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* 月份選擇 */}
+                  <div className="group">
+                    <label className="block text-sm font-semibold mb-3 text-purple-300 group-hover:text-purple-200 transition-colors">月份</label>
+                    <div className="relative">
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-purple-400/50 focus:bg-white/20 focus:ring-2 focus:ring-purple-400/20 transition-all duration-200 appearance-none cursor-pointer"
+                      >
+                        <option value="current">當月</option>
+                        <option value="next">下個月</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <svg className="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 同事選擇 */}
+                  <div className="group">
+                    <label className="block text-sm font-semibold mb-3 text-blue-300 group-hover:text-blue-200 transition-colors">選擇同事</label>
+                    <div className="relative">
+                      <select
+                        value={fareCalculationEmployee || ''}
+                        onChange={(e) => setFareCalculationEmployee(e.target.value || null)}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-blue-400/50 focus:bg-white/20 focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 appearance-none cursor-pointer"
+                      >
+                        <option value="">請選擇同事</option>
+                        {Object.keys(selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule)
+                          .filter(key => key !== '_lastUpdated')
+                          .sort((a, b) => {
+                            const numA = parseInt(a.match(/\d+/)?.[0] || '0')
+                            const numB = parseInt(b.match(/\d+/)?.[0] || '0')
+                            return numA - numB
+                          })
+                          .map(employeeId => (
+                            <option key={employeeId} value={employeeId}>
+                              {names[employeeId] || employeeId}
+                            </option>
+                          ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* 車費試算結果 */}
+              <div className="bg-surface/40 rounded-xl p-6 border border-white/10">
+                <FareCalculator 
+                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                  names={names}
+                  pickupLocations={pickupLocations}
+                  selectedEmployee={fareCalculationEmployee}
+                  calculateFare={calculateFare}
+                />
+              </div>
+            </>
+          )}
         </div>
       )}
       
@@ -1767,7 +2018,7 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
             <table className="w-full text-xs md:text-sm" style={{ borderCollapse: 'collapse', borderSpacing: 0, border: 'none' }}>
               <thead>
                 <tr className="bg-surface/40 border-b border-white/20">
-                  <th className="text-left p-2 md:p-3 text-purple-300 font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>姓名</th>
+                  <th className="text-center p-2 md:p-3 text-purple-300 font-semibold sticky left-0 z-10 bg-surface/95" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>姓名</th>
                   {displayDates.map((date) => {
                     const isToday = date === new Date().getDate()
                     return (
@@ -1790,9 +2041,11 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
                 </tr>
               </thead>
               <tbody>
-                {filteredEmployees.map((employeeId) => (
-                  <tr key={employeeId} className="border-b border-white/10 hover:bg-white/5 transition-all duration-200">
-                    <td className="p-2 md:p-3 text-white font-semibold text-xs md:text-sm" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{names[employeeId] || employeeId}</td>
+                {filteredEmployees.map((employeeId, index) => (
+                  <tr key={employeeId} className="border-b border-white/10 hover:bg-white/5 transition-all duration-200 group" data-employee-id={employeeId} data-row-index={index}>
+                    <td className="p-2 md:p-3 text-white font-semibold text-xs md:text-sm sticky left-0 z-10 bg-surface/95 group-hover:bg-surface/100 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
+                      <span className="group-hover:text-primary transition-colors">{names[employeeId] || employeeId}</span>
+                    </td>
                     {displayDates.map((date) => {
                       const shift = schedule[employeeId]?.[date]
                       const isToday = date === new Date().getDate()
@@ -1808,25 +2061,25 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
                         }
                       }
                       
-                      return (
-                        <td key={date} className={`p-1 md:p-2 text-center ${isToday ? 'bg-primary/5' : ''}`} style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
-                          {shift ? (
-                            <div className={`
-                              px-2 py-1 md:px-3 md:py-2 rounded-lg text-center text-xs font-bold
-                              ${isToday ? 'ring-2 ring-primary/50 ' : ''}${shift === '早' ? 'bg-pink-500 text-white' :
-                                shift === '中' ? 'bg-cyan-500 text-white' :
-                                shift === '晚' ? 'bg-blue-500 text-white' :
-                                shift === '休' ? 'bg-gray-500 text-white' :
-                                shift === '特' ? 'bg-orange-500 text-white' :
-                                'bg-gray-700 text-gray-300'}
-                            `}>
-                              {shift}
-                            </div>
-                          ) : (
-                            <div className={`w-full h-6 md:h-8 rounded-lg border ${isToday ? 'bg-primary/5 border-primary/30' : 'bg-surface/20 border-white/10'}`}></div>
-                          )}
-                        </td>
-                      )
+                                              return (
+                          <td key={date} className={`p-1 md:p-2 text-center ${isToday ? 'bg-primary/5' : ''}`} style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
+                            {shift ? (
+                              <div className={`
+                                px-2 py-1 md:px-3 md:py-2 rounded-lg text-center text-xs font-bold
+                                ${isToday ? 'ring-2 ring-primary/50 ' : ''}${shift === '早' ? 'bg-pink-500 text-white' :
+                                  shift === '中' ? 'bg-cyan-500 text-white' :
+                                  shift === '晚' ? 'bg-blue-500 text-white' :
+                                  shift === '休' ? 'bg-gray-500 text-white' :
+                                  shift === '特' ? 'bg-orange-500 text-white' :
+                                  'bg-gray-700 text-gray-300'}
+                              `}>
+                                {shift}
+                              </div>
+                            ) : (
+                              <div className={`w-full h-6 md:h-8 rounded-lg border ${isToday ? 'bg-primary/5 border-primary/30' : 'bg-surface/20 border-white/10'}`}></div>
+                            )}
+                          </td>
+                        )
                     })}
                   </tr>
                 ))}
@@ -4055,6 +4308,301 @@ function ShiftTransitionAnalysisChart({ schedule, names }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// 車費試算組件
+function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, calculateFare }) {
+  if (!selectedEmployee) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-gray-400 text-lg mb-4">請選擇一位同事來計算車費</div>
+        <div className="text-gray-500 text-sm">選擇同事後，將顯示該同事的車費分析</div>
+      </div>
+    )
+  }
+
+  const fareData = calculateFare(selectedEmployee)
+  
+  if (!fareData) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-gray-400 text-lg mb-4">無法計算車費</div>
+        <div className="text-gray-500 text-sm">該同事可能不搭車或沒有班表資料</div>
+      </div>
+    )
+  }
+
+  // 找出最優惠的方案
+  const allOptions = [
+    { name: '原價', cost: fareData.originalTotal, type: 'original' },
+    { name: '桃園市民卡 7折', cost: fareData.citizenCardTotal, type: 'citizen' },
+    ...fareData.monthlyPassOptions.map(option => ({
+      name: `${option.days}天定期票`,
+      cost: option.averagePricePerMonth, // 使用平均每月價格作為主要比較價格
+      type: 'monthly',
+      days: option.days,
+      savings: option.savings,
+      averagePricePerMonth: option.averagePricePerMonth,
+      price: option.price, // 單張票券原價
+      originalPrice: option.totalCost // 票券原價
+    })),
+    { name: 'TPass 799', cost: fareData.tpassTotal, type: 'tpass' }
+  ]
+
+  const bestOption = allOptions.reduce((min, option) => 
+    option.cost < min.cost ? option : min
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* 基本資訊 */}
+      <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl p-6 border border-blue-400/30">
+        <h3 className="text-xl font-bold text-blue-300 mb-4">車費試算結果</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-white">{fareData.employeeName}</div>
+            <div className="text-sm text-gray-400">同事</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-300">{fareData.location}</div>
+            <div className="text-sm text-gray-400">上車地點</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-300">{fareData.totalTrips} 次</div>
+            <div className="text-sm text-gray-400">總搭乘次數</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 車費方案比較 */}
+      <div className="bg-surface/40 rounded-xl p-6 border border-white/20">
+        <h4 className="text-lg font-semibold text-purple-300 mb-4">車費方案比較</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {allOptions.map((option, index) => (
+            <div 
+              key={index}
+              className={`p-4 rounded-lg border transition-all relative ${
+                option.cost === bestOption.cost 
+                  ? 'bg-green-500/20 border-green-400/50 text-green-300 ring-2 ring-green-400/30' 
+                  : 'bg-surface/20 border-white/20 text-white hover:bg-surface/30'
+              }`}
+            >
+              {/* 最優惠標籤 */}
+              {option.cost === bestOption.cost && (
+                <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg">
+                  最優惠
+                </div>
+              )}
+              
+              {/* 方案圖示 */}
+              <div className="flex items-center gap-2 mb-3">
+                {option.type === 'original' && (
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                )}
+                {option.type === 'citizen' && (
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                  </svg>
+                )}
+                {option.type === 'monthly' && (
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )}
+                {option.type === 'tpass' && (
+                  <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                )}
+                <span className="font-semibold text-sm">{option.name}</span>
+              </div>
+              
+              <div className="text-2xl font-bold mb-2">${option.cost}</div>
+              
+
+              
+              {option.type === 'monthly' && (
+                <div className="text-xs text-gray-400 mb-1">
+                  <span className="text-xs text-gray-500">票券原價 ${option.originalPrice}</span>
+                </div>
+              )}
+              
+              {option.type === 'tpass' && (
+                <div className="text-xs text-gray-400">
+                  A22-A7 坐到哭
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+
+    </div>
+  )
+}
+
+// 每日搭班視圖組件
+function DailyPartnerView({ schedule, names, displayDates, selectedEmployee }) {
+  if (!selectedEmployee) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-gray-400 text-lg mb-4">請選擇一位同事來查看搭班情況</div>
+        <div className="text-gray-500 text-sm">在左側選擇同事後，將顯示該同事每天的搭班同事</div>
+      </div>
+    )
+  }
+
+  // 計算搭班邏輯
+  const getPartnersForDay = (day) => {
+    const selectedShift = schedule[selectedEmployee]?.[day]
+    if (!selectedShift || selectedShift === '休') return []
+    
+    const partners = []
+    
+    Object.keys(schedule).forEach(employeeId => {
+      if (employeeId === '_lastUpdated' || employeeId === selectedEmployee) return
+      
+      const partnerShift = schedule[employeeId]?.[day]
+      if (!partnerShift || partnerShift === '休') return
+      
+      // 同班搭班
+      if (partnerShift === selectedShift) {
+        partners.push({
+          id: employeeId,
+          name: names[employeeId] || employeeId,
+          shift: partnerShift,
+          type: '同班'
+        })
+      }
+      // 跨班搭班
+      else if (
+        (selectedShift === '早' && partnerShift === '中') ||
+        (selectedShift === '中' && partnerShift === '晚') ||
+        (selectedShift === '中' && partnerShift === '早') ||
+        (selectedShift === '晚' && partnerShift === '中')
+      ) {
+        partners.push({
+          id: employeeId,
+          name: names[employeeId] || employeeId,
+          shift: partnerShift,
+          type: '跨班'
+        })
+      }
+    })
+    
+    return partners
+  }
+
+  // 取得班次顏色
+  const getShiftColor = (shift) => {
+    switch (shift) {
+      case '早': return 'bg-pink-500 text-white'
+      case '中': return 'bg-cyan-500 text-white'
+      case '晚': return 'bg-blue-500 text-white'
+      case '休': return 'bg-gray-500 text-white'
+      case '特': return 'bg-orange-500 text-white'
+      default: return 'bg-gray-700 text-gray-300'
+    }
+  }
+
+  // 取得搭班類型顏色
+  const getPartnerTypeColor = (type) => {
+    switch (type) {
+      case '同班': return 'bg-green-500/20 border-green-400/30 text-green-300'
+      case '跨班': return 'bg-purple-500/20 border-purple-400/30 text-purple-300'
+      default: return 'bg-gray-500/20 border-gray-400/30 text-gray-300'
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 標題和選中同事資訊 */}
+      <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl p-4 sm:p-6 border border-purple-400/30">
+        <h3 className="text-lg sm:text-xl font-bold text-purple-300 mb-2">每日搭班視圖</h3>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="text-white font-semibold text-sm sm:text-base">
+            同事：<span className="text-purple-300">{names[selectedEmployee] || selectedEmployee}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 日曆式搭班顯示 */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3 md:gap-4">
+        {displayDates.map((date) => {
+          const isToday = date === new Date().getDate()
+          const selectedShift = schedule[selectedEmployee]?.[date]
+          const partners = getPartnersForDay(date)
+          
+          return (
+            <div 
+              key={date} 
+              className={`bg-surface/60 rounded-xl p-2 sm:p-3 md:p-4 border transition-all duration-200 ${
+                isToday 
+                  ? 'border-primary/50 bg-primary/10 ring-2 ring-primary/30' 
+                  : 'border-white/20 hover:border-white/30'
+              }`}
+            >
+              {/* 日期標題 */}
+              <div className="text-center mb-2 sm:mb-3">
+                <div className={`text-sm sm:text-base md:text-lg font-bold ${isToday ? 'text-primary' : 'text-white'}`}>
+                  {date}
+                </div>
+                <div className="text-xs text-gray-400 hidden sm:block">
+                  {['日', '一', '二', '三', '四', '五', '六'][new Date(new Date().getFullYear(), new Date().getMonth(), date).getDay()]}
+                </div>
+              </div>
+
+              {/* 選中同事的班次 */}
+              <div className="mb-2 sm:mb-3">
+                <div className="text-xs text-gray-400 mb-1">我的班次</div>
+                {selectedShift ? (
+                  <div className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-center text-xs sm:text-sm font-bold ${getShiftColor(selectedShift)}`}>
+                    {selectedShift}
+                  </div>
+                ) : (
+                  <div className="px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-center text-xs sm:text-sm text-gray-400 bg-surface/20 border border-white/10">
+                    無班次
+                  </div>
+                )}
+              </div>
+
+              {/* 搭班同事列表 */}
+              <div>
+                <div className="text-xs text-gray-400 mb-1 sm:mb-2">搭班同事 ({partners.length})</div>
+                {partners.length > 0 ? (
+                  <div className="space-y-1 sm:space-y-2">
+                    {partners.map((partner) => (
+                      <div 
+                        key={partner.id}
+                        className={`p-1 sm:p-2 rounded-lg border text-xs ${getPartnerTypeColor(partner.type)}`}
+                      >
+                        <div className="font-medium mb-0.5 sm:mb-1 text-xs sm:text-xs truncate">{partner.name}</div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs opacity-80 hidden sm:inline">{partner.type}</span>
+                          <div className={`px-1 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold ${getShiftColor(partner.shift)}`}>
+                            {partner.shift}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 text-center py-1 sm:py-2">
+                    {selectedShift && selectedShift !== '休' ? '無搭班同事' : '休息日'}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+
     </div>
   )
 }
