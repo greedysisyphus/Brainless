@@ -176,7 +176,7 @@ function SandwichCalculator() {
                    </div>
                    <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 text-center">
                      <div className="text-xs text-text-secondary">{zhtw.sandwichUi.summaryToMake}</div>
-                     <div className="text-lg sm:text-xl font-bold text-primary">{preview.totalHamNeeded + preview.totalSalamiNeeded}</div>
+                     <div className="text-lg sm:text-xl font-bold text-primary">{preview.baseTotalNeeded}</div>
                    </div>
                  </div>
                  
