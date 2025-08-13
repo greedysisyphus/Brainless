@@ -99,6 +99,40 @@
     @apply relative overflow-hidden;
   }
 
+  /* 卡片進入動畫 */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* 價格變化動畫 */
+  .animate-price-change {
+    animation: priceChange 0.5s ease-in-out;
+  }
+
+  @keyframes priceChange {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+      color: theme('colors.green.400');
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
   .btn-primary::after {
     @apply absolute inset-0 bg-gradient-to-r from-transparent 
            via-white/20 to-transparent -translate-x-full;

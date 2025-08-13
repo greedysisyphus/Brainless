@@ -4314,6 +4314,23 @@ function ShiftTransitionAnalysisChart({ schedule, names }) {
 
 // 車費試算組件
 function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, calculateFare }) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [fareData, setFareData] = useState(null)
+
+  useEffect(() => {
+    if (selectedEmployee) {
+      setIsLoading(true)
+      // 模擬載入時間
+      setTimeout(() => {
+        const data = calculateFare(selectedEmployee)
+        setFareData(data)
+        setIsLoading(false)
+      }, 500)
+    } else {
+      setFareData(null)
+    }
+  }, [selectedEmployee, calculateFare])
+
   if (!selectedEmployee) {
     return (
       <div className="text-center py-12">
@@ -4323,7 +4340,14 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
     )
   }
 
-  const fareData = calculateFare(selectedEmployee)
+  if (isLoading) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+        <div className="text-gray-400 text-lg">正在計算車費...</div>
+      </div>
+    )
+  }
   
   if (!fareData) {
     return (
@@ -4351,9 +4375,45 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
     { name: 'TPass 799', cost: fareData.tpassTotal, type: 'tpass' }
   ]
 
-  const bestOption = allOptions.reduce((min, option) => 
-    option.cost < min.cost ? option : min
-  )
+  // 智能推薦算法
+  const getRecommendations = (fareData, allOptions) => {
+    const recommendations = {
+      bestValue: null,      // 最划算
+      mostFlexible: null,   // 最靈活
+      bestForFrequent: null, // 適合常搭
+      bestForOccasional: null // 適合偶爾搭
+    }
+    
+    // 最划算方案
+    recommendations.bestValue = allOptions.reduce((min, option) => 
+      option.cost < min.cost ? option : min
+    )
+    
+    // 最靈活方案（無使用限制）
+    recommendations.mostFlexible = allOptions.find(option => 
+      option.type === 'original' || option.type === 'citizen'
+    ) || recommendations.bestValue
+    
+    // 根據搭乘次數推薦
+    if (fareData.totalTrips > 20) {
+      // 常搭推薦：專門推薦TPass（無限制搭乘）
+      recommendations.bestForFrequent = allOptions.find(option => 
+        option.type === 'tpass'
+      ) || recommendations.bestValue
+    } else if (fareData.totalTrips < 10) {
+      recommendations.bestForOccasional = allOptions.find(option => 
+        option.type === 'original' || option.type === 'citizen'
+      ) || recommendations.bestValue
+    } else {
+      recommendations.bestForFrequent = recommendations.bestValue
+      recommendations.bestForOccasional = recommendations.bestValue
+    }
+    
+    return recommendations
+  }
+
+  const recommendations = getRecommendations(fareData, allOptions)
+  const bestOption = recommendations.bestValue
 
   return (
     <div className="space-y-6">
@@ -4379,22 +4439,43 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
       {/* 車費方案比較 */}
       <div className="bg-surface/40 rounded-xl p-6 border border-white/20">
         <h4 className="text-lg font-semibold text-purple-300 mb-4">車費方案比較</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {allOptions.map((option, index) => (
             <div 
               key={index}
-              className={`p-4 rounded-lg border transition-all relative ${
+              className={`p-3 sm:p-4 rounded-lg border transition-all duration-300 relative transform hover:scale-105 hover:shadow-lg animate-fade-in-up ${
                 option.cost === bestOption.cost 
                   ? 'bg-green-500/20 border-green-400/50 text-green-300 ring-2 ring-green-400/30' 
                   : 'bg-surface/20 border-white/20 text-white hover:bg-surface/30'
               }`}
+              style={{
+                animationDelay: `${index * 100}ms`,
+                animationFillMode: 'both'
+              }}
             >
-              {/* 最優惠標籤 */}
-              {option.cost === bestOption.cost && (
-                <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg">
-                  最優惠
-                </div>
-              )}
+              {/* 推薦標籤系統 */}
+              <div className="absolute -top-2 -right-2 flex flex-col gap-1">
+                {option.cost === bestOption.cost && (
+                  <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg animate-pulse">
+                    🏆 最划算
+                  </div>
+                )}
+                {option.cost === recommendations.mostFlexible?.cost && option.type !== 'original' && (
+                  <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg">
+                    🎯 最靈活
+                  </div>
+                )}
+                {option.cost === recommendations.bestForFrequent?.cost && fareData.totalTrips > 20 && (
+                  <div className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg">
+                    ⚡ 常搭推薦
+                  </div>
+                )}
+                {option.cost === recommendations.bestForOccasional?.cost && fareData.totalTrips < 10 && (
+                  <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg">
+                    💡 偶爾搭
+                  </div>
+                )}
+              </div>
               
               {/* 方案圖示 */}
               <div className="flex items-center gap-2 mb-3">
@@ -4421,7 +4502,7 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
                 <span className="font-semibold text-sm">{option.name}</span>
               </div>
               
-              <div className="text-2xl font-bold mb-2">${option.cost}</div>
+              <div className="text-xl sm:text-2xl font-bold mb-2 transition-all duration-300 animate-price-change">${option.cost}</div>
               
 
               
@@ -4441,6 +4522,179 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
         </div>
       </div>
 
+      {/* 車費分析儀表板 */}
+      <div className="space-y-6">
+        {/* 統計摘要 */}
+        <div className="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl p-6 border border-indigo-400/30">
+          <h4 className="text-xl font-bold text-indigo-300 mb-6">
+            車費分析儀表板
+          </h4>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-surface/30 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-green-400">${Math.min(...allOptions.map(o => o.cost))}</div>
+              <div className="text-sm text-gray-400">最低費用</div>
+            </div>
+            <div className="bg-surface/30 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-red-400">${Math.max(...allOptions.map(o => o.cost))}</div>
+              <div className="text-sm text-gray-400">最高費用</div>
+            </div>
+            <div className="bg-surface/30 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-orange-400">${fareData.originalTotal - Math.min(...allOptions.map(o => o.cost))}</div>
+              <div className="text-sm text-gray-400">最大節省</div>
+            </div>
+            <div className="bg-surface/30 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-blue-400">{allOptions.length}</div>
+              <div className="text-sm text-gray-400">方案數量</div>
+            </div>
+          </div>
+        </div>
+
+
+
+        {/* 趨勢分析 */}
+        <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 rounded-xl p-6 border border-emerald-400/20 shadow-lg">
+          <div className="flex items-center justify-between mb-6">
+            <h5 className="text-xl font-bold bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
+              搭乘次數 vs 費用效益分析
+            </h5>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+              <span>即時分析</span>
+            </div>
+          </div>
+          
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={Array.from({length: 40}, (_, i) => {
+              const trips = i + 1
+              const originalCost = trips * fareData.originalTotal / fareData.totalTrips
+              const citizenCost = Math.ceil(originalCost * 0.7)
+              const tpassCost = 799 // TPass固定799元
+              
+              // 獲取120天定期票的實際平均每月費用
+              const monthly120Pass = fareData.monthlyPassOptions.find(option => option.days === 120)
+              const monthly120Cost = monthly120Pass ? monthly120Pass.averagePricePerMonth : 486
+              
+              return {
+                trips,
+                原價: Math.round(originalCost),
+                市民卡: citizenCost,
+                TPass: tpassCost,
+                '120天票': Math.round(monthly120Cost)
+              }
+            })}>
+              <defs>
+                <linearGradient id="originalGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
+                </linearGradient>
+                <linearGradient id="citizenGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                </linearGradient>
+                <linearGradient id="tpassGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
+                </linearGradient>
+                <linearGradient id="monthlyGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+              <XAxis 
+                dataKey="trips" 
+                stroke="#9ca3af" 
+                fontSize={11}
+                tickLine={false}
+                axisLine={{ stroke: '#4b5563', strokeWidth: 1 }}
+                label={{ 
+                  value: '搭乘次數', 
+                  position: 'insideBottom', 
+                  offset: -5, 
+                  style: { 
+                    textAnchor: 'middle', 
+                    fill: '#9ca3af',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  } 
+                }}
+              />
+              <YAxis 
+                stroke="#9ca3af" 
+                fontSize={11}
+                tickLine={false}
+                axisLine={{ stroke: '#4b5563', strokeWidth: 1 }}
+                tickFormatter={(value) => `$${value}`}
+                label={{ 
+                  value: '費用', 
+                  angle: -90, 
+                  position: 'insideLeft', 
+                  style: { 
+                    textAnchor: 'middle', 
+                    fill: '#9ca3af',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  } 
+                }}
+              />
+              <Tooltip 
+                formatter={(value, name) => [`$${value}`, name]}
+                labelFormatter={(trips) => `搭乘 ${trips} 次`}
+                contentStyle={{ 
+                  backgroundColor: '#1f2937', 
+                  border: '1px solid #374151',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                  padding: '12px'
+                }}
+                cursor={{ stroke: '#6b7280', strokeWidth: 1, strokeDasharray: '3 3' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="原價" 
+                stroke="#ef4444" 
+                strokeWidth={2} 
+                dot={{ fill: '#ef4444', strokeWidth: 1, r: 3 }}
+                activeDot={{ r: 5, stroke: '#ef4444', strokeWidth: 1, fill: '#fff' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="市民卡" 
+                stroke="#3b82f6" 
+                strokeWidth={2} 
+                dot={{ fill: '#3b82f6', strokeWidth: 1, r: 3 }}
+                activeDot={{ r: 5, stroke: '#3b82f6', strokeWidth: 1, fill: '#fff' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="TPass" 
+                stroke="#f59e0b" 
+                strokeWidth={2} 
+                dot={{ fill: '#f59e0b', strokeWidth: 1, r: 3 }}
+                activeDot={{ r: 5, stroke: '#f59e0b', strokeWidth: 1, fill: '#fff' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="120天票" 
+                stroke="#10b981" 
+                strokeWidth={2} 
+                dot={{ fill: '#10b981', strokeWidth: 1, r: 3 }}
+                activeDot={{ r: 5, stroke: '#10b981', strokeWidth: 1, fill: '#fff' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+          
+          <div className="mt-6 p-4 bg-surface/20 rounded-lg border border-emerald-400/10">
+            <div className="text-sm text-gray-300 leading-relaxed">
+              此圖顯示不同搭乘次數下各方案的費用變化，幫助您了解在什麼情況下哪種方案最划算。
+              <span className="text-emerald-300 font-medium">交叉點</span>表示方案間的轉換時機。
+            </div>
+          </div>
+        </div>
+      </div>
 
     </div>
   )
