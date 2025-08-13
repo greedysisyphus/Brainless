@@ -4554,17 +4554,17 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
 
         {/* 趨勢分析 */}
         <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 rounded-xl p-6 border border-emerald-400/20 shadow-lg">
-          <div className="flex items-center justify-between mb-6">
-            <h5 className="text-xl font-bold bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h5 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
               搭乘次數 vs 費用效益分析
             </h5>
             <div className="flex items-center gap-2 text-xs text-gray-400">
-              <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-              <span>即時分析</span>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-emerald-400"></div>
+              <span className="hidden sm:inline">即時分析</span>
             </div>
           </div>
           
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
             <LineChart data={Array.from({length: 40}, (_, i) => {
               const trips = i + 1
               const originalCost = trips * fareData.originalTotal / fareData.totalTrips
@@ -4606,9 +4606,11 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
               <XAxis 
                 dataKey="trips" 
                 stroke="#9ca3af" 
-                fontSize={11}
+                fontSize={10}
+                className="sm:text-xs"
                 tickLine={false}
                 axisLine={{ stroke: '#4b5563', strokeWidth: 1 }}
+                interval="preserveStartEnd"
                 label={{ 
                   value: '搭乘次數', 
                   position: 'insideBottom', 
@@ -4616,17 +4618,19 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
                   style: { 
                     textAnchor: 'middle', 
                     fill: '#9ca3af',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: '500'
                   } 
                 }}
               />
               <YAxis 
                 stroke="#9ca3af" 
-                fontSize={11}
+                fontSize={10}
+                className="sm:text-xs"
                 tickLine={false}
                 axisLine={{ stroke: '#4b5563', strokeWidth: 1 }}
                 tickFormatter={(value) => `$${value}`}
+                width={50}
                 label={{ 
                   value: '費用', 
                   angle: -90, 
@@ -4634,7 +4638,7 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
                   style: { 
                     textAnchor: 'middle', 
                     fill: '#9ca3af',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: '500'
                   } 
                 }}
@@ -4657,38 +4661,38 @@ function FareCalculator({ schedule, names, pickupLocations, selectedEmployee, ca
                 dataKey="原價" 
                 stroke="#ef4444" 
                 strokeWidth={2} 
-                dot={{ fill: '#ef4444', strokeWidth: 1, r: 3 }}
-                activeDot={{ r: 5, stroke: '#ef4444', strokeWidth: 1, fill: '#fff' }}
+                dot={false}
+                activeDot={{ r: 4, stroke: '#ef4444', strokeWidth: 1, fill: '#fff' }}
               />
               <Line 
                 type="monotone" 
                 dataKey="市民卡" 
                 stroke="#3b82f6" 
                 strokeWidth={2} 
-                dot={{ fill: '#3b82f6', strokeWidth: 1, r: 3 }}
-                activeDot={{ r: 5, stroke: '#3b82f6', strokeWidth: 1, fill: '#fff' }}
+                dot={false}
+                activeDot={{ r: 4, stroke: '#3b82f6', strokeWidth: 1, fill: '#fff' }}
               />
               <Line 
                 type="monotone" 
                 dataKey="TPass" 
                 stroke="#f59e0b" 
                 strokeWidth={2} 
-                dot={{ fill: '#f59e0b', strokeWidth: 1, r: 3 }}
-                activeDot={{ r: 5, stroke: '#f59e0b', strokeWidth: 1, fill: '#fff' }}
+                dot={false}
+                activeDot={{ r: 4, stroke: '#f59e0b', strokeWidth: 1, fill: '#fff' }}
               />
               <Line 
                 type="monotone" 
                 dataKey="120天票" 
                 stroke="#10b981" 
                 strokeWidth={2} 
-                dot={{ fill: '#10b981', strokeWidth: 1, r: 3 }}
-                activeDot={{ r: 5, stroke: '#10b981', strokeWidth: 1, fill: '#fff' }}
+                dot={false}
+                activeDot={{ r: 4, stroke: '#10b981', strokeWidth: 1, fill: '#fff' }}
               />
             </LineChart>
           </ResponsiveContainer>
           
-          <div className="mt-6 p-4 bg-surface/20 rounded-lg border border-emerald-400/10">
-            <div className="text-sm text-gray-300 leading-relaxed">
+          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-surface/20 rounded-lg border border-emerald-400/10">
+            <div className="text-xs sm:text-sm text-gray-300 leading-relaxed">
               此圖顯示不同搭乘次數下各方案的費用變化，幫助您了解在什麼情況下哪種方案最划算。
               <span className="text-emerald-300 font-medium">交叉點</span>表示方案間的轉換時機。
             </div>
