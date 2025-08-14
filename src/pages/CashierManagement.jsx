@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import DenominationCounter from '../components/cashier/DenominationCounter'
 import ForeignCurrency from '../components/cashier/ForeignCurrency'
 import Summary from '../components/cashier/Summary'
-import { CurrencyDollarIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { CurrencyDollarIcon, XMarkIcon, ArrowPathIcon, CalculatorIcon } from '@heroicons/react/24/outline'
 
 function CashierManagement() {
   // 從 localStorage 讀取初始值
@@ -73,7 +73,8 @@ function CashierManagement() {
     productPrice: ''
   })
 
-
+  // 重置狀態管理
+  const [resetKey, setResetKey] = useState(0)
 
   // 當數值改變時保存到 localStorage
   useEffect(() => {
@@ -100,8 +101,22 @@ function CashierManagement() {
     localStorage.removeItem('drawerDenominations')
     localStorage.removeItem('foreignTransactions')
 
-    // 強制重新加載組件
-    window.location.reload()
+    // 清除外幣找零相關數據
+    localStorage.removeItem('lastExchangeRate')
+    localStorage.removeItem('rateHistory')
+    
+    // 重置外幣找零計算器狀態
+    setForeignChangeData({
+      rate: '',
+      foreignAmount: '',
+      productPrice: ''
+    })
+    
+    // 強制重新渲染歷史記錄
+    setRateHistoryKey(prev => prev + 1)
+    
+    // 觸發子組件重置
+    setResetKey(prev => prev + 1)
   }
 
   // 計算外幣找零
@@ -166,41 +181,71 @@ function CashierManagement() {
   }, [showForeignChangeCalculator, isValidInput])
 
   return (
-    <div className="container-custom py-8">
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={resetAll}
-          className="btn-primary bg-red-500 hover:bg-red-600"
-        >
-          重置所有數據
-        </button>
+    <div className="container-custom py-6">
+      {/* 頁面標題和操作區域 */}
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">收銀管理系統</h1>
+            <p className="text-text-secondary">
+              討厭算錢的第<span className="inline-block px-2 py-1 bg-primary/20 border border-primary/30 rounded-lg text-primary font-semibold mx-1">
+                {Math.floor((new Date() - new Date('2024-05-01')) / (1000 * 60 * 60 * 24))}
+              </span>天
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowForeignChangeCalculator(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-green-400 hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-500/50 transition-all duration-200 rounded-xl shadow-lg hover:shadow-xl"
+            >
+              <CalculatorIcon className="w-5 h-5" />
+              <span className="hidden sm:inline">外幣找零</span>
+            </button>
+            <button
+              onClick={resetAll}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-400/30 text-red-400 hover:from-red-500/30 hover:to-pink-500/30 hover:border-red-500/50 transition-all duration-200 rounded-xl shadow-lg hover:shadow-xl"
+            >
+              <ArrowPathIcon className="w-5 h-5" />
+              <span className="hidden sm:inline">重置數據</span>
+            </button>
+          </div>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* 主要功能區域 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 收銀機現金 - 左上 */}
         <DenominationCounter
           title="收銀機現金"
           onTotalChange={setCashierTotal}
           savedKey="cashierDenominations"
+          resetKey={resetKey}
         />
-        
+
+        {/* 抽屜現金 - 右上 */}
         <DenominationCounter
           title="抽屜現金"
           onTotalChange={setDrawerTotal}
           savedKey="drawerDenominations"
+          resetKey={resetKey}
         />
-        
+
+        {/* 外幣交易 - 左下 */}
         <ForeignCurrency
           onTotalChange={setForeignTotal}
           savedKey="foreignTransactions"
+          resetKey={resetKey}
         />
-        
+
+        {/* 日結匯總 - 右下 */}
         <Summary
           cashierTotal={cashierTotal}
           drawerTotal={drawerTotal}
           foreignTotal={foreignTotal}
           posAmount={posAmount}
           onPosAmountChange={setPosAmount}
-          foreignTransactions={JSON.parse(localStorage.getItem('foreignTransactions') || '[]')}
+          foreignTransactions={resetKey > 0 ? [] : JSON.parse(localStorage.getItem('foreignTransactions') || '[]')}
+          resetKey={resetKey}
         />
       </div>
 

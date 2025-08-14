@@ -1,5 +1,5 @@
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function Summary({
   cashierTotal,
@@ -7,10 +7,21 @@ function Summary({
   foreignTotal,
   posAmount,
   onPosAmountChange,
-  foreignTransactions
+  foreignTransactions,
+  resetKey = 0
 }) {
   const [showResult, setShowResult] = useState(false)
   const [isNightShift, setIsNightShift] = useState(false)
+  
+  // 監聽重置信號
+  useEffect(() => {
+    if (resetKey > 0) {
+      setShowResult(false)
+      setIsNightShift(false)
+      onPosAmountChange(0)
+    }
+  }, [resetKey, onPosAmountChange])
+  
   const actualCashProfit = cashierTotal + drawerTotal + foreignTotal - 20000
   const difference = actualCashProfit - posAmount
   const submitAmount = cashierTotal + drawerTotal - 20000 - foreignTotal
@@ -52,26 +63,29 @@ function Summary({
   const style = getDifferenceStyle()
 
   return (
-    <div className="card">
+    <div className="bg-surface rounded-xl p-6 shadow-lg" role="region" aria-label="日結匯總管理">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="card-header mb-0">日結匯總</h2>
+        <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          日結匯總
+        </h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-text-secondary">晚班模式</span>
+          <span className="text-sm text-gray-300">晚班模式</span>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
               className="sr-only peer"
               checked={isNightShift}
               onChange={(e) => setIsNightShift(e.target.checked)}
+              aria-label="切換晚班模式"
             />
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
           </label>
         </div>
       </div>
-
-      <div className="space-y-6">
-        <div className="bg-background/50 rounded-lg p-4 backdrop-blur-sm">
-          <label className="block text-sm text-text-secondary mb-2">
+      
+      <div className="space-y-3">
+        <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+          <label className="block text-sm text-gray-300 mb-2">
             POS機金額
           </label>
           <input
@@ -81,39 +95,49 @@ function Summary({
               onPosAmountChange(parseFloat(e.target.value) || 0)
               setShowResult(false)
             }}
-            className="input-field w-full mb-3"
+            className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 mb-3"
             placeholder="請輸入POS機金額"
             inputMode="decimal"
+            aria-label="POS機金額"
           />
           <button 
             onClick={handleCalculate}
-            className="btn-primary w-full"
+            className="w-full px-4 py-2.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 hover:border-primary/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            aria-label="計算日結差異"
           >
             計算
           </button>
         </div>
 
-        <div className="bg-background/50 rounded-lg overflow-hidden">
-          <div className="summary-row">
-            <span className="summary-label">收銀機現金</span>
-            <span className="summary-value">${cashierTotal.toLocaleString()}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">抽屜現金</span>
-            <span className="summary-value">${drawerTotal.toLocaleString()}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label">外幣總額</span>
-            <span className="summary-value">${foreignTotal.toLocaleString()}</span>
-          </div>
-          <div className="summary-row">
-            <span className="summary-label text-red-400">基本金額</span>
-            <span className="summary-value text-red-400">-$20,000</span>
-          </div>
-          <div className="bg-surface/50 p-4">
+        <div className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+          <div className="p-3 border-b border-white/10">
             <div className="flex justify-between items-center">
-              <span className="font-semibold">實際現金收入</span>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <span className="text-sm text-gray-300">收銀機現金</span>
+              <span className="text-sm text-white font-medium">${cashierTotal.toLocaleString()}</span>
+            </div>
+          </div>
+          <div className="p-3 border-b border-white/10">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-300">抽屜現金</span>
+              <span className="text-sm text-white font-medium">${drawerTotal.toLocaleString()}</span>
+            </div>
+          </div>
+          <div className="p-3 border-b border-white/10">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-300">外幣總額</span>
+              <span className="text-sm text-white font-medium">${foreignTotal.toLocaleString()}</span>
+            </div>
+          </div>
+          <div className="p-3 border-b border-white/10">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-red-400">基本金額</span>
+              <span className="text-sm text-red-400 font-medium">-$20,000</span>
+            </div>
+          </div>
+          <div className="p-3 bg-primary/10">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-semibold text-white">實際現金收入</span>
+              <span className="text-lg font-bold text-primary">
                 ${actualCashProfit.toLocaleString()}
               </span>
             </div>
@@ -121,16 +145,20 @@ function Summary({
         </div>
 
         {showResult && (
-          <div className={`rounded-lg p-4 backdrop-blur-sm ${style.containerClass}`}>
+          <div className={`rounded-lg p-3 border transition-all duration-300 ${
+            difference === 0 ? 'bg-green-500/10 border-green-500/20' :
+            difference > 0 ? 'bg-yellow-500/10 border-yellow-500/20' :
+            'bg-red-500/10 border-red-500/20'
+          }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-semibold">差額</span>
+                <span className="text-sm font-semibold text-white">差額</span>
                 {style.icon}
                 <span className={`text-sm ${style.textClass}`}>
                   {style.message}
                 </span>
               </div>
-              <span className={`text-xl font-bold ${style.textClass}`}>
+              <span className={`text-lg font-bold ${style.textClass}`}>
                 ${difference.toLocaleString()}
               </span>
             </div>
