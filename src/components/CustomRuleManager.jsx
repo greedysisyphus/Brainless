@@ -661,28 +661,28 @@ const CustomRuleManager = ({
         </div>
       </div>
 
-      {/* 班表資料狀態 */}
+      {/* 資料載入狀態 */}
       <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
         <ResponsiveTitle level={3} className="text-blue-400 mb-2">
-          班表資料狀態
+          資料載入狀態
         </ResponsiveTitle>
         <ResponsiveText size="sm" className="text-blue-300">
           {isLoadingSchedule ? '載入班表中...' : 
            scheduleData ? 
-             `已載入 ${Object.keys(scheduleData).filter(key => key !== '_lastUpdated').length} 位同事的班表資料` :
-             '未載入班表資料'
+             `班表資料：${Object.keys(scheduleData).filter(key => key !== '_lastUpdated').length} 位同事` :
+             '班表資料：未載入'
           }
         </ResponsiveText>
         {scheduleData && scheduleData._lastUpdated && (
           <ResponsiveText size="sm" className="text-blue-300 mt-1">
-            班表最後更新：{new Date(scheduleData._lastUpdated).toLocaleString()}
+            最後更新：{new Date(scheduleData._lastUpdated).toLocaleString()}
           </ResponsiveText>
         )}
         <ResponsiveText size="sm" className="text-blue-300 mt-1">
           {isLoadingNames ? '載入姓名中...' : 
            Object.keys(namesData).length > 0 ? 
-             `已載入 ${Object.keys(namesData).length} 位同事的姓名資料` :
-             '未載入姓名資料'
+             `姓名對應：${Object.keys(namesData).length} 位同事` :
+             '姓名對應：未載入'
           }
         </ResponsiveText>
       </div>
