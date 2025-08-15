@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Clock from '../Clock'
+import CatSpeechBubble from '../CatSpeechBubble'
 import logoCat from '../../assets/logo-cat.png'
 
 function Header() {
@@ -7,7 +8,8 @@ function Header() {
     <header className="bg-surface text-white">
       <div className="container-custom py-4 md:py-6">
         <div className="flex flex-col items-center">
-          <div className="flex items-center gap-4">
+          {/* Logo 和標題區域 */}
+          <div className="flex items-center gap-4 relative">
             <img 
               src={logoCat}
               alt="Cat Logo" 
@@ -20,6 +22,9 @@ function Header() {
               <Clock />
             </div>
           </div>
+          
+          {/* 貓咪留言區域 */}
+          <CatSpeechBubble />
         </div>
       </div>
     </header>

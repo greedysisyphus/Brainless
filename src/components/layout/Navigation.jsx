@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { 
   CalculatorIcon, 
   BanknotesIcon, 
@@ -8,9 +9,11 @@ import {
   ClipboardDocumentListIcon,
   DocumentTextIcon,
   FunnelIcon,
-  CalendarIcon
+  CalendarIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
+import { auth, checkAdminStatus } from '../../utils/firebase'
 
 function WaterDropIcon(props) {
   return (
@@ -87,24 +90,114 @@ const MENU_ITEMS = [
     label: '酒精計算',
     icon: <CocktailIcon className="w-5 h-5" />
   }
-]
+];
 
 function Navigation() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // 檢查管理員狀態
+  useEffect(() => {
+    let isMounted = true;
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!isMounted) return;
+
+      if (user) {
+        try {
+          const adminStatus = await checkAdminStatus(user.uid);
+          if (isMounted) {
+            setIsAdmin(adminStatus);
+            setError('');
+          }
+        } catch (error) {
+          console.error('檢查管理員狀態失敗:', error);
+          if (isMounted) {
+            setIsAdmin(false);
+            setError('權限檢查失敗');
+          }
+        }
+      } else {
+        if (isMounted) {
+          setIsAdmin(false);
+          setError('');
+        }
+      }
+      
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // 如果還在載入，顯示骨架屏
+  if (isLoading) {
+    return (
+      <nav className="bg-surface sticky top-0 z-50 shadow-lg">
+        <div className="container-custom py-2 sm:py-4">
+          <div className="flex justify-center gap-2 sm:gap-4">
+            {MENU_ITEMS.map(({ path, label, icon }) => (
+              <div
+                key={path}
+                className="flex flex-col items-center w-[5.5rem] sm:w-28 min-h-[4.5rem] sm:min-h-20 p-2 sm:p-3 rounded-lg animate-pulse"
+              >
+                <div className="w-6 h-6 sm:w-7 sm:h-7 bg-white/10 rounded mb-1.5 sm:mb-2"></div>
+                <div className="w-12 h-3 bg-white/10 rounded text-xs sm:text-sm"></div>
+              </div>
+            ))}
+            {/* 管理員選項的骨架屏 */}
+            <div className="flex flex-col items-center w-[5.5rem] sm:w-28 min-h-[4.5rem] sm:min-h-20 p-2 sm:p-3 rounded-lg animate-pulse">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-white/10 rounded mb-1.5 sm:mb-2"></div>
+              <div className="w-12 h-3 bg-white/10 rounded text-xs sm:text-sm"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  // 完整的選單項目（包含管理員選項）
+  const allMenuItems = [
+    ...MENU_ITEMS,
+    // 只有管理員才能看到管理選項
+    ...(isAdmin ? [{
+      path: '/admin',
+      label: '管理設定',
+      icon: <Cog6ToothIcon className="w-5 h-5" />
+    }] : [])
+  ];
+
   return (
     <nav className="bg-surface sticky top-0 z-50 shadow-lg">
       <div className="container-custom py-2 sm:py-4">
+        {/* 錯誤提示 */}
+        {error && (
+          <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <div className="text-amber-500">⚠️</div>
+              <p className="text-amber-400 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-center gap-2 sm:gap-4">
-          {MENU_ITEMS.map(({ path, label, icon }) => (
+          {allMenuItems.map(({ path, label, icon }) => (
             <NavLink
               key={path}
               to={path}
               className={({ isActive }) => `
                 flex flex-col items-center
-                w-[5.5rem] sm:w-28  /* 手機 88px，平板/桌面 112px */
-                min-h-[4.5rem] sm:min-h-20  /* 手機 72px，平板/桌面 80px */
+                w-[5.5rem] sm:w-28
+                min-h-[4.5rem] sm:min-h-20
                 p-2 sm:p-3
                 rounded-lg
-                transition-colors duration-200
+                transition-all duration-200
                 ${isActive 
                   ? 'text-primary bg-primary/10' 
                   : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
@@ -112,7 +205,6 @@ function Navigation() {
               `}
             >
               <div className="mb-1.5 sm:mb-2">
-                {/* 放大圖示 */}
                 {React.cloneElement(icon, { 
                   className: "w-6 h-6 sm:w-7 sm:h-7" 
                 })}

@@ -1,22 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 允許所有讀寫操作（測試模式）
+    // 暫時允許所有操作，讓功能恢復正常
     match /{document=**} {
       allow read, write: if true;
     }
-    
-    // 或者更嚴格的規則（生產環境建議使用）
-    // match /schedule/{document} {
-    //   allow read, write: if true;
-    // }
-    // 
-    // match /names/{document} {
-    //   allow read, write: if true;
-    // }
-    // 
-    // match /pickupLocations/{document} {
-    //   allow read, write: if true;
-    // }
   }
 } 

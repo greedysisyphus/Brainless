@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, limit, enableIndexedDbPersistence, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getApps } from 'firebase/app';
 
 const firebaseConfig = {
@@ -20,6 +21,7 @@ if (!getApps().length) {
 }
 
 export const db = getFirestore(app);
+export const auth = getAuth(app);
 
 // 啟用離線支持
 try {
@@ -60,4 +62,39 @@ export async function safeGetCollection(collectionName) {
     console.error(`獲取 ${collectionName} 失敗:`, error);
     return [];
   }
-} 
+}
+
+// 管理員相關功能
+export const checkAdminStatus = async (uid) => {
+  try {
+    const { doc, getDoc } = await import('firebase/firestore');
+    const adminDoc = await getDoc(doc(db, 'admins', uid));
+    return adminDoc.exists();
+  } catch (error) {
+    console.error('檢查管理員狀態失敗:', error);
+    return false;
+  }
+};
+
+export const adminLogin = async (email, password) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const isAdmin = await checkAdminStatus(userCredential.user.uid);
+    if (!isAdmin) {
+      await signOut(auth);
+      throw new Error('此帳號沒有管理員權限');
+    }
+    return userCredential.user;
+  } catch (error) {
+    console.error('管理員登入失敗:', error);
+    throw error;
+  }
+};
+
+export const adminLogout = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error('登出失敗:', error);
+  }
+}; 
