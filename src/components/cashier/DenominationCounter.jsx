@@ -52,14 +52,14 @@ function DenominationCounter({ title, onTotalChange, savedKey, resetKey = 0 }) {
   }
 
   return (
-    <div className="bg-surface rounded-xl p-6 shadow-lg" role="region" aria-label={title}>
-      <h2 className="text-xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+    <div className="bg-surface rounded-xl p-4 shadow-lg" role="region" aria-label={title}>
+      <h2 className="text-lg font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
         {title}
       </h2>
 
-      <div className="grid gap-2">
+      <div className="grid gap-1.5">
         {DENOMINATIONS.map(({ value, label }) => (
-          <div key={value} className="bg-white/5 rounded-lg p-3 border border-white/10 hover:border-white/20 transition-all duration-200 hover:bg-white/10">
+          <div key={value} className="bg-white/5 rounded-lg p-2.5 border border-white/10 hover:border-white/20 transition-all duration-200 hover:bg-white/10">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-semibold text-white">{label}</span>
               <span className="text-xs text-gray-300">小計</span>
@@ -71,7 +71,7 @@ function DenominationCounter({ title, onTotalChange, savedKey, resetKey = 0 }) {
                 min="0"
                 value={counts[value] || ''}
                 onChange={e => handleCountChange(value, parseInt(e.target.value))}
-                className="flex-1 px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-center text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 text-sm font-medium"
+                className="flex-1 px-2.5 py-2 bg-white/10 border border-white/20 rounded-lg text-center text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 text-sm font-medium"
                 placeholder="0"
                 inputMode="decimal"
                 aria-label={`${label} 數量`}
@@ -80,7 +80,7 @@ function DenominationCounter({ title, onTotalChange, savedKey, resetKey = 0 }) {
                 aria-valuenow={counts[value] || 0}
               />
               
-              <div className="w-24 px-2 py-1.5 bg-primary/20 rounded-lg border border-primary/30">
+              <div className="w-20 px-2 py-1.5 bg-primary/20 rounded-lg border border-primary/30">
                 <div className="text-center">
                   <div className="text-xs text-gray-300">金額</div>
                   <div className="text-sm font-bold text-primary">
@@ -93,19 +93,19 @@ function DenominationCounter({ title, onTotalChange, savedKey, resetKey = 0 }) {
         ))}
       </div>
 
-      <div className="mt-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-3 border border-primary/20">
+      <div className="mt-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-2.5 border border-primary/20">
         <div className="flex justify-between items-center">
           <div>
             <div className="text-xs text-gray-300">總計金額</div>
-            <div className="text-lg font-bold text-white">
+            <div className="text-base font-bold text-white">
               ${total.toLocaleString()}
             </div>
           </div>
           <button
             onClick={clearAll}
-            className="px-3 py-1.5 bg-white/10 hover:bg-white/20 
+            className="px-2.5 py-1 bg-white/10 hover:bg-white/20 
                        text-gray-300 hover:text-white rounded-lg transition-all duration-200
-                       border border-white/20 hover:border-white/30 text-sm
+                       border border-white/20 hover:border-white/30 text-xs
                        focus:outline-none focus:ring-2 focus:ring-red-500/50"
             aria-label="清除所有數據"
           >
