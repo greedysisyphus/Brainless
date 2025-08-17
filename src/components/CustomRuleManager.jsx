@@ -25,6 +25,7 @@ const CustomRuleManager = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [activeTab, setActiveTab] = useState('custom'); // 'custom' 或 'schedule'
+  const [showVariableHelp, setShowVariableHelp] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     type: 'timeRange',
@@ -953,26 +954,150 @@ const CustomRuleManager = ({
       {activeTab === 'schedule' && (
         <>
           {/* 變數說明 */}
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
-            <ResponsiveTitle level={3} className="text-blue-400 mb-2">
-              可用變數說明
-            </ResponsiveTitle>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-              <div>
-                <ResponsiveText size="sm" className="text-blue-300 font-bold">班次變數：</ResponsiveText>
-                <ResponsiveText size="sm" className="text-blue-300">• {'{早班同事}'} - 早班同事名字</ResponsiveText>
-                <ResponsiveText size="sm" className="text-blue-300">• {'{中班同事}'} - 中班同事名字</ResponsiveText>
-                <ResponsiveText size="sm" className="text-blue-300">• {'{晚班同事}'} - 晚班同事名字</ResponsiveText>
-                <ResponsiveText size="sm" className="text-blue-300">• {'{所有同事}'} - 所有上班同事名字</ResponsiveText>
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <ResponsiveTitle level={3} className="text-blue-400">
+                可用變數說明
+              </ResponsiveTitle>
+              <ResponsiveButton
+                onClick={() => setShowVariableHelp(!showVariableHelp)}
+                variant="secondary"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                {showVariableHelp ? '隱藏說明' : '顯示說明'}
+                <span className="text-xs">
+                  {showVariableHelp ? '▼' : '▶'}
+                </span>
+              </ResponsiveButton>
+            </div>
+            
+            {showVariableHelp && (
+              <div className="space-y-6">
+            
+            {/* 班次和人數變數 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 班次變數 */}
+              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                <ResponsiveText size="sm" className="text-blue-300 font-bold mb-3 text-center">
+                  📋 班次變數
+                </ResponsiveText>
+                <div className="space-y-2">
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{早班同事}'} - 早班同事名字</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{中班同事}'} - 中班同事名字</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{晚班同事}'} - 晚班同事名字</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{所有同事}'} - 所有上班同事名字</ResponsiveText>
+                </div>
+                
+                <div className="mt-4 pt-3 border-t border-white/10">
+                  <ResponsiveText size="sm" className="text-blue-300 font-semibold mb-2">💡 使用範例：</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{早班同事}，早安！'} → 小明、小華，早安！</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{所有同事}，工作辛苦了！'} → 小明、小華、小美，工作辛苦了！</ResponsiveText>
+                </div>
               </div>
-              <div>
-                <ResponsiveText size="sm" className="text-blue-300 font-bold">人數變數：</ResponsiveText>
-                <ResponsiveText size="sm" className="text-blue-300">• {'{早班人數}'} - 早班人數</ResponsiveText>
-                <ResponsiveText size="sm" className="text-blue-300">• {'{中班人數}'} - 中班人數</ResponsiveText>
-                <ResponsiveText size="sm" className="text-blue-300">• {'{晚班人數}'} - 晚班人數</ResponsiveText>
-                <ResponsiveText size="sm" className="text-blue-300">• {'{總人數}'} - 總上班人數</ResponsiveText>
+              
+              {/* 人數變數 */}
+              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                <ResponsiveText size="sm" className="text-blue-300 font-bold mb-3 text-center">
+                  👥 人數變數
+                </ResponsiveText>
+                <div className="space-y-2">
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{早班人數}'} - 早班人數</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{中班人數}'} - 中班人數</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{晚班人數}'} - 晚班人數</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'{總人數}'} - 總上班人數</ResponsiveText>
+                </div>
+                
+                <div className="mt-4 pt-3 border-t border-white/10">
+                  <ResponsiveText size="sm" className="text-blue-300 font-semibold mb-2">💡 使用範例：</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'今天有{總人數}位同事上班'} → 今天有5位同事上班</ResponsiveText>
+                  <ResponsiveText size="sm" className="text-blue-300">• {'早班{早班人數}人，晚班{晚班人數}人'} → 早班2人，晚班3人</ResponsiveText>
+                </div>
               </div>
             </div>
+            
+            {/* 連續上班變數 */}
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <ResponsiveText size="sm" className="text-blue-300 font-bold mb-4 text-center">
+                ⏰ 連續上班變數
+              </ResponsiveText>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 基本變數 */}
+                <div>
+                  <ResponsiveText size="sm" className="text-blue-300 font-semibold mb-2">
+                    🔧 基本變數
+                  </ResponsiveText>
+                  <div className="space-y-2">
+                    <ResponsiveText size="sm" className="text-blue-300">• {'{連續上班同事}'} - 連續上班4-6天的同事（顯示名字+天數）</ResponsiveText>
+                    <ResponsiveText size="sm" className="text-blue-300">• {'{連續上班同事數量}'} - 連續上班4-6天的同事數量</ResponsiveText>
+                  </div>
+                </div>
+                
+                {/* 指定天數變數 */}
+                <div>
+                  <ResponsiveText size="sm" className="text-blue-300 font-semibold mb-2">
+                    🎯 指定天數變數
+                  </ResponsiveText>
+                  <div className="space-y-2">
+                    <ResponsiveText size="sm" className="text-blue-300">• {'{連續上班X天同事}'} - 指定天數的同事名字（X為數字，只顯示名字）</ResponsiveText>
+                    <ResponsiveText size="sm" className="text-blue-300">• {'{連續上班X天同事數量}'} - 指定天數的同事數量</ResponsiveText>
+                  </div>
+                </div>
+              </div>
+              
+              {/* 使用範例 */}
+              <div className="mt-4 pt-3 border-t border-white/10">
+                <ResponsiveText size="sm" className="text-blue-300 font-semibold mb-2">
+                  💡 使用範例
+                </ResponsiveText>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <ResponsiveText size="sm" className="text-blue-300">• {'{連續上班同事}，辛苦了！'}</ResponsiveText>
+                    <ResponsiveText size="sm" className="text-gray-400 text-xs">→ 小明連續上班5天、小華連續上班4天，辛苦了！</ResponsiveText>
+                  </div>
+                  <div className="space-y-1">
+                    <ResponsiveText size="sm" className="text-blue-300">• {'{連續上班6天同事}，請務必休息'}</ResponsiveText>
+                    <ResponsiveText size="sm" className="text-gray-400 text-xs">→ 紅葉，請務必休息</ResponsiveText>
+                  </div>
+                  <div className="space-y-1">
+                    <ResponsiveText size="sm" className="text-blue-300">• {'今天有{連續上班同事數量}位同事需要關心'}</ResponsiveText>
+                    <ResponsiveText size="sm" className="text-gray-400 text-xs">→ 今天有2位同事需要關心</ResponsiveText>
+                  </div>
+                </div>
+              </div>
+              
+              {/* 功能說明 */}
+              <div className="mt-4 pt-3 border-t border-white/10">
+                <ResponsiveText size="sm" className="text-blue-300 font-semibold mb-2">
+                  ⚙️ 功能說明
+                </ResponsiveText>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <ResponsiveText size="sm" className="text-blue-300">• 自動計算：從今天開始往前計算，遇到休假為止</ResponsiveText>
+                    <ResponsiveText size="sm" className="text-blue-300">• 智能顯示：沒有符合條件的同事時，模板不會顯示</ResponsiveText>
+                  </div>
+                  <div className="space-y-1">
+                    <ResponsiveText size="sm" className="text-blue-300">• 適用場景：關心同事、提醒休息、表揚勤奮</ResponsiveText>
+                    <ResponsiveText size="sm" className="text-blue-300">• 注意事項：需要先在姓名管理中設定同事姓名對應</ResponsiveText>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* 添加規則按鈕 */}
+            <div className="flex justify-center">
+              <ResponsiveButton
+                onClick={() => setShowAddForm(true)}
+                variant="primary"
+                size="sm"
+                disabled={isSaving}
+              >
+                添加規則
+              </ResponsiveButton>
+            </div>
+              </div>
+            )}
           </div>
 
           {/* 添加/編輯表單 */}

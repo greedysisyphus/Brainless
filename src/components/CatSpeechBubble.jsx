@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../utils/firebase';
-import { generateSmartMessage, generateAllSmartMessages } from '../utils/smartMessageGenerator';
+import { generateSmartMessage, generateAllSmartMessages, clearSmartMessageCache } from '../utils/smartMessageGenerator';
 
 const CatSpeechBubble = () => {
   const [showBubble, setShowBubble] = useState(false);
@@ -22,6 +22,7 @@ const CatSpeechBubble = () => {
   const [scheduleTemplates, setScheduleTemplates] = useState([]);
   const [smartMessages, setSmartMessages] = useState([]); // 新增：存儲所有智能對話
   const [namesData, setNamesData] = useState({}); // 新增：存儲姓名資料
+  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now()); // 新增：最後刷新時間
 
   // 監聽全域設定
   useEffect(() => {
@@ -121,6 +122,9 @@ const CatSpeechBubble = () => {
 
     // 立即檢查一次（載入時）
     const generateSmartMessages = () => {
+      // 清理快取，確保獲得最新的計算結果
+      clearSmartMessageCache();
+      
       const allMessages = generateAllSmartMessages(scheduleData, customRules, scheduleTemplates, namesData);
       
       if (allMessages.length > 0) {
@@ -128,14 +132,10 @@ const CatSpeechBubble = () => {
         const customMessages = allMessages.filter(msg => msg.type === 'custom').map(msg => msg.message);
         const scheduleMessages = allMessages.filter(msg => msg.type === 'schedule').map(msg => msg.message);
         
-        // 對於班表問候語，只隨機選擇一個
-        const selectedScheduleMessage = scheduleMessages.length > 0 ? 
-          scheduleMessages[Math.floor(Math.random() * scheduleMessages.length)] : '';
-        
-        // 合併所有智能對話
+        // 合併所有智能對話（包含所有班表模板，不只是隨機選擇一個）
         const smartTexts = [
           ...customMessages,
-          ...(selectedScheduleMessage ? [selectedScheduleMessage] : [])
+          ...scheduleMessages
         ].filter(text => text && text.trim() !== '');
         
         // 獲取原始普通對話（從全域設定中）
@@ -163,11 +163,11 @@ const CatSpeechBubble = () => {
     // 立即生成一次
     generateSmartMessages();
 
-    // 每分鐘重新生成一次
-    const updateInterval = setInterval(generateSmartMessages, 60 * 1000);
+    // 每30秒重新生成一次（縮短間隔，確保及時更新）
+    const updateInterval = setInterval(generateSmartMessages, 30 * 1000);
 
     return () => clearInterval(updateInterval);
-  }, [smartMode, showBubble, scheduleData, customRules, scheduleTemplates, namesData]);
+  }, [smartMode, showBubble, scheduleData, customRules, scheduleTemplates, namesData, lastRefreshTime]);
 
   // 當對話列表改變時，確保當前索引有效
   useEffect(() => {
@@ -211,6 +211,11 @@ const CatSpeechBubble = () => {
     return () => clearInterval(interval);
   }, [showBubble, speechTexts.length, intervalSeconds]);
 
+  // 手動刷新智能對話
+  const handleManualRefresh = () => {
+    setLastRefreshTime(Date.now());
+  };
+
   // 快捷鍵監聽
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -218,10 +223,16 @@ const CatSpeechBubble = () => {
       if (e.ctrlKey && e.altKey && e.key === 'A') {
         setShowLogin(true);
       }
+      
+      // Ctrl+R: 刷新智能對話（僅在智能模式時）
+      if (e.ctrlKey && e.key === 'R' && smartMode) {
+        e.preventDefault();
+        handleManualRefresh();
+      }
     };
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  }, [smartMode]);
 
   // 管理員登入
   const handleAdminLogin = async () => {
@@ -336,7 +347,19 @@ const CatSpeechBubble = () => {
 
       {/* 橫向對話輪播 */}
       <div className="mt-2 mb-0 animate-fadeIn">
-        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-2 border border-primary/20 backdrop-blur-sm shadow-lg">
+        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-2 border border-primary/20 backdrop-blur-sm shadow-lg relative">
+          {/* 手動刷新按鈕（僅在智能模式時顯示） */}
+          {smartMode && (
+            <button
+              onClick={handleManualRefresh}
+              className="absolute top-1 right-1 w-6 h-6 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 z-10"
+              title="刷新智能對話 (Ctrl+R)"
+            >
+              <svg className="w-3 h-3 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          )}
           {/* 對話內容區域 */}
           <div className="relative">
             <div
