@@ -126,7 +126,7 @@ function SandwichCalculator() {
             <p className="text-text-secondary">{zhtw.sandwich.subtitle}</p>
         </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           {/* 計算卡片 */}
           <div className="card bg-gradient-to-br from-surface/80 to-surface/60 border-primary/20">
             <div className="flex items-center justify-between mb-6">
