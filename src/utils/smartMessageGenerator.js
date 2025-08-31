@@ -19,6 +19,14 @@ const CONSTANTS = {
   }
 };
 
+// 全域變數：存儲所有班表資料（用於跨月份計算）
+let globalAllSchedules = {};
+
+// 設定全域班表資料（供外部調用）
+export const setGlobalAllSchedules = (allSchedules) => {
+  globalAllSchedules = allSchedules || {};
+};
+
 // 快取機制
 const cache = {
   consecutiveDays: new Map(),
@@ -310,6 +318,12 @@ const isSpecificDate = (month, date) => {
   return today.getMonth() + 1 === month && today.getDate() === date;
 };
 
+// 檢查是否為每月指定日期
+const isMonthlyDate = (date) => {
+  const today = new Date();
+  return today.getDate() === date;
+};
+
 // 轉換 ScheduleManager 的資料結構為智能對話系統格式
 const convertScheduleData = (scheduleData) => {
   if (!scheduleData || typeof scheduleData !== 'object') {
@@ -386,6 +400,8 @@ const calculateConsecutiveWorkDays = (scheduleData, employeeId, namesData = {}) 
     return cache.consecutiveDays.get(cacheKey);
   }
 
+
+
   const employeeName = namesData[employeeId] || employeeId;
 
   // 如果是 ScheduleManager 的資料結構，需要轉換
@@ -455,8 +471,42 @@ const calculateConsecutiveWorkDays = (scheduleData, employeeId, namesData = {}) 
     
     // 檢查上個月的最後幾天（跨月連續上班）
     if (currentDay < 1) {
-      // 這裡可以進一步實現跨月檢查，但為了簡化，暫時不處理
-      // 如果需要跨月檢查，需要載入上個月的班表資料
+      // 計算上個月的年月
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1;
+      
+      // 修正：正確計算上個月
+      let lastMonthYear, lastMonthMonth;
+      if (currentMonth === 1) {
+        // 如果是1月，上個月是去年12月
+        lastMonthYear = currentYear - 1;
+        lastMonthMonth = 12;
+      } else {
+        // 其他月份，上個月是當前年份的 (currentMonth - 1) 月
+        lastMonthYear = currentYear;
+        lastMonthMonth = currentMonth - 1;
+      }
+      
+      const lastMonthKey = `${lastMonthYear}-${lastMonthMonth.toString().padStart(2, '0')}`;
+      
+      // 嘗試從全域變數中獲取上個月的班表資料
+      if (globalAllSchedules && globalAllSchedules[lastMonthKey]) {
+        const lastMonthSchedule = globalAllSchedules[lastMonthKey];
+        const daysInLastMonth = new Date(lastMonthYear, lastMonthMonth, 0).getDate();
+        
+        // 檢查上個月最後7天的班次，從最後一天開始往前檢查
+        const checkLastMonthDays = 7;
+        for (let day = daysInLastMonth; day >= Math.max(1, daysInLastMonth - checkLastMonthDays + 1); day--) {
+          const shift = lastMonthSchedule[employeeId]?.[day];
+          
+          if (isValidWorkShift(shift)) {
+            consecutiveDays++;
+          } else {
+            break; // 遇到休假就停止
+          }
+        }
+      }
     }
     
     // 儲存到快取
@@ -466,7 +516,7 @@ const calculateConsecutiveWorkDays = (scheduleData, employeeId, namesData = {}) 
 };
 
 // 找出連續上班4-6天的同事
-const findConsecutiveWorkEmployees = (scheduleData, namesData = {}, minDays = CONSTANTS.MIN_CONSECUTIVE_DAYS, maxDays = CONSTANTS.MAX_CONSECUTIVE_DAYS) => {
+export const findConsecutiveWorkEmployees = (scheduleData, namesData = {}, minDays = CONSTANTS.MIN_CONSECUTIVE_DAYS, maxDays = CONSTANTS.MAX_CONSECUTIVE_DAYS) => {
   if (!scheduleData) {
     return [];
   }
@@ -626,11 +676,13 @@ export const generateAllSmartMessages = (scheduleData = null, customRules = [], 
       let shouldTrigger = false;
       
       if (rule.type === 'timeRange') {
-        shouldTrigger = isTimeInRange(rule.startTime, rule.endTime);
+        shouldTrigger = rule.allDay || isTimeInRange(rule.startTime, rule.endTime);
       } else if (rule.type === 'dayOfWeek') {
-        shouldTrigger = rule.day === dayOfWeek && isTimeInRange(rule.startTime, rule.endTime);
+        shouldTrigger = rule.day === dayOfWeek && (rule.allDay || isTimeInRange(rule.startTime, rule.endTime));
       } else if (rule.type === 'specificDate') {
         shouldTrigger = isSpecificDate(rule.month, rule.date);
+      } else if (rule.type === 'monthlyDate') {
+        shouldTrigger = isMonthlyDate(rule.date) && (rule.allDay || isTimeInRange(rule.startTime, rule.endTime));
       }
       
       if (shouldTrigger && rule.messages && Array.isArray(rule.messages) && rule.messages.length > 0 && 
@@ -712,13 +764,16 @@ export const validateCustomRule = (rule) => {
   
   switch (rule.type) {
     case 'timeRange':
-      return validateTimeFormat(rule.startTime) && validateTimeFormat(rule.endTime);
+      return rule.allDay || (validateTimeFormat(rule.startTime) && validateTimeFormat(rule.endTime));
     case 'dayOfWeek':
       return ['日', '一', '二', '三', '四', '五', '六'].includes(rule.day) && 
-             validateTimeFormat(rule.startTime) && validateTimeFormat(rule.endTime);
+             (rule.allDay || (validateTimeFormat(rule.startTime) && validateTimeFormat(rule.endTime)));
     case 'specificDate':
       return rule.month >= 1 && rule.month <= 12 && 
              rule.date >= 1 && rule.date <= 31;
+    case 'monthlyDate':
+      return rule.date >= 1 && rule.date <= 31 && 
+             (rule.allDay || (validateTimeFormat(rule.startTime) && validateTimeFormat(rule.endTime)));
     default:
       return false;
   }
@@ -737,6 +792,7 @@ export const getDefaultCustomRules = () => [
     type: 'timeRange',
     startTime: '08:00',
     endTime: '10:00',
+    allDay: false,
     messages: [
       '早安！新的一天開始了～',
       '早上好！今天也要加油喔！',
@@ -750,6 +806,7 @@ export const getDefaultCustomRules = () => [
     type: 'timeRange',
     startTime: '12:00',
     endTime: '13:00',
+    allDay: false,
     messages: [
       '午休時間到了，記得休息一下喔～',
       '喵～該吃午餐了！',
@@ -764,6 +821,7 @@ export const getDefaultCustomRules = () => [
     day: '三',
     startTime: '14:00',
     endTime: '16:00',
+    allDay: false,
     messages: [
       '週三下午進貨時間到了，加油！',
       '喵～進貨時間！',
@@ -778,10 +836,41 @@ export const getDefaultCustomRules = () => [
     day: '六',
     startTime: '09:00',
     endTime: '11:00',
+    allDay: false,
     messages: [
       '週末愉快！好好休息喔～',
       '喵～週末快樂！',
       '週末愉快！享受美好時光～'
+    ],
+    enabled: false
+  },
+  {
+    id: '5',
+    name: '每月1號提醒',
+    type: 'monthlyDate',
+    date: 1,
+    startTime: '08:00',
+    endTime: '10:00',
+    allDay: false,
+    messages: [
+      '新的月份開始了！大家加油！',
+      '喵～新的月份，新的開始！',
+      '每月1號，重新出發！'
+    ],
+    enabled: false
+  },
+  {
+    id: '6',
+    name: '週末全天問候',
+    type: 'dayOfWeek',
+    day: '六',
+    startTime: '08:00',
+    endTime: '10:00',
+    allDay: true,
+    messages: [
+      '週末愉快！好好享受假期～',
+      '喵～週末快樂！全天陪伴你！',
+      '週末愉快！放鬆心情～'
     ],
     enabled: false
   }

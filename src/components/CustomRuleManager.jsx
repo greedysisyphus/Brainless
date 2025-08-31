@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveCard, ResponsiveButton, ResponsiveInput, ResponsiveLabel, ResponsiveText, ResponsiveTitle } from './common/ResponsiveContainer';
-import { validateCustomRule, getDefaultCustomRules, validateScheduleTemplate, getDefaultScheduleTemplates, generateAllSmartMessages, processScheduleTemplate, categorizeWorkersByShift } from '../utils/smartMessageGenerator';
+import { validateCustomRule, getDefaultCustomRules, validateScheduleTemplate, getDefaultScheduleTemplates, generateAllSmartMessages, processScheduleTemplate, categorizeWorkersByShift, findConsecutiveWorkEmployees } from '../utils/smartMessageGenerator';
 import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
@@ -34,6 +34,7 @@ const CustomRuleManager = ({
     day: '一',
     month: 1,
     date: 1,
+    allDay: false,
     messages: [''],
     enabled: true
   });
@@ -230,6 +231,7 @@ const CustomRuleManager = ({
       day: '一',
       month: 1,
       date: 1,
+      allDay: false,
       messages: [''],
       enabled: true
     });
@@ -337,6 +339,7 @@ const CustomRuleManager = ({
       day: rule.day || '一',
       month: rule.month || 1,
       date: rule.date || 1,
+      allDay: rule.allDay || false,
       messages: rule.messages || [''],
       enabled: rule.enabled
     });
@@ -459,31 +462,49 @@ const CustomRuleManager = ({
     switch (formData.type) {
       case 'timeRange':
         return (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <ResponsiveLabel htmlFor="startTime" required>
-                開始時間
-              </ResponsiveLabel>
-              <ResponsiveInput
-                id="startTime"
-                type="time"
-                value={formData.startTime}
-                onChange={(e) => handleFormChange('startTime', e.target.value)}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="allDay"
+                checked={formData.allDay}
+                onChange={(e) => handleFormChange('allDay', e.target.checked)}
                 disabled={isSaving}
+                className="w-5 h-5 disabled:opacity-50"
               />
-            </div>
-            <div>
-              <ResponsiveLabel htmlFor="endTime" required>
-                結束時間
+              <ResponsiveLabel htmlFor="allDay" className="!mb-0">
+                全天（24小時）
               </ResponsiveLabel>
-              <ResponsiveInput
-                id="endTime"
-                type="time"
-                value={formData.endTime}
-                onChange={(e) => handleFormChange('endTime', e.target.value)}
-                disabled={isSaving}
-              />
             </div>
+            
+            {!formData.allDay && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <ResponsiveLabel htmlFor="startTime" required>
+                    開始時間
+                  </ResponsiveLabel>
+                  <ResponsiveInput
+                    id="startTime"
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => handleFormChange('startTime', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+                <div>
+                  <ResponsiveLabel htmlFor="endTime" required>
+                    結束時間
+                  </ResponsiveLabel>
+                  <ResponsiveInput
+                    id="endTime"
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => handleFormChange('endTime', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         );
       case 'dayOfWeek':
@@ -509,32 +530,49 @@ const CustomRuleManager = ({
                 <option value="日">星期日</option>
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <ResponsiveLabel htmlFor="startTime" required>
-                  開始時間
-                </ResponsiveLabel>
-                <ResponsiveInput
-                  id="startTime"
-                  type="time"
-                  value={formData.startTime}
-                  onChange={(e) => handleFormChange('startTime', e.target.value)}
-                  disabled={isSaving}
-                />
-              </div>
-              <div>
-                <ResponsiveLabel htmlFor="endTime" required>
-                  結束時間
-                </ResponsiveLabel>
-                <ResponsiveInput
-                  id="endTime"
-                  type="time"
-                  value={formData.endTime}
-                  onChange={(e) => handleFormChange('endTime', e.target.value)}
-                  disabled={isSaving}
-                />
-              </div>
+            
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="allDay"
+                checked={formData.allDay}
+                onChange={(e) => handleFormChange('allDay', e.target.checked)}
+                disabled={isSaving}
+                className="w-5 h-5 disabled:opacity-50"
+              />
+              <ResponsiveLabel htmlFor="allDay" className="!mb-0">
+                全天（24小時）
+              </ResponsiveLabel>
             </div>
+            
+            {!formData.allDay && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <ResponsiveLabel htmlFor="startTime" required>
+                    開始時間
+                  </ResponsiveLabel>
+                  <ResponsiveInput
+                    id="startTime"
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => handleFormChange('startTime', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+                <div>
+                  <ResponsiveLabel htmlFor="endTime" required>
+                    結束時間
+                  </ResponsiveLabel>
+                  <ResponsiveInput
+                    id="endTime"
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => handleFormChange('endTime', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         );
       case 'specificDate':
@@ -549,8 +587,12 @@ const CustomRuleManager = ({
                 type="number"
                 min="1"
                 max="12"
-                value={formData.month}
-                onChange={(e) => handleFormChange('month', parseInt(e.target.value))}
+                value={formData.month || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 1 : parseInt(value);
+                  handleFormChange('month', isNaN(numValue) ? 1 : numValue);
+                }}
                 disabled={isSaving}
               />
             </div>
@@ -563,11 +605,85 @@ const CustomRuleManager = ({
                 type="number"
                 min="1"
                 max="31"
-                value={formData.date}
-                onChange={(e) => handleFormChange('date', parseInt(e.target.value))}
+                value={formData.date || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 1 : parseInt(value);
+                  handleFormChange('date', isNaN(numValue) ? 1 : numValue);
+                }}
                 disabled={isSaving}
               />
             </div>
+          </div>
+        );
+      case 'monthlyDate':
+        return (
+          <div className="space-y-4">
+            <div>
+              <ResponsiveLabel htmlFor="monthlyDate" required>
+                每月幾號
+              </ResponsiveLabel>
+              <div className="grid grid-cols-7 gap-1 bg-white/5 rounded-lg p-3 border border-white/10">
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => handleFormChange('date', day)}
+                    disabled={isSaving}
+                    className={`p-2 text-sm rounded transition-colors ${
+                      formData.date === day
+                        ? 'bg-primary text-white'
+                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                    } disabled:opacity-50`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="allDay"
+                checked={formData.allDay}
+                onChange={(e) => handleFormChange('allDay', e.target.checked)}
+                disabled={isSaving}
+                className="w-5 h-5 disabled:opacity-50"
+              />
+              <ResponsiveLabel htmlFor="allDay" className="!mb-0">
+                全天（24小時）
+              </ResponsiveLabel>
+            </div>
+            
+            {!formData.allDay && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <ResponsiveLabel htmlFor="startTime" required>
+                    開始時間
+                  </ResponsiveLabel>
+                  <ResponsiveInput
+                    id="startTime"
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => handleFormChange('startTime', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+                <div>
+                  <ResponsiveLabel htmlFor="endTime" required>
+                    結束時間
+                  </ResponsiveLabel>
+                  <ResponsiveInput
+                    id="endTime"
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => handleFormChange('endTime', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         );
       default:
@@ -770,6 +886,7 @@ const CustomRuleManager = ({
                     <option value="timeRange">時間範圍</option>
                     <option value="dayOfWeek">星期幾</option>
                     <option value="specificDate">特定日期</option>
+                    <option value="monthlyDate">每月幾號</option>
                   </select>
                 </div>
 
@@ -910,24 +1027,32 @@ const CustomRuleManager = ({
                   
                   <ResponsiveText size="sm" color="secondary" className="mb-2">
                     類型：{rule.type === 'timeRange' ? '時間範圍' :
-                           rule.type === 'dayOfWeek' ? '星期幾' : '特定日期'}
+                           rule.type === 'dayOfWeek' ? '星期幾' :
+                           rule.type === 'specificDate' ? '特定日期' :
+                           rule.type === 'monthlyDate' ? '每月幾號' : '未知類型'}
                   </ResponsiveText>
 
                   {rule.type === 'timeRange' && (
                     <ResponsiveText size="sm" color="secondary" className="mb-2">
-                      時間：{rule.startTime} - {rule.endTime}
+                      時間：{rule.allDay ? '全天' : `${rule.startTime} - ${rule.endTime}`}
                     </ResponsiveText>
                   )}
 
                   {rule.type === 'dayOfWeek' && (
                     <ResponsiveText size="sm" color="secondary" className="mb-2">
-                      星期{rule.day} {rule.startTime} - {rule.endTime}
+                      星期{rule.day} {rule.allDay ? '全天' : `${rule.startTime} - ${rule.endTime}`}
                     </ResponsiveText>
                   )}
 
                   {rule.type === 'specificDate' && (
                     <ResponsiveText size="sm" color="secondary" className="mb-2">
                       {rule.month}月{rule.date}日
+                    </ResponsiveText>
+                  )}
+
+                  {rule.type === 'monthlyDate' && (
+                    <ResponsiveText size="sm" color="secondary" className="mb-2">
+                      每月{rule.date}日 {rule.allDay ? '全天' : `${rule.startTime} - ${rule.endTime}`}
                     </ResponsiveText>
                   )}
 
@@ -1461,6 +1586,59 @@ const CustomRuleManager = ({
             </div>
           </div>
           
+          {/* 連續上班天數資訊 */}
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <ResponsiveText size="sm" className="text-blue-300 font-bold mb-2">
+              連續上班天數：
+            </ResponsiveText>
+            <div className="space-y-1 text-xs text-gray-400">
+              {(() => {
+                const consecutiveEmployees = findConsecutiveWorkEmployees(scheduleData, namesData, 1, 30);
+                if (consecutiveEmployees.length === 0) {
+                  return <div className="text-gray-500">無連續上班同事</div>;
+                }
+                
+                // 按連續天數分組
+                const groupedByDays = {};
+                consecutiveEmployees.forEach(emp => {
+                  if (!groupedByDays[emp.consecutiveDays]) {
+                    groupedByDays[emp.consecutiveDays] = [];
+                  }
+                  groupedByDays[emp.consecutiveDays].push(emp.name);
+                });
+                
+                // 按天數降序排列，並添加顏色標識
+                return Object.entries(groupedByDays)
+                  .sort(([a], [b]) => parseInt(b) - parseInt(a))
+                  .map(([days, names]) => {
+                    const dayNum = parseInt(days);
+                    let colorClass = 'text-gray-300'; // 1-3天：灰色
+                    if (dayNum >= 6) {
+                      colorClass = 'text-red-400'; // 6天以上：紅色（高風險）
+                    } else if (dayNum >= 4) {
+                      colorClass = 'text-yellow-400'; // 4-5天：黃色（注意）
+                    }
+                    
+                    return (
+                      <div key={days} className="bg-white/5 rounded p-2 flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className={`font-semibold ${colorClass}`}>{days}天：</span>
+                          <span className="text-gray-300 ml-1">{names.join('、')}</span>
+                        </div>
+                        {dayNum >= 4 && (
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            dayNum >= 6 ? 'bg-red-500/20 text-red-300' : 'bg-yellow-500/20 text-yellow-300'
+                          }`}>
+                            {dayNum >= 6 ? '高風險' : '注意'}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  });
+              })()}
+            </div>
+          </div>
+
           {/* 班表模板調試資訊 */}
           {scheduleTemplates.filter(t => t.enabled).length > 0 && (
             <div className="mt-3 pt-3 border-t border-white/10">
@@ -1488,6 +1666,8 @@ const CustomRuleManager = ({
                       <div>早班同事：{categorized.morning.join('、') || '無'}</div>
                       <div>中班同事：{categorized.afternoon.join('、') || '無'}</div>
                       <div>晚班同事：{categorized.evening.join('、') || '無'}</div>
+                      
+
                     </div>
                   );
                 })}

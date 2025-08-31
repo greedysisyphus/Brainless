@@ -104,6 +104,88 @@ const SHIFT_CODES = {
   '晚班': '晚'
 }
 
+// 月份選擇器選項（只顯示有資料的月份）
+const getMonthOptions = (availableMonths = []) => {
+  const options = []
+  const currentDate = new Date()
+  const currentYear = currentDate.getFullYear()
+  const currentMonth = currentDate.getMonth() + 1
+  const currentKey = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`
+  
+  // 如果有可用的月份資料，只顯示有資料的月份
+  if (availableMonths.length > 0) {
+    // 按時間順序排序（最新的在前面）
+    const sortedMonths = availableMonths.sort((a, b) => b.key.localeCompare(a.key))
+    
+    sortedMonths.forEach(month => {
+      let label = month.label
+      
+      // 標記當月
+      if (month.key === currentKey) {
+        label += ' (當月)'
+      }
+      
+      options.push({
+        key: month.key,
+        label: label,
+        year: parseInt(month.key.split('-')[0]),
+        month: parseInt(month.key.split('-')[1]),
+        lastUpdated: month.lastUpdated
+      })
+    })
+  } else {
+    // 如果沒有資料，顯示當月作為預設選項
+    options.push({ 
+      key: currentKey, 
+      label: `${currentYear}年${currentMonth}月 (當月)`, 
+      year: currentYear, 
+      month: currentMonth 
+    })
+  }
+  
+  return options
+}
+
+// 匯入功能專用的月份選擇器選項（顯示完整月份範圍）
+const getImportMonthOptions = () => {
+  const options = []
+  const currentDate = new Date()
+  
+  // 過去 12 個月
+  for (let i = 12; i >= 1; i--) {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const key = `${year}-${month.toString().padStart(2, '0')}`
+    const label = `${year}年${month}月`
+    options.push({ key, label, year, month })
+  }
+  
+  // 當月
+  const currentYear = currentDate.getFullYear()
+  const currentMonth = currentDate.getMonth() + 1
+  const currentKey = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`
+  options.push({ 
+    key: currentKey, 
+    label: `${currentYear}年${currentMonth}月 (當月)`, 
+    year: currentYear, 
+    month: currentMonth 
+  })
+  
+  // 未來 6 個月
+  for (let i = 1; i <= 6; i++) {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const key = `${year}-${month.toString().padStart(2, '0')}`
+    let label = `${year}年${month}月`
+    if (i === 1) label += ' (下個月)'
+    options.push({ key, label, year, month })
+  }
+  
+  return options
+}
+
 function ScheduleManager() {
   // 分頁狀態
   const [activeTab, setActiveTab] = useState('display')
@@ -111,8 +193,18 @@ function ScheduleManager() {
   // 班表資料
   const [currentMonthSchedule, setCurrentMonthSchedule] = useState({})
   const [nextMonthSchedule, setNextMonthSchedule] = useState({})
-  const [selectedMonth, setSelectedMonth] = useState('current')
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const currentDate = new Date()
+    const currentYear = currentDate.getFullYear()
+    const currentMonth = currentDate.getMonth() + 1
+    return `${currentYear}-${currentMonth.toString().padStart(2, '0')}`
+  })
   const [lastUpdated, setLastUpdated] = useState({})
+  
+  // 多月份班表管理
+  const [allSchedules, setAllSchedules] = useState({})
+  const [availableMonths, setAvailableMonths] = useState([])
+  const [isLoadingMonth, setIsLoadingMonth] = useState(false)
   
   // 同事資料
   const [names, setNames] = useState({})
@@ -146,6 +238,10 @@ function ScheduleManager() {
   const [importError, setImportError] = useState('')
   const [targetMonth, setTargetMonth] = useState('current')
   
+  // 月份管理
+  const [selectedMonthForImport, setSelectedMonthForImport] = useState('')
+  const [monthManagementTab, setMonthManagementTab] = useState('import') // 'import' 或 'manage'
+  
   // 同事管理
   const [newEmployee, setNewEmployee] = useState({
     id: '',
@@ -158,6 +254,28 @@ function ScheduleManager() {
     loadScheduleData()
     loadEmployeeData()
   }, [])
+
+  // 當可用月份更新時，自動選擇有資料的月份
+  useEffect(() => {
+    if (availableMonths.length > 0) {
+      // 優先選擇當月，如果當月沒有資料則選擇最新的月份
+      const currentDate = new Date()
+      const currentYear = currentDate.getFullYear()
+      const currentMonth = currentDate.getMonth() + 1
+      const currentKey = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`
+      
+      const hasCurrentMonth = availableMonths.some(month => month.key === currentKey)
+      if (hasCurrentMonth) {
+        setSelectedMonth(currentKey)
+      } else {
+        // 選擇最新的月份
+        const latestMonth = availableMonths[0]
+        if (latestMonth) {
+          setSelectedMonth(latestMonth.key)
+        }
+      }
+    }
+  }, [availableMonths])
   
   // 當切換統計標籤頁時，清除另一個標籤頁的選中狀態
   useEffect(() => {
@@ -206,30 +324,48 @@ function ScheduleManager() {
   
   const loadScheduleData = async () => {
     try {
-      // 載入當月班表
-      const currentDoc = await getDocs(collection(db, 'schedule'))
-      const currentData = {}
-      currentDoc.forEach(doc => {
-        if (doc.id === 'currentMonth' || doc.id === 'nextMonth') {
-          currentData[doc.id] = doc.data()
+      // 載入所有班表資料
+      const scheduleDocs = await getDocs(collection(db, 'schedule'))
+      const allData = {}
+      const availableMonthsList = []
+      
+      scheduleDocs.forEach(doc => {
+        const data = doc.data()
+        allData[doc.id] = data
+        
+        // 檢查是否為月份格式 (YYYY-MM)
+        if (doc.id.match(/^\d{4}-\d{2}$/)) {
+          availableMonthsList.push({
+            key: doc.id,
+            label: `${doc.id.split('-')[0]}年${doc.id.split('-')[1]}月`,
+            lastUpdated: data._lastUpdated
+          })
         }
       })
       
-      if (currentData.currentMonth) {
-        setCurrentMonthSchedule(currentData.currentMonth)
-        setLastUpdated(prev => ({
-          ...prev,
-          current: currentData.currentMonth._lastUpdated
-        }))
+      setAllSchedules(allData)
+      setAvailableMonths(availableMonthsList.sort((a, b) => b.key.localeCompare(a.key)))
+      
+      // 設定所有月份的更新時間
+      const newLastUpdated = {}
+      
+      // 設定當月和下個月資料（向後相容）
+      if (allData.currentMonth) {
+        setCurrentMonthSchedule(allData.currentMonth)
+        newLastUpdated.current = allData.currentMonth._lastUpdated
       }
       
-      if (currentData.nextMonth) {
-        setNextMonthSchedule(currentData.nextMonth)
-        setLastUpdated(prev => ({
-          ...prev,
-          next: currentData.nextMonth._lastUpdated
-        }))
+      if (allData.nextMonth) {
+        setNextMonthSchedule(allData.nextMonth)
+        newLastUpdated.next = allData.nextMonth._lastUpdated
       }
+      
+      // 設定新月份格式的更新時間
+      availableMonthsList.forEach(month => {
+        newLastUpdated[month.key] = month.lastUpdated
+      })
+      
+      setLastUpdated(newLastUpdated)
     } catch (error) {
       console.error('載入班表資料失敗:', error)
     }
@@ -410,8 +546,12 @@ function ScheduleManager() {
       return
     }
     
+    if (!selectedMonthForImport) {
+      alert('請選擇要儲存的月份')
+      return
+    }
+    
     try {
-      const targetCollection = targetMonth === 'current' ? 'currentMonth' : 'nextMonth'
       const scheduleData = {}
       
       for (const [employeeId, data] of Object.entries(parsedData)) {
@@ -431,8 +571,8 @@ function ScheduleManager() {
           // 如果班次為空，不儲存該日期（保持空白）
         })
         
-                     // 即使沒有班表資料也保留同事（因為可能有空白的月份）
-             console.log(`同事 ${employeeId}: ${Object.keys(scheduleData[employeeId]).length} 個班次`)
+        // 即使沒有班表資料也保留同事（因為可能有空白的月份）
+        console.log(`同事 ${employeeId}: ${Object.keys(scheduleData[employeeId]).length} 個班次`)
       }
       
       scheduleData._lastUpdated = new Date().toISOString()
@@ -444,24 +584,28 @@ function ScheduleManager() {
         console.log(`- ${employeeId}: ${Object.keys(schedule).length} 個班次`)
       }
       
-      await setDoc(doc(db, 'schedule', targetCollection), scheduleData)
+      await setDoc(doc(db, 'schedule', selectedMonthForImport), scheduleData)
       console.log('班表上傳成功')
       
-             // 同時更新同事姓名資料
-       for (const [employeeId, data] of Object.entries(parsedData)) {
-         if (!names[employeeId]) {
-           try {
-             await setDoc(doc(db, 'names', employeeId), { name: data.name })
-             console.log(`同事 ${employeeId} 姓名已更新`)
-           } catch (nameError) {
-             console.warn(`更新同事 ${employeeId} 姓名失敗:`, nameError)
-           }
-         }
-       }
+      // 同時更新同事姓名資料
+      for (const [employeeId, data] of Object.entries(parsedData)) {
+        if (!names[employeeId]) {
+          try {
+            await setDoc(doc(db, 'names', employeeId), { name: data.name })
+            console.log(`同事 ${employeeId} 姓名已更新`)
+          } catch (nameError) {
+            console.warn(`更新同事 ${employeeId} 姓名失敗:`, nameError)
+          }
+        }
+      }
       
-      alert('班表已上傳成功！')
+      // 重新載入班表資料
+      await loadScheduleData()
+      
+      alert(`班表已成功儲存到 ${selectedMonthForImport}！`)
       setImportData('')
       setParsedData(null)
+      setSelectedMonthForImport('')
     } catch (error) {
       console.error('上傳班表失敗:', error)
       
@@ -481,7 +625,16 @@ function ScheduleManager() {
   
   // 篩選資料
   const getFilteredEmployees = () => {
-    const schedule = selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule
+    let schedule
+    if (selectedMonth === 'current') {
+      schedule = currentMonthSchedule
+    } else if (selectedMonth === 'next') {
+      schedule = nextMonthSchedule
+    } else {
+      // 使用多月份資料
+      schedule = allSchedules[selectedMonth] || {}
+    }
+    
     const employees = Object.keys(schedule).filter(key => key !== '_lastUpdated')
     
     // 數字排序函數
@@ -504,6 +657,91 @@ function ScheduleManager() {
     }
     
     return filteredEmployees.sort(sortByNumber)
+  }
+
+  // 取得當前選擇的班表資料
+  const getCurrentSchedule = () => {
+    if (selectedMonth === 'current') {
+      return currentMonthSchedule
+    } else if (selectedMonth === 'next') {
+      return nextMonthSchedule
+    } else {
+      // 使用多月份資料
+      return allSchedules[selectedMonth] || {}
+    }
+  }
+
+  // 計算跨月份的平均值統計
+  const getCrossMonthStats = (employeeId) => {
+    if (!employeeId) return null
+    
+    const stats = {
+      totalMonths: 0,
+      totalShifts: 0,
+      earlyShifts: 0,
+      midShifts: 0,
+      nightShifts: 0,
+      restDays: 0,
+      specialShifts: 0,
+      averageShiftsPerMonth: 0,
+      averageEarlyPerMonth: 0,
+      averageMidPerMonth: 0,
+      averageNightPerMonth: 0,
+      averageRestPerMonth: 0,
+      averageSpecialPerMonth: 0
+    }
+    
+    // 遍歷所有月份資料
+    Object.keys(allSchedules).forEach(monthKey => {
+      if (monthKey === '_lastUpdated') return
+      
+      const monthSchedule = allSchedules[monthKey]
+      const employeeSchedule = monthSchedule[employeeId]
+      
+      if (employeeSchedule) {
+        stats.totalMonths++
+        
+        // 計算該月份的班次統計
+        Object.keys(employeeSchedule).forEach(day => {
+          if (day === '_lastUpdated') return
+          
+          const shift = employeeSchedule[day]
+          if (shift) {
+            stats.totalShifts++
+            
+            switch (shift) {
+              case '早':
+                stats.earlyShifts++
+                break
+              case '中':
+                stats.midShifts++
+                break
+              case '晚':
+                stats.nightShifts++
+                break
+              case '休':
+                stats.restDays++
+                break
+              case '特':
+                stats.specialShifts++
+                break
+            }
+          }
+        })
+      }
+    })
+    
+    // 計算平均值
+    if (stats.totalMonths > 0) {
+      stats.averageShiftsPerMonth = Math.round(stats.totalShifts / stats.totalMonths)
+      stats.averageEarlyPerMonth = Math.round(stats.earlyShifts / stats.totalMonths)
+      stats.averageMidPerMonth = Math.round(stats.midShifts / stats.totalMonths)
+      stats.averageNightPerMonth = Math.round(stats.nightShifts / stats.totalMonths)
+      stats.averageRestPerMonth = Math.round(stats.restDays / stats.totalMonths)
+      stats.averageSpecialPerMonth = Math.round(stats.specialShifts / stats.totalMonths)
+    }
+    
+    return stats
   }
   
   // 取得今天的日期
@@ -536,7 +774,25 @@ function ScheduleManager() {
       case 'custom':
         return Array.from({ length: dateRange.end - dateRange.start + 1 }, (_, i) => dateRange.start + i)
       default:
-        return Array.from({ length: 31 }, (_, i) => i + 1)
+        // 根據選擇的月份計算天數
+        let year, month
+        if (selectedMonth === 'current') {
+          const today = new Date()
+          year = today.getFullYear()
+          month = today.getMonth() + 1
+        } else if (selectedMonth === 'next') {
+          const today = new Date()
+          year = today.getFullYear()
+          month = today.getMonth() + 2
+        } else {
+          // 從月份字串解析年月
+          const [yearStr, monthStr] = selectedMonth.split('-')
+          year = parseInt(yearStr)
+          month = parseInt(monthStr)
+        }
+        
+        const daysInMonth = new Date(year, month, 0).getDate()
+        return Array.from({ length: daysInMonth }, (_, i) => i + 1)
     }
   }
   
@@ -551,7 +807,7 @@ function ScheduleManager() {
     const location = pickupLocations[employeeId]
     if (location === '不搭車' || !FARE_PLANS[location]) return null
     
-    const schedule = selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule
+    const schedule = getCurrentSchedule()
     const employeeSchedule = schedule[employeeId]
     if (!employeeSchedule) return null
     
@@ -686,7 +942,7 @@ function ScheduleManager() {
   
   // 生成 Line 群文字
   const generateLineText = () => {
-    const schedule = selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule
+    const schedule = getCurrentSchedule()
     const weekNumber = parseInt(selectedWeek.replace('week', ''))
     const startDay = (weekNumber - 1) * 7 + 1
     const endDay = Math.min(weekNumber * 7, new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate())
@@ -743,7 +999,7 @@ function ScheduleManager() {
   
   // 計算搭班統計
   const calculateShiftOverlap = () => {
-    const schedule = selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule
+    const schedule = getCurrentSchedule()
     const overlapStats = {}
     
     // 初始化統計資料
@@ -833,7 +1089,7 @@ function ScheduleManager() {
   
   // 創建月曆樣式的匯出元素
   const createCalendarExport = () => {
-    const schedule = selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule
+    const schedule = getCurrentSchedule()
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
     
     // 計算每天每個站點的人數
@@ -1068,8 +1324,11 @@ function ScheduleManager() {
                       onChange={(e) => setSelectedMonth(e.target.value)}
                       className="w-full px-3 py-2 md:px-4 md:py-3 bg-white/10 border border-white/20 rounded-xl focus:border-blue-400/50 focus:bg-white/20 focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 appearance-none cursor-pointer text-sm md:text-base"
                     >
-                      <option value="current">當月</option>
-                      <option value="next">下個月</option>
+                      {getMonthOptions(availableMonths).map(option => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1133,7 +1392,7 @@ function ScheduleManager() {
                       className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-orange-400/50 focus:bg-white/20 focus:ring-2 focus:ring-orange-400/20 transition-all duration-200 appearance-none cursor-pointer"
                     >
                       <option value="">顯示所有同事</option>
-                      {Object.keys(selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule)
+                      {Object.keys(getCurrentSchedule())
                         .filter(key => key !== '_lastUpdated')
                         .sort((a, b) => {
                           const numA = parseInt(a.match(/\d+/)?.[0] || '0')
@@ -1236,7 +1495,7 @@ function ScheduleManager() {
                   <div className="group">
                     <label className="block text-sm font-semibold mb-3 text-orange-300">多同事選擇</label>
                     <div className="max-h-32 overflow-y-auto">
-                      {Object.keys(selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule)
+                      {Object.keys(getCurrentSchedule())
                         .filter(key => key !== '_lastUpdated')
                         .sort((a, b) => {
                           const numA = parseInt(a.match(/\d+/)?.[0] || '0')
@@ -1287,7 +1546,7 @@ function ScheduleManager() {
            <div className="bg-surface/40 rounded-xl p-6 border border-white/10">
              {viewMode === 'date' ? (
                <DateView 
-                 schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                 schedule={getCurrentSchedule()}
                  names={names}
                  displayDates={getDisplayDates()}
                  filteredEmployees={getFilteredEmployees()}
@@ -1295,7 +1554,7 @@ function ScheduleManager() {
                />
              ) : viewMode === 'employee' ? (
                <EmployeeView 
-                 schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                 schedule={getCurrentSchedule()}
                  names={names}
                  displayDates={getDisplayDates()}
                  filteredEmployees={getFilteredEmployees()}
@@ -1303,14 +1562,14 @@ function ScheduleManager() {
                />
              ) : viewMode === 'partner' ? (
                <DailyPartnerView 
-                 schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                 schedule={getCurrentSchedule()}
                  names={names}
                  displayDates={getDisplayDates()}
                  selectedEmployee={selectedEmployee}
                />
              ) : (
                <ThreeDView 
-                 schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                 schedule={getCurrentSchedule()}
                  names={names}
                  displayDates={getDisplayDates()}
                  filteredEmployees={getFilteredEmployees()}
@@ -1367,8 +1626,11 @@ function ScheduleManager() {
                       onChange={(e) => setSelectedMonth(e.target.value)}
                       className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-yellow-400/50 focus:bg-white/20 focus:ring-2 focus:ring-yellow-400/20 transition-all duration-200 appearance-none cursor-pointer"
                     >
-                      <option value="current">當月</option>
-                      <option value="next">下個月</option>
+                      {getMonthOptions(availableMonths).map(option => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1429,11 +1691,11 @@ function ScheduleManager() {
           
           {/* 乘車表顯示 */}
           <div className="bg-surface/40 rounded-xl p-6 border border-white/10">
-            <TransportChart 
-              schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
-              names={names}
-              pickupLocations={pickupLocations}
-            />
+                          <TransportChart 
+                schedule={getCurrentSchedule()}
+                names={names}
+                pickupLocations={pickupLocations}
+              />
           </div>
             </>
           )}
@@ -1453,8 +1715,11 @@ function ScheduleManager() {
                         onChange={(e) => setSelectedMonth(e.target.value)}
                         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-purple-400/50 focus:bg-white/20 focus:ring-2 focus:ring-purple-400/20 transition-all duration-200 appearance-none cursor-pointer"
                       >
-                        <option value="current">當月</option>
-                        <option value="next">下個月</option>
+                        {getMonthOptions(availableMonths).map(option => (
+                          <option key={option.key} value={option.key}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                       <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                         <svg className="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1474,7 +1739,7 @@ function ScheduleManager() {
                         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-blue-400/50 focus:bg-white/20 focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 appearance-none cursor-pointer"
                       >
                         <option value="">請選擇同事</option>
-                        {Object.keys(selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule)
+                        {Object.keys(getCurrentSchedule())
                           .filter(key => key !== '_lastUpdated')
                           .sort((a, b) => {
                             const numA = parseInt(a.match(/\d+/)?.[0] || '0')
@@ -1500,7 +1765,7 @@ function ScheduleManager() {
               {/* 車費試算結果 */}
               <div className="bg-surface/40 rounded-xl p-6 border border-white/10">
                 <FareCalculator 
-                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                  schedule={getCurrentSchedule()}
                   names={names}
                   pickupLocations={pickupLocations}
                   selectedEmployee={fareCalculationEmployee}
@@ -1527,8 +1792,11 @@ function ScheduleManager() {
                     onChange={(e) => setSelectedMonth(e.target.value)}
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-purple-400/50 focus:bg-white/20 focus:ring-2 focus:ring-purple-400/20 transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value="current">當月</option>
-                    <option value="next">下個月</option>
+                    {getMonthOptions(availableMonths).map(option => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     <svg className="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1592,11 +1860,11 @@ function ScheduleManager() {
                   </div>
                   <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-blue-300">搭班統計表</h3>
                 </div>
-                <ShiftOverlapTable 
-                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
-                  names={names}
-                  onEmployeeClick={setSelectedOverlapEmployee}
-                />
+                              <ShiftOverlapTable 
+                schedule={getCurrentSchedule()}
+                names={names}
+                onEmployeeClick={setSelectedOverlapEmployee}
+              />
               </div>
               
               {/* 個人搭班詳情彈窗 */}
@@ -1627,7 +1895,7 @@ function ScheduleManager() {
                     <h3 className="text-lg font-bold text-pink-300">早班統計</h3>
                   </div>
                   <EarlyShiftStats 
-                    schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                    schedule={getCurrentSchedule()}
                     names={names}
                   />
                 </div>
@@ -1643,7 +1911,7 @@ function ScheduleManager() {
                     <h3 className="text-lg font-bold text-blue-300">晚班統計</h3>
                   </div>
                   <NightShiftStats 
-                    schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                    schedule={getCurrentSchedule()}
                     names={names}
                   />
                 </div>
@@ -1659,8 +1927,10 @@ function ScheduleManager() {
                     <h3 className="text-lg font-bold text-orange-300">連續上班統計</h3>
                   </div>
                   <ConsecutiveWorkStats 
-                    schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                    schedule={getCurrentSchedule()}
                     names={names}
+                    allSchedules={allSchedules}
+                    selectedMonth={selectedMonth}
                   />
                 </div>
               </div>
@@ -1669,25 +1939,25 @@ function ScheduleManager() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 {/* 班次類型分布圓餅圖 */}
                 <ShiftTypePieChart 
-                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                  schedule={getCurrentSchedule()}
                 />
                 
                 {/* 班次趨勢變化折線圖 */}
                 <ShiftTrendChart 
-                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                  schedule={getCurrentSchedule()}
                   names={names}
                 />
               </div>
               
               {/* 班次分布圖表 */}
               <ShiftDistributionChart 
-                schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                schedule={getCurrentSchedule()}
                 names={names}
               />
               
               {/* 班次分配偏差度分析 */}
               <ShiftBiasAnalysis 
-                schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                schedule={getCurrentSchedule()}
                 names={names}
               />
               
@@ -1705,7 +1975,7 @@ function ScheduleManager() {
                       className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-purple-400/50 focus:bg-white/20 focus:ring-2 focus:ring-purple-400/20 transition-all duration-200 appearance-none cursor-pointer"
                     >
                       <option value="">請選擇一個同事查看個人統計</option>
-                      {Object.keys(selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule)
+                      {Object.keys(getCurrentSchedule())
                         .filter(key => key !== '_lastUpdated')
                         .sort((a, b) => {
                           const numA = parseInt(a.match(/\d+/)?.[0] || '0')
@@ -1727,9 +1997,11 @@ function ScheduleManager() {
                 </div>
                 
                 <PersonalDashboard 
-                  schedule={selectedMonth === 'current' ? currentMonthSchedule : nextMonthSchedule}
+                  schedule={getCurrentSchedule()}
                   names={names}
                   selectedEmployee={selectedStatsEmployee}
+                  crossMonthStats={getCrossMonthStats(selectedStatsEmployee)}
+                  selectedMonth={selectedMonth}
                 />
               </div>
             </div>
@@ -1741,9 +2013,40 @@ function ScheduleManager() {
       {/* 匯入與轉換班表分頁 */}
       {activeTab === 'import' && (
         <div className="space-y-6">
-                     {/* 匯入班表 */}
-           <div className="bg-surface/60 rounded-xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
-             <h3 className="text-xl font-bold mb-4 text-green-300">匯入班表</h3>
+          {/* 月份管理分頁切換 */}
+          <div className="flex justify-center mb-6">
+            <div className="bg-surface/40 rounded-xl p-1 border border-white/10 w-full max-w-2xl">
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => setMonthManagementTab('import')}
+                  className={`px-6 py-3 rounded-lg transition-all text-sm md:text-base ${
+                    monthManagementTab === 'import'
+                      ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-400/30'
+                      : 'text-text-secondary hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <DocumentArrowUpIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-2" />
+                  匯入班表
+                </button>
+                <button
+                  onClick={() => setMonthManagementTab('manage')}
+                  className={`px-6 py-3 rounded-lg transition-all text-sm md:text-base ${
+                    monthManagementTab === 'manage'
+                      ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 border border-blue-400/30'
+                      : 'text-text-secondary hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <CalendarIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-2" />
+                  月份管理
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 匯入班表分頁 */}
+          {monthManagementTab === 'import' && (
+            <div className="bg-surface/60 rounded-xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-4 text-green-300">匯入班表</h3>
              
              {/* 班別代碼說明 */}
              <div className="mb-6 p-4 bg-surface/40 rounded-lg border border-white/10">
@@ -1762,12 +2065,16 @@ function ScheduleManager() {
               <div>
                 <label className="block text-sm font-semibold mb-2">目標月份</label>
                 <select
-                  value={targetMonth}
-                  onChange={(e) => setTargetMonth(e.target.value)}
+                  value={selectedMonthForImport}
+                  onChange={(e) => setSelectedMonthForImport(e.target.value)}
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-green-400/50 focus:bg-white/10"
                 >
-                  <option value="current">當月</option>
-                  <option value="next">下個月</option>
+                  <option value="">請選擇月份</option>
+                  {getImportMonthOptions().map(option => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               
@@ -1805,56 +2112,137 @@ function ScheduleManager() {
                 </button>
               )}
             </div>
-          </div>
-          
-          {/* 預覽表格 */}
-          {parsedData && (
-            <div className="bg-surface/60 rounded-xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
-              <h3 className="text-xl font-bold mb-4 text-blue-300">預覽表格</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm" style={{ borderCollapse: 'collapse', borderSpacing: 0, border: 'none' }}>
-                  <thead>
-                    <tr className="bg-surface/40 border-b border-white/20">
-                      <th className="text-left p-3 text-blue-300 font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>職員編號</th>
-                      <th className="text-left p-3 text-purple-300 font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>姓名</th>
-                      {Array.from({ length: 31 }, (_, i) => (
-                        <th key={i} className="text-center p-3 text-green-300 font-medium" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{i + 1}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(parsedData).map(([id, data]) => (
-                      <tr key={id} className="border-b border-white/10 hover:bg-white/5 transition-all duration-200">
-                        <td className="p-3 text-gray-400 font-medium" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{id}</td>
-                        <td className="p-3 text-white font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{data.name}</td>
-                        {data.schedule.map((shift, index) => (
-                          <td key={index} className="p-2 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
-                            {shift ? (
-                              <div className={`
-                                px-3 py-2 rounded-lg text-center text-xs font-bold
-                                ${shift === '早' ? 'bg-pink-500 text-white' :
-                                  shift === '中' ? 'bg-cyan-500 text-white' :
-                                  shift === '晚' ? 'bg-blue-500 text-white' :
-                                  shift === '休' ? 'bg-gray-500 text-white' :
-                                  shift === '特' ? 'bg-orange-500 text-white' :
-                                  shift === '排' ? 'bg-yellow-500 text-white' :
-                                  'bg-gray-700 text-gray-300'}
-                              `}>
-                                {shift}
-                              </div>
-                            ) : (
-                              <div className="w-full h-8 rounded-lg bg-surface/20 border border-white/10"></div>
-                            )}
-                          </td>
+            
+            {/* 預覽表格 */}
+            {parsedData && (
+              <div className="bg-surface/60 rounded-xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+                <h3 className="text-xl font-bold mb-4 text-blue-300">預覽表格</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ borderCollapse: 'collapse', borderSpacing: 0, border: 'none' }}>
+                    <thead>
+                      <tr className="bg-surface/40 border-b border-white/20">
+                        <th className="text-left p-3 text-blue-300 font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>職員編號</th>
+                        <th className="text-left p-3 text-purple-300 font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>姓名</th>
+                        {Array.from({ length: 31 }, (_, i) => (
+                          <th key={i} className="text-center p-3 text-green-300 font-medium" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{i + 1}</th>
                         ))}
                       </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(parsedData)
+                        .sort(([a], [b]) => {
+                          const numA = parseInt(a.match(/\d+/)?.[0] || '0')
+                          const numB = parseInt(b.match(/\d+/)?.[0] || '0')
+                          return numA - numB
+                        })
+                        .map(([id, data]) => (
+                        <tr key={id} className="border-b border-white/10 hover:bg-white/5 transition-all duration-200">
+                          <td className="p-3 text-gray-400 font-medium" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{id}</td>
+                          <td className="p-3 text-white font-semibold" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>{data.name}</td>
+                          {data.schedule.map((shift, index) => (
+                            <td key={index} className="p-2 text-center" style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
+                              {shift ? (
+                                <div className={`
+                                  px-3 py-2 rounded-lg text-center text-xs font-bold
+                                  ${shift === '早' ? 'bg-pink-500 text-white' :
+                                    shift === '中' ? 'bg-cyan-500 text-white' :
+                                    shift === '晚' ? 'bg-blue-500 text-white' :
+                                    shift === '休' ? 'bg-gray-500 text-white' :
+                                    shift === '特' ? 'bg-orange-500 text-white' :
+                                    shift === '排' ? 'bg-yellow-500 text-white' :
+                                    'bg-gray-700 text-gray-300'}
+                                `}>
+                                  {shift}
+                                </div>
+                              ) : (
+                                <div className="w-full h-8 rounded-lg bg-surface/20 border border-white/10"></div>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            {/* 月份管理分頁 */}
+            {monthManagementTab === 'manage' && (
+            <div className="bg-surface/60 rounded-xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-4 text-blue-300">月份管理</h3>
+              
+              {/* 可用月份列表 */}
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold mb-4 text-cyan-300">已儲存的月份</h4>
+                {availableMonths.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {availableMonths.map((month) => (
+                      <div key={month.key} className="bg-surface/40 rounded-lg p-4 border border-white/10 hover:border-white/20 transition-all">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="text-white font-semibold">{month.label}</h5>
+                          <span className="text-xs text-gray-400">
+                            {month.lastUpdated ? new Date(month.lastUpdated).toLocaleDateString() : '未知'}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedMonth(month.key)
+                              setActiveTab('display')
+                            }}
+                            className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-300 rounded text-sm transition-all"
+                          >
+                            查看
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedMonth(month.key)
+                              setActiveTab('statistics')
+                            }}
+                            className="px-3 py-1 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 text-purple-300 rounded text-sm transition-all"
+                          >
+                            分析
+                          </button>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    尚未儲存任何月份資料
+                  </div>
+                )}
+              </div>
+              
+              {/* 快速操作 */}
+              <div className="bg-surface/40 rounded-lg p-4 border border-white/10">
+                <h4 className="text-lg font-semibold mb-4 text-orange-300">快速操作</h4>
+                <div className="flex flex-wrap gap-4">
+                  <button
+                    onClick={loadScheduleData}
+                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-400 rounded-lg transition-all flex items-center gap-2"
+                  >
+                    <ArrowPathIcon className="w-4 h-4" />
+                    重新載入資料
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedMonth('current')
+                      setActiveTab('display')
+                    }}
+                    className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 text-green-400 rounded-lg transition-all flex items-center gap-2"
+                  >
+                    <CalendarIcon className="w-4 h-4" />
+                    回到當月
+                  </button>
+                </div>
               </div>
             </div>
           )}
-          
+        </div>
+      )}
+
           {/* 同事基本資料管理 */}
           <div className="bg-surface/40 rounded-xl p-6 border border-white/10">
             <h3 className="text-xl font-bold mb-4 text-purple-400">同事基本資料管理</h3>
@@ -2634,29 +3022,64 @@ function ShiftTypeStats({ schedule, names }) {
 }
 
 // 連續上班統計組件
-function ConsecutiveWorkStats({ schedule, names }) {
+function ConsecutiveWorkStats({ schedule, names, allSchedules, selectedMonth }) {
   const calculateConsecutiveStats = () => {
     const stats = {}
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    
+    // 解析選定月份
+    let currentYear, currentMonth
+    if (selectedMonth === 'current') {
+      const today = new Date()
+      currentYear = today.getFullYear()
+      currentMonth = today.getMonth() + 1
+    } else if (selectedMonth === 'next') {
+      const today = new Date()
+      currentYear = today.getFullYear()
+      currentMonth = today.getMonth() + 2
+    } else {
+      const [yearStr, monthStr] = selectedMonth.split('-')
+      currentYear = parseInt(yearStr)
+      currentMonth = parseInt(monthStr)
+    }
+    
+    // 計算上個月的年月
+    const lastMonth = new Date(currentYear, currentMonth - 2, 1) // 減2是因為月份從0開始
+    const lastMonthYear = lastMonth.getFullYear()
+    const lastMonthMonth = lastMonth.getMonth() + 1
+    const lastMonthKey = `${lastMonthYear}-${lastMonthMonth.toString().padStart(2, '0')}`
+    
+    // 獲取上個月的班表資料
+    const lastMonthSchedule = allSchedules[lastMonthKey] || {}
+    const daysInLastMonth = new Date(lastMonthYear, lastMonthMonth, 0).getDate()
     
     Object.keys(schedule).forEach(employeeId => {
       if (employeeId === '_lastUpdated') return
       
       let maxConsecutive = 0
-      let currentConsecutive = 0
       let currentStreak = 0
       
-      for (let day = 1; day <= daysInMonth; day++) {
-        const shift = schedule[employeeId]?.[day]
+      // 先檢查上個月最後幾天的班次
+      const checkLastMonthDays = 7 // 檢查上個月最後7天
+      for (let day = Math.max(1, daysInLastMonth - checkLastMonthDays + 1); day <= daysInLastMonth; day++) {
+        const shift = lastMonthSchedule[employeeId]?.[day]
         if (shift && shift !== '休') {
           currentStreak++
-          currentConsecutive = Math.max(currentConsecutive, currentStreak)
         } else {
           currentStreak = 0
         }
       }
       
-      maxConsecutive = currentConsecutive
+      // 繼續檢查當月班次
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate()
+      for (let day = 1; day <= daysInMonth; day++) {
+        const shift = schedule[employeeId]?.[day]
+        if (shift && shift !== '休') {
+          currentStreak++
+          maxConsecutive = Math.max(maxConsecutive, currentStreak)
+        } else {
+          currentStreak = 0
+        }
+      }
       
       if (maxConsecutive > 0) {
         stats[employeeId] = {
@@ -3011,7 +3434,16 @@ function ShiftDistributionChart({ schedule, names }) {
       }
     })
     
-    return Object.values(distribution).filter(item => item.total > 0)
+    return Object.values(distribution)
+      .filter(item => item.total > 0)
+      .sort((a, b) => {
+        // 按職員編號排序
+        const employeeIdA = Object.keys(names).find(key => names[key] === a.name) || a.name
+        const employeeIdB = Object.keys(names).find(key => names[key] === b.name) || b.name
+        const numA = parseInt(employeeIdA.match(/\d+/)?.[0] || '0')
+        const numB = parseInt(employeeIdB.match(/\d+/)?.[0] || '0')
+        return numA - numB
+      })
   }
   
   const data = calculateShiftDistribution()
@@ -3037,7 +3469,7 @@ function ShiftDistributionChart({ schedule, names }) {
           <Bar dataKey="middle" stackId="a" fill="#06b6d4" name="中班" />
           <Bar dataKey="night" stackId="a" fill="#3b82f6" name="晚班" />
           <Bar dataKey="rest" stackId="a" fill="#6b7280" name="休假" />
-          <Bar dataKey="special" stackId="a" fill="#f97316" name="特殊" />
+          <Bar dataKey="special" stackId="a" fill="#f97316" name="特休" />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -3112,7 +3544,14 @@ function ShiftBiasAnalysis({ schedule, names }) {
       biasData[employeeName] = bias
     })
     
-    return Object.values(biasData)
+    return Object.values(biasData).sort((a, b) => {
+      // 按職員編號排序
+      const employeeIdA = Object.keys(names).find(key => names[key] === a.name) || a.name
+      const employeeIdB = Object.keys(names).find(key => names[key] === b.name) || b.name
+      const numA = parseInt(employeeIdA.match(/\d+/)?.[0] || '0')
+      const numB = parseInt(employeeIdB.match(/\d+/)?.[0] || '0')
+      return numA - numB
+    })
   }
   
   const biasData = calculateBiasAnalysis()
@@ -3129,7 +3568,7 @@ function ShiftBiasAnalysis({ schedule, names }) {
               <th className="text-center p-3 text-cyan-300 font-semibold">中班偏差</th>
               <th className="text-center p-3 text-blue-300 font-semibold">晚班偏差</th>
               <th className="text-center p-3 text-gray-300 font-semibold">休假偏差</th>
-              <th className="text-center p-3 text-orange-300 font-semibold">特殊偏差</th>
+              <th className="text-center p-3 text-orange-300 font-semibold">特休偏差</th>
             </tr>
           </thead>
           <tbody>
@@ -3188,7 +3627,7 @@ function ShiftTypePieChart({ schedule }) {
       { name: '中班', value: distribution.middle, color: '#06b6d4' },
       { name: '晚班', value: distribution.night, color: '#3b82f6' },
       { name: '休假', value: distribution.rest, color: '#6b7280' },
-      { name: '特殊', value: distribution.special, color: '#f97316' }
+              { name: '特休', value: distribution.special, color: '#f97316' }
     ].filter(item => item.value > 0)
   }
   
@@ -3229,6 +3668,8 @@ function ShiftTypePieChart({ schedule }) {
 
 // 班次趨勢變化折線圖組件
 function ShiftTrendChart({ schedule, names }) {
+  const [selectedShifts, setSelectedShifts] = useState(['early', 'middle', 'night'])
+  
   const calculateShiftTrend = () => {
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
     const data = []
@@ -3251,6 +3692,7 @@ function ShiftTrendChart({ schedule, names }) {
       
       data.push({
         date: `${day}日`,
+        day: day,
         early,
         middle,
         night,
@@ -3264,14 +3706,87 @@ function ShiftTrendChart({ schedule, names }) {
   
   const data = calculateShiftTrend()
   
+  // 計算總班次數，用於決定是否顯示某些班次
+  const totalShifts = data.reduce((acc, day) => {
+    acc.early += day.early
+    acc.middle += day.middle
+    acc.night += day.night
+    acc.rest += day.rest
+    acc.special += day.special
+    return acc
+  }, { early: 0, middle: 0, night: 0, rest: 0, special: 0 })
+  
+  // 過濾掉總數為0的班次
+  const availableShifts = Object.entries(totalShifts)
+    .filter(([key, value]) => value > 0)
+    .map(([key]) => key)
+  
+  const getShiftColor = (shift) => {
+    switch (shift) {
+      case 'early': return '#ec4899'
+      case 'middle': return '#06b6d4'
+      case 'night': return '#3b82f6'
+      case 'rest': return '#6b7280'
+      case 'special': return '#f97316'
+      default: return '#9ca3af'
+    }
+  }
+  
+  const getShiftName = (shift) => {
+    switch (shift) {
+      case 'early': return '早班'
+      case 'middle': return '中班'
+      case 'night': return '晚班'
+      case 'rest': return '休假'
+      case 'special': return '特休'
+      default: return shift
+    }
+  }
+  
   return (
     <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
       <h3 className="text-xl font-bold mb-6 text-blue-300 text-center">班次趨勢變化</h3>
+      
+      {/* 班次選擇器 */}
+      <div className="mb-6">
+        <div className="flex flex-wrap gap-2 justify-center">
+          {availableShifts.map(shift => (
+            <button
+              key={shift}
+              onClick={() => {
+                if (selectedShifts.includes(shift)) {
+                  setSelectedShifts(prev => prev.filter(s => s !== shift))
+                } else {
+                  setSelectedShifts(prev => [...prev, shift])
+                }
+              }}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                selectedShifts.includes(shift)
+                  ? 'bg-blue-500 text-white border border-blue-400'
+                  : 'bg-white/10 text-gray-300 border border-white/20 hover:bg-white/20'
+              }`}
+              style={{ borderColor: selectedShifts.includes(shift) ? getShiftColor(shift) : undefined }}
+            >
+              {getShiftName(shift)}
+            </button>
+          ))}
+        </div>
+      </div>
+      
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-          <XAxis dataKey="date" stroke="#ffffff80" />
-          <YAxis stroke="#ffffff80" />
+          <XAxis 
+            dataKey="date" 
+            stroke="#ffffff80"
+            interval={Math.ceil(data.length / 10)} // 只顯示部分標籤，避免擁擠
+            tick={{ fontSize: 12 }}
+          />
+          <YAxis 
+            stroke="#ffffff80"
+            tick={{ fontSize: 12 }}
+            allowDecimals={false} // 人數應該是整數
+          />
           <Tooltip 
             contentStyle={{ 
               backgroundColor: 'rgba(0, 0, 0, 0.8)', 
@@ -3279,21 +3794,49 @@ function ShiftTrendChart({ schedule, names }) {
               borderRadius: '8px',
               color: '#ffffff'
             }}
+            formatter={(value, name) => [
+              `${value}人`,
+              getShiftName(name)
+            ]}
+            labelFormatter={(label) => `${label}`}
           />
-          <Legend />
-          <Line type="monotone" dataKey="early" stroke="#ec4899" strokeWidth={2} name="早班" />
-          <Line type="monotone" dataKey="middle" stroke="#06b6d4" strokeWidth={2} name="中班" />
-          <Line type="monotone" dataKey="night" stroke="#3b82f6" strokeWidth={2} name="晚班" />
-          <Line type="monotone" dataKey="rest" stroke="#6b7280" strokeWidth={2} name="休假" />
-          <Line type="monotone" dataKey="special" stroke="#f97316" strokeWidth={2} name="特殊" />
+          <Legend 
+            formatter={(value) => getShiftName(value)}
+            wrapperStyle={{ fontSize: '12px' }}
+          />
+          {selectedShifts.map(shift => (
+            <Line 
+              key={shift}
+              type="monotone" 
+              dataKey={shift} 
+              stroke={getShiftColor(shift)} 
+              strokeWidth={2} 
+              name={shift}
+              dot={{ fill: getShiftColor(shift), strokeWidth: 2, r: 3 }}
+              activeDot={{ r: 5, stroke: getShiftColor(shift), strokeWidth: 2 }}
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
+      
+      {/* 統計摘要 */}
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+        {availableShifts.map(shift => (
+          <div key={shift} className="text-center p-3 bg-surface/20 rounded-lg border border-white/10">
+            <div className="text-sm text-gray-400 mb-1">{getShiftName(shift)}</div>
+            <div className="text-lg font-bold" style={{ color: getShiftColor(shift) }}>
+              {totalShifts[shift]}
+            </div>
+            <div className="text-xs text-gray-500">總次數</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 // 個人統計儀表板組件
-function PersonalDashboard({ schedule, names, selectedEmployee }) {
+function PersonalDashboard({ schedule, names, selectedEmployee, crossMonthStats, selectedMonth }) {
   if (!selectedEmployee) {
     return (
       <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
@@ -3355,7 +3898,7 @@ function PersonalDashboard({ schedule, names, selectedEmployee }) {
     { name: '中班', value: personalStats.middle, color: '#06b6d4' },
     { name: '晚班', value: personalStats.night, color: '#3b82f6' },
     { name: '休假', value: personalStats.rest, color: '#6b7280' },
-    { name: '特殊', value: personalStats.special, color: '#f97316' }
+            { name: '特休', value: personalStats.special, color: '#f97316' }
   ].filter(item => item.value > 0)
   
   // 計算連續上班分析數據
@@ -3623,7 +4166,7 @@ function PersonalDashboard({ schedule, names, selectedEmployee }) {
         </div>
         <div className="text-center p-4 bg-orange-500/20 rounded-lg border border-orange-400/30">
           <div className="text-2xl font-bold text-orange-300">{personalStats.special}</div>
-          <div className="text-sm text-orange-200">特殊</div>
+                          <div className="text-sm text-orange-200">特休</div>
         </div>
       </div>
       
@@ -3636,6 +4179,80 @@ function PersonalDashboard({ schedule, names, selectedEmployee }) {
           工作率：{((personalStats.total / 31) * 100).toFixed(1)}%
         </div>
       </div>
+
+      {/* 跨月份平均值統計 */}
+      {crossMonthStats && crossMonthStats.totalMonths > 0 && (
+        <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+          <h4 className="text-lg font-bold mb-4 text-green-300 text-center">跨月份平均值統計</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
+            <div className="text-center p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
+              <div className="text-lg font-bold text-blue-300">{crossMonthStats.totalMonths}</div>
+              <div className="text-xs text-blue-200">統計月份</div>
+            </div>
+            {(() => {
+              const currentMonthStats = {
+                early: personalStats.early,
+                middle: personalStats.middle,
+                night: personalStats.night,
+                rest: personalStats.rest
+              }
+              
+              const getDifference = (current, average) => {
+                const diff = current - average
+                return {
+                  value: diff,
+                  isPositive: diff > 0,
+                  isZero: diff === 0
+                }
+              }
+              
+              const earlyDiff = getDifference(currentMonthStats.early, crossMonthStats.averageEarlyPerMonth)
+              const midDiff = getDifference(currentMonthStats.middle, crossMonthStats.averageMidPerMonth)
+              const nightDiff = getDifference(currentMonthStats.night, crossMonthStats.averageNightPerMonth)
+              const restDiff = getDifference(currentMonthStats.rest, crossMonthStats.averageRestPerMonth)
+              
+              return (
+                <>
+                  <div className="text-center p-3 bg-pink-500/20 rounded-lg border border-pink-400/30">
+                    <div className="text-lg font-bold text-pink-300">{crossMonthStats.averageEarlyPerMonth}</div>
+                    <div className="text-xs text-pink-200">平均早班/月</div>
+                    <div className={`text-xs mt-1 ${earlyDiff.isPositive ? 'text-green-400' : earlyDiff.isZero ? 'text-gray-400' : 'text-red-400'}`}>
+                      {earlyDiff.isPositive ? '+' : ''}{earlyDiff.value} vs 本月
+                    </div>
+                  </div>
+                  
+                  <div className="text-center p-3 bg-cyan-500/20 rounded-lg border border-cyan-400/30">
+                    <div className="text-lg font-bold text-cyan-300">{crossMonthStats.averageMidPerMonth}</div>
+                    <div className="text-xs text-cyan-200">平均中班/月</div>
+                    <div className={`text-xs mt-1 ${midDiff.isPositive ? 'text-green-400' : midDiff.isZero ? 'text-gray-400' : 'text-red-400'}`}>
+                      {midDiff.isPositive ? '+' : ''}{midDiff.value} vs 本月
+                    </div>
+                  </div>
+                  
+                  <div className="text-center p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                    <div className="text-lg font-bold text-blue-300">{crossMonthStats.averageNightPerMonth}</div>
+                    <div className="text-xs text-blue-200">平均晚班/月</div>
+                    <div className={`text-xs mt-1 ${nightDiff.isPositive ? 'text-green-400' : nightDiff.isZero ? 'text-gray-400' : 'text-red-400'}`}>
+                      {nightDiff.isPositive ? '+' : ''}{nightDiff.value} vs 本月
+                    </div>
+                  </div>
+                  
+                  <div className="text-center p-3 bg-gray-500/20 rounded-lg border border-gray-400/30">
+                    <div className="text-lg font-bold text-gray-300">{crossMonthStats.averageRestPerMonth}</div>
+                    <div className="text-xs text-gray-200">平均休假/月</div>
+                    <div className={`text-xs mt-1 ${restDiff.isPositive ? 'text-green-400' : restDiff.isZero ? 'text-gray-400' : 'text-red-400'}`}>
+                      {restDiff.isPositive ? '+' : ''}{restDiff.value} vs 本月
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+          <div className="text-center text-sm text-gray-400">
+            基於 {crossMonthStats.totalMonths} 個月份的資料計算 | <span className="text-green-400">綠色</span> = 高於平均值 | <span className="text-red-400">紅色</span> = 低於平均值
+          </div>
+        </div>
+      )}
       
       {/* 視覺化圖表 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3706,7 +4323,7 @@ function PersonalDashboard({ schedule, names, selectedEmployee }) {
                   case '中': return '中班'
                   case '晚': return '晚班'
                   case '休': return '休假'
-                  case '特': return '特殊班'
+                  case '特': return '特休'
                   default: return '無班次'
                 }
               }
@@ -3742,7 +4359,7 @@ function PersonalDashboard({ schedule, names, selectedEmployee }) {
             </div>
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 bg-orange-500 rounded"></div>
-              <span className="text-gray-300">特殊</span>
+                              <span className="text-gray-300">特休</span>
             </div>
           </div>
         </div>
@@ -4751,10 +5368,18 @@ function DailyPartnerView({ schedule, names, displayDates, selectedEmployee }) {
           type: '跨班'
         })
       }
-    })
-    
-    return partners
-  }
+          })
+      
+      // 按照班次順序排序：早班 -> 中班 -> 晚班
+      const shiftOrder = { '早': 1, '中': 2, '晚': 3 }
+      partners.sort((a, b) => {
+        const orderA = shiftOrder[a.shift] || 999
+        const orderB = shiftOrder[b.shift] || 999
+        return orderA - orderB
+      })
+      
+      return partners
+    }
 
   // 取得班次顏色
   const getShiftColor = (shift) => {

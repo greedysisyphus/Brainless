@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../utils/firebase';
-import { generateSmartMessage, generateAllSmartMessages, clearSmartMessageCache } from '../utils/smartMessageGenerator';
+import { generateSmartMessage, generateAllSmartMessages, clearSmartMessageCache, setGlobalAllSchedules } from '../utils/smartMessageGenerator';
 
 const CatSpeechBubble = () => {
   const [showBubble, setShowBubble] = useState(false);
@@ -90,25 +90,33 @@ const CatSpeechBubble = () => {
     const loadScheduleData = async () => {
       try {
         console.log('開始載入班表資料...');
-        // 從 schedule 集合讀取資料（ScheduleManager 使用的集合）
-        const { doc, getDoc } = await import('firebase/firestore');
-        const currentMonthDoc = await getDoc(doc(db, 'schedule', 'currentMonth'));
-        const nextMonthDoc = await getDoc(doc(db, 'schedule', 'nextMonth'));
+        // 從 schedule 集合讀取所有資料（ScheduleManager 使用的集合）
+        const { collection, getDocs } = await import('firebase/firestore');
+        const scheduleDocs = await getDocs(collection(db, 'schedule'));
         
-        console.log('currentMonthDoc.exists():', currentMonthDoc.exists());
-        console.log('nextMonthDoc.exists():', nextMonthDoc.exists());
+        const allSchedules = {};
+        let currentScheduleData = null;
         
-        let scheduleData = null;
+        scheduleDocs.forEach(doc => {
+          const data = doc.data();
+          allSchedules[doc.id] = data;
+          
+          // 優先使用當月資料，如果沒有則使用下月資料
+          if (doc.id === 'currentMonth' && !currentScheduleData) {
+            currentScheduleData = data;
+          } else if (doc.id === 'nextMonth' && !currentScheduleData) {
+            currentScheduleData = data;
+          }
+        });
         
-        // 優先使用當月資料，如果沒有則使用下月資料
-        if (currentMonthDoc.exists()) {
-          scheduleData = currentMonthDoc.data();
-        } else if (nextMonthDoc.exists()) {
-          scheduleData = nextMonthDoc.data();
-        }
+        console.log('載入的班表資料:', Object.keys(allSchedules));
         
-        setScheduleData(scheduleData);
+        // 設定全域班表資料（用於跨月份連續上班計算）
+        setGlobalAllSchedules(allSchedules);
+        
+        setScheduleData(currentScheduleData);
       } catch (error) {
+        console.error('載入班表資料失敗:', error);
         // 不顯示錯誤，因為班表資料不是必需的
       }
     };
