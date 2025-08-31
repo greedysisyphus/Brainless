@@ -236,7 +236,6 @@ const AdminPanel = () => {
           <ResponsiveTitle level={1} gradient className="mb-2">
             管理員設定
           </ResponsiveTitle>
-          <ResponsiveText color="secondary">管理貓咪對話和系統設定</ResponsiveText>
         </div>
 
         {/* 狀態訊息 */}

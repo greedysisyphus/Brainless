@@ -1,8 +1,96 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveCard, ResponsiveButton, ResponsiveInput, ResponsiveLabel, ResponsiveText, ResponsiveTitle } from './common/ResponsiveContainer';
 import { validateCustomRule, getDefaultCustomRules, validateScheduleTemplate, getDefaultScheduleTemplates, generateAllSmartMessages, processScheduleTemplate, categorizeWorkersByShift, findConsecutiveWorkEmployees } from '../utils/smartMessageGenerator';
-import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, setDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// 可拖拽的對話項目組件
+const SortableDialogueItem = ({ msg, index, onDelete }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: msg.id || index });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-white/5 border border-white/10 rounded-lg p-3 cursor-move hover:bg-white/10 transition-all"
+      {...attributes}
+      {...listeners}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs text-white">
+            {index + 1}
+          </div>
+          <ResponsiveText size="sm" className="text-green-400 font-bold">
+            {msg.source}
+          </ResponsiveText>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-1 rounded text-xs ${
+            msg.type === 'custom' ? 'bg-purple-500/20 text-purple-400' :
+            msg.type === 'schedule' ? 'bg-blue-500/20 text-blue-400' :
+            msg.type === 'normal' ? 'bg-orange-500/20 text-orange-400' :
+            'bg-gray-500/20 text-gray-400'
+          }`}>
+            {msg.type === 'custom' ? '自定義規則' :
+             msg.type === 'schedule' ? '班表模板' :
+             msg.type === 'normal' ? '普通對話' : '其他'}
+          </span>
+          {onDelete && (
+            <ResponsiveButton
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(index);
+              }}
+              variant="ghost"
+              size="sm"
+              className="p-1 text-red-400 hover:text-red-300"
+              title="刪除"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </ResponsiveButton>
+          )}
+        </div>
+      </div>
+      <ResponsiveText className="text-white">
+        {msg.message}
+      </ResponsiveText>
+    </div>
+  );
+};
 
 const CustomRuleManager = ({
   customRules = [],
@@ -99,6 +187,50 @@ const CustomRuleManager = ({
     loadNamesData();
   }, []);
 
+  // 載入已保存的對話排序（優先從雲端載入）
+  useEffect(() => {
+    const loadDialogueOrder = async () => {
+      try {
+        // 優先從 Firebase 雲端載入
+        const dialogueOrderDoc = await getDoc(doc(db, 'catSpeech', 'dialogueOrder'));
+        
+        if (dialogueOrderDoc.exists()) {
+          const data = dialogueOrderDoc.data();
+          if (data.dialogues && Array.isArray(data.dialogues)) {
+            setSortedDialogues(data.dialogues);
+            setLastUpdated(data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : '未知');
+            console.log('從雲端載入對話排序成功');
+            return;
+          }
+        }
+        
+        // 如果雲端沒有數據，嘗試從 localStorage 載入
+        const savedOrder = localStorage.getItem('dialogueOrder');
+        if (savedOrder) {
+          const parsedOrder = JSON.parse(savedOrder);
+          setSortedDialogues(parsedOrder);
+          console.log('從本地載入對話排序成功');
+        }
+      } catch (error) {
+        console.error('載入對話排序失敗:', error);
+        
+        // 如果雲端載入失敗，嘗試從 localStorage 載入
+        try {
+          const savedOrder = localStorage.getItem('dialogueOrder');
+          if (savedOrder) {
+            const parsedOrder = JSON.parse(savedOrder);
+            setSortedDialogues(parsedOrder);
+            console.log('從本地備份載入對話排序成功');
+          }
+        } catch (localError) {
+          console.error('本地備份載入也失敗:', localError);
+        }
+      }
+    };
+
+    loadDialogueOrder();
+  }, []);
+
   // 轉換班表資料為智能對話系統格式
   const convertScheduleDataForPreview = (scheduleData) => {
     if (!scheduleData || typeof scheduleData !== 'object') {
@@ -149,6 +281,17 @@ const CustomRuleManager = ({
 
   // 對話管理相關狀態
   const [newMessage, setNewMessage] = useState('');
+  const [sortedDialogues, setSortedDialogues] = useState([]);
+  const [saveStatus, setSaveStatus] = useState('');
+  const [lastUpdated, setLastUpdated] = useState('');
+  
+  // 拖拽傳感器
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // 添加新對話（對話管理用）
   const addNewDialogue = async () => {
@@ -173,6 +316,98 @@ const CustomRuleManager = ({
         console.error('刪除對話失敗:', error);
       }
     }
+  };
+
+  // 拖拽結束處理函數
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setSortedDialogues((items) => {
+        const oldIndex = items.findIndex(item => item.id === active.id);
+        const newIndex = items.findIndex(item => item.id === over.id);
+
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // 刪除排序後的對話
+  const deleteSortedDialogue = (index) => {
+    setSortedDialogues(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // 保存排序設置到雲端
+  const saveDialogueOrder = async () => {
+    try {
+      setSaveStatus('保存中...');
+      
+      // 準備要保存的數據
+      const dialogueOrderData = {
+        dialogues: sortedDialogues,
+        lastUpdated: new Date().toISOString(),
+        version: '1.0'
+      };
+      
+      // 保存到 Firebase 雲端
+      await setDoc(doc(db, 'catSpeech', 'dialogueOrder'), dialogueOrderData);
+      
+      // 同時保存到 localStorage 作為備份
+      localStorage.setItem('dialogueOrder', JSON.stringify(sortedDialogues));
+      
+      setSaveStatus('保存成功！');
+      setLastUpdated(new Date().toLocaleString());
+      console.log('對話排序已保存到雲端');
+      
+      // 3秒後清除狀態
+      setTimeout(() => {
+        setSaveStatus('');
+      }, 3000);
+    } catch (error) {
+      setSaveStatus('保存失敗');
+      console.error('保存對話排序失敗:', error);
+      
+      // 3秒後清除錯誤狀態
+      setTimeout(() => {
+        setSaveStatus('');
+      }, 3000);
+    }
+  };
+
+  // 重置排序
+  const resetDialogueOrder = () => {
+    const allMessages = generateAllSmartMessages(scheduleData, customRules, scheduleTemplates, namesData);
+    const smartTextsContent = allMessages.map(msg => msg.message).filter(text => text && typeof text === 'string' && text.trim() !== '');
+    const filteredNormalTexts = speechTexts.filter(text => 
+      text && typeof text === 'string' && text.trim() !== '' && !smartTextsContent.includes(text)
+    );
+    
+    const allDialogues = [
+      ...allMessages.map(msg => ({
+        ...msg,
+        id: `smart-${msg.source}-${msg.message.substring(0, 10)}`,
+        isNormal: false
+      })),
+      ...filteredNormalTexts.map(text => ({
+        id: `normal-${text.substring(0, 10)}`,
+        type: 'normal',
+        priority: 999,
+        message: text,
+        source: '普通對話',
+        isNormal: true
+      }))
+    ];
+    
+    const uniqueDialogues = [];
+    const seenMessages = new Set();
+    for (const msg of allDialogues) {
+      if (!seenMessages.has(msg.message)) {
+        uniqueDialogues.push(msg);
+        seenMessages.add(msg.message);
+      }
+    }
+    
+    setSortedDialogues(uniqueDialogues);
   };
 
   // 重置模板表單
@@ -1483,9 +1718,62 @@ const CustomRuleManager = ({
 
       {/* 所有對話列表 */}
       <div className="mt-8 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg p-6">
-        <ResponsiveTitle level={3} className="text-purple-400 mb-4 text-center">
-          所有對話列表
-        </ResponsiveTitle>
+        <div className="flex items-center justify-between mb-4">
+          <ResponsiveTitle level={3} className="text-purple-400">
+            所有對話列表
+          </ResponsiveTitle>
+          <div className="flex gap-2">
+            <ResponsiveButton
+              onClick={saveDialogueOrder}
+              variant="ghost"
+              size="sm"
+              disabled={saveStatus === '保存中...'}
+              className="px-3 py-1 text-green-400 hover:text-green-300 border border-green-400/30 hover:border-green-400/50"
+            >
+              {saveStatus === '保存中...' ? '保存中...' : '保存排序'}
+            </ResponsiveButton>
+            <ResponsiveButton
+              onClick={resetDialogueOrder}
+              variant="ghost"
+              size="sm"
+              className="px-3 py-1 text-blue-400 hover:text-blue-300 border border-blue-400/30 hover:border-blue-400/50"
+            >
+              重置排序
+            </ResponsiveButton>
+          </div>
+        </div>
+        
+        <div className="mb-4 p-3 bg-blue-500/10 border border-blue-400/20 rounded-lg">
+          <ResponsiveText size="sm" className="text-blue-300 text-center">
+            💡 拖拽對話項目可以調整顯示順序
+          </ResponsiveText>
+          {lastUpdated && (
+            <ResponsiveText size="sm" className="text-gray-400 text-center mt-1">
+              最後更新：{lastUpdated}
+            </ResponsiveText>
+          )}
+        </div>
+        
+        {/* 保存狀態顯示 */}
+        {saveStatus && (
+          <div className={`mb-4 p-3 rounded-lg border ${
+            saveStatus === '保存成功！' 
+              ? 'bg-green-500/10 border-green-400/20' 
+              : saveStatus === '保存失敗' 
+                ? 'bg-red-500/10 border-red-400/20'
+                : 'bg-yellow-500/10 border-yellow-400/20'
+          }`}>
+            <ResponsiveText size="sm" className={`text-center ${
+              saveStatus === '保存成功！' 
+                ? 'text-green-300' 
+                : saveStatus === '保存失敗' 
+                  ? 'text-red-300'
+                  : 'text-yellow-300'
+            }`}>
+              {saveStatus}
+            </ResponsiveText>
+          </div>
+        )}
         
         <div className="space-y-3">
           
@@ -1504,9 +1792,11 @@ const CustomRuleManager = ({
             const allDialogues = [
               ...allMessages.map(msg => ({
                 ...msg,
+                id: `smart-${msg.source}-${msg.message.substring(0, 10)}`,
                 isNormal: false // 標記為非普通對話
               })),
               ...filteredNormalTexts.map(text => ({
+                id: `normal-${text.substring(0, 10)}`,
                 type: 'normal',
                 priority: 999, // 普通對話的優先級最低
                 message: text,
@@ -1525,6 +1815,11 @@ const CustomRuleManager = ({
               }
             }
             
+            // 初始化排序後的對話列表
+            if (sortedDialogues.length === 0 && uniqueDialogues.length > 0) {
+              setSortedDialogues(uniqueDialogues);
+            }
+            
             if (uniqueDialogues.length === 0) {
               return (
                 <ResponsiveText size="sm" className="text-gray-400 text-center py-4">
@@ -1533,28 +1828,30 @@ const CustomRuleManager = ({
               );
             }
             
-            return uniqueDialogues.map((msg, index) => (
-              <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <ResponsiveText size="sm" className="text-green-400 font-bold">
-                    {index + 1}. {msg.source}
-                  </ResponsiveText>
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    msg.type === 'custom' ? 'bg-purple-500/20 text-purple-400' :
-                    msg.type === 'schedule' ? 'bg-blue-500/20 text-blue-400' :
-                    msg.type === 'normal' ? 'bg-orange-500/20 text-orange-400' :
-                    'bg-gray-500/20 text-gray-400'
-                  }`}>
-                    {msg.type === 'custom' ? '自定義規則' :
-                     msg.type === 'schedule' ? '班表模板' :
-                     msg.type === 'normal' ? '普通對話' : '其他'}
-                  </span>
-                </div>
-                <ResponsiveText className="text-white">
-                  {msg.message}
-                </ResponsiveText>
-              </div>
-            ));
+            // 使用拖拽上下文包裝對話列表
+            return (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={sortedDialogues.map(item => item.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {sortedDialogues.map((msg, index) => (
+                      <SortableDialogueItem
+                        key={msg.id}
+                        msg={msg}
+                        index={index}
+                        onDelete={deleteSortedDialogue}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            );
           })()}
         </div>
 
