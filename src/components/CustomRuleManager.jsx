@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ResponsiveCard, ResponsiveButton, ResponsiveInput, ResponsiveLabel, ResponsiveText, ResponsiveTitle } from './common/ResponsiveContainer';
 import { validateCustomRule, getDefaultCustomRules, validateScheduleTemplate, getDefaultScheduleTemplates, generateAllSmartMessages, processScheduleTemplate, categorizeWorkersByShift, findConsecutiveWorkEmployees } from '../utils/smartMessageGenerator';
 import { doc, getDoc, getDocs, collection, setDoc } from 'firebase/firestore';
@@ -43,17 +43,26 @@ const SortableDialogueItem = ({ msg, index, onDelete }) => {
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white/5 border border-white/10 rounded-lg p-3 cursor-move hover:bg-white/10 transition-all"
+      className={`border rounded-lg p-3 cursor-move hover:bg-white/10 transition-all ${
+        msg.isCurrentlyTriggered 
+          ? 'bg-green-500/10 border-green-400/30' 
+          : 'bg-white/5 border-white/10'
+      }`}
       {...attributes}
       {...listeners}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs text-white">
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs text-white ${
+            msg.isCurrentlyTriggered ? 'bg-green-600' : 'bg-gray-600'
+          }`}>
             {index + 1}
           </div>
-          <ResponsiveText size="sm" className="text-green-400 font-bold">
+          <ResponsiveText size="sm" className={`font-bold ${
+            msg.isCurrentlyTriggered ? 'text-green-400' : 'text-gray-400'
+          }`}>
             {msg.source}
+            {msg.isCurrentlyTriggered && <span className="ml-1 text-xs">(當前觸發)</span>}
           </ResponsiveText>
         </div>
         <div className="flex items-center gap-2">
@@ -85,7 +94,9 @@ const SortableDialogueItem = ({ msg, index, onDelete }) => {
           )}
         </div>
       </div>
-      <ResponsiveText className="text-white">
+      <ResponsiveText className={`${
+        msg.isCurrentlyTriggered ? 'text-green-200' : 'text-white'
+      }`}>
         {msg.message}
       </ResponsiveText>
     </div>
@@ -199,7 +210,6 @@ const CustomRuleManager = ({
           if (data.dialogues && Array.isArray(data.dialogues)) {
             setSortedDialogues(data.dialogues);
             setLastUpdated(data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : '未知');
-            console.log('從雲端載入對話排序成功');
             return;
           }
         }
@@ -209,7 +219,6 @@ const CustomRuleManager = ({
         if (savedOrder) {
           const parsedOrder = JSON.parse(savedOrder);
           setSortedDialogues(parsedOrder);
-          console.log('從本地載入對話排序成功');
         }
       } catch (error) {
         console.error('載入對話排序失敗:', error);
@@ -220,7 +229,6 @@ const CustomRuleManager = ({
           if (savedOrder) {
             const parsedOrder = JSON.parse(savedOrder);
             setSortedDialogues(parsedOrder);
-            console.log('從本地備份載入對話排序成功');
           }
         } catch (localError) {
           console.error('本地備份載入也失敗:', localError);
@@ -230,6 +238,61 @@ const CustomRuleManager = ({
 
     loadDialogueOrder();
   }, []);
+
+  // 生成當前激活的對話列表（使用 useMemo 優化）
+  const uniqueDialogues = useMemo(() => {
+    // 生成當前觸發的智能對話
+    const allMessages = generateAllSmartMessages(scheduleData, customRules, scheduleTemplates, namesData);
+    
+    const allDialogues = [];
+
+    // 只添加當前觸發的智能對話
+    allMessages.forEach((msg, index) => {
+      allDialogues.push({
+        ...msg,
+        id: msg.id || `smart-${index}`,
+        priority: 3,
+        isCurrentlyTriggered: true
+      });
+    });
+
+    // 添加普通對話
+    const filteredNormalTexts = speechTexts.filter(text => text.trim() !== '');
+    
+    filteredNormalTexts.forEach((text, index) => {
+      allDialogues.push({
+        id: `normal-${text}`,
+        type: 'normal',
+        priority: 999,
+        message: text,
+        source: '普通對話',
+        isNormal: true,
+        isCurrentlyTriggered: false
+      });
+    });
+
+    // 去重並按優先級排序
+    const uniqueDialogues = [];
+    const seenIds = new Set();
+
+    allDialogues.forEach(msg => {
+      if (!seenIds.has(msg.id)) {
+        seenIds.add(msg.id);
+        uniqueDialogues.push(msg);
+      }
+    });
+
+    return uniqueDialogues;
+  }, [customRules, scheduleTemplates, scheduleData, namesData, speechTexts]);
+
+  // 當 uniqueDialogues 變化時，更新 sortedDialogues（只使用當前激活的對話）
+  useEffect(() => {
+    if (uniqueDialogues.length > 0) {
+      setSortedDialogues(uniqueDialogues);
+    }
+  }, [uniqueDialogues]);
+
+
 
   // 轉換班表資料為智能對話系統格式
   const convertScheduleDataForPreview = (scheduleData) => {
@@ -357,7 +420,7 @@ const CustomRuleManager = ({
       
       setSaveStatus('保存成功！');
       setLastUpdated(new Date().toLocaleString());
-      console.log('對話排序已保存到雲端');
+      
       
       // 3秒後清除狀態
       setTimeout(() => {
@@ -1720,7 +1783,7 @@ const CustomRuleManager = ({
       <div className="mt-8 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <ResponsiveTitle level={3} className="text-purple-400">
-            所有對話列表
+            當前激活對話列表
           </ResponsiveTitle>
           <div className="flex gap-2">
             <ResponsiveButton
@@ -1778,48 +1841,7 @@ const CustomRuleManager = ({
         <div className="space-y-3">
           
           {(() => {
-            const allMessages = generateAllSmartMessages(scheduleData, customRules, scheduleTemplates, namesData);
-            
-            // 提取所有智能對話的訊息內容，用於過濾普通對話
-            const smartTextsContent = allMessages.map(msg => msg.message).filter(text => text && typeof text === 'string' && text.trim() !== '');
-            
-            // 過濾普通對話，移除與智能對話重複的內容
-            const filteredNormalTexts = speechTexts.filter(text => 
-              text && typeof text === 'string' && text.trim() !== '' && !smartTextsContent.includes(text)
-            );
-            
-            // 合併智能對話和過濾後的普通對話
-            const allDialogues = [
-              ...allMessages.map(msg => ({
-                ...msg,
-                id: `smart-${msg.source}-${msg.message.substring(0, 10)}`,
-                isNormal: false // 標記為非普通對話
-              })),
-              ...filteredNormalTexts.map(text => ({
-                id: `normal-${text.substring(0, 10)}`,
-                type: 'normal',
-                priority: 999, // 普通對話的優先級最低
-                message: text,
-                source: '普通對話',
-                isNormal: true // 標記為普通對話
-              }))
-            ];
-            
-            // 移除重複的對話（如果智能對話和普通對話有完全相同的內容）
-            const uniqueDialogues = [];
-            const seenMessages = new Set();
-            for (const msg of allDialogues) {
-              if (!seenMessages.has(msg.message)) {
-                uniqueDialogues.push(msg);
-                seenMessages.add(msg.message);
-              }
-            }
-            
-            // 初始化排序後的對話列表
-            if (sortedDialogues.length === 0 && uniqueDialogues.length > 0) {
-              setSortedDialogues(uniqueDialogues);
-            }
-            
+            // 檢查是否有對話數據
             if (uniqueDialogues.length === 0) {
               return (
                 <ResponsiveText size="sm" className="text-gray-400 text-center py-4">
@@ -1828,7 +1850,11 @@ const CustomRuleManager = ({
               );
             }
             
+            // 只使用當前激活的對話，不進行合併
+            let finalDialogues = uniqueDialogues;
+            
             // 使用拖拽上下文包裝對話列表
+            
             return (
               <DndContext
                 sensors={sensors}
@@ -1836,11 +1862,11 @@ const CustomRuleManager = ({
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={sortedDialogues.map(item => item.id)}
+                  items={finalDialogues.map(item => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-3">
-                    {sortedDialogues.map((msg, index) => (
+                    {finalDialogues.map((msg, index) => (
                       <SortableDialogueItem
                         key={msg.id}
                         msg={msg}

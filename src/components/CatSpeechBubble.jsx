@@ -23,6 +23,7 @@ const CatSpeechBubble = () => {
   const [smartMessages, setSmartMessages] = useState([]); // 新增：存儲所有智能對話
   const [namesData, setNamesData] = useState({}); // 新增：存儲姓名資料
   const [lastRefreshTime, setLastRefreshTime] = useState(Date.now()); // 新增：最後刷新時間
+  const [sortedDialogues, setSortedDialogues] = useState([]); // 新增：存儲排序後的對話列表
 
   // 監聽全域設定
   useEffect(() => {
@@ -57,6 +58,28 @@ const CatSpeechBubble = () => {
     );
 
     return unsubscribe;
+  }, []);
+
+  // 載入排序後的對話列表
+  useEffect(() => {
+    const loadSortedDialogues = async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const dialogueOrderDoc = await getDoc(doc(db, 'catSpeech', 'dialogueOrder'));
+        
+        if (dialogueOrderDoc.exists()) {
+          const data = dialogueOrderDoc.data();
+          if (data.dialogues && Array.isArray(data.dialogues)) {
+            setSortedDialogues(data.dialogues);
+            console.log('載入排序後的對話列表:', data.dialogues.length, '個對話');
+          }
+        }
+      } catch (error) {
+        console.error('載入排序對話列表失敗:', error);
+      }
+    };
+
+    loadSortedDialogues();
   }, []);
 
   // 載入姓名資料（僅在智能模式開啟時）
@@ -136,6 +159,62 @@ const CatSpeechBubble = () => {
       const allMessages = generateAllSmartMessages(scheduleData, customRules, scheduleTemplates, namesData);
       
       if (allMessages.length > 0) {
+        // 如果有排序後的對話列表，使用排序後的順序
+        if (sortedDialogues.length > 0) {
+          console.log('=== 開始使用排序後的對話列表 ===');
+          console.log('排序對話列表總數:', sortedDialogues.length);
+          console.log('排序對話列表詳情:', sortedDialogues.map(d => ({ id: d.id, type: d.type, message: d.message?.substring(0, 20) })));
+          
+          // 獲取當前觸發的智能對話ID列表
+          const triggeredIds = allMessages.map(msg => msg.id || `${msg.type}-${msg.message.substring(0, 10)}`);
+          console.log('當前觸發的智能對話數量:', allMessages.length);
+          console.log('當前觸發的對話詳情:', allMessages.map(msg => ({ id: msg.id, type: msg.type, message: msg.message?.substring(0, 20) })));
+          console.log('當前觸發的對話ID:', triggeredIds);
+          
+          // 從排序後的對話列表中篩選出當前觸發的對話
+          const triggeredDialogues = sortedDialogues.filter(dialogue => {
+            console.log('檢查對話:', dialogue.id, dialogue.type, dialogue.message?.substring(0, 20));
+            
+            // 檢查是否為當前觸發的對話
+            const isTriggered = triggeredIds.some(id => {
+              const match = dialogue.id === id || 
+                     (dialogue.message && triggeredIds.some(triggeredId => 
+                       triggeredId.includes(dialogue.message.substring(0, 10))
+                     ));
+              if (match) {
+                console.log('找到匹配:', dialogue.id, '匹配', id);
+              }
+              return match;
+            });
+            
+            // 如果是普通對話，也包含在內
+            const isNormal = dialogue.type === 'normal';
+            
+            const shouldInclude = (isTriggered || isNormal) && dialogue.message && dialogue.message.trim() !== '';
+            console.log('是否包含:', shouldInclude, '觸發:', isTriggered, '普通:', isNormal);
+            
+            return shouldInclude;
+          });
+          
+          console.log('篩選後的觸發對話:', triggeredDialogues.length, '個');
+          console.log('篩選後的對話詳情:', triggeredDialogues.map(d => ({ id: d.id, type: d.type, message: d.message?.substring(0, 20) })));
+          
+          // 從篩選後的對話中提取訊息，保持排序順序
+          const orderedMessages = triggeredDialogues.map(dialogue => dialogue.message);
+          
+          if (orderedMessages.length > 0) {
+            console.log('設置排序後的對話:', orderedMessages.length, '個');
+            setSmartMessages(allMessages);
+            setSpeechTexts(orderedMessages);
+            return;
+          } else {
+            console.log('排序邏輯沒有找到有效對話，回退到原本邏輯');
+          }
+        }
+        
+        // 如果沒有排序列表，使用原本的邏輯
+        console.log('使用原本的對話生成邏輯');
+        
         // 分離不同類型的智能對話
         const customMessages = allMessages.filter(msg => msg.type === 'custom').map(msg => msg.message);
         const scheduleMessages = allMessages.filter(msg => msg.type === 'schedule').map(msg => msg.message);
@@ -175,7 +254,7 @@ const CatSpeechBubble = () => {
     const updateInterval = setInterval(generateSmartMessages, 30 * 1000);
 
     return () => clearInterval(updateInterval);
-  }, [smartMode, showBubble, scheduleData, customRules, scheduleTemplates, namesData, lastRefreshTime]);
+  }, [smartMode, showBubble, scheduleData, customRules, scheduleTemplates, namesData, lastRefreshTime, sortedDialogues]);
 
   // 當對話列表改變時，確保當前索引有效
   useEffect(() => {
