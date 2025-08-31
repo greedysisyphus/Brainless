@@ -22,6 +22,35 @@ const DEFAULT_WEIGHTS = {
 
 function CoffeeBeanManager() {
   const [showWeightCalculator, setShowWeightCalculator] = useState(false)
+  
+  // 滾動鎖定功能
+  useEffect(() => {
+    if (showWeightCalculator) {
+      // 鎖定背景滾動
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      document.body.style.top = `-${window.scrollY}px`
+    } else {
+      // 恢復背景滾動
+      const scrollY = document.body.style.top
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1)
+      }
+    }
+    
+    // 清理函數
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+    }
+  }, [showWeightCalculator])
 
   const inventoryRef = useRef(null)
   
@@ -1473,8 +1502,19 @@ function CoffeeBeanManager() {
 
       {/* 浮動重量換算計算器彈窗 */}
               {showWeightCalculator && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            // 點擊背景時關閉彈窗
+            if (e.target === e.currentTarget) {
+              setShowWeightCalculator(false)
+            }
+          }}
+        >
+            <div 
+            className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()} // 防止點擊內容區域時關閉彈窗
+          >
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-xl font-bold text-primary mb-1">重量換算計算器</h2>
