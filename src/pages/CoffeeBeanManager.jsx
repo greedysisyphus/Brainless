@@ -74,7 +74,7 @@ function CoffeeBeanManager() {
   const [currentSection, setCurrentSection] = useState('brewing')
   
   // 匯出模式狀態
-  const [exportMode, setExportMode] = useState('original') // 'original' 或 'minimalist'
+  const [exportMode, setExportMode] = useState('original') // 'original'、'minimalist' 或 'web-consistent'
   
   const [weightSettings, setWeightSettings] = useState(() => {
     // 在初始化時就從 localStorage 讀取
@@ -500,7 +500,7 @@ function CoffeeBeanManager() {
       <div style="font-family: 'Microsoft JhengHei', Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 30px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #2c3e50; min-height: 100vh;">
         <div style="background: white; border-radius: 15px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
           <div style="text-align: center; margin-bottom: 40px;">
-            <h1 style="color: #2c3e50; margin: 0; font-size: 32px; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">☕ 咖啡豆盤點表</h1>
+            <h1 style="color: #2c3e50; margin: 0; font-size: 32px; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">咖啡豆盤點表</h1>
             <p style="color: #7f8c8d; margin: 10px 0 0 0; font-size: 16px;">盤點日期：${date}</p>
           </div>
           
@@ -530,6 +530,63 @@ function CoffeeBeanManager() {
                   `).join('')}
                 </tbody>
               </table>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `
+  }
+
+  // 創建網頁風格一致的表格 HTML
+  const createWebConsistentTableHTML = () => {
+    const tableData = createSummaryTable()
+    const date = new Date().toLocaleDateString('zh-TW')
+    
+    // 按分類分組
+    const groupedData = {}
+    tableData.forEach(row => {
+      if (!groupedData[row.category]) {
+        groupedData[row.category] = []
+      }
+      groupedData[row.category].push(row)
+    })
+    
+    return `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px; background: #13131a; color: #ffffff; min-height: 100vh; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+        <div style="background: #1e1e2e; border-radius: 20px; padding: 50px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
+          <div style="text-align: center; margin-bottom: 50px;">
+            <h1 style="color: #6366f1; margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px;">咖啡豆盤點表</h1>
+            <p style="color: #94a3b8; margin: 12px 0 0 0; font-size: 17px; font-weight: 400;">盤點日期：${date}</p>
+          </div>
+          
+          ${Object.entries(groupedData).map(([category, rows]) => `
+            <div style="margin-bottom: 40px;">
+              <h2 style="color: #ffffff; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 16px 24px; border-radius: 12px; margin: 0 0 24px 0; font-size: 20px; font-weight: 600; text-align: center; border: none; box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);">
+                ${category}
+              </h2>
+              
+              <div style="background: #1e1e2e; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+                <table style="width: 100%; border-collapse: collapse; background: #1e1e2e;">
+                  <thead>
+                    <tr style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); height: 48px;">
+                      <th style="padding: 0 20px; text-align: left; vertical-align: middle; font-weight: 600; color: #ffffff; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">豆種</th>
+                      <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #ffffff; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">店面庫存</th>
+                      <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #ffffff; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">員休室庫存</th>
+                      <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #ffffff; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">總計</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows.map((row, index) => `
+                      <tr style="background: ${index % 2 === 0 ? '#1e1e2e' : 'rgba(255,255,255,0.02)'}; transition: all 0.3s ease;">
+                        <td style="padding: 16px 20px; text-align: left; font-weight: 500; color: #ffffff; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">${row.beanType}</td>
+                        <td style="padding: 16px 20px; text-align: center; color: #3b82f6; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 500;">${row.storeTotal}</td>
+                        <td style="padding: 16px 20px; text-align: center; color: #10b981; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 500;">${row.breakRoomTotal}</td>
+                        <td style="padding: 16px 20px; text-align: center; font-weight: 600; color: #6366f1; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">${row.grandTotal}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
             </div>
           `).join('')}
         </div>
@@ -608,7 +665,14 @@ function CoffeeBeanManager() {
       }
       
       // 根據模式選擇HTML模板
-      const htmlContent = exportMode === 'minimalist' ? createAppleStyleTableHTML() : createTableHTML()
+      let htmlContent
+      if (exportMode === 'minimalist') {
+        htmlContent = createAppleStyleTableHTML()
+      } else if (exportMode === 'web-consistent') {
+        htmlContent = createWebConsistentTableHTML()
+      } else {
+        htmlContent = createTableHTML()
+      }
       
       // 創建臨時容器
       const tempContainer = document.createElement('div')
@@ -616,28 +680,52 @@ function CoffeeBeanManager() {
       tempContainer.style.position = 'absolute'
       tempContainer.style.left = '-9999px'
       tempContainer.style.top = '0'
+      tempContainer.style.width = '900px'
+      tempContainer.style.height = 'auto'
+      tempContainer.style.overflow = 'visible'
       document.body.appendChild(tempContainer)
       
+      // 等待渲染完成
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       const canvas = await html2canvas(tempContainer.firstElementChild, {
-        backgroundColor: exportMode === 'minimalist' ? '#fafafa' : '#ffffff',
-        scale: 2,
+        backgroundColor: exportMode === 'minimalist' ? '#fafafa' : exportMode === 'web-consistent' ? '#13131a' : '#ffffff',
+        scale: 1,
         useCORS: true,
         allowTaint: true,
-        logging: false
+        logging: true,
+        width: 900,
+        height: tempContainer.firstElementChild.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 900,
+        windowHeight: tempContainer.firstElementChild.scrollHeight
       })
       
       // 移除臨時容器
       document.body.removeChild(tempContainer)
       
+      // 檢查canvas是否有效
+      if (!canvas || canvas.width === 0 || canvas.height === 0) {
+        throw new Error('Canvas 渲染失敗')
+      }
+      
       // 創建下載連結
       const link = document.createElement('a')
-      const modeText = exportMode === 'minimalist' ? 'Minimalist' : '原始風格'
+      let modeText
+      if (exportMode === 'minimalist') {
+        modeText = 'Minimalist'
+      } else if (exportMode === 'web-consistent') {
+        modeText = '網頁風格'
+      } else {
+        modeText = '原始風格'
+      }
       link.download = `咖啡豆盤點表_${modeText}_${new Date().toLocaleDateString('zh-TW')}.png`
-      link.href = canvas.toDataURL()
+      link.href = canvas.toDataURL('image/png', 1.0)
       link.click()
     } catch (error) {
       console.error('匯出圖片失敗:', error)
-      alert('匯出圖片失敗，請稍後再試')
+      alert(`匯出圖片失敗：${error.message}`)
     }
   }
 
@@ -721,6 +809,17 @@ function CoffeeBeanManager() {
                   className="text-blue-400 w-3 h-3"
                 />
                 <span>Minimalist</span>
+              </label>
+              <div className="w-px h-4 bg-white/20"></div>
+              <label className="flex items-center gap-2 text-xs text-text-secondary">
+                <input
+                  type="radio"
+                  value="web-consistent"
+                  checked={exportMode === 'web-consistent'}
+                  onChange={(e) => setExportMode(e.target.value)}
+                  className="text-blue-400 w-3 h-3"
+                />
+                <span>網頁風格</span>
               </label>
             </div>
             
@@ -1379,94 +1478,6 @@ function CoffeeBeanManager() {
           </div>
         </div>
 
-        {/* 豆種詳細總計 */}
-        <div className="mt-8 space-y-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1 h-8 bg-gradient-to-b from-primary to-purple-400 rounded-full"></div>
-            <h3 className="text-xl font-bold text-primary">豆種詳細總計</h3>
-          </div>
-          
-          {/* 出杯豆詳細 */}
-          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-5 border border-white/10 hover:border-primary/30 transition-all duration-200">
-            <div className="flex items-center gap-3 mb-4">
-              <h4 className="font-semibold text-primary text-lg">出杯豆</h4>
-              <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            </div>
-            <div className="space-y-3">
-              {(() => {
-                const tableData = createSummaryTable()
-                return tableData
-                  .filter(row => row.category === '出杯豆')
-                  .map(row => (
-                    <div key={row.beanType} className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                      <span className="font-medium text-primary text-base">{row.beanType}</span>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-blue-400 font-medium">店面 {row.storeTotal}包</span>
-                        <span className="text-green-400 font-medium">員休 {row.breakRoomTotal}包</span>
-                        <span className="font-bold text-white bg-gradient-to-r from-primary/20 to-purple-500/20 px-3 py-1.5 rounded-lg">
-                          總計 {row.grandTotal}包
-                        </span>
-                      </div>
-                    </div>
-                  ))
-              })()}
-            </div>
-          </div>
-
-          {/* 義式豆詳細 */}
-          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10">
-            <div className="flex items-center gap-3 mb-3">
-              <h4 className="font-semibold text-primary">義式豆</h4>
-              <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-            </div>
-            <div className="space-y-2">
-              {(() => {
-                const tableData = createSummaryTable()
-                return tableData
-                  .filter(row => row.category === '義式豆')
-                  .map(row => (
-                    <div key={row.beanType} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                      <span className="font-medium text-primary">{row.beanType}</span>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-blue-400">店面 {row.storeTotal}包</span>
-                        <span className="text-green-400">員休 {row.breakRoomTotal}包</span>
-                        <span className="font-bold text-white bg-gradient-to-r from-primary/20 to-purple-500/20 px-2 py-1 rounded">
-                          總計 {row.grandTotal}包
-                        </span>
-                      </div>
-                    </div>
-                  ))
-              })()}
-            </div>
-          </div>
-
-          {/* 賣豆詳細 */}
-          <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10">
-            <div className="flex items-center gap-3 mb-3">
-              <h4 className="font-semibold text-primary">賣豆</h4>
-              <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-            </div>
-            <div className="space-y-2">
-              {(() => {
-                const tableData = createSummaryTable()
-                return tableData
-                  .filter(row => row.category === '賣豆')
-                  .map(row => (
-                    <div key={row.beanType} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                      <span className="font-medium text-primary">{row.beanType}</span>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-blue-400">店面 {row.storeTotal}包</span>
-                        <span className="text-green-400">員休 {row.breakRoomTotal}包</span>
-                        <span className="font-bold text-white bg-gradient-to-r from-primary/20 to-purple-500/20 px-2 py-1 rounded">
-                          總計 {row.grandTotal}包
-                        </span>
-                      </div>
-                    </div>
-                  ))
-              })()}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* 浮動區域指示器 */}
