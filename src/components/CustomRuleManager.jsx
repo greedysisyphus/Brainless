@@ -250,7 +250,7 @@ const CustomRuleManager = ({
     allMessages.forEach((msg, index) => {
       allDialogues.push({
         ...msg,
-        id: msg.id || `smart-${index}`,
+        id: msg.id || `${msg.type}-${msg.message.substring(0, 10)}`, // 使用與 CatSpeechBubble 一致的 ID 格式
         priority: 3,
         isCurrentlyTriggered: true
       });

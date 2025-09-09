@@ -260,6 +260,7 @@ const processMultipleTemplates = (templates, scheduleData, namesData) => {
       const processedMessage = processScheduleTemplate(template, scheduleData, namesData);
       if (processedMessage && typeof processedMessage === 'string' && processedMessage.trim() !== '') {
         return {
+          id: `schedule-${template.id || template.name}`, // 添加唯一 ID
           type: 'schedule',
           priority: 2,
           message: processedMessage,
@@ -696,6 +697,7 @@ export const generateAllSmartMessages = (scheduleData = null, customRules = [], 
       const message = getRandomMessage(randomRule.messages);
       if (message && message.trim() !== '') {
         allMessages.push({
+          id: `custom-${randomRule.id || randomRule.name}`, // 添加唯一 ID
           type: 'custom',
           priority: 1,
           message: message,

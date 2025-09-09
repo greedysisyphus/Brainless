@@ -149,81 +149,41 @@ const CatSpeechBubble = () => {
 
   // 智能模式：生成所有優先級的對話
   useEffect(() => {
-    if (!smartMode || !showBubble) return;
+    console.log('=== 智能對話生成檢查 ===');
+    console.log('智能模式:', smartMode);
+    console.log('顯示氣泡:', showBubble);
+    console.log('班表資料:', scheduleData ? '已載入' : '未載入');
+    console.log('班表模板:', scheduleTemplates.length, '個');
+    console.log('自定義規則:', customRules.length, '個');
+    console.log('姓名資料:', Object.keys(namesData).length, '個');
+    
+    if (!smartMode || !showBubble) {
+      console.log('智能模式或顯示氣泡未開啟，跳過智能對話生成');
+      return;
+    }
 
     // 立即檢查一次（載入時）
     const generateSmartMessages = () => {
+      console.log('=== 開始生成智能對話 ===');
       // 清理快取，確保獲得最新的計算結果
       clearSmartMessageCache();
       
       const allMessages = generateAllSmartMessages(scheduleData, customRules, scheduleTemplates, namesData);
+      console.log('生成的智能對話數量:', allMessages.length);
+      console.log('智能對話詳情:', allMessages.map(msg => ({ 
+        id: msg.id, 
+        type: msg.type, 
+        message: msg.message?.substring(0, 30),
+        source: msg.source 
+      })));
       
       if (allMessages.length > 0) {
-        // 如果有排序後的對話列表，使用排序後的順序
-        if (sortedDialogues.length > 0) {
-          console.log('=== 開始使用排序後的對話列表 ===');
-          console.log('排序對話列表總數:', sortedDialogues.length);
-          console.log('排序對話列表詳情:', sortedDialogues.map(d => ({ id: d.id, type: d.type, message: d.message?.substring(0, 20) })));
-          
-          // 獲取當前觸發的智能對話ID列表
-          const triggeredIds = allMessages.map(msg => msg.id || `${msg.type}-${msg.message.substring(0, 10)}`);
-          console.log('當前觸發的智能對話數量:', allMessages.length);
-          console.log('當前觸發的對話詳情:', allMessages.map(msg => ({ id: msg.id, type: msg.type, message: msg.message?.substring(0, 20) })));
-          console.log('當前觸發的對話ID:', triggeredIds);
-          
-          // 從排序後的對話列表中篩選出當前觸發的對話
-          const triggeredDialogues = sortedDialogues.filter(dialogue => {
-            console.log('檢查對話:', dialogue.id, dialogue.type, dialogue.message?.substring(0, 20));
-            
-            // 檢查是否為當前觸發的對話
-            const isTriggered = triggeredIds.some(id => {
-              const match = dialogue.id === id || 
-                     (dialogue.message && triggeredIds.some(triggeredId => 
-                       triggeredId.includes(dialogue.message.substring(0, 10))
-                     ));
-              if (match) {
-                console.log('找到匹配:', dialogue.id, '匹配', id);
-              }
-              return match;
-            });
-            
-            // 如果是普通對話，也包含在內
-            const isNormal = dialogue.type === 'normal';
-            
-            const shouldInclude = (isTriggered || isNormal) && dialogue.message && dialogue.message.trim() !== '';
-            console.log('是否包含:', shouldInclude, '觸發:', isTriggered, '普通:', isNormal);
-            
-            return shouldInclude;
-          });
-          
-          console.log('篩選後的觸發對話:', triggeredDialogues.length, '個');
-          console.log('篩選後的對話詳情:', triggeredDialogues.map(d => ({ id: d.id, type: d.type, message: d.message?.substring(0, 20) })));
-          
-          // 從篩選後的對話中提取訊息，保持排序順序
-          const orderedMessages = triggeredDialogues.map(dialogue => dialogue.message);
-          
-          if (orderedMessages.length > 0) {
-            console.log('設置排序後的對話:', orderedMessages.length, '個');
-            setSmartMessages(allMessages);
-            setSpeechTexts(orderedMessages);
-            return;
-          } else {
-            console.log('排序邏輯沒有找到有效對話，回退到原本邏輯');
-          }
-        }
+        console.log('=== 簡化邏輯：直接使用智能對話 ===');
         
-        // 如果沒有排序列表，使用原本的邏輯
-        console.log('使用原本的對話生成邏輯');
+        // 直接使用智能對話，不進行複雜的排序匹配
+        const smartTexts = allMessages.map(msg => msg.message).filter(text => text && text.trim() !== '');
         
-        // 分離不同類型的智能對話
-        const customMessages = allMessages.filter(msg => msg.type === 'custom').map(msg => msg.message);
-        const scheduleMessages = allMessages.filter(msg => msg.type === 'schedule').map(msg => msg.message);
-        
-        // 合併所有智能對話（包含所有班表模板，不只是隨機選擇一個）
-        const smartTexts = [
-          ...customMessages,
-          ...scheduleMessages
-        ].filter(text => text && text.trim() !== '');
+        console.log('智能對話訊息:', smartTexts);
         
         // 獲取原始普通對話（從全域設定中）
         const originalTexts = speechTexts.filter(text => 
@@ -232,17 +192,24 @@ const CatSpeechBubble = () => {
         
         const combinedTexts = [...smartTexts, ...originalTexts];
         
+        console.log('原始普通對話:', originalTexts);
+        console.log('合併後的對話:', combinedTexts);
+        
         if (combinedTexts.length > 0) {
+          console.log('設置合併後的對話:', combinedTexts.length, '個');
+          console.log('最終對話內容:', combinedTexts);
           setSmartMessages(allMessages);
           setSpeechTexts(combinedTexts);
         } else {
           // 如果合併後沒有有效對話，保持原來的對話
           const originalTexts = speechTexts.filter(text => text && typeof text === 'string' && text.trim() !== '');
+          console.log('沒有有效對話，使用原始對話:', originalTexts);
           setSpeechTexts(originalTexts);
         }
       } else {
         // 如果沒有智能對話，只顯示普通對話
         const originalTexts = speechTexts.filter(text => text && typeof text === 'string' && text.trim() !== '');
+        console.log('沒有智能對話，使用原始對話:', originalTexts);
         setSpeechTexts(originalTexts);
       }
     };
