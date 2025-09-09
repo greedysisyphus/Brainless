@@ -128,20 +128,13 @@ function CashierManagement() {
     const foreignAmountNum = parseFloat(foreignAmount)
     const productPriceNum = parseFloat(productPrice)
 
-    // 1. 將商品價格轉換為外幣等值，然後無條件進位
-    const productPriceInForeign = productPriceNum / rateNum
-    const roundedProductPriceInForeign = Math.ceil(productPriceInForeign)
-    
-    // 2. 進位後的外幣價格轉換回台幣，並無條件進位
-    const roundedProductPriceInTWD = Math.ceil(roundedProductPriceInForeign * rateNum)
-    
-    // 3. 客人付的外幣轉換為台幣，並無條件捨去
+    // 1. 客人付的外幣轉換為台幣，並無條件捨去
     const foreignAmountInTWD = Math.floor(foreignAmountNum * rateNum)
     
-    // 4. 計算找零（台幣）
-    const changeInTWD = foreignAmountInTWD - roundedProductPriceInTWD
+    // 2. 計算找零（台幣）
+    const changeInTWD = foreignAmountInTWD - productPriceNum
     
-    // 5. 計算找零（外幣）
+    // 3. 計算找零（外幣）
     const changeInForeign = changeInTWD / rateNum
 
     return {
@@ -150,9 +143,6 @@ function CashierManagement() {
       foreignAmount: foreignAmountNum,
       rate: rateNum,
       productPrice: productPriceNum,
-      productPriceInForeign,
-      roundedProductPriceInForeign,
-      roundedProductPriceInTWD,
       foreignAmountInTWD
     }
   }
@@ -160,8 +150,8 @@ function CashierManagement() {
   const result = calculateForeignChange()
   
   // 計算狀態判斷
-  const isExactAmount = result && result.foreignAmount === result.roundedProductPriceInForeign
-  const isInsufficient = result && result.changeInTWD < 0 && !isExactAmount
+  const isExactAmount = result && result.changeInTWD === 0
+  const isInsufficient = result && result.changeInTWD < 0
   const hasChange = result && result.changeInTWD > 0
   const isValidInput = result && result.rate > 0 && result.foreignAmount > 0 && result.productPrice > 0
 
@@ -514,13 +504,13 @@ function CashierManagement() {
                               isInsufficient ? 'bg-red-400' : 'bg-blue-400'
                             }`}
                             style={{ 
-                              width: `${Math.min(100, Math.max(0, (result.foreignAmountInTWD / result.roundedProductPriceInTWD) * 100))}%` 
+                              width: `${Math.min(100, Math.max(0, (result.foreignAmountInTWD / result.productPrice) * 100))}%` 
                             }}
                           ></div>
                         </div>
                         <div className="flex justify-between items-center mt-2">
                           <span className="text-sm text-text-secondary">商品價格</span>
-                          <span className="text-sm font-semibold text-orange-400">${result.roundedProductPriceInTWD.toFixed(0)}</span>
+                          <span className="text-sm font-semibold text-orange-400">${result.productPrice.toFixed(0)}</span>
                         </div>
                       </div>
                     </div>
@@ -533,33 +523,21 @@ function CashierManagement() {
                     </summary>
                     <div className="mt-4 space-y-3 text-sm">
                       <div className="flex justify-between items-center">
-                        <span className="text-text-secondary">原始商品價格：</span>
+                        <span className="text-text-secondary">商品價格：</span>
                         <span className="font-semibold text-orange-400">${result.productPrice.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-text-secondary">商品價格（外幣等值）：</span>
-                        <span className="font-semibold text-yellow-400">{result.productPriceInForeign.toFixed(4)}</span>
+                        <span className="text-text-secondary">客人付的外幣：</span>
+                        <span className="font-semibold text-purple-400">{result.foreignAmount.toFixed(0)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-text-secondary">進位後商品價格（外幣）：</span>
-                        <span className="font-semibold text-cyan-400">{result.roundedProductPriceInForeign.toFixed(0)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-text-secondary">進位後商品價格（台幣）：</span>
-                        <span className="font-semibold text-cyan-400">${result.roundedProductPriceInTWD.toFixed(0)}</span>
+                        <span className="text-text-secondary">客人付的台幣等值：</span>
+                        <span className="font-semibold text-purple-400">${result.foreignAmountInTWD.toFixed(0)}</span>
                       </div>
                       <div className="border-t border-white/10 pt-2 mt-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-text-secondary">客人付的外幣：</span>
-                          <span className="font-semibold text-purple-400">{result.foreignAmount.toFixed(0)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-text-secondary">客人付的台幣等值：</span>
-                          <span className="font-semibold text-purple-400">${result.foreignAmountInTWD.toFixed(0)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-text-secondary">減去商品價格（台幣）：</span>
-                          <span className="font-semibold text-red-400">-${result.roundedProductPriceInTWD.toFixed(0)}</span>
+                          <span className="text-text-secondary">減去商品價格：</span>
+                          <span className="font-semibold text-red-400">-${result.productPrice.toFixed(0)}</span>
                         </div>
                       </div>
                     </div>
@@ -603,19 +581,11 @@ function CashierManagement() {
                 <div className="text-sm text-text-secondary space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-blue-400/20 text-blue-400 text-xs flex items-center justify-center font-bold">1</span>
-                    <span>商品價格 ÷ 匯率 = 外幣等值（進位）</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-blue-400/20 text-blue-400 text-xs flex items-center justify-center font-bold">2</span>
-                    <span>外幣等值 × 匯率 = 台幣價格（進位）</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-blue-400/20 text-blue-400 text-xs flex items-center justify-center font-bold">3</span>
                     <span>客人外幣 × 匯率 = 台幣等值（捨去）</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-blue-400/20 text-blue-400 text-xs flex items-center justify-center font-bold">4</span>
-                    <span>台幣等值 - 台幣價格 = 找零金額</span>
+                    <span className="w-5 h-5 rounded-full bg-blue-400/20 text-blue-400 text-xs flex items-center justify-center font-bold">2</span>
+                    <span>台幣等值 - 商品價格 = 找零金額</span>
                   </div>
                 </div>
               </div>
