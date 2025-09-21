@@ -94,10 +94,12 @@ const SHIFT_CODES = {
   'K': '早',
   'L': '中',
   'Y': '晚',
+  'A': '晚',
   '月休': '休',
   'SS': '特',
   'R': '休',
   'KK': '早',
+  'LL': '中',
   'YY': '晚',
   '早班': '早',
   '中班': '中',
@@ -231,6 +233,13 @@ function ScheduleManager() {
   
   // 車費試算狀態
   const [fareCalculationEmployee, setFareCalculationEmployee] = useState(null)
+  
+  // 乘車文字生成日期範圍狀態
+  const [customDateRange, setCustomDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  })
+  const [useCustomRange, setUseCustomRange] = useState(false)
   
   // 匯入資料
   const [importData, setImportData] = useState('')
@@ -943,9 +952,30 @@ function ScheduleManager() {
   // 生成 Line 群文字
   const generateLineText = () => {
     const schedule = getCurrentSchedule()
-    const weekNumber = parseInt(selectedWeek.replace('week', ''))
-    const startDay = (weekNumber - 1) * 7 + 1
-    const endDay = Math.min(weekNumber * 7, new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate())
+    let startDay, endDay
+    
+    if (useCustomRange && customDateRange.startDate && customDateRange.endDate) {
+      // 使用自訂日期範圍
+      startDay = parseInt(customDateRange.startDate)
+      endDay = parseInt(customDateRange.endDate)
+      
+      // 驗證日期範圍
+      if (startDay > endDay) {
+        alert('開始日期不能大於結束日期')
+        return
+      }
+      
+      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+      if (startDay < 1 || endDay > daysInMonth) {
+        alert(`日期範圍必須在 1-${daysInMonth} 之間`)
+        return
+      }
+    } else {
+      // 使用週次選擇
+      const weekNumber = parseInt(selectedWeek.replace('week', ''))
+      startDay = (weekNumber - 1) * 7 + 1
+      endDay = Math.min(weekNumber * 7, new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate())
+    }
     
     let lineText = ''
     
@@ -1613,81 +1643,145 @@ function ScheduleManager() {
           {transportTab === 'chart' && (
             <>
               {/* 控制面板 */}
-              <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-8 border border-white/20 shadow-xl backdrop-blur-sm">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* 左側：月份選擇和匯出 */}
               <div className="space-y-6">
-                {/* 月份選擇 */}
-                <div className="group">
-                  <label className="block text-sm font-semibold mb-3 text-yellow-300 group-hover:text-yellow-200 transition-colors">月份</label>
-                  <div className="relative">
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-yellow-400/50 focus:bg-white/20 focus:ring-2 focus:ring-yellow-400/20 transition-all duration-200 appearance-none cursor-pointer"
-                    >
-                      {getMonthOptions(availableMonths).map(option => (
-                        <option key={option.key} value={option.key}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                {/* 第一行：月份選擇和匯出 */}
+                <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* 月份選擇 */}
+                    <div className="group">
+                      <label className="block text-sm font-semibold mb-3 text-yellow-300 group-hover:text-yellow-200 transition-colors">月份</label>
+                      <div className="relative">
+                        <select
+                          value={selectedMonth}
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-yellow-400/50 focus:bg-white/20 focus:ring-2 focus:ring-yellow-400/20 transition-all duration-200 appearance-none cursor-pointer"
+                        >
+                          {getMonthOptions(availableMonths).map(option => (
+                            <option key={option.key} value={option.key}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg className="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 匯出按鈕 */}
+                    <div className="group">
+                      <label className="block text-sm font-semibold mb-3 text-orange-300 group-hover:text-orange-200 transition-colors">匯出</label>
+                      <button
+                        onClick={() => exportTransportChart()}
+                        className="w-full px-4 py-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-400/30 text-blue-300 rounded-xl transition-all duration-200 font-medium"
+                      >
+                        <DocumentArrowUpIcon className="w-4 h-4 inline mr-2" />
+                        匯出乘車表
+                      </button>
                     </div>
                   </div>
                 </div>
-                
-                {/* 匯出按鈕 */}
-                <div className="group">
-                  <label className="block text-sm font-semibold mb-3 text-orange-300 group-hover:text-orange-200 transition-colors">匯出</label>
-                  <button
-                    onClick={() => exportTransportChart()}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-400/30 text-blue-300 rounded-xl transition-all duration-200 font-medium"
-                  >
-                    <DocumentArrowUpIcon className="w-4 h-4 inline mr-2" />
-                    匯出乘車表
-                  </button>
-                </div>
-              </div>
-              
-              {/* 右側：Line 群文字和更新時間 */}
-              <div className="space-y-6">
-                {/* 乘車文字生成 (一週) */}
-                <div className="group">
-                  <label className="block text-sm font-semibold mb-3 text-green-300 group-hover:text-green-200 transition-colors">乘車文字生成 (一週)</label>
-                  <div className="flex space-x-3">
-                    <select
-                      value={selectedWeek}
-                      onChange={(e) => setSelectedWeek(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-green-400/50 focus:bg-white/20 focus:ring-2 focus:ring-green-400/20 transition-all duration-200 appearance-none cursor-pointer"
-                    >
-                      {generateWeekOptions()}
-                    </select>
-                    <button
-                      onClick={() => generateLineText()}
-                      className="px-6 py-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 hover:from-green-500/30 hover:to-teal-500/30 border border-green-400/30 text-green-300 rounded-xl transition-all duration-200 font-medium whitespace-nowrap"
-                    >
-                      <DocumentTextIcon className="w-4 h-4 inline mr-2" />
-                      生成
-                    </button>
+
+                {/* 第二行：乘車文字生成 */}
+                <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
+                  <div className="space-y-6">
+                    {/* 標題和更新時間 */}
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <h3 className="text-lg font-bold text-green-300">乘車文字生成</h3>
+                      <div className="text-sm text-gray-400">
+                        更新時間: {lastUpdated[selectedMonth] ? new Date(lastUpdated[selectedMonth]).toLocaleString() : '無資料'}
+                      </div>
+                    </div>
+                    
+                    {/* 模式選擇 */}
+                    <div>
+                      <div className="flex space-x-2 mb-4">
+                        <button
+                          onClick={() => setUseCustomRange(false)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            !useCustomRange
+                              ? 'bg-green-500/20 text-green-300 border border-green-400/30'
+                              : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                          }`}
+                        >
+                          週次選擇
+                        </button>
+                        <button
+                          onClick={() => setUseCustomRange(true)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            useCustomRange
+                              ? 'bg-green-500/20 text-green-300 border border-green-400/30'
+                              : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                          }`}
+                        >
+                          指定日期範圍
+                        </button>
+                      </div>
+                      
+                      {/* 週次選擇模式 */}
+                      {!useCustomRange && (
+                        <div className="flex space-x-3">
+                          <select
+                            value={selectedWeek}
+                            onChange={(e) => setSelectedWeek(e.target.value)}
+                            className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:border-green-400/50 focus:bg-white/20 focus:ring-2 focus:ring-green-400/20 transition-all duration-200 appearance-none cursor-pointer"
+                          >
+                            {generateWeekOptions()}
+                          </select>
+                          <button
+                            onClick={() => generateLineText()}
+                            className="px-6 py-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 hover:from-green-500/30 hover:to-teal-500/30 border border-green-400/30 text-green-300 rounded-xl transition-all duration-200 font-medium whitespace-nowrap"
+                          >
+                            <DocumentTextIcon className="w-4 h-4 inline mr-2" />
+                            生成
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* 日期範圍選擇模式 */}
+                      {useCustomRange && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs text-gray-400 mb-1">開始日期</label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="31"
+                                value={customDateRange.startDate}
+                                onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                                placeholder="1"
+                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg focus:border-green-400/50 focus:bg-white/20 text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-400 mb-1">結束日期</label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="31"
+                                value={customDateRange.endDate}
+                                onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                                placeholder="7"
+                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg focus:border-green-400/50 focus:bg-white/20 text-sm"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => generateLineText()}
+                            className="w-full px-6 py-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 hover:from-green-500/30 hover:to-teal-500/30 border border-green-400/30 text-green-300 rounded-xl transition-all duration-200 font-medium"
+                          >
+                            <DocumentTextIcon className="w-4 h-4 inline mr-2" />
+                            生成乘車文字
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                
-                {/* 最後更新時間 */}
-                <div className="group">
-                  <label className="block text-sm font-semibold mb-3 text-gray-300 group-hover:text-gray-200 transition-colors">更新時間</label>
-                  <div className="px-4 py-3 bg-surface/30 rounded-xl border border-white/10">
-                    <span className="text-sm text-gray-300">
-                      {lastUpdated[selectedMonth] ? new Date(lastUpdated[selectedMonth]).toLocaleString() : '無資料'}
-                    </span>
-                  </div>
-                </div>
               </div>
-            </div>
-          </div>
           
           {/* 乘車表顯示 */}
           <div className="bg-surface/40 rounded-xl p-6 border border-white/10">
