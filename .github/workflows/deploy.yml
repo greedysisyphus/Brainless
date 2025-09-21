@@ -29,10 +29,6 @@ jobs:
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           
-      - name: Copy build to docs
-        run: |
-          cp -r dist/* docs/
-          
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
