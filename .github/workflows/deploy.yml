@@ -29,11 +29,10 @@ jobs:
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           
-      - name: Copy to docs folder
-        run: |
-          cp -r dist/* docs/
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
           
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        with:
-          path: ./docs 
+        uses: actions/deploy-pages@v4 
