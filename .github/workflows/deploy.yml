@@ -12,6 +12,9 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       
@@ -29,10 +32,18 @@ jobs:
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           
+      - name: Check build output
+        run: |
+          echo "Build output contents:"
+          ls -la docs/
+          echo "Index.html content:"
+          head -10 docs/index.html
+          
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs
           
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4 
