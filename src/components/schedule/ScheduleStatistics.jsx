@@ -8,7 +8,7 @@ const STATS_THEMES = {
     color: 'pink',
     icon: (
       <svg className="w-5 h-5 text-pink-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.325-7.757l-.707.707M6.343 17.657l-.707.707M16.95 7.05l.707-.707M7.05 16.95l.707.707M12 12a3 3 0 110-6 3 3 0 010 6z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     ),
     title: '早班統計',
@@ -19,8 +19,7 @@ const STATS_THEMES = {
     color: 'blue',
     icon: (
       <svg className="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 7v4l3 2m-3-2h4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
       </svg>
     ),
     title: '晚班統計',
@@ -69,10 +68,11 @@ const StatCard = ({ title, icon, themeColor, children, isLoading }) => {
 }
 
 // 早班統計組件
-export const EarlyShiftStats = ({ schedule, names }) => {
+export const EarlyShiftStats = ({ schedule, names, showAll = false }) => {
+  
   const calculateEarlyStats = () => {
     return measurePerformance('早班統計計算', () => {
-      const stats = {}
+      const stats = []
       const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
       
       Object.keys(schedule).forEach(employeeId => {
@@ -86,31 +86,49 @@ export const EarlyShiftStats = ({ schedule, names }) => {
           }
         }
         
-        if (count > 0) {
-          stats[employeeId] = {
-            name: names[employeeId] || employeeId,
-            count
-          }
-        }
+        // 包含所有員工，包括次數為0的
+        stats.push({
+          employeeId,
+          name: names[employeeId] || employeeId,
+          count
+        })
       })
       
-      return Object.values(stats).sort((a, b) => b.count - a.count)
+      // 按次數降序排序
+      const sortedStats = stats.sort((a, b) => b.count - a.count)
+      
+      // 計算排名（相同次數的排名相同）
+      let currentRank = 1
+      let previousCount = null
+      
+      return sortedStats.map((stat, index) => {
+        if (previousCount !== null && stat.count !== previousCount) {
+          currentRank = index + 1
+        }
+        previousCount = stat.count
+        
+        return {
+          ...stat,
+          rank: currentRank
+        }
+      })
     }, { logThreshold: 5 })
   }
   
   const earlyStats = calculateEarlyStats()
+  const displayStats = showAll ? earlyStats : earlyStats.slice(0, 5)
   
   return (
     <div className="space-y-3">
       {earlyStats.length > 0 ? (
-        earlyStats.slice(0, 5).map((stat, index) => (
+        displayStats.map((stat) => (
           <div 
-            key={stat.name}
+            key={stat.employeeId}
             className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10 hover:bg-surface/30 transition-all"
           >
             <div className="flex items-center space-x-3">
               <div className="w-6 h-6 rounded-full bg-pink-500/30 border border-pink-400/50 flex items-center justify-center text-xs font-bold text-pink-300">
-                {index + 1}
+                {stat.rank}
               </div>
               <span className="text-white font-medium text-sm">{stat.name}</span>
             </div>
@@ -128,10 +146,11 @@ export const EarlyShiftStats = ({ schedule, names }) => {
 }
 
 // 晚班統計組件
-export const NightShiftStats = ({ schedule, names }) => {
+export const NightShiftStats = ({ schedule, names, showAll = false }) => {
+  
   const calculateNightStats = () => {
     return measurePerformance('晚班統計計算', () => {
-      const stats = {}
+      const stats = []
       const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
       
       Object.keys(schedule).forEach(employeeId => {
@@ -145,31 +164,49 @@ export const NightShiftStats = ({ schedule, names }) => {
           }
         }
         
-        if (count > 0) {
-          stats[employeeId] = {
-            name: names[employeeId] || employeeId,
-            count
-          }
-        }
+        // 包含所有員工，包括次數為0的
+        stats.push({
+          employeeId,
+          name: names[employeeId] || employeeId,
+          count
+        })
       })
       
-      return Object.values(stats).sort((a, b) => b.count - a.count)
+      // 按次數降序排序
+      const sortedStats = stats.sort((a, b) => b.count - a.count)
+      
+      // 計算排名（相同次數的排名相同）
+      let currentRank = 1
+      let previousCount = null
+      
+      return sortedStats.map((stat, index) => {
+        if (previousCount !== null && stat.count !== previousCount) {
+          currentRank = index + 1
+        }
+        previousCount = stat.count
+        
+        return {
+          ...stat,
+          rank: currentRank
+        }
+      })
     }, { logThreshold: 5 })
   }
   
   const nightStats = calculateNightStats()
+  const displayStats = showAll ? nightStats : nightStats.slice(0, 5)
   
   return (
     <div className="space-y-3">
       {nightStats.length > 0 ? (
-        nightStats.slice(0, 5).map((stat, index) => (
+        displayStats.map((stat) => (
           <div 
-            key={stat.name}
+            key={stat.employeeId}
             className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10 hover:bg-surface/30 transition-all"
           >
             <div className="flex items-center space-x-3">
               <div className="w-6 h-6 rounded-full bg-blue-500/30 border border-blue-400/50 flex items-center justify-center text-xs font-bold text-blue-300">
-                {index + 1}
+                {stat.rank}
               </div>
               <span className="text-white font-medium text-sm">{stat.name}</span>
             </div>
@@ -187,10 +224,11 @@ export const NightShiftStats = ({ schedule, names }) => {
 }
 
 // 連續上班統計組件
-export const ConsecutiveWorkStats = ({ schedule, names }) => {
+export const ConsecutiveWorkStats = ({ schedule, names, showAll = false }) => {
+  
   const calculateConsecutiveStats = () => {
     return measurePerformance('連續上班統計計算', () => {
-      const stats = {}
+      const stats = []
       const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
       
       Object.keys(schedule).forEach(employeeId => {
@@ -212,31 +250,49 @@ export const ConsecutiveWorkStats = ({ schedule, names }) => {
         // 處理最後一個連續期
         maxConsecutive = Math.max(maxConsecutive, currentConsecutive)
         
-        if (maxConsecutive > 0) {
-          stats[employeeId] = {
-            name: names[employeeId] || employeeId,
-            maxConsecutive
-          }
-        }
+        // 包含所有員工，包括連續天數為0的
+        stats.push({
+          employeeId,
+          name: names[employeeId] || employeeId,
+          maxConsecutive
+        })
       })
       
-      return Object.values(stats).sort((a, b) => b.maxConsecutive - a.maxConsecutive)
+      // 按連續天數降序排序
+      const sortedStats = stats.sort((a, b) => b.maxConsecutive - a.maxConsecutive)
+      
+      // 計算排名（相同天數的排名相同）
+      let currentRank = 1
+      let previousCount = null
+      
+      return sortedStats.map((stat, index) => {
+        if (previousCount !== null && stat.maxConsecutive !== previousCount) {
+          currentRank = index + 1
+        }
+        previousCount = stat.maxConsecutive
+        
+        return {
+          ...stat,
+          rank: currentRank
+        }
+      })
     }, { logThreshold: 5 })
   }
   
   const consecutiveStats = calculateConsecutiveStats()
+  const displayStats = showAll ? consecutiveStats : consecutiveStats.slice(0, 5)
   
   return (
     <div className="space-y-3">
       {consecutiveStats.length > 0 ? (
-        consecutiveStats.slice(0, 5).map((stat, index) => (
+        displayStats.map((stat) => (
           <div 
-            key={stat.name}
+            key={stat.employeeId}
             className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10 hover:bg-surface/30 transition-all"
           >
             <div className="flex items-center space-x-3">
               <div className="w-6 h-6 rounded-full bg-orange-500/30 border border-orange-400/50 flex items-center justify-center text-xs font-bold text-orange-300">
-                {index + 1}
+                {stat.rank}
               </div>
               <span className="text-white font-medium text-sm">{stat.name}</span>
             </div>
@@ -254,21 +310,22 @@ export const ConsecutiveWorkStats = ({ schedule, names }) => {
 }
 
 // 熱愛進貨統計組件
-export const StockLoverStats = ({ schedule, names }) => {
+export const StockLoverStats = ({ schedule, names, showAll = false }) => {
+  
   const calculateStockLoverStats = () => {
     return measurePerformance('熱愛進貨統計計算', () => {
-      const stockLoverStats = {}
+      const stats = []
+      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
       
       // 初始化所有員工
       Object.keys(schedule).forEach(employeeId => {
         if (employeeId === '_lastUpdated') return
-        stockLoverStats[employeeId] = {
+        stats.push({
+          employeeId,
           name: names[employeeId] || employeeId,
           count: 0
-        }
+        })
       })
-      
-      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
       
       // 計算每個星期三的中班和晚班
       for (let day = 1; day <= daysInMonth; day++) {
@@ -282,31 +339,48 @@ export const StockLoverStats = ({ schedule, names }) => {
             
             // 檢查是否為中班或晚班
             if (shift === '中' || shift === '晚') {
-              stockLoverStats[employeeId].count++
+              const stat = stats.find(s => s.employeeId === employeeId)
+              if (stat) stat.count++
             }
           })
         }
       }
       
-      return Object.values(stockLoverStats)
-        .filter(stat => stat.count > 0)
-        .sort((a, b) => b.count - a.count)
+      // 按次數降序排序
+      const sortedStats = stats.sort((a, b) => b.count - a.count)
+      
+      // 計算排名（相同次數的排名相同）
+      let currentRank = 1
+      let previousCount = null
+      
+      return sortedStats.map((stat, index) => {
+        if (previousCount !== null && stat.count !== previousCount) {
+          currentRank = index + 1
+        }
+        previousCount = stat.count
+        
+        return {
+          ...stat,
+          rank: currentRank
+        }
+      })
     }, { logThreshold: 5 })
   }
   
   const stockLoverStats = calculateStockLoverStats()
+  const displayStats = showAll ? stockLoverStats : stockLoverStats.slice(0, 5)
   
   return (
     <div className="space-y-3">
       {stockLoverStats.length > 0 ? (
-        stockLoverStats.slice(0, 5).map((stat, index) => (
+        displayStats.map((stat) => (
           <div 
-            key={stat.name}
+            key={stat.employeeId}
             className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10 hover:bg-surface/30 transition-all"
           >
             <div className="flex items-center space-x-3">
               <div className="w-6 h-6 rounded-full bg-emerald-500/30 border border-emerald-400/50 flex items-center justify-center text-xs font-bold text-emerald-300">
-                {index + 1}
+                {stat.rank}
               </div>
               <span className="text-white font-medium text-sm">{stat.name}</span>
             </div>
@@ -326,6 +400,7 @@ export const StockLoverStats = ({ schedule, names }) => {
 // 主要統計組件
 export default function ScheduleStatistics({ schedule, names, loadingStates, selectedEmployee, allSchedules, selectedMonth }) {
   const finishRender = useRenderPerformance('ScheduleStatistics')
+  const [showAllStats, setShowAllStats] = React.useState(false)
   
   // 直接使用組件，不依賴 useStatistics hook
   React.useEffect(() => {
@@ -333,19 +408,32 @@ export default function ScheduleStatistics({ schedule, names, loadingStates, sel
   })
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <StatCard title={STATS_THEMES.early.title} icon={STATS_THEMES.early.icon} themeColor="early" isLoading={loadingStates.statistics}>
-        <EarlyShiftStats schedule={schedule} names={names} />
-      </StatCard>
-      <StatCard title={STATS_THEMES.night.title} icon={STATS_THEMES.night.icon} themeColor="night" isLoading={loadingStates.statistics}>
-        <NightShiftStats schedule={schedule} names={names} />
-      </StatCard>
-      <StatCard title={STATS_THEMES.consecutive.title} icon={STATS_THEMES.consecutive.icon} themeColor="consecutive" isLoading={loadingStates.statistics}>
-        <ConsecutiveWorkStats schedule={schedule} names={names} />
-      </StatCard>
-      <StatCard title={STATS_THEMES.stockLover.title} icon={STATS_THEMES.stockLover.icon} themeColor="stockLover" isLoading={loadingStates.statistics}>
-        <StockLoverStats schedule={schedule} names={names} />
-      </StatCard>
+    <div className="space-y-6">
+      {/* 統計卡片網格 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title={STATS_THEMES.early.title} icon={STATS_THEMES.early.icon} themeColor="early" isLoading={loadingStates.statistics}>
+          <EarlyShiftStats schedule={schedule} names={names} showAll={showAllStats} />
+        </StatCard>
+        <StatCard title={STATS_THEMES.night.title} icon={STATS_THEMES.night.icon} themeColor="night" isLoading={loadingStates.statistics}>
+          <NightShiftStats schedule={schedule} names={names} showAll={showAllStats} />
+        </StatCard>
+        <StatCard title={STATS_THEMES.consecutive.title} icon={STATS_THEMES.consecutive.icon} themeColor="consecutive" isLoading={loadingStates.statistics}>
+          <ConsecutiveWorkStats schedule={schedule} names={names} showAll={showAllStats} />
+        </StatCard>
+        <StatCard title={STATS_THEMES.stockLover.title} icon={STATS_THEMES.stockLover.icon} themeColor="stockLover" isLoading={loadingStates.statistics}>
+          <StockLoverStats schedule={schedule} names={names} showAll={showAllStats} />
+        </StatCard>
+      </div>
+      
+      {/* 統一的查看全部按鈕 */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => setShowAllStats(!showAllStats)}
+          className="px-8 py-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-400/30 text-blue-300 rounded-xl transition-all duration-200 text-sm font-medium shadow-lg backdrop-blur-sm"
+        >
+          {showAllStats ? '收起所有排名' : '查看全部排名'}
+        </button>
+      </div>
     </div>
   )
 }
