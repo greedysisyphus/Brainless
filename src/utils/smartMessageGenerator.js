@@ -33,7 +33,9 @@ const cache = {
   todayWorkers: new Map(),
   todayString: null,
   todayDate: null,
-  lastCacheTime: 0
+  lastCacheTime: 0,
+  smartMessages: new Map(), // 新增智能對話快取
+  lastGenerationTime: 0
 };
 
 // 快取清理函數（每天清理一次，或強制清理）
@@ -44,9 +46,11 @@ const clearCacheIfNeeded = (force = false) => {
   if (force || cache.lastCacheTime === 0 || new Date(cache.lastCacheTime).toDateString() !== today) {
     cache.consecutiveDays.clear();
     cache.todayWorkers.clear();
+    cache.smartMessages.clear(); // 清理智能對話快取
     cache.todayString = null;
     cache.todayDate = null;
     cache.lastCacheTime = now;
+    cache.lastGenerationTime = 0;
   }
 };
 
@@ -659,8 +663,26 @@ const getRandomMessage = (messages) => {
   return validMessages[Math.floor(Math.random() * validMessages.length)];
 };
 
-// 生成所有優先級的智能對話
+// 生成所有優先級的智能對話（帶快取優化）
 export const generateAllSmartMessages = (scheduleData = null, customRules = [], scheduleTemplates = [], namesData = {}) => {
+  // 檢查快取
+  const cacheKey = JSON.stringify({
+    scheduleData: scheduleData ? Object.keys(scheduleData).length : 0,
+    customRules: customRules.length,
+    scheduleTemplates: scheduleTemplates.length,
+    namesData: Object.keys(namesData).length,
+    time: new Date().toDateString()
+  });
+
+  // 如果快取存在且未過期（5分鐘內），直接返回快取結果
+  if (cache.smartMessages.has(cacheKey)) {
+    const cached = cache.smartMessages.get(cacheKey);
+    const now = Date.now();
+    if (now - cached.timestamp < 5 * 60 * 1000) { // 5分鐘快取
+      return cached.messages;
+    }
+  }
+
   const now = new Date();
   const dayOfWeek = getDayOfWeek();
   const allMessages = [];
@@ -715,6 +737,12 @@ export const generateAllSmartMessages = (scheduleData = null, customRules = [], 
   
   // 3. 普通對話（由管理員設定的固定對話）
   // 注意：普通對話不在這裡生成，而是在 CatSpeechBubble 中與智能對話合併
+  
+  // 快取結果
+  cache.smartMessages.set(cacheKey, {
+    messages: allMessages,
+    timestamp: Date.now()
+  });
   
   return allMessages;
 };

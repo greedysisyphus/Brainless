@@ -65,15 +65,40 @@ export async function safeGetCollection(collectionName) {
 }
 
 // 管理員相關功能
+// 權限快取機制
+const adminCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5分鐘快取
+
 export const checkAdminStatus = async (uid) => {
   try {
+    // 檢查快取
+    const cacheKey = `admin_${uid}`;
+    const cached = adminCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.isAdmin;
+    }
+
     const { doc, getDoc } = await import('firebase/firestore');
     const adminDoc = await getDoc(doc(db, 'admins', uid));
-    return adminDoc.exists();
+    const isAdmin = adminDoc.exists();
+    
+    // 更新快取
+    adminCache.set(cacheKey, {
+      isAdmin,
+      timestamp: Date.now()
+    });
+    
+    return isAdmin;
   } catch (error) {
     console.error('檢查管理員狀態失敗:', error);
     return false;
   }
+};
+
+// 清除管理員快取
+export const clearAdminCache = () => {
+  adminCache.clear();
 };
 
 export const adminLogin = async (email, password) => {
