@@ -1,9 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
 import html2canvas from 'html2canvas'
+import { DateRangePicker } from '../components/Calendar'
+import ErrorBoundary from '../components/ErrorBoundary'
+import { LoadingOverlay, StatisticsSkeleton } from '../components/LoadingSpinner'
+import { validateScheduleData, validateNamesMapping, validateStatisticsInput, safeGet, safeArrayMap } from '../utils/validation'
+import { measurePerformance, logMemoryUsage } from '../utils/performance'
+import ScheduleStatistics from '../components/schedule/ScheduleStatistics'
+import ScheduleCharts from '../components/schedule/ScheduleCharts'
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts'
+
+// 動態導入圖表元件（代碼分割）
+const ChartAnalysis = lazy(() => import('../components/charts/ChartAnalysis'))
+
 import { 
   CalendarIcon, 
   DocumentArrowUpIcon, 
@@ -104,6 +115,89 @@ const SHIFT_CODES = {
   '早班': '早',
   '中班': '中',
   '晚班': '晚'
+}
+
+// 班次顏色配置
+const SHIFT_COLORS = {
+  '早': '#ec4899', // 粉色
+  '中': '#06b6d4', // 青色
+  '晚': '#3b82f6', // 藍色
+  '休': '#6b7280', // 灰色
+  '特': '#f97316'  // 橙色
+}
+
+// 通用班次統計計算函數
+const calculateShiftStatistics = (schedule, names, targetShift) => {
+  return measurePerformance(`班次統計計算-${targetShift}`, () => {
+    // 數據驗證
+    const validation = validateStatisticsInput(schedule, names, targetShift)
+    if (!validation.isValid) {
+      console.error('統計計算輸入驗證失敗:', validation.errors)
+      return []
+    }
+    
+    const stats = {}
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+    
+    // 安全地處理員工數據
+    const employeeIds = Object.keys(schedule).filter(key => key !== '_lastUpdated')
+    
+    employeeIds.forEach(employeeId => {
+      try {
+        let count = 0
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+          const shift = safeGet(schedule[employeeId], day.toString())
+          if (shift === targetShift) {
+            count++
+          }
+        }
+        
+        if (count > 0) {
+          stats[employeeId] = {
+            name: safeGet(names, employeeId, employeeId),
+            count
+          }
+        }
+      } catch (error) {
+        console.warn(`處理員工 ${employeeId} 的統計數據時發生錯誤:`, error)
+      }
+    })
+    
+    return Object.values(stats).sort((a, b) => b.count - a.count)
+  }, { logThreshold: 5 })
+}
+
+// 統計卡片主題配置
+const STATS_THEMES = {
+  early: {
+    color: 'pink',
+    bgColor: 'bg-pink-500/20',
+    borderColor: 'border-pink-400/30',
+    textColor: 'text-pink-300',
+    icon: 'clock'
+  },
+  night: {
+    color: 'blue',
+    bgColor: 'bg-blue-500/20',
+    borderColor: 'border-blue-400/30',
+    textColor: 'text-blue-300',
+    icon: 'moon'
+  },
+  consecutive: {
+    color: 'orange',
+    bgColor: 'bg-orange-500/20',
+    borderColor: 'border-orange-400/30',
+    textColor: 'text-orange-300',
+    icon: 'lightning'
+  },
+  stock: {
+    color: 'emerald',
+    bgColor: 'bg-emerald-500/20',
+    borderColor: 'border-emerald-400/30',
+    textColor: 'text-emerald-300',
+    icon: 'package'
+  }
 }
 
 // 月份選擇器選項（只顯示有資料的月份）
@@ -236,10 +330,26 @@ function ScheduleManager() {
   
   // 乘車文字生成日期範圍狀態
   const [customDateRange, setCustomDateRange] = useState({
-    startDate: '',
-    endDate: ''
+    startDate: null,
+    endDate: null
   })
   const [useCustomRange, setUseCustomRange] = useState(false)
+  
+  // 載入狀態管理
+  const [loadingStates, setLoadingStates] = useState({
+    statistics: false,
+    charts: false,
+    export: false,
+    import: false
+  })
+  
+  // 載入狀態輔助函數
+  const setLoading = (key, isLoading) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [key]: isLoading
+    }))
+  }
   
   // 匯入資料
   const [importData, setImportData] = useState('')
@@ -950,14 +1060,14 @@ function ScheduleManager() {
   }
   
   // 生成 Line 群文字
-  const generateLineText = () => {
+  const generateLineText = useCallback(() => {
     const schedule = getCurrentSchedule()
     let startDay, endDay
     
     if (useCustomRange && customDateRange.startDate && customDateRange.endDate) {
       // 使用自訂日期範圍
-      startDay = parseInt(customDateRange.startDate)
-      endDay = parseInt(customDateRange.endDate)
+      startDay = customDateRange.startDate.getDate()
+      endDay = customDateRange.endDate.getDate()
       
       // 驗證日期範圍
       if (startDay > endDay) {
@@ -1025,7 +1135,7 @@ function ScheduleManager() {
       // 如果剪貼簿 API 不可用，顯示文字讓用戶手動複製
       prompt('請複製以下文字：', lineText.trim())
     })
-  }
+  }, [useCustomRange, customDateRange, selectedWeek, pickupLocations])
   
   // 計算搭班統計
   const calculateShiftOverlap = () => {
@@ -1742,33 +1852,13 @@ function ScheduleManager() {
                       
                       {/* 日期範圍選擇模式 */}
                       {useCustomRange && (
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs text-gray-400 mb-1">開始日期</label>
-                              <input
-                                type="number"
-                                min="1"
-                                max="31"
-                                value={customDateRange.startDate}
-                                onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                                placeholder="1"
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg focus:border-green-400/50 focus:bg-white/20 text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-gray-400 mb-1">結束日期</label>
-                              <input
-                                type="number"
-                                min="1"
-                                max="31"
-                                value={customDateRange.endDate}
-                                onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                                placeholder="7"
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg focus:border-green-400/50 focus:bg-white/20 text-sm"
-                              />
-                            </div>
-                          </div>
+                        <div className="space-y-4">
+                          <DateRangePicker
+                            startDate={customDateRange.startDate}
+                            endDate={customDateRange.endDate}
+                            onStartDateSelect={(date) => setCustomDateRange(prev => ({ ...prev, startDate: date }))}
+                            onEndDateSelect={(date) => setCustomDateRange(prev => ({ ...prev, endDate: date }))}
+                          />
                           <button
                             onClick={() => generateLineText()}
                             className="w-full px-6 py-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 hover:from-green-500/30 hover:to-teal-500/30 border border-green-400/30 text-green-300 rounded-xl transition-all duration-200 font-medium"
@@ -1976,78 +2066,22 @@ function ScheduleManager() {
           {/* TAB2: 圖表分析 */}
           {statsTab === 'charts' && (
             <div className="space-y-6">
-              {/* 有趣統計資料 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {/* 早班統計 */}
-                <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="w-10 h-10 rounded-full bg-pink-500/20 border border-pink-400/30 flex items-center justify-center mr-3">
-                      <svg className="w-5 h-5 text-pink-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-bold text-pink-300">早班統計</h3>
-                  </div>
-                  <EarlyShiftStats 
-                    schedule={getCurrentSchedule()}
-                    names={names}
-                  />
-                </div>
-                
-                {/* 晚班統計 */}
-                <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center mr-3">
-                      <svg className="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-bold text-blue-300">晚班統計</h3>
-                  </div>
-                  <NightShiftStats 
-                    schedule={getCurrentSchedule()}
-                    names={names}
-                  />
-                </div>
-                
-                {/* 連續上班統計 */}
-                <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 border border-white/20 shadow-xl backdrop-blur-sm">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center mr-3">
-                      <svg className="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-bold text-orange-300">連續上班統計</h3>
-                  </div>
-                  <ConsecutiveWorkStats 
-                    schedule={getCurrentSchedule()}
-                    names={names}
-                    allSchedules={allSchedules}
-                    selectedMonth={selectedMonth}
-                  />
-                </div>
-              </div>
+              {/* 統計組件 */}
+              <ScheduleStatistics 
+                schedule={getCurrentSchedule()}
+                names={names}
+                loadingStates={loadingStates}
+                selectedEmployee={selectedEmployee}
+                allSchedules={allSchedules}
+                selectedMonth={selectedMonth}
+              />
               
-              {/* 圖表分析區域 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                {/* 班次類型分布圓餅圖 */}
-                <ShiftTypePieChart 
-                  schedule={getCurrentSchedule()}
-                />
-                
-                {/* 班次趨勢變化折線圖 */}
-                <ShiftTrendChart 
-                  schedule={getCurrentSchedule()}
-                  names={names}
-                />
-              </div>
-              
-              {/* 班次分布圖表 */}
-              <ShiftDistributionChart 
+              {/* 圖表組件 */}
+              <ScheduleCharts 
                 schedule={getCurrentSchedule()}
                 names={names}
               />
+              
               
               {/* 班次分配偏差度分析 */}
               <ShiftBiasAnalysis 
@@ -3115,191 +3149,9 @@ function ShiftTypeStats({ schedule, names }) {
   )
 }
 
-// 連續上班統計組件
-function ConsecutiveWorkStats({ schedule, names, allSchedules, selectedMonth }) {
-  const calculateConsecutiveStats = () => {
-    const stats = {}
-    
-    // 解析選定月份
-    let currentYear, currentMonth
-    if (selectedMonth === 'current') {
-      const today = new Date()
-      currentYear = today.getFullYear()
-      currentMonth = today.getMonth() + 1
-    } else if (selectedMonth === 'next') {
-      const today = new Date()
-      currentYear = today.getFullYear()
-      currentMonth = today.getMonth() + 2
-    } else {
-      const [yearStr, monthStr] = selectedMonth.split('-')
-      currentYear = parseInt(yearStr)
-      currentMonth = parseInt(monthStr)
-    }
-    
-    // 計算上個月的年月
-    const lastMonth = new Date(currentYear, currentMonth - 2, 1) // 減2是因為月份從0開始
-    const lastMonthYear = lastMonth.getFullYear()
-    const lastMonthMonth = lastMonth.getMonth() + 1
-    const lastMonthKey = `${lastMonthYear}-${lastMonthMonth.toString().padStart(2, '0')}`
-    
-    // 獲取上個月的班表資料
-    const lastMonthSchedule = allSchedules[lastMonthKey] || {}
-    const daysInLastMonth = new Date(lastMonthYear, lastMonthMonth, 0).getDate()
-    
-    Object.keys(schedule).forEach(employeeId => {
-      if (employeeId === '_lastUpdated') return
-      
-      let maxConsecutive = 0
-      let currentStreak = 0
-      
-      // 先檢查上個月最後幾天的班次
-      const checkLastMonthDays = 7 // 檢查上個月最後7天
-      for (let day = Math.max(1, daysInLastMonth - checkLastMonthDays + 1); day <= daysInLastMonth; day++) {
-        const shift = lastMonthSchedule[employeeId]?.[day]
-        if (shift && shift !== '休') {
-          currentStreak++
-        } else {
-          currentStreak = 0
-        }
-      }
-      
-      // 繼續檢查當月班次
-      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate()
-      for (let day = 1; day <= daysInMonth; day++) {
-        const shift = schedule[employeeId]?.[day]
-        if (shift && shift !== '休') {
-          currentStreak++
-          maxConsecutive = Math.max(maxConsecutive, currentStreak)
-        } else {
-          currentStreak = 0
-        }
-      }
-      
-      if (maxConsecutive > 0) {
-        stats[employeeId] = {
-          name: names[employeeId] || employeeId,
-          maxConsecutive: maxConsecutive
-        }
-      }
-    })
-    
-    return Object.values(stats).sort((a, b) => b.maxConsecutive - a.maxConsecutive)
-  }
-  
-  const consecutiveStats = calculateConsecutiveStats()
-  
-  return (
-    <div className="space-y-3">
-      {consecutiveStats.slice(0, 5).map((stat, index) => (
-        <div key={stat.name} className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10">
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center text-orange-300 font-bold text-xs">
-              {index + 1}
-            </div>
-            <span className="text-white font-medium">{stat.name}</span>
-          </div>
-          <div className="text-orange-300 font-bold">{stat.maxConsecutive} 天</div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
-// 早班統計組件
-function EarlyShiftStats({ schedule, names }) {
-  const calculateEarlyShiftStats = () => {
-    const stats = {}
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-    
-    Object.keys(schedule).forEach(employeeId => {
-      if (employeeId === '_lastUpdated') return
-      
-      let earlyCount = 0
-      
-      for (let day = 1; day <= daysInMonth; day++) {
-        const shift = schedule[employeeId]?.[day]
-        if (shift === '早') {
-          earlyCount++
-        }
-      }
-      
-      if (earlyCount > 0) {
-        stats[employeeId] = {
-          name: names[employeeId] || employeeId,
-          earlyCount
-        }
-      }
-    })
-    
-    return Object.values(stats).sort((a, b) => b.earlyCount - a.earlyCount)
-  }
-  
-  const earlyStats = calculateEarlyShiftStats()
-  
-  return (
-    <div className="space-y-3">
-      {earlyStats.slice(0, 5).map((stat, index) => (
-        <div key={stat.name} className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10">
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 rounded-full bg-pink-500/20 border border-pink-400/30 flex items-center justify-center text-pink-300 font-bold text-xs">
-              {index + 1}
-            </div>
-            <span className="text-white font-medium">{stat.name}</span>
-          </div>
-          <div className="text-pink-300 font-bold">{stat.earlyCount} 次</div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
-// 晚班統計組件
-function NightShiftStats({ schedule, names }) {
-  const calculateNightShiftStats = () => {
-    const stats = {}
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-    
-    Object.keys(schedule).forEach(employeeId => {
-      if (employeeId === '_lastUpdated') return
-      
-      let nightCount = 0
-      
-      for (let day = 1; day <= daysInMonth; day++) {
-        const shift = schedule[employeeId]?.[day]
-        if (shift === '晚') {
-          nightCount++
-        }
-      }
-      
-      if (nightCount > 0) {
-        stats[employeeId] = {
-          name: names[employeeId] || employeeId,
-          nightCount
-        }
-      }
-    })
-    
-    return Object.values(stats).sort((a, b) => b.nightCount - a.nightCount)
-  }
-  
-  const nightStats = calculateNightShiftStats()
-  
-  return (
-    <div className="space-y-3">
-      {nightStats.slice(0, 5).map((stat, index) => (
-        <div key={stat.name} className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10">
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 font-bold text-xs">
-              {index + 1}
-            </div>
-            <span className="text-white font-medium">{stat.name}</span>
-          </div>
-          <div className="text-blue-300 font-bold">{stat.nightCount} 次</div>
-        </div>
-      ))}
-    </div>
-  )
-}
+
 
 // 時間軸視圖組件
 function TimelineView({ schedule, names, displayDates, filteredEmployees, selectedShifts }) {
@@ -3483,92 +3335,6 @@ function ThreeDView({ schedule, names, displayDates, filteredEmployees, selected
   )
 }
 
-// 班次分布圖表組件
-function ShiftDistributionChart({ schedule, names }) {
-  const calculateShiftDistribution = () => {
-    const distribution = {}
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-    
-    Object.keys(schedule).forEach(employeeId => {
-      if (employeeId === '_lastUpdated') return
-      
-      const employeeName = names[employeeId] || employeeId
-      distribution[employeeName] = {
-        name: employeeName,
-        early: 0,
-        middle: 0,
-        night: 0,
-        rest: 0,
-        special: 0,
-        total: 0
-      }
-      
-      for (let day = 1; day <= daysInMonth; day++) {
-        const shift = schedule[employeeId]?.[day]
-        if (shift) {
-          distribution[employeeName].total++
-          switch (shift) {
-            case '早':
-              distribution[employeeName].early++
-              break
-            case '中':
-              distribution[employeeName].middle++
-              break
-            case '晚':
-              distribution[employeeName].night++
-              break
-            case '休':
-              distribution[employeeName].rest++
-              break
-            case '特':
-              distribution[employeeName].special++
-              break
-          }
-        }
-      }
-    })
-    
-    return Object.values(distribution)
-      .filter(item => item.total > 0)
-      .sort((a, b) => {
-        // 按職員編號排序
-        const employeeIdA = Object.keys(names).find(key => names[key] === a.name) || a.name
-        const employeeIdB = Object.keys(names).find(key => names[key] === b.name) || b.name
-        const numA = parseInt(employeeIdA.match(/\d+/)?.[0] || '0')
-        const numB = parseInt(employeeIdB.match(/\d+/)?.[0] || '0')
-        return numA - numB
-      })
-  }
-  
-  const data = calculateShiftDistribution()
-  
-  return (
-    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
-      <h3 className="text-xl font-bold mb-6 text-purple-300 text-center">各同事班次分布</h3>
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-          <XAxis dataKey="name" stroke="#ffffff80" />
-          <YAxis stroke="#ffffff80" />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '8px',
-              color: '#ffffff'
-            }}
-          />
-          <Legend />
-          <Bar dataKey="early" stackId="a" fill="#ec4899" name="早班" />
-          <Bar dataKey="middle" stackId="a" fill="#06b6d4" name="中班" />
-          <Bar dataKey="night" stackId="a" fill="#3b82f6" name="晚班" />
-          <Bar dataKey="rest" stackId="a" fill="#6b7280" name="休假" />
-          <Bar dataKey="special" stackId="a" fill="#f97316" name="特休" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  )
-}
 
 // 班次分配偏差度分析組件
 function ShiftBiasAnalysis({ schedule, names }) {
@@ -3693,241 +3459,8 @@ function ShiftBiasAnalysis({ schedule, names }) {
   )
 }
 
-// 班次類型分布圓餅圖組件
-function ShiftTypePieChart({ schedule }) {
-  const calculateShiftTypeDistribution = () => {
-    const distribution = { early: 0, middle: 0, night: 0, rest: 0, special: 0 }
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-    
-    Object.keys(schedule).forEach(employeeId => {
-      if (employeeId === '_lastUpdated') return
-      
-      for (let day = 1; day <= daysInMonth; day++) {
-        const shift = schedule[employeeId]?.[day]
-        if (shift) {
-          switch (shift) {
-            case '早': distribution.early++; break
-            case '中': distribution.middle++; break
-            case '晚': distribution.night++; break
-            case '休': distribution.rest++; break
-            case '特': distribution.special++; break
-          }
-        }
-      }
-    })
-    
-    return [
-      { name: '早班', value: distribution.early, color: '#ec4899' },
-      { name: '中班', value: distribution.middle, color: '#06b6d4' },
-      { name: '晚班', value: distribution.night, color: '#3b82f6' },
-      { name: '休假', value: distribution.rest, color: '#6b7280' },
-              { name: '特休', value: distribution.special, color: '#f97316' }
-    ].filter(item => item.value > 0)
-  }
-  
-  const data = calculateShiftTypeDistribution()
-  
-  return (
-    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
-      <h3 className="text-xl font-bold mb-6 text-green-300 text-center">班次類型分布</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '8px',
-              color: '#ffffff'
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  )
-}
 
-// 班次趨勢變化折線圖組件
-function ShiftTrendChart({ schedule, names }) {
-  const [selectedShifts, setSelectedShifts] = useState(['early', 'middle', 'night'])
-  
-  const calculateShiftTrend = () => {
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-    const data = []
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-      let early = 0, middle = 0, night = 0, rest = 0, special = 0
-      
-      Object.keys(schedule).forEach(employeeId => {
-        if (employeeId === '_lastUpdated') return
-        
-        const shift = schedule[employeeId]?.[day]
-        switch (shift) {
-          case '早': early++; break
-          case '中': middle++; break
-          case '晚': night++; break
-          case '休': rest++; break
-          case '特': special++; break
-        }
-      })
-      
-      data.push({
-        date: `${day}日`,
-        day: day,
-        early,
-        middle,
-        night,
-        rest,
-        special
-      })
-    }
-    
-    return data
-  }
-  
-  const data = calculateShiftTrend()
-  
-  // 計算總班次數，用於決定是否顯示某些班次
-  const totalShifts = data.reduce((acc, day) => {
-    acc.early += day.early
-    acc.middle += day.middle
-    acc.night += day.night
-    acc.rest += day.rest
-    acc.special += day.special
-    return acc
-  }, { early: 0, middle: 0, night: 0, rest: 0, special: 0 })
-  
-  // 過濾掉總數為0的班次
-  const availableShifts = Object.entries(totalShifts)
-    .filter(([key, value]) => value > 0)
-    .map(([key]) => key)
-  
-  const getShiftColor = (shift) => {
-    switch (shift) {
-      case 'early': return '#ec4899'
-      case 'middle': return '#06b6d4'
-      case 'night': return '#3b82f6'
-      case 'rest': return '#6b7280'
-      case 'special': return '#f97316'
-      default: return '#9ca3af'
-    }
-  }
-  
-  const getShiftName = (shift) => {
-    switch (shift) {
-      case 'early': return '早班'
-      case 'middle': return '中班'
-      case 'night': return '晚班'
-      case 'rest': return '休假'
-      case 'special': return '特休'
-      default: return shift
-    }
-  }
-  
-  return (
-    <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
-      <h3 className="text-xl font-bold mb-6 text-blue-300 text-center">班次趨勢變化</h3>
-      
-      {/* 班次選擇器 */}
-      <div className="mb-6">
-        <div className="flex flex-wrap gap-2 justify-center">
-          {availableShifts.map(shift => (
-            <button
-              key={shift}
-              onClick={() => {
-                if (selectedShifts.includes(shift)) {
-                  setSelectedShifts(prev => prev.filter(s => s !== shift))
-                } else {
-                  setSelectedShifts(prev => [...prev, shift])
-                }
-              }}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
-                selectedShifts.includes(shift)
-                  ? 'bg-blue-500 text-white border border-blue-400'
-                  : 'bg-white/10 text-gray-300 border border-white/20 hover:bg-white/20'
-              }`}
-              style={{ borderColor: selectedShifts.includes(shift) ? getShiftColor(shift) : undefined }}
-            >
-              {getShiftName(shift)}
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-          <XAxis 
-            dataKey="date" 
-            stroke="#ffffff80"
-            interval={Math.ceil(data.length / 10)} // 只顯示部分標籤，避免擁擠
-            tick={{ fontSize: 12 }}
-          />
-          <YAxis 
-            stroke="#ffffff80"
-            tick={{ fontSize: 12 }}
-            allowDecimals={false} // 人數應該是整數
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '8px',
-              color: '#ffffff'
-            }}
-            formatter={(value, name) => [
-              `${value}人`,
-              getShiftName(name)
-            ]}
-            labelFormatter={(label) => `${label}`}
-          />
-          <Legend 
-            formatter={(value) => getShiftName(value)}
-            wrapperStyle={{ fontSize: '12px' }}
-          />
-          {selectedShifts.map(shift => (
-            <Line 
-              key={shift}
-              type="monotone" 
-              dataKey={shift} 
-              stroke={getShiftColor(shift)} 
-              strokeWidth={2} 
-              name={shift}
-              dot={{ fill: getShiftColor(shift), strokeWidth: 2, r: 3 }}
-              activeDot={{ r: 5, stroke: getShiftColor(shift), strokeWidth: 2 }}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
-      
-      {/* 統計摘要 */}
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-        {availableShifts.map(shift => (
-          <div key={shift} className="text-center p-3 bg-surface/20 rounded-lg border border-white/10">
-            <div className="text-sm text-gray-400 mb-1">{getShiftName(shift)}</div>
-            <div className="text-lg font-bold" style={{ color: getShiftColor(shift) }}>
-              {totalShifts[shift]}
-            </div>
-            <div className="text-xs text-gray-500">總次數</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+// 舊的班次趨勢變化折線圖組件已移除，使用新的組件
 
 // 個人統計儀表板組件
 function PersonalDashboard({ schedule, names, selectedEmployee, crossMonthStats, selectedMonth }) {
@@ -3940,7 +3473,19 @@ function PersonalDashboard({ schedule, names, selectedEmployee, crossMonthStats,
     )
   }
   
-  const calculatePersonalStats = () => {
+  const calculatePersonalStats = useMemo(() => {
+    if (!selectedEmployee || !schedule[selectedEmployee]) {
+      return {
+        name: names[selectedEmployee] || selectedEmployee,
+        early: 0,
+        middle: 0,
+        night: 0,
+        rest: 0,
+        special: 0,
+        total: 0
+      }
+    }
+
     const stats = {
       name: names[selectedEmployee] || selectedEmployee,
       early: 0,
@@ -3982,21 +3527,25 @@ function PersonalDashboard({ schedule, names, selectedEmployee, crossMonthStats,
     }
     
     return stats
-  }
+  }, [selectedEmployee, schedule, names])
   
-  const personalStats = calculatePersonalStats()
+  const personalStats = calculatePersonalStats
   
   // 計算圓餅圖數據
-  const pieChartData = [
-    { name: '早班', value: personalStats.early, color: '#ec4899' },
-    { name: '中班', value: personalStats.middle, color: '#06b6d4' },
-    { name: '晚班', value: personalStats.night, color: '#3b82f6' },
-    { name: '休假', value: personalStats.rest, color: '#6b7280' },
-            { name: '特休', value: personalStats.special, color: '#f97316' }
-  ].filter(item => item.value > 0)
+  const pieChartData = useMemo(() => [
+    { name: '早班', value: personalStats.early, color: SHIFT_COLORS['早'] },
+    { name: '中班', value: personalStats.middle, color: SHIFT_COLORS['中'] },
+    { name: '晚班', value: personalStats.night, color: SHIFT_COLORS['晚'] },
+    { name: '休假', value: personalStats.rest, color: SHIFT_COLORS['休'] },
+    { name: '特休', value: personalStats.special, color: SHIFT_COLORS['特'] }
+  ].filter(item => item.value > 0), [personalStats])
   
   // 計算連續上班分析數據
-  const calculateConsecutiveWorkData = () => {
+  const calculateConsecutiveWorkData = useMemo(() => {
+    if (!selectedEmployee || !schedule[selectedEmployee]) {
+      return []
+    }
+
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
     const consecutivePeriods = []
     let currentStreak = 0
@@ -4026,15 +3575,19 @@ function PersonalDashboard({ schedule, names, selectedEmployee, crossMonthStats,
       consecutivePeriods.push({
         period: `期間${periodCount}`,
         consecutiveDays: currentStreak,
-                    trend: currentStreak >= 6 ? '高' : currentStreak >= 4 ? '中' : '低'
+        trend: currentStreak >= 6 ? '高' : currentStreak >= 4 ? '中' : '低'
       })
     }
     
     return consecutivePeriods
-  }
+  }, [selectedEmployee, schedule])
   
   // 計算班次轉換分析數據
-  const calculateShiftTransitions = () => {
+  const calculateShiftTransitions = useMemo(() => {
+    if (!selectedEmployee || !schedule[selectedEmployee]) {
+      return []
+    }
+
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
     const transitions = []
     
@@ -4052,11 +3605,11 @@ function PersonalDashboard({ schedule, names, selectedEmployee, crossMonthStats,
     }
     
     return transitions
-  }
+  }, [selectedEmployee, schedule])
   
   // 渲染班次轉換流程圖
   const renderShiftTransitionFlow = () => {
-    const transitions = calculateShiftTransitions()
+    const transitions = calculateShiftTransitions
     const transitionCounts = {}
     
     // 統計轉換頻率
@@ -4465,7 +4018,7 @@ function PersonalDashboard({ schedule, names, selectedEmployee, crossMonthStats,
         <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
           <h4 className="text-lg font-bold mb-4 text-orange-300 text-center">連續上班天數分析</h4>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={calculateConsecutiveWorkData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <BarChart data={calculateConsecutiveWorkData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
               <XAxis dataKey="period" stroke="#ffffff80" />
               <YAxis stroke="#ffffff80" />
@@ -4716,7 +4269,7 @@ function ConsecutiveWorkAnalysisChart({ schedule, names }) {
     return trendData
   }
   
-  const employeeData = calculateConsecutiveWorkData()
+  const employeeData = calculateConsecutiveWorkData
   const trendData = calculateTrendData()
   
   return (
