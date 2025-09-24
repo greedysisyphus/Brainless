@@ -178,8 +178,23 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
   return measurePerformance('跨月統計計算', () => {
     const employeeStats = {}
     
-    // 初始化所有員工的統計資料（不預先儲存詳細月份資料）
-    Object.keys(names).forEach(employeeId => {
+    // 獲取現有同事（最新班表中存在的人）
+    const currentEmployees = new Set()
+    if (availableMonths.length > 0) {
+      const latestMonth = availableMonths[availableMonths.length - 1]
+      const latestSchedule = allSchedules[latestMonth.key]
+      if (latestSchedule) {
+        Object.keys(latestSchedule).forEach(employeeId => {
+          const employeeData = latestSchedule[employeeId]
+          if (employeeData && Object.values(employeeData).some(shift => shift && shift !== '')) {
+            currentEmployees.add(employeeId)
+          }
+        })
+      }
+    }
+    
+    // 只初始化現有同事的統計資料
+    Array.from(currentEmployees).forEach(employeeId => {
       const hireMonth = getEmployeeHireMonth(employeeId, allSchedules, availableMonths)
       
       if (hireMonth) {
@@ -253,6 +268,21 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
 const calculateEmployeeMonthlyDetails = (employeeId, allSchedules, availableMonths, names) => {
   const hireMonth = getEmployeeHireMonth(employeeId, allSchedules, availableMonths)
   if (!hireMonth) return []
+
+  // 檢查是否為現有同事（最新班表中存在的人）
+  const isCurrentEmployee = () => {
+    if (availableMonths.length > 0) {
+      const latestMonth = availableMonths[availableMonths.length - 1]
+      const latestSchedule = allSchedules[latestMonth.key]
+      if (latestSchedule && latestSchedule[employeeId]) {
+        const employeeData = latestSchedule[employeeId]
+        return Object.values(employeeData).some(shift => shift && shift !== '')
+      }
+    }
+    return false
+  }
+
+  if (!isCurrentEmployee()) return []
 
   const monthlyDetails = []
   
