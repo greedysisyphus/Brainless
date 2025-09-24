@@ -248,26 +248,22 @@ const getImportMonthOptions = () => {
   const options = []
   const currentDate = new Date()
   
-  // 過去 12 個月
-  for (let i = 12; i >= 1; i--) {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+  // 從 2024年5月 到當月
+  const startYear = 2024
+  const startMonth = 5
+  
+  let date = new Date(startYear, startMonth - 1, 1) // 月份從0開始，所以減1
+  
+  while (date <= currentDate) {
     const year = date.getFullYear()
     const month = date.getMonth() + 1
     const key = `${year}-${month.toString().padStart(2, '0')}`
     const label = `${year}年${month}月`
     options.push({ key, label, year, month })
+    
+    // 移到下一個月
+    date = new Date(date.getFullYear(), date.getMonth() + 1, 1)
   }
-  
-  // 當月
-  const currentYear = currentDate.getFullYear()
-  const currentMonth = currentDate.getMonth() + 1
-  const currentKey = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`
-  options.push({ 
-    key: currentKey, 
-    label: `${currentYear}年${currentMonth}月 (當月)`, 
-    year: currentYear, 
-    month: currentMonth 
-  })
   
   // 未來 6 個月
   for (let i = 1; i <= 6; i++) {
