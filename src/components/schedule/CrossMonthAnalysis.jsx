@@ -156,6 +156,9 @@ const getEmployeeHireMonth = (employeeId, allSchedules, availableMonths) => {
     const schedule = allSchedules[monthInfo.key]
     
     if (schedule && schedule[employeeId]) {
+      // 排除系統欄位
+      if (employeeId === '_lastUpdated') continue
+      
       // 檢查該月份是否有實際的班表資料（非空）
       const hasData = Object.values(schedule[employeeId]).some(shift => shift && shift !== '')
       if (hasData) {
@@ -181,10 +184,14 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
     // 獲取現有同事（最新班表中存在的人）
     const currentEmployees = new Set()
     if (availableMonths.length > 0) {
-      const latestMonth = availableMonths[availableMonths.length - 1]
+      // availableMonths 已經按時間倒序排序，最新的月份在索引 0
+      const latestMonth = availableMonths[0]
       const latestSchedule = allSchedules[latestMonth.key]
       if (latestSchedule) {
         Object.keys(latestSchedule).forEach(employeeId => {
+          // 排除系統欄位
+          if (employeeId === '_lastUpdated') return
+          
           const employeeData = latestSchedule[employeeId]
           if (employeeData && Object.values(employeeData).some(shift => shift && shift !== '')) {
             currentEmployees.add(employeeId)
@@ -269,10 +276,14 @@ const calculateEmployeeMonthlyDetails = (employeeId, allSchedules, availableMont
   const hireMonth = getEmployeeHireMonth(employeeId, allSchedules, availableMonths)
   if (!hireMonth) return []
 
+  // 排除系統欄位
+  if (employeeId === '_lastUpdated') return []
+
   // 檢查是否為現有同事（最新班表中存在的人）
   const isCurrentEmployee = () => {
     if (availableMonths.length > 0) {
-      const latestMonth = availableMonths[availableMonths.length - 1]
+      // availableMonths 已經按時間倒序排序，最新的月份在索引 0
+      const latestMonth = availableMonths[0]
       const latestSchedule = allSchedules[latestMonth.key]
       if (latestSchedule && latestSchedule[employeeId]) {
         const employeeData = latestSchedule[employeeId]
