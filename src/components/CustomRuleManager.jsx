@@ -53,7 +53,7 @@ const SortableDialogueItem = ({ msg, index, onDelete }) => {
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs text-white ${
+          <div className={`w-6 h-6 rounded -full flex items-center justify-center text-xs text-white ${
             msg.isCurrentlyTriggered ? 'bg-green-600' : 'bg-gray-600'
           }`}>
             {index + 1}

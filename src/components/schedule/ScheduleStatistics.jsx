@@ -239,7 +239,7 @@ export const ConsecutiveWorkStats = ({ schedule, names, showAll = false }) => {
         
         for (let day = 1; day <= daysInMonth; day++) {
           const shift = schedule[employeeId]?.[day]
-          if (shift && shift !== '休') {
+          if (shift && shift !== '休' && shift !== '特') {
             currentConsecutive++
           } else {
             maxConsecutive = Math.max(maxConsecutive, currentConsecutive)

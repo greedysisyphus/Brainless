@@ -7,6 +7,7 @@ import { validateScheduleData, validateNamesMapping, validateStatisticsInput, sa
 import { measurePerformance, logMemoryUsage } from '../utils/performance'
 import ScheduleStatistics from '../components/schedule/ScheduleStatistics'
 import ScheduleCharts from '../components/schedule/ScheduleCharts'
+import CrossMonthAnalysis from '../components/schedule/CrossMonthAnalysis'
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
@@ -321,6 +322,9 @@ function ScheduleManager() {
   
   // 統計分頁狀態
   const [statsTab, setStatsTab] = useState('charts') // 'charts' 或 'overlap'
+  
+  // 圖表分析子分頁狀態
+  const [chartAnalysisTab, setChartAnalysisTab] = useState('monthly') // 'monthly' 或 'crossMonth'
   
   // 交通分頁狀態
   const [transportTab, setTransportTab] = useState('chart') // 'chart' 或 'fare'
@@ -2066,28 +2070,69 @@ function ScheduleManager() {
           {/* TAB2: 圖表分析 */}
           {statsTab === 'charts' && (
             <div className="space-y-6">
-              {/* 統計組件 */}
-              <ScheduleStatistics 
-                schedule={getCurrentSchedule()}
-                names={names}
-                loadingStates={loadingStates}
-                selectedEmployee={selectedEmployee}
-                allSchedules={allSchedules}
-                selectedMonth={selectedMonth}
-              />
-              
-              {/* 圖表組件 */}
-              <ScheduleCharts 
-                schedule={getCurrentSchedule()}
-                names={names}
-              />
-              
-              
-              {/* 班次分配偏差度分析 */}
-              <ShiftBiasAnalysis 
-                schedule={getCurrentSchedule()}
-                names={names}
-              />
+              {/* 圖表分析子分頁切換 */}
+              <div className="bg-surface/60 rounded-2xl p-2 border border-white/20">
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setChartAnalysisTab('monthly')}
+                    className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                      chartAnalysisTab === 'monthly'
+                        ? 'bg-blue-500 text-white shadow-lg'
+                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                    }`}
+                  >
+                    本月分析
+                  </button>
+                  <button
+                    onClick={() => setChartAnalysisTab('crossMonth')}
+                    className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                      chartAnalysisTab === 'crossMonth'
+                        ? 'bg-purple-500 text-white shadow-lg'
+                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                    }`}
+                  >
+                    跨月平均分析
+                  </button>
+                </div>
+              </div>
+
+              {/* 本月分析內容 */}
+              {chartAnalysisTab === 'monthly' && (
+                <div className="space-y-6">
+                  {/* 統計組件 */}
+                  <ScheduleStatistics 
+                    schedule={getCurrentSchedule()}
+                    names={names}
+                    loadingStates={loadingStates}
+                    selectedEmployee={selectedEmployee}
+                    allSchedules={allSchedules}
+                    selectedMonth={selectedMonth}
+                  />
+                  
+                  {/* 圖表組件 */}
+                  <ScheduleCharts 
+                    schedule={getCurrentSchedule()}
+                    names={names}
+                  />
+                  
+                  {/* 班次分配偏差度分析 */}
+                  <ShiftBiasAnalysis 
+                    schedule={getCurrentSchedule()}
+                    names={names}
+                  />
+                </div>
+              )}
+
+              {/* 跨月平均分析內容 */}
+              {chartAnalysisTab === 'crossMonth' && (
+                <div className="space-y-6">
+                  <CrossMonthAnalysis 
+                    allSchedules={allSchedules}
+                    names={names}
+                    availableMonths={availableMonths}
+                  />
+                </div>
+              )}
               
               {/* 個人統計儀表板 */}
               <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm">
