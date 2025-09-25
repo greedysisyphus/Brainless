@@ -234,42 +234,57 @@ export const ConsecutiveWorkStats = ({ schedule, names, showAll = false }) => {
       Object.keys(schedule).forEach(employeeId => {
         if (employeeId === '_lastUpdated') return
         
-        let maxConsecutive = 0
+        let consecutivePeriods = []
         let currentConsecutive = 0
         
         for (let day = 1; day <= daysInMonth; day++) {
           const shift = schedule[employeeId]?.[day]
-          if (shift && shift !== '休' && shift !== '特') {
+          // 只有實際上班的班別才計算為連續上班：早、中、晚
+          if (shift === '早' || shift === '中' || shift === '晚') {
             currentConsecutive++
           } else {
-            maxConsecutive = Math.max(maxConsecutive, currentConsecutive)
-            currentConsecutive = 0
+            // 遇到休假、特休或其他非上班班別時，結束當前連續期
+            if (currentConsecutive > 0) {
+              consecutivePeriods.push(currentConsecutive)
+              currentConsecutive = 0
+            }
           }
         }
         
         // 處理最後一個連續期
-        maxConsecutive = Math.max(maxConsecutive, currentConsecutive)
+        if (currentConsecutive > 0) {
+          consecutivePeriods.push(currentConsecutive)
+        }
+        
+        // 計算平均連續天數
+        let avgConsecutive = 0
+        if (consecutivePeriods.length > 0) {
+          const totalConsecutive = consecutivePeriods.reduce((sum, period) => sum + period, 0)
+          avgConsecutive = totalConsecutive / consecutivePeriods.length
+        }
         
         // 包含所有員工，包括連續天數為0的
         stats.push({
           employeeId,
           name: names[employeeId] || employeeId,
-          maxConsecutive
+          avgConsecutive: parseFloat(avgConsecutive.toFixed(1)),
+          maxConsecutive: consecutivePeriods.length > 0 ? Math.max(...consecutivePeriods) : 0,
+          consecutivePeriods: consecutivePeriods.length
         })
       })
       
-      // 按連續天數降序排序
-      const sortedStats = stats.sort((a, b) => b.maxConsecutive - a.maxConsecutive)
+      // 按平均連續天數降序排序
+      const sortedStats = stats.sort((a, b) => b.avgConsecutive - a.avgConsecutive)
       
       // 計算排名（相同天數的排名相同）
       let currentRank = 1
       let previousCount = null
       
       return sortedStats.map((stat, index) => {
-        if (previousCount !== null && stat.maxConsecutive !== previousCount) {
+        if (previousCount !== null && stat.avgConsecutive !== previousCount) {
           currentRank = index + 1
         }
-        previousCount = stat.maxConsecutive
+        previousCount = stat.avgConsecutive
         
         return {
           ...stat,
@@ -296,7 +311,9 @@ export const ConsecutiveWorkStats = ({ schedule, names, showAll = false }) => {
               </div>
               <span className="text-white font-medium text-sm">{stat.name}</span>
             </div>
-            <div className="text-orange-300 font-bold text-sm">{stat.maxConsecutive} 天</div>
+            <div className="text-right">
+              <div className="text-orange-300 font-bold text-sm">{stat.avgConsecutive} 天</div>
+            </div>
           </div>
         ))
       ) : (

@@ -169,6 +169,85 @@ const getEmployeeHireMonth = (employeeId, allSchedules, availableMonths) => {
   return null
 }
 
+// 計算跨月連續上班（真正的跨月連續上班天數）
+const calculateCrossMonthConsecutive = (employeeId, allSchedules, availableMonths) => {
+  const crossMonthPeriods = []
+  
+  // 按時間順序排序月份（從最早到最晚）
+  const sortedMonths = [...availableMonths].sort((a, b) => a.key.localeCompare(b.key))
+  
+  // 建立一個包含所有月份所有日期的時間線
+  const allDays = []
+  for (const monthInfo of sortedMonths) {
+    const schedule = allSchedules[monthInfo.key]
+    if (!schedule || !schedule[employeeId]) continue
+    
+    const [year, monthNum] = monthInfo.key.split('-')
+    const daysInMonth = new Date(parseInt(year), parseInt(monthNum) - 1, 0).getDate()
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const shift = schedule[employeeId][day]
+      allDays.push({
+        year: parseInt(year),
+        month: parseInt(monthNum),
+        day: day,
+        shift: shift
+      })
+    }
+  }
+  
+  // 找到所有跨月連續上班期
+  let currentConsecutive = 0
+  let isCrossMonthPeriod = false
+  
+  for (let i = 0; i < allDays.length; i++) {
+    const currentDay = allDays[i]
+    const nextDay = allDays[i + 1]
+    
+    // 只有早、中、晚班才算連續上班
+    const isCurrentDayWorking = currentDay.shift === '早' || currentDay.shift === '中' || currentDay.shift === '晚'
+    
+    if (isCurrentDayWorking) {
+      currentConsecutive++
+      
+      // 檢查是否跨月
+      if (nextDay && 
+          (nextDay.month !== currentDay.month || nextDay.year !== currentDay.year)) {
+        // 如果下一天是不同月份，檢查下一天是否也上班
+        const isNextDayWorking = nextDay.shift === '早' || nextDay.shift === '中' || nextDay.shift === '晚'
+        if (isNextDayWorking) {
+          isCrossMonthPeriod = true
+        }
+      }
+    } else {
+      // 遇到休假、特休或其他非上班班別時，結束當前連續期
+      if (currentConsecutive > 0 && isCrossMonthPeriod) {
+        crossMonthPeriods.push(currentConsecutive)
+      }
+      currentConsecutive = 0
+      isCrossMonthPeriod = false
+    }
+  }
+  
+  // 處理最後一個連續期
+  if (currentConsecutive > 0 && isCrossMonthPeriod) {
+    crossMonthPeriods.push(currentConsecutive)
+  }
+  
+  // 計算平均跨月連續天數
+  let avgConsecutive = 0
+  if (crossMonthPeriods.length > 0) {
+    const totalConsecutive = crossMonthPeriods.reduce((sum, period) => sum + period, 0)
+    avgConsecutive = totalConsecutive / crossMonthPeriods.length
+  }
+  
+  return {
+    avgConsecutive: parseFloat(avgConsecutive.toFixed(1)),
+    maxConsecutive: crossMonthPeriods.length > 0 ? Math.max(...crossMonthPeriods) : 0,
+    consecutivePeriods: crossMonthPeriods.length
+  }
+}
+
 // 計算跨月統計資料（優化版）
 const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
   // 檢查快取
@@ -205,6 +284,9 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
       const hireMonth = getEmployeeHireMonth(employeeId, allSchedules, availableMonths)
       
       if (hireMonth) {
+        // 計算跨月連續上班
+        const crossMonthConsecutive = calculateCrossMonthConsecutive(employeeId, allSchedules, availableMonths)
+        
         employeeStats[employeeId] = {
           employeeId: employeeId,
           name: names[employeeId] || employeeId,
@@ -213,8 +295,11 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
           totalEarly: 0,
           totalNight: 0,
           totalConsecutive: 0,
-          totalStock: 0
-          // 移除 monthlyStats，改為按需計算
+          totalStock: 0,
+          // 跨月連續上班資料（只有多個月資料時才有意義）
+          crossMonthAvgConsecutive: 0,
+          crossMonthMaxConsecutive: 0,
+          crossMonthPeriods: 0
         }
       }
     })
@@ -244,13 +329,13 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
           employeeStats[employeeId].months++
           employeeStats[employeeId].totalEarly += monthlyStat.early
           employeeStats[employeeId].totalNight += monthlyStat.night
-          employeeStats[employeeId].totalConsecutive += monthlyStat.maxConsecutive
+          employeeStats[employeeId].totalConsecutive += monthlyStat.avgConsecutive
           employeeStats[employeeId].totalStock += monthlyStat.stock
         }
       })
     })
 
-    // 計算平均值
+    // 計算平均值和跨月連續上班（只有多個月資料時才計算跨月連續）
     Object.keys(employeeStats).forEach(employeeId => {
       const stats = employeeStats[employeeId]
       if (stats.months > 0) {
@@ -258,6 +343,14 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
         stats.avgNight = (stats.totalNight / stats.months).toFixed(1)
         stats.avgConsecutive = (stats.totalConsecutive / stats.months).toFixed(1)
         stats.avgStock = (stats.totalStock / stats.months).toFixed(1)
+        
+        // 只有當員工有多個月的資料時，才計算跨月連續上班
+        if (stats.months > 1) {
+          const crossMonthConsecutive = calculateCrossMonthConsecutive(employeeId, allSchedules, availableMonths)
+          stats.crossMonthAvgConsecutive = crossMonthConsecutive.avgConsecutive
+          stats.crossMonthMaxConsecutive = crossMonthConsecutive.maxConsecutive
+          stats.crossMonthPeriods = crossMonthConsecutive.consecutivePeriods
+        }
       }
     })
 
@@ -335,7 +428,7 @@ const calculateMonthlyStats = (schedule, monthInfo) => {
   const daysInMonth = new Date(monthInfo.year, monthInfo.month - 1, 0).getDate()
   let early = 0
   let night = 0
-  let maxConsecutive = 0
+  let consecutivePeriods = []
   let currentConsecutive = 0
   let stock = 0
 
@@ -350,17 +443,39 @@ const calculateMonthlyStats = (schedule, monthInfo) => {
           stock++
         }
       }
-      if (shift && shift !== '休' && shift !== '特') {
+      // 只有實際上班的班別才計算為連續上班：早、中、晚
+      if (shift === '早' || shift === '中' || shift === '晚') {
         currentConsecutive++
       } else {
-        maxConsecutive = Math.max(maxConsecutive, currentConsecutive)
-        currentConsecutive = 0
+        // 遇到休假、特休或其他非上班班別時，結束當前連續期
+        if (currentConsecutive > 0) {
+          consecutivePeriods.push(currentConsecutive)
+          currentConsecutive = 0
+        }
       }
     }
   }
-  maxConsecutive = Math.max(maxConsecutive, currentConsecutive)
+  
+  // 處理最後一個連續期
+  if (currentConsecutive > 0) {
+    consecutivePeriods.push(currentConsecutive)
+  }
 
-  return { early, night, maxConsecutive, stock }
+  // 計算平均連續天數
+  let avgConsecutive = 0
+  if (consecutivePeriods.length > 0) {
+    const totalConsecutive = consecutivePeriods.reduce((sum, period) => sum + period, 0)
+    avgConsecutive = totalConsecutive / consecutivePeriods.length
+  }
+
+  return { 
+    early, 
+    night, 
+    avgConsecutive: parseFloat(avgConsecutive.toFixed(1)),
+    maxConsecutive: consecutivePeriods.length > 0 ? Math.max(...consecutivePeriods) : 0,
+    consecutivePeriods: consecutivePeriods.length,
+    stock 
+  }
 }
 
 // 早班平均統計組件
@@ -501,6 +616,7 @@ export const ConsecutiveWorkAvgStats = ({ employeeStats, showAll = false, onEmpl
         employeeId: stat.employeeId,
         name: stat.name,
         avgConsecutive: parseFloat(stat.avgConsecutive) || 0,
+        crossMonthAvgConsecutive: parseFloat(stat.crossMonthAvgConsecutive) || 0,
         months: stat.months
       }))
       .filter(stat => stat.months > 0)
@@ -542,7 +658,7 @@ export const ConsecutiveWorkAvgStats = ({ employeeStats, showAll = false, onEmpl
             </div>
             <div className="text-right">
               <div className={`font-bold text-sm ${stat.colorClass}`}>{stat.avgConsecutive} 天/月</div>
-              <div className="text-gray-400 text-xs">
+              <div className="text-gray-500 text-xs">
                 ({stat.months}個月)
               </div>
             </div>
@@ -652,7 +768,7 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
     
     const earlyValues = monthlyDetails.map(d => d.early)
     const nightValues = monthlyDetails.map(d => d.night)
-    const consecutiveValues = monthlyDetails.map(d => d.maxConsecutive)
+    const consecutiveValues = monthlyDetails.map(d => d.avgConsecutive)
     const stockValues = monthlyDetails.map(d => d.stock)
     
     return {
@@ -782,12 +898,12 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400 text-sm">連續上班天數</span>
-                        <span className="text-orange-300 font-bold">{monthStat.maxConsecutive}</span>
+                        <span className="text-orange-300 font-bold">{monthStat.avgConsecutive}</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
                         <div 
                           className="bg-orange-400 h-2 rounded-full transition-all duration-500" 
-                          style={{ width: `${Math.min((monthStat.maxConsecutive / 15) * 100, 100)}%` }}
+                          style={{ width: `${Math.min((monthStat.avgConsecutive / 10) * 100, 100)}%` }}
                         ></div>
                       </div>
                     </div>
@@ -868,12 +984,12 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
                       month: `${d.year}/${d.month}`,
                       early: d.early,
                       night: d.night,
-                      consecutive: d.maxConsecutive,
+                      consecutive: d.avgConsecutive,
                       stock: d.stock
                     }))}>
                     <Line type="monotone" dataKey="early" stroke="#ec4899" strokeWidth={2} name="早班" />
                     <Line type="monotone" dataKey="night" stroke="#3b82f6" strokeWidth={2} name="晚班" />
-                    <Line type="monotone" dataKey="consecutive" stroke="#f97316" strokeWidth={2} name="連續上班" />
+                    <Line type="monotone" dataKey="consecutive" stroke="#f97316" strokeWidth={2} name="平均連續上班" />
                     <Line type="monotone" dataKey="stock" stroke="#10b981" strokeWidth={2} name="進貨" />
                   </LineChart>
                 </ResponsiveContainer>
