@@ -92,7 +92,7 @@ const STATS_THEMES = {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     ),
-    title: '早班平均',
+    title: '早中班平均',
     gradient: 'from-pink-500/20 to-rose-500/20',
     border: 'border-pink-400/30'
   },
@@ -465,7 +465,18 @@ const calculateMonthlyStats = (schedule, monthInfo) => {
         }
       }
       
-      if (shift === '午') afternoon++  // 午班獨立統計
+      // 午班統計：根據月份使用不同邏輯
+      if (useNewEarlyMiddleAlgorithm) {
+        // 2025年10月及之後：午班統計
+        if (shift === '午') {
+          afternoon++
+        }
+      } else {
+        // 2025年9月及之前：中班統計（顯示為午班平均）
+        if (shift === '中') {
+          afternoon++
+        }
+      }
       if (shift === '晚') night++
       
       // 進貨統計：根據月份使用不同算法
@@ -945,11 +956,11 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4"
       onClick={handleBackdropClick}
     >
       <div 
-        className="bg-gradient-to-br from-surface/90 to-surface/70 rounded-2xl p-6 border border-white/20 shadow-xl backdrop-blur-sm max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+        className="bg-gradient-to-br from-surface/90 to-surface/70 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 shadow-xl backdrop-blur-sm max-w-2xl w-full max-h-[90vh] sm:max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
@@ -1070,7 +1081,7 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
         <div className="mt-6 space-y-4">
           <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-400/30">
             <h4 className="text-lg font-semibold text-purple-300 mb-3">平均值摘要</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
                 <div className="text-center">
                   <div className="text-pink-300 font-bold text-lg">{employee.avgEarly} 次/月</div>
                   <div className="text-gray-400">早中班平均</div>
@@ -1112,21 +1123,50 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
 
           {/* 趨勢圖表 */}
           {monthlyDetails.length > 1 && (
-            <div className="p-4 bg-surface/40 rounded-lg border border-white/10">
-              <h4 className="text-lg font-semibold text-cyan-300 mb-4">月度趨勢圖</h4>
-              <div className="h-48">
+            <div className="p-3 sm:p-4 bg-surface/40 rounded-lg border border-white/10">
+              <h4 className="text-base sm:text-lg font-semibold text-cyan-300 mb-3 sm:mb-4">月度趨勢圖</h4>
+              <div className="h-64 sm:h-48 md:h-56">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyDetails
-                    .slice()
-                    .sort((a, b) => `${a.year}-${a.month.toString().padStart(2, '0')}`.localeCompare(`${b.year}-${b.month.toString().padStart(2, '0')}`))
-                    .map(d => ({
-                      month: `${d.year}/${d.month}`,
-                      early: d.early,
-                      afternoon: d.afternoon,
-                      night: d.night,
-                      consecutive: d.avgConsecutive,
-                      stock: d.stock
-                    }))}>
+                  <LineChart 
+                    data={monthlyDetails
+                      .slice()
+                      .sort((a, b) => `${a.year}-${a.month.toString().padStart(2, '0')}`.localeCompare(`${b.year}-${b.month.toString().padStart(2, '0')}`))
+                      .map(d => ({
+                        month: `${d.year}/${d.month}`,
+                        early: d.early,
+                        afternoon: d.afternoon,
+                        night: d.night,
+                        consecutive: d.avgConsecutive,
+                        stock: d.stock
+                      }))}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+                    <XAxis 
+                      dataKey="month" 
+                      stroke="#ffffff80"
+                      tick={{ fontSize: 12 }}
+                      className="x-axis-responsive"
+                    />
+                    <YAxis 
+                      stroke="#ffffff80"
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: '8px',
+                        color: '#ffffff',
+                        fontSize: '14px'
+                      }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ 
+                        fontSize: '14px',
+                        paddingTop: '10px'
+                      }}
+                    />
                      <Line type="monotone" dataKey="early" stroke="#ec4899" strokeWidth={2} name="早中班" />
                     <Line type="monotone" dataKey="afternoon" stroke="#f97316" strokeWidth={2} name="午班" />
                     <Line type="monotone" dataKey="night" stroke="#3b82f6" strokeWidth={2} name="晚班" />
@@ -1182,7 +1222,7 @@ export default function CrossMonthAnalysis({ allSchedules, names, employeeTags =
       ) : (
         <>
           {/* 統計卡片網格 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <StatCard title={STATS_THEMES.early.title} icon={STATS_THEMES.early.icon} themeColor="early" isLoading={false}>
               <EarlyShiftAvgStats employeeStats={employeeStats} showAll={showAllStats} onEmployeeClick={handleEmployeeClick} />
             </StatCard>

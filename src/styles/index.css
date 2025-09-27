@@ -262,4 +262,41 @@
 
 .group:hover .group-hover\:shadow-xl {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-} 
+}
+
+/* 圖表響應式設計 */
+@media (max-width: 640px) {
+  .x-axis-responsive .recharts-xAxis .recharts-text {
+    font-size: 10px !important;
+    transform: rotate(-45deg);
+    transform-origin: bottom right;
+    text-anchor: end;
+  }
+  
+  .recharts-tooltip-wrapper {
+    font-size: 12px !important;
+  }
+  
+  .recharts-legend-wrapper {
+    font-size: 12px !important;
+  }
+  
+  .recharts-cartesian-axis-tick-value {
+    font-size: 10px !important;
+  }
+}
+
+/* iPad 響應式設計 */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .x-axis-responsive .recharts-xAxis .recharts-text {
+    font-size: 11px !important;
+  }
+  
+  .recharts-tooltip-wrapper {
+    font-size: 13px !important;
+  }
+  
+  .recharts-legend-wrapper {
+    font-size: 13px !important;
+  }
+}
