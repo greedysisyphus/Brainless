@@ -1,5 +1,9 @@
 import { validateStatisticsInput, safeGet } from './validation'
 
+// 搭班統計計算快取
+const overlapCache = new Map()
+const CACHE_EXPIRY = 5 * 60 * 1000 // 5分鐘快取過期
+
 /**
  * 通用班次統計計算函數
  * @param {Object} schedule - 班表數據
@@ -125,9 +129,30 @@ export const calculateShiftOverlap = (schedule, names, selectedMonth = null) => 
     return { overlapStats: {}, overlapDetails: {} }
   }
 
+  // 生成快取鍵
+  const cacheKey = `${selectedMonth || 'current'}_${JSON.stringify(Object.keys(schedule).sort())}_${JSON.stringify(names)}`
+  
+  // 檢查快取
+  const cached = overlapCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < CACHE_EXPIRY) {
+    return cached.data
+  }
+
   const overlapStats = {}
   const overlapDetails = {}
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+  
+  // 根據選擇的月份計算天數
+  let daysInMonth
+  if (selectedMonth) {
+    let monthKey = selectedMonth
+    if (selectedMonth.includes('_')) {
+      monthKey = selectedMonth.split('_')[0] // 移除店別後綴
+    }
+    const [year, month] = monthKey.split('-').map(Number)
+    daysInMonth = new Date(year, month, 0).getDate()
+  } else {
+    daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+  }
   
   // 初始化統計資料
   Object.keys(schedule).forEach(employeeId => {
@@ -303,5 +328,23 @@ export const calculateShiftOverlap = (schedule, names, selectedMonth = null) => 
     }
   }
   
-  return { overlapStats, overlapDetails }
+  const result = { overlapStats, overlapDetails }
+  
+  // 保存到快取
+  overlapCache.set(cacheKey, {
+    data: result,
+    timestamp: Date.now()
+  })
+  
+  // 清理過期的快取
+  if (overlapCache.size > 50) { // 限制快取大小
+    const now = Date.now()
+    for (const [key, value] of overlapCache.entries()) {
+      if (now - value.timestamp > CACHE_EXPIRY) {
+        overlapCache.delete(key)
+      }
+    }
+  }
+  
+  return result
 }

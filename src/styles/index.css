@@ -184,6 +184,24 @@
   background: linear-gradient(to bottom, theme('colors.purple.500'), theme('colors.indigo.500'));
 }
 
+/* 自定義滾動條樣式 */
+.custom-scrollbar::-webkit-scrollbar {
+  @apply w-2;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-surface/30 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply rounded-full transition-all duration-300;
+  background: linear-gradient(to bottom, theme('colors.primary'), theme('colors.secondary'));
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, theme('colors.purple.500'), theme('colors.indigo.500'));
+}
+
 /* 動畫 */
 @keyframes shimmer {
   100% {
