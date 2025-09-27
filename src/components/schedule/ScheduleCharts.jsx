@@ -5,15 +5,44 @@ import {
 } from 'recharts'
 import { measurePerformance, useRenderPerformance } from '../../utils/performance'
 
+// 過濾統計分析中的同事（排除支援同事和標記為排除統計的同事）
+const getFilteredEmployeeIds = (schedule, employeeTags = {}) => {
+  return Object.keys(schedule).filter(employeeId => {
+    if (employeeId === '_lastUpdated') return false
+    
+    const tag = employeeTags[employeeId] || 'regular'
+    // 只保留一般同事（排除支援同事和排除統計的同事）
+    return tag === 'regular'
+  })
+}
+
 // 班次類型分布圓餅圖組件
-export const ShiftTypePieChart = ({ schedule }) => {
+export const ShiftTypePieChart = ({ schedule, employeeTags = {}, selectedMonth }) => {
   const calculateShiftTypeDistribution = () => {
     return measurePerformance('班次類型分布計算', () => {
-      const distribution = { early: 0, middle: 0, night: 0, rest: 0, special: 0 }
-      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+      const distribution = { early: 0, middle: 0, afternoon: 0, night: 0, rest: 0, special: 0 }
       
-      Object.keys(schedule).forEach(employeeId => {
-        if (employeeId === '_lastUpdated') return
+      // 根據 selectedMonth 計算對應的月份天數
+      let daysInMonth
+      if (!selectedMonth || selectedMonth === 'current') {
+        daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+      } else if (selectedMonth === 'next') {
+        const nextDate = new Date()
+        nextDate.setMonth(nextDate.getMonth() + 1)
+        daysInMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()
+      } else {
+        let monthKey = selectedMonth
+        if (selectedMonth.includes('_')) {
+          monthKey = selectedMonth.split('_')[0]
+        }
+        const [year, month] = monthKey.split('-').map(Number)
+        daysInMonth = new Date(year, month, 0).getDate()
+      }
+      
+      // 只統計一般同事（排除支援同事和排除統計的同事）
+      const filteredEmployeeIds = getFilteredEmployeeIds(schedule, employeeTags)
+      
+      filteredEmployeeIds.forEach(employeeId => {
         
         for (let day = 1; day <= daysInMonth; day++) {
           const shift = schedule[employeeId]?.[day]
@@ -21,6 +50,7 @@ export const ShiftTypePieChart = ({ schedule }) => {
             switch (shift) {
               case '早': distribution.early++; break
               case '中': distribution.middle++; break
+              case '午': distribution.afternoon++; break
               case '晚': distribution.night++; break
               case '休': distribution.rest++; break
               case '特': distribution.special++; break
@@ -32,6 +62,7 @@ export const ShiftTypePieChart = ({ schedule }) => {
       return [
         { name: '早班', value: distribution.early, color: '#ec4899' },
         { name: '中班', value: distribution.middle, color: '#06b6d4' },
+        { name: '午班', value: distribution.afternoon, color: '#10b981' },
         { name: '晚班', value: distribution.night, color: '#3b82f6' },
         { name: '休假', value: distribution.rest, color: '#6b7280' },
         { name: '特休', value: distribution.special, color: '#f97316' }
@@ -75,16 +106,33 @@ export const ShiftTypePieChart = ({ schedule }) => {
 }
 
 // 班次趨勢變化折線圖組件
-export const ShiftTrendChart = ({ schedule, names }) => {
+export const ShiftTrendChart = ({ schedule, names, employeeTags = {}, selectedMonth }) => {
   const calculateShiftTrend = () => {
     return measurePerformance('班次趨勢計算', () => {
-      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+      // 根據 selectedMonth 計算對應的月份天數
+      let daysInMonth
+      if (!selectedMonth || selectedMonth === 'current') {
+        daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+      } else if (selectedMonth === 'next') {
+        const nextDate = new Date()
+        nextDate.setMonth(nextDate.getMonth() + 1)
+        daysInMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()
+      } else {
+        let monthKey = selectedMonth
+        if (selectedMonth.includes('_')) {
+          monthKey = selectedMonth.split('_')[0]
+        }
+        const [year, month] = monthKey.split('-').map(Number)
+        daysInMonth = new Date(year, month, 0).getDate()
+      }
       const data = []
+      
+      // 只統計一般同事（排除支援同事和排除統計的同事）
+      const filteredEmployeeIds = getFilteredEmployeeIds(schedule, employeeTags)
       
       // 取得所有班次類型
       const allShifts = new Set()
-      Object.keys(schedule).forEach(employeeId => {
-        if (employeeId === '_lastUpdated') return
+      filteredEmployeeIds.forEach(employeeId => {
         for (let day = 1; day <= daysInMonth; day++) {
           const shift = schedule[employeeId]?.[day]
           if (shift) allShifts.add(shift)
@@ -180,15 +228,32 @@ export const ShiftTrendChart = ({ schedule, names }) => {
 }
 
 // 班次分布圖表組件
-export const ShiftDistributionChart = ({ schedule, names }) => {
+export const ShiftDistributionChart = ({ schedule, names, employeeTags = {}, selectedMonth }) => {
   const calculateShiftDistribution = () => {
     return measurePerformance('班次分布計算', () => {
       const data = []
-      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
       
-      Object.keys(schedule).forEach(employeeId => {
-        if (employeeId === '_lastUpdated') return
-        
+      // 根據 selectedMonth 計算對應的月份天數
+      let daysInMonth
+      if (!selectedMonth || selectedMonth === 'current') {
+        daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+      } else if (selectedMonth === 'next') {
+        const nextDate = new Date()
+        nextDate.setMonth(nextDate.getMonth() + 1)
+        daysInMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()
+      } else {
+        let monthKey = selectedMonth
+        if (selectedMonth.includes('_')) {
+          monthKey = selectedMonth.split('_')[0]
+        }
+        const [year, month] = monthKey.split('-').map(Number)
+        daysInMonth = new Date(year, month, 0).getDate()
+      }
+      
+      // 只統計一般同事（排除支援同事和排除統計的同事）
+      const filteredEmployeeIds = getFilteredEmployeeIds(schedule, employeeTags)
+      
+      filteredEmployeeIds.forEach(employeeId => {
         const employeeName = names[employeeId] || employeeId
         const shifts = { early: 0, middle: 0, night: 0, rest: 0, special: 0 }
         
@@ -251,19 +316,12 @@ export const ShiftDistributionChart = ({ schedule, names }) => {
 }
 
 // 主要圖表組件
-export default function ScheduleCharts({ schedule, names }) {
+export default function ScheduleCharts({ schedule, names, employeeTags = {}, selectedMonth }) {
   const finishRender = useRenderPerformance('ScheduleCharts')
   React.useEffect(() => {
     finishRender()
   })
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <ShiftTypePieChart schedule={schedule} />
-      <ShiftTrendChart schedule={schedule} names={names} />
-      <div className="lg:col-span-2">
-        <ShiftDistributionChart schedule={schedule} names={names} />
-      </div>
-    </div>
-  )
+  // 圖表已移除，返回空組件
+  return null
 }

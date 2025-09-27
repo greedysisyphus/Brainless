@@ -1,5 +1,7 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { measurePerformance } from '../../utils/performance'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '../../utils/firebase'
 
 // 班表顯示組件
 export const ScheduleDisplay = ({ 
@@ -9,8 +11,29 @@ export const ScheduleDisplay = ({
   selectedWeek, 
   viewMode, 
   filterMode,
-  pickupLocations 
+  pickupLocations,
+  selectedMonth,
+  onScheduleUpdate // 新增：班表更新回調
 }) => {
+  // 編輯狀態管理
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingSchedule, setEditingSchedule] = useState({})
+  const [isSaving, setIsSaving] = useState(false)
+
+  // 班別選項（包含新的班別類型）
+  const SHIFT_OPTIONS = [
+    { value: '', label: '空白', color: 'bg-gray-500/10 border-gray-400/30 text-gray-400' },
+    { value: '早', label: '早班', color: 'bg-pink-500/20 border-pink-400/50 text-pink-300' },
+    { value: '中', label: '中班', color: 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300' },
+    { value: '午', label: '午班', color: 'bg-green-500/20 border-green-400/50 text-green-300' },
+    { value: '晚', label: '晚班', color: 'bg-blue-500/20 border-blue-400/50 text-blue-300' },
+    { value: '休', label: '休假', color: 'bg-gray-500/20 border-gray-400/50 text-gray-300' },
+    { value: '特', label: '特休', color: 'bg-orange-500/20 border-orange-400/50 text-orange-300' },
+    { value: 'D7', label: 'D7', color: 'bg-purple-500/20 border-purple-400/50 text-purple-300' },
+    { value: '高鐵', label: '高鐵', color: 'bg-indigo-500/20 border-indigo-400/50 text-indigo-300' },
+    { value: '中央店', label: '中央店', color: 'bg-amber-500/20 border-amber-400/50 text-amber-300' }
+  ]
+
   const getCurrentSchedule = () => {
     return schedule
   }
@@ -55,26 +78,73 @@ export const ScheduleDisplay = ({
     }, { logThreshold: 5 })
   }
 
-  const getShiftColor = (shift) => {
-    const colors = {
-      '早': 'bg-pink-500/20 border-pink-400/50 text-pink-300',
-      '中': 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300', 
-      '晚': 'bg-blue-500/20 border-blue-400/50 text-blue-300',
-      '休': 'bg-gray-500/20 border-gray-400/50 text-gray-300',
-      '特': 'bg-orange-500/20 border-orange-400/50 text-orange-300'
+  // 編輯相關函數
+  const startEditing = () => {
+    setEditingSchedule({ ...schedule })
+    setIsEditing(true)
+  }
+
+  const cancelEditing = () => {
+    setEditingSchedule({})
+    setIsEditing(false)
+  }
+
+  const updateShift = (employeeId, day, newShift) => {
+    setEditingSchedule(prev => ({
+      ...prev,
+      [employeeId]: {
+        ...prev[employeeId],
+        [day]: newShift
+      }
+    }))
+  }
+
+  const saveSchedule = async () => {
+    if (!selectedMonth) {
+      alert('請選擇要儲存的月份')
+      return
     }
-    return colors[shift] || 'bg-gray-500/20 border-gray-400/50 text-gray-300'
+
+    setIsSaving(true)
+    try {
+      // 準備儲存資料
+      const scheduleData = {
+        ...editingSchedule,
+        _lastUpdated: new Date().toISOString()
+      }
+
+      // 儲存到 Firebase
+      await setDoc(doc(db, 'schedule', selectedMonth), scheduleData)
+      
+      // 通知父組件更新
+      if (onScheduleUpdate) {
+        onScheduleUpdate(scheduleData)
+      }
+      
+      setIsEditing(false)
+      setEditingSchedule({})
+      alert('班表已儲存')
+    } catch (error) {
+      console.error('儲存班表失敗:', error)
+      alert('儲存失敗，請稍後再試')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const getShiftColor = (shift) => {
+    const option = SHIFT_OPTIONS.find(opt => opt.value === shift)
+    return option ? option.color : 'bg-gray-500/20 border-gray-400/50 text-gray-300'
   }
 
   const getShiftDisplayName = (shift) => {
-    const displayNames = {
-      '早': '早',
-      '中': '中',
-      '晚': '晚', 
-      '休': '休',
-      '特': '特'
-    }
-    return displayNames[shift] || shift
+    const option = SHIFT_OPTIONS.find(opt => opt.value === shift)
+    return option ? option.label : shift
+  }
+
+  // 獲取當前使用的班表（編輯模式使用 editingSchedule，否則使用原始 schedule）
+  const getCurrentDisplaySchedule = () => {
+    return isEditing ? editingSchedule : schedule
   }
 
   const filteredEmployees = getFilteredEmployees()
@@ -88,9 +158,46 @@ export const ScheduleDisplay = ({
         <h2 className="text-2xl font-bold text-white">
           {viewMode === 'date' ? '日期視圖' : 
            viewMode === 'employee' ? '員工視圖' : '搭檔視圖'}
+          {isEditing && <span className="text-yellow-400 text-lg ml-2">(編輯模式)</span>}
         </h2>
-        <div className="text-sm text-gray-400">
-          共 {filteredEmployees.length} 位同事
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-400">
+            共 {filteredEmployees.length} 位同事
+          </div>
+          {!isEditing ? (
+            <button
+              onClick={startEditing}
+              className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-300 rounded-lg transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              編輯
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={saveSchedule}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 text-green-300 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {isSaving ? '儲存中...' : '儲存'}
+              </button>
+              <button
+                onClick={cancelEditing}
+                disabled={isSaving}
+                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 text-red-300 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                取消
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -115,13 +222,29 @@ export const ScheduleDisplay = ({
                   {names[employeeId] || employeeId}
                 </div>
                 {monthDays.map(day => {
-                  const shift = schedule[employeeId]?.[day]
+                  const currentSchedule = getCurrentDisplaySchedule()
+                  const shift = currentSchedule[employeeId]?.[day]
+                  
                   return (
                     <div key={day} className="text-center py-2 min-w-[60px]">
-                      {shift && (
-                        <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold border ${getShiftColor(shift)}`}>
-                          {getShiftDisplayName(shift)}
-                        </span>
+                      {isEditing ? (
+                        <select
+                          value={shift || ''}
+                          onChange={(e) => updateShift(employeeId, day, e.target.value)}
+                          className={`w-full px-2 py-1 rounded-lg text-xs font-bold border bg-white/10 text-white focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400/50 ${getShiftColor(shift)}`}
+                        >
+                          {SHIFT_OPTIONS.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        shift && (
+                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold border ${getShiftColor(shift)}`}>
+                            {getShiftDisplayName(shift)}
+                          </span>
+                        )
                       )}
                     </div>
                   )
@@ -150,13 +273,29 @@ export const ScheduleDisplay = ({
                   {names[employeeId] || employeeId}
                 </div>
                 {weekDays.map(day => {
-                  const shift = schedule[employeeId]?.[day]
+                  const currentSchedule = getCurrentDisplaySchedule()
+                  const shift = currentSchedule[employeeId]?.[day]
+                  
                   return (
                     <div key={day} className="text-center py-2 min-w-[60px]">
-                      {shift && (
-                        <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold border ${getShiftColor(shift)}`}>
-                          {getShiftDisplayName(shift)}
-                        </span>
+                      {isEditing ? (
+                        <select
+                          value={shift || ''}
+                          onChange={(e) => updateShift(employeeId, day, e.target.value)}
+                          className={`w-full px-2 py-1 rounded-lg text-xs font-bold border bg-white/10 text-white focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400/50 ${getShiftColor(shift)}`}
+                        >
+                          {SHIFT_OPTIONS.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        shift && (
+                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold border ${getShiftColor(shift)}`}>
+                            {getShiftDisplayName(shift)}
+                          </span>
+                        )
                       )}
                     </div>
                   )

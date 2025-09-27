@@ -5,16 +5,28 @@ import ScheduleStatistics from './ScheduleStatistics'
 import ScheduleCharts from './ScheduleCharts'
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 
+// 過濾統計分析中的同事（排除支援同事和標記為排除統計的同事）
+const getFilteredEmployeeIds = (schedule, employeeTags = {}) => {
+  return Object.keys(schedule).filter(employeeId => {
+    if (employeeId === '_lastUpdated') return false
+    
+    const employeeTag = employeeTags[employeeId]
+    // 只統計一般同事，排除支援同事和排除統計的同事
+    return employeeTag === 'regular' || employeeTag === undefined
+  })
+}
+
 // 快取機制
 const statsCache = new Map()
 const CACHE_EXPIRY = 5 * 60 * 1000 // 5分鐘快取過期
 
 // 生成快取鍵
-const generateCacheKey = (allSchedules, names, availableMonths) => {
+const generateCacheKey = (allSchedules, names, employeeTags = {}, availableMonths) => {
   const scheduleKeys = Object.keys(allSchedules || {}).sort().join(',')
   const nameKeys = Object.keys(names || {}).sort().join(',')
+  const tagKeys = Object.keys(employeeTags || {}).sort().map(id => `${id}:${employeeTags[id]}`).join(',')
   const monthKeys = (availableMonths || []).map(m => m.key).sort().join(',')
-  return `${scheduleKeys}|${nameKeys}|${monthKeys}`
+  return `${scheduleKeys}|${nameKeys}|${tagKeys}|${monthKeys}`
 }
 
 // 檢查快取是否有效
@@ -83,6 +95,17 @@ const STATS_THEMES = {
     title: '早班平均',
     gradient: 'from-pink-500/20 to-rose-500/20',
     border: 'border-pink-400/30'
+  },
+  afternoon: {
+    color: 'orange',
+    icon: (
+      <svg className="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+    title: '午班平均',
+    gradient: 'from-orange-500/20 to-amber-500/20',
+    border: 'border-orange-400/30'
   },
   night: {
     color: 'blue',
@@ -204,8 +227,8 @@ const calculateCrossMonthConsecutive = (employeeId, allSchedules, availableMonth
     const currentDay = allDays[i]
     const nextDay = allDays[i + 1]
     
-    // 只有早、中、晚班才算連續上班
-    const isCurrentDayWorking = currentDay.shift === '早' || currentDay.shift === '中' || currentDay.shift === '晚'
+    // 只有早、中、午、晚、D7、高鐵、中央店班才算連續上班
+    const isCurrentDayWorking = currentDay.shift === '早' || currentDay.shift === '中' || currentDay.shift === '午' || currentDay.shift === '晚' || currentDay.shift === 'D7' || currentDay.shift === '高鐵' || currentDay.shift === '中央店'
     
     if (isCurrentDayWorking) {
       currentConsecutive++
@@ -214,7 +237,7 @@ const calculateCrossMonthConsecutive = (employeeId, allSchedules, availableMonth
       if (nextDay && 
           (nextDay.month !== currentDay.month || nextDay.year !== currentDay.year)) {
         // 如果下一天是不同月份，檢查下一天是否也上班
-        const isNextDayWorking = nextDay.shift === '早' || nextDay.shift === '中' || nextDay.shift === '晚'
+        const isNextDayWorking = nextDay.shift === '早' || nextDay.shift === '中' || nextDay.shift === '午' || nextDay.shift === '晚' || nextDay.shift === 'D7' || nextDay.shift === '高鐵' || nextDay.shift === '中央店'
         if (isNextDayWorking) {
           isCrossMonthPeriod = true
         }
@@ -249,9 +272,9 @@ const calculateCrossMonthConsecutive = (employeeId, allSchedules, availableMonth
 }
 
 // 計算跨月統計資料（優化版）
-const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
+const calculateCrossMonthStats = (allSchedules, names, employeeTags = {}, availableMonths) => {
   // 檢查快取
-  const cacheKey = generateCacheKey(allSchedules, names, availableMonths)
+  const cacheKey = generateCacheKey(allSchedules, names, employeeTags, availableMonths)
   const cached = statsCache.get(cacheKey)
   if (cached && isCacheValid(cached.timestamp)) {
     return cached.data
@@ -260,27 +283,23 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
   return measurePerformance('跨月統計計算', () => {
     const employeeStats = {}
     
-    // 獲取現有同事（最新班表中存在的人）
-    const currentEmployees = new Set()
-    if (availableMonths.length > 0) {
-      // availableMonths 已經按時間倒序排序，最新的月份在索引 0
-      const latestMonth = availableMonths[0]
-      const latestSchedule = allSchedules[latestMonth.key]
-      if (latestSchedule) {
-        Object.keys(latestSchedule).forEach(employeeId => {
-          // 排除系統欄位
-          if (employeeId === '_lastUpdated') return
-          
-          const employeeData = latestSchedule[employeeId]
-          if (employeeData && Object.values(employeeData).some(shift => shift && shift !== '')) {
-            currentEmployees.add(employeeId)
-          }
+    // 獲取所有一般同事（從所有班表中收集）
+    const allRegularEmployees = new Set()
+    
+    // 遍歷所有月份的班表，收集所有一般同事
+    availableMonths.forEach(monthInfo => {
+      const schedule = allSchedules[monthInfo.key]
+      if (schedule) {
+        // 使用統一的過濾函數來獲取一般同事
+        const filteredEmployeeIds = getFilteredEmployeeIds(schedule, employeeTags)
+        filteredEmployeeIds.forEach(employeeId => {
+          allRegularEmployees.add(employeeId)
         })
       }
-    }
+    })
     
-    // 只初始化現有同事的統計資料
-    Array.from(currentEmployees).forEach(employeeId => {
+    // 初始化所有一般同事的統計資料
+    Array.from(allRegularEmployees).forEach(employeeId => {
       const hireMonth = getEmployeeHireMonth(employeeId, allSchedules, availableMonths)
       
       if (hireMonth) {
@@ -293,6 +312,7 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
           hireMonth: hireMonth,
           months: 0,
           totalEarly: 0,
+          totalAfternoon: 0,  // 午班統計總計
           totalNight: 0,
           totalConsecutive: 0,
           totalStock: 0,
@@ -328,6 +348,7 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
           // 只累加總計，不儲存詳細資料
           employeeStats[employeeId].months++
           employeeStats[employeeId].totalEarly += monthlyStat.early
+          employeeStats[employeeId].totalAfternoon += monthlyStat.afternoon  // 午班統計
           employeeStats[employeeId].totalNight += monthlyStat.night
           employeeStats[employeeId].totalConsecutive += monthlyStat.avgConsecutive
           employeeStats[employeeId].totalStock += monthlyStat.stock
@@ -340,6 +361,7 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
       const stats = employeeStats[employeeId]
       if (stats.months > 0) {
         stats.avgEarly = (stats.totalEarly / stats.months).toFixed(1)
+        stats.avgAfternoon = (stats.totalAfternoon / stats.months).toFixed(1)  // 午班平均值
         stats.avgNight = (stats.totalNight / stats.months).toFixed(1)
         stats.avgConsecutive = (stats.totalConsecutive / stats.months).toFixed(1)
         stats.avgStock = (stats.totalStock / stats.months).toFixed(1)
@@ -365,28 +387,16 @@ const calculateCrossMonthStats = (allSchedules, names, availableMonths) => {
 }
 
 // 按需計算員工的月份詳細資料（分批處理版本）
-const calculateEmployeeMonthlyDetails = (employeeId, allSchedules, availableMonths, names) => {
+const calculateEmployeeMonthlyDetails = (employeeId, allSchedules, availableMonths, names, employeeTags = {}) => {
   const hireMonth = getEmployeeHireMonth(employeeId, allSchedules, availableMonths)
   if (!hireMonth) return []
 
   // 排除系統欄位
   if (employeeId === '_lastUpdated') return []
 
-  // 檢查是否為現有同事（最新班表中存在的人）
-  const isCurrentEmployee = () => {
-    if (availableMonths.length > 0) {
-      // availableMonths 已經按時間倒序排序，最新的月份在索引 0
-      const latestMonth = availableMonths[0]
-      const latestSchedule = allSchedules[latestMonth.key]
-      if (latestSchedule && latestSchedule[employeeId]) {
-        const employeeData = latestSchedule[employeeId]
-        return Object.values(employeeData).some(shift => shift && shift !== '')
-      }
-    }
-    return false
-  }
-
-  if (!isCurrentEmployee()) return []
+  // 只統計一般同事（排除支援同事和排除統計的同事）
+  const employeeTag = employeeTags[employeeId]
+  if (employeeTag !== 'regular' && employeeTag !== undefined) return []
 
   const monthlyDetails = []
   
@@ -427,24 +437,75 @@ const calculateEmployeeMonthlyDetails = (employeeId, allSchedules, availableMont
 const calculateMonthlyStats = (schedule, monthInfo) => {
   const daysInMonth = new Date(monthInfo.year, monthInfo.month - 1, 0).getDate()
   let early = 0
+  let afternoon = 0  // 午班統計
   let night = 0
   let consecutivePeriods = []
   let currentConsecutive = 0
   let stock = 0
 
+  // 判斷使用哪種進貨算法（10月及之後使用新算法）
+  const useNewStockAlgorithm = monthInfo.year > 2025 || (monthInfo.year === 2025 && monthInfo.month >= 10)
+  
+  // 判斷使用哪種早中班統計算法（10月及之後早中班合併統計）
+  const useNewEarlyMiddleAlgorithm = monthInfo.year > 2025 || (monthInfo.year === 2025 && monthInfo.month >= 10)
+
   for (let day = 1; day <= daysInMonth; day++) {
     const shift = schedule[day]
     if (shift) {
-      if (shift === '早') early++
-      if (shift === '晚') night++
-      if (shift === '中' || shift === '晚') {
-        const date = new Date(monthInfo.year, monthInfo.month - 1, day)
-        if (date.getDay() === 3) { // 星期三
-          stock++
+      // 早中班統計：根據月份使用不同邏輯
+      if (useNewEarlyMiddleAlgorithm) {
+        // 2025年10月及之後：早班 + 中班
+        if (shift === '早' || shift === '中') {
+          early++
+        }
+      } else {
+        // 2025年9月及之前：只有早班
+        if (shift === '早') {
+          early++
         }
       }
-      // 只有實際上班的班別才計算為連續上班：早、中、晚
-      if (shift === '早' || shift === '中' || shift === '晚') {
+      
+      if (shift === '午') afternoon++  // 午班獨立統計
+      if (shift === '晚') night++
+      
+      // 進貨統計：根據月份使用不同算法
+      const trimmedShift = shift?.trim()
+      if (useNewStockAlgorithm) {
+        // 新算法：10月及之後，計算星期三的午班和晚班
+        // 同時檢查轉換後的代碼和原始代碼，並處理可能的空格問題
+        if ((trimmedShift === '午' || 
+             trimmedShift === 'X' || trimmedShift === 'XX' ||
+             trimmedShift?.toUpperCase() === 'X' || trimmedShift?.toUpperCase() === 'XX') ||
+            (trimmedShift === '晚' || 
+             trimmedShift === 'Y' || trimmedShift === 'A' || trimmedShift === 'YY' || trimmedShift === '晚班' ||
+             trimmedShift === 'J' || trimmedShift === 'JJ' ||
+             trimmedShift?.toUpperCase() === 'Y' || trimmedShift?.toUpperCase() === 'A' || trimmedShift?.toUpperCase() === 'YY' ||
+             trimmedShift?.toUpperCase() === 'J' || trimmedShift?.toUpperCase() === 'JJ')) {
+          const date = new Date(monthInfo.year, monthInfo.month - 1, day)
+          if (date.getDay() === 3) { // 星期三
+            stock++
+          }
+        }
+      } else {
+        // 舊算法：9月及之前，計算星期三的中班和晚班
+        // 同時檢查轉換後的代碼和原始代碼，並處理可能的空格問題
+        if ((trimmedShift === '中' || 
+             trimmedShift === 'L' || trimmedShift === 'LL' || trimmedShift === '中班' ||
+             trimmedShift?.toUpperCase() === 'L' || trimmedShift?.toUpperCase() === 'LL') ||
+            (trimmedShift === '晚' || 
+             trimmedShift === 'Y' || trimmedShift === 'A' || trimmedShift === 'YY' || trimmedShift === '晚班' ||
+             trimmedShift === 'J' || trimmedShift === 'JJ' ||
+             trimmedShift?.toUpperCase() === 'Y' || trimmedShift?.toUpperCase() === 'A' || trimmedShift?.toUpperCase() === 'YY' ||
+             trimmedShift?.toUpperCase() === 'J' || trimmedShift?.toUpperCase() === 'JJ')) {
+          const date = new Date(monthInfo.year, monthInfo.month - 1, day)
+          if (date.getDay() === 3) { // 星期三
+            stock++
+          }
+        }
+      }
+      
+      // 只有實際上班的班別才計算為連續上班：早、中、午、晚、D7、高鐵、中央店
+      if (shift === '早' || shift === '中' || shift === '午' || shift === '晚' || shift === 'D7' || shift === '高鐵' || shift === '中央店') {
         currentConsecutive++
       } else {
         // 遇到休假、特休或其他非上班班別時，結束當前連續期
@@ -470,6 +531,7 @@ const calculateMonthlyStats = (schedule, monthInfo) => {
 
   return { 
     early, 
+    afternoon,  // 午班統計
     night, 
     avgConsecutive: parseFloat(avgConsecutive.toFixed(1)),
     maxConsecutive: consecutivePeriods.length > 0 ? Math.max(...consecutivePeriods) : 0,
@@ -478,7 +540,7 @@ const calculateMonthlyStats = (schedule, monthInfo) => {
   }
 }
 
-// 早班平均統計組件
+// 早中班平均統計組件
 export const EarlyShiftAvgStats = ({ employeeStats, showAll = false, onEmployeeClick }) => {
   const calculateEarlyAvgStats = () => {
     const allStats = Object.values(employeeStats)
@@ -534,16 +596,79 @@ export const EarlyShiftAvgStats = ({ employeeStats, showAll = false, onEmployeeC
           </div>
         ))
       ) : (
-        <div className="text-center py-6 text-gray-400">
-          <div className="text-4xl mb-2">🌅</div>
-          <div>無跨月早班記錄</div>
-        </div>
+                <div className="text-center py-6 text-gray-400">
+                  <div className="text-4xl mb-2">🌅</div>
+                  <div>無跨月早中班記錄</div>
+                </div>
       )}
     </div>
   )
 }
 
 // 晚班平均統計組件
+// 午班平均統計組件
+export const AfternoonShiftAvgStats = ({ employeeStats, showAll = false, onEmployeeClick }) => {
+  const calculateAfternoonAvgStats = () => {
+    const allStats = Object.values(employeeStats)
+      .map(stat => ({
+        employeeId: stat.employeeId,
+        name: stat.name,
+        avgAfternoon: parseFloat(stat.avgAfternoon) || 0,
+        months: stat.months
+      }))
+      .filter(stat => stat.months > 0)
+    
+    const allValues = allStats.map(stat => stat.avgAfternoon)
+    const maxValue = Math.max(...allValues)
+    
+    return allStats
+      .sort((a, b) => b.avgAfternoon - a.avgAfternoon)
+      .map((stat, index) => ({
+        ...stat,
+        rank: index + 1,
+        percentile: calculatePercentile(stat.avgAfternoon, allValues),
+        colorClass: getValueColor(stat.avgAfternoon, maxValue)
+      }))
+  }
+
+  const afternoonStats = calculateAfternoonAvgStats()
+  const displayStats = showAll ? afternoonStats : afternoonStats.slice(0, 5)
+
+  return (
+    <div className="space-y-3">
+      {afternoonStats.length > 0 ? (
+        displayStats.map((stat) => (
+          <div 
+            key={stat.employeeId}
+            className="flex items-center justify-between p-3 bg-surface/20 rounded-lg border border-white/10 hover:bg-surface/30 transition-all"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-6 h-6 rounded-full bg-orange-500/30 border border-orange-400/50 flex items-center justify-center text-xs font-bold text-orange-300">
+                {stat.rank}
+              </div>
+              <span 
+                className="text-white font-medium cursor-pointer hover:text-orange-300 transition-colors"
+                onClick={() => onEmployeeClick(stat.employeeId)}
+              >
+                {stat.name}
+              </span>
+            </div>
+            <div className="text-right">
+              <div className={`font-bold text-sm ${stat.colorClass}`}>{stat.avgAfternoon} 次/月</div>
+              <div className="text-xs text-gray-400">{stat.months} 個月</div>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center text-gray-400 py-8">
+          <div className="text-4xl mb-2">📊</div>
+          <div>暫無午班統計數據</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export const NightShiftAvgStats = ({ employeeStats, showAll = false, onEmployeeClick }) => {
   const calculateNightAvgStats = () => {
     const allStats = Object.values(employeeStats)
@@ -740,7 +865,7 @@ export const StockLoverAvgStats = ({ employeeStats, showAll = false, onEmployeeC
 }
 
 // 員工詳細資料彈窗組件
-const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths, names }) => {
+const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths, names, employeeTags = {} }) => {
   const [monthlyDetails, setMonthlyDetails] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(false)
 
@@ -754,13 +879,14 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
           employee.employeeId, 
           allSchedules, 
           availableMonths, 
-          names
+          names,
+          employeeTags
         )
         setMonthlyDetails(details)
         setIsLoading(false)
       }, 0)
     }
-  }, [employee, allSchedules, availableMonths, names])
+  }, [employee, allSchedules, availableMonths, names, employeeTags])
 
   // 計算趨勢分析
   const getTrendAnalysis = () => {
@@ -870,14 +996,27 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
                   
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400 text-sm">早班次數</span>
-                        <span className="text-pink-300 font-bold">{monthStat.early}</span>
-                      </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-sm">早中班次數</span>
+                          <span className="text-pink-300 font-bold">{monthStat.early}</span>
+                        </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
                         <div 
                           className="bg-pink-400 h-2 rounded-full transition-all duration-500" 
                           style={{ width: `${Math.min((monthStat.early / 20) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400 text-sm">午班次數</span>
+                        <span className="text-orange-300 font-bold">{monthStat.afternoon}</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-orange-400 h-2 rounded-full transition-all duration-500" 
+                          style={{ width: `${Math.min((monthStat.afternoon / 20) * 100, 100)}%` }}
                         ></div>
                       </div>
                     </div>
@@ -931,16 +1070,16 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
         <div className="mt-6 space-y-4">
           <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-400/30">
             <h4 className="text-lg font-semibold text-purple-300 mb-3">平均值摘要</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="text-center">
-                <div className="text-pink-300 font-bold text-lg">{employee.avgEarly} 次/月</div>
-                <div className="text-gray-400">早班平均</div>
-                {trendAnalysis && (
-                  <div className={`text-xs mt-1 ${getTrendColor(trendAnalysis.early.trend)}`}>
-                    {getTrendIcon(trendAnalysis.early.trend)} 標準差: {trendAnalysis.early.stdDev}
-                  </div>
-                )}
-              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="text-pink-300 font-bold text-lg">{employee.avgEarly} 次/月</div>
+                  <div className="text-gray-400">早中班平均</div>
+                  {trendAnalysis && (
+                    <div className={`text-xs mt-1 ${getTrendColor(trendAnalysis.early.trend)}`}>
+                      {getTrendIcon(trendAnalysis.early.trend)} 標準差: {trendAnalysis.early.stdDev}
+                    </div>
+                  )}
+                </div>
               <div className="text-center">
                 <div className="text-blue-300 font-bold text-lg">{employee.avgNight} 次/月</div>
                 <div className="text-gray-400">晚班平均</div>
@@ -983,11 +1122,13 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
                     .map(d => ({
                       month: `${d.year}/${d.month}`,
                       early: d.early,
+                      afternoon: d.afternoon,
                       night: d.night,
                       consecutive: d.avgConsecutive,
                       stock: d.stock
                     }))}>
-                    <Line type="monotone" dataKey="early" stroke="#ec4899" strokeWidth={2} name="早班" />
+                     <Line type="monotone" dataKey="early" stroke="#ec4899" strokeWidth={2} name="早中班" />
+                    <Line type="monotone" dataKey="afternoon" stroke="#f97316" strokeWidth={2} name="午班" />
                     <Line type="monotone" dataKey="night" stroke="#3b82f6" strokeWidth={2} name="晚班" />
                     <Line type="monotone" dataKey="consecutive" stroke="#f97316" strokeWidth={2} name="平均連續上班" />
                     <Line type="monotone" dataKey="stock" stroke="#10b981" strokeWidth={2} name="進貨" />
@@ -1003,7 +1144,7 @@ const EmployeeDetailModal = ({ employee, onClose, allSchedules, availableMonths,
 }
 
 // 主要跨月分析組件
-export default function CrossMonthAnalysis({ allSchedules, names, availableMonths }) {
+export default function CrossMonthAnalysis({ allSchedules, names, employeeTags = {}, availableMonths }) {
   const [showAllStats, setShowAllStats] = React.useState(false)
   const [selectedEmployee, setSelectedEmployee] = React.useState(null)
   
@@ -1016,8 +1157,8 @@ export default function CrossMonthAnalysis({ allSchedules, names, availableMonth
       return {}
     }
     
-    return calculateCrossMonthStats(allSchedules, names, availableMonths)
-  }, [allSchedules, names, availableMonths])
+    return calculateCrossMonthStats(allSchedules, names, employeeTags, availableMonths)
+  }, [allSchedules, names, employeeTags, availableMonths])
 
   const hasData = Object.keys(employeeStats).length > 0
 
@@ -1041,9 +1182,12 @@ export default function CrossMonthAnalysis({ allSchedules, names, availableMonth
       ) : (
         <>
           {/* 統計卡片網格 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <StatCard title={STATS_THEMES.early.title} icon={STATS_THEMES.early.icon} themeColor="early" isLoading={false}>
               <EarlyShiftAvgStats employeeStats={employeeStats} showAll={showAllStats} onEmployeeClick={handleEmployeeClick} />
+            </StatCard>
+            <StatCard title={STATS_THEMES.afternoon.title} icon={STATS_THEMES.afternoon.icon} themeColor="afternoon" isLoading={false}>
+              <AfternoonShiftAvgStats employeeStats={employeeStats} showAll={showAllStats} onEmployeeClick={handleEmployeeClick} />
             </StatCard>
             <StatCard title={STATS_THEMES.night.title} icon={STATS_THEMES.night.icon} themeColor="night" isLoading={false}>
               <NightShiftAvgStats employeeStats={employeeStats} showAll={showAllStats} onEmployeeClick={handleEmployeeClick} />
@@ -1077,6 +1221,7 @@ export default function CrossMonthAnalysis({ allSchedules, names, availableMonth
           allSchedules={allSchedules}
           availableMonths={availableMonths}
           names={names}
+          employeeTags={employeeTags}
         />
       )}
     </div>
