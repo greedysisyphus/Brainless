@@ -293,14 +293,48 @@
   
   .recharts-tooltip-wrapper {
     font-size: 12px !important;
+    max-width: 200px !important;
   }
   
   .recharts-legend-wrapper {
     font-size: 12px !important;
+    margin-top: 10px !important;
   }
   
   .recharts-cartesian-axis-tick-value {
     font-size: 10px !important;
+  }
+  
+  /* 統計卡片響應式優化 */
+  .stat-card-mobile {
+    @apply p-3 text-sm;
+  }
+  
+  .stat-card-mobile .stat-title {
+    @apply text-sm font-semibold;
+  }
+  
+  .stat-card-mobile .stat-value {
+    @apply text-lg font-bold;
+  }
+  
+  /* 彈窗響應式優化 */
+  .modal-mobile {
+    @apply max-h-[98vh] p-4 mx-2;
+  }
+  
+  .modal-content-mobile {
+    @apply max-w-full p-4;
+  }
+  
+  /* 搭班統計表移動端優化 */
+  .overlap-table-mobile {
+    @apply text-xs;
+  }
+  
+  .overlap-table-mobile th,
+  .overlap-table-mobile td {
+    @apply p-1.5;
   }
 }
 
@@ -312,9 +346,107 @@
   
   .recharts-tooltip-wrapper {
     font-size: 13px !important;
+    max-width: 250px !important;
   }
   
   .recharts-legend-wrapper {
     font-size: 13px !important;
+    margin-top: 15px !important;
+  }
+  
+  /* iPad 統計卡片優化 */
+  .stat-card-tablet {
+    @apply p-4;
+  }
+  
+  .stat-card-tablet .stat-title {
+    @apply text-base font-semibold;
+  }
+  
+  .stat-card-tablet .stat-value {
+    @apply text-xl font-bold;
+  }
+  
+  /* iPad 彈窗優化 */
+  .modal-tablet {
+    @apply max-h-[95vh] p-6 mx-4;
+  }
+  
+  .modal-content-tablet {
+    @apply max-w-4xl p-6;
+  }
+}
+
+/* 大螢幕響應式設計 */
+@media (min-width: 1280px) {
+  .stat-card-desktop {
+    @apply p-6;
+  }
+  
+  .stat-card-desktop .stat-title {
+    @apply text-lg font-semibold;
+  }
+  
+  .stat-card-desktop .stat-value {
+    @apply text-2xl font-bold;
+  }
+  
+  .modal-desktop {
+    @apply max-h-[90vh] p-8;
+  }
+  
+  .modal-content-desktop {
+    @apply max-w-5xl p-8;
+  }
+}
+
+/* 觸控優化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 觸控設備優化 */
+  .touch-optimized {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  .touch-button {
+    @apply p-3 rounded-lg;
+  }
+  
+  .touch-card {
+    @apply p-4 rounded-xl;
+  }
+  
+  /* 觸控友好的間距 */
+  .touch-spacing > * + * {
+    @apply mt-4;
+  }
+  
+  /* 觸控友好的滾動 */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+/* 高解析度螢幕優化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .high-dpi-optimized {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* 深色模式優化 */
+@media (prefers-color-scheme: dark) {
+  .dark-mode-optimized {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
+
+/* 減少動畫優化 */
+@media (prefers-reduced-motion: reduce) {
+  .reduce-motion {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

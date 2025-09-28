@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
 // 個人搭班詳情彈窗組件
 export default function EmployeeOverlapDetail({ employeeId, employeeName, ranking, onClose }) {
@@ -13,9 +13,42 @@ export default function EmployeeOverlapDetail({ employeeId, employeeName, rankin
   
   const stats = calculateOverlapStats()
   
+  // 阻止滾動事件冒泡
+  const handleWheel = (e) => {
+    e.stopPropagation()
+  }
+
+  // 點擊背景關閉彈窗
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose()
+    }
+  }
+
+  // 阻止背景頁面滾動
+  useEffect(() => {
+    // 保存原始滾動位置
+    const scrollY = window.scrollY
+    
+    // 阻止背景滾動
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    
+    // 清理函數：恢復背景滾動
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-gradient-to-br from-surface/95 to-surface/85 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-primary/20 shadow-2xl shadow-primary/10 max-w-3xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto backdrop-blur-xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center z-50 p-2 sm:p-4" onWheel={handleWheel} onClick={handleBackdropClick}>
+      <div className="bg-gradient-to-br from-surface/95 to-surface/85 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-10 border border-primary/20 shadow-2xl shadow-primary/10 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl w-full max-h-[98vh] sm:max-h-[95vh] overflow-y-auto backdrop-blur-xl touch-scroll" onWheel={handleWheel}>
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-primary/20">
@@ -39,7 +72,7 @@ export default function EmployeeOverlapDetail({ employeeId, employeeName, rankin
         </div>
         
         {/* 統計摘要 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-5 mb-4 sm:mb-6">
           <div className="group bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl p-4 text-center border border-purple-400/30 hover:border-purple-400/50 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-purple-500/20">
             <div className="text-xl font-bold text-purple-300 group-hover:text-purple-200 transition-colors mb-1">{stats.totalOverlaps}</div>
             <div className="text-xs text-purple-200/80 font-medium">總搭班次數</div>
@@ -78,7 +111,7 @@ export default function EmployeeOverlapDetail({ employeeId, employeeName, rankin
               共 {ranking.length} 位夥伴
             </div>
           </div>
-          <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-3 max-h-80 sm:max-h-96 md:max-h-[28rem] overflow-y-auto pr-2 custom-scrollbar touch-scroll">
             {ranking.length > 0 ? (
               ranking.map((item, index) => (
                 <div key={item.employeeId} className="group flex items-center justify-between bg-gradient-to-r from-surface/60 to-surface/40 rounded-lg p-3 border border-white/10 hover:border-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10">

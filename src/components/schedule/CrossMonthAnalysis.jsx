@@ -1222,7 +1222,7 @@ export default function CrossMonthAnalysis({ allSchedules, names, employeeTags =
       ) : (
         <>
           {/* 統計卡片網格 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 xl:gap-5">
             <StatCard title={STATS_THEMES.early.title} icon={STATS_THEMES.early.icon} themeColor="early" isLoading={false}>
               <EarlyShiftAvgStats employeeStats={employeeStats} showAll={showAllStats} onEmployeeClick={handleEmployeeClick} />
             </StatCard>

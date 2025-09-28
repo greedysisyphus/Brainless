@@ -773,7 +773,7 @@ export default function ScheduleStatistics({ schedule, names, employeeTags = {},
   return (
     <div className="space-y-6">
       {/* 統計卡片網格 */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${useNewAlgorithm ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 ${useNewAlgorithm ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
         {/* 早班/早中班統計 */}
         <StatCard 
           title={useNewAlgorithm ? "早中班統計" : "早班統計"} 
