@@ -95,39 +95,42 @@ function DailyReportGenerator() {
     <div className="container-custom py-8">
       <div className="max-w-3xl mx-auto">
         {/* 標題區域 */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-2xl mb-4 border border-primary/30">
-            <FileIcon className="w-10 h-10 text-primary" />
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-xl mb-3 border border-primary/30">
+            <FileIcon className="w-7 h-7 text-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary via-purple-400 to-blue-400 bg-clip-text text-transparent">
             報表生成器
           </h1>
+          <p className="text-gray-400 text-sm italic">
+            越來越多 Bugs...
+          </p>
         </div>
 
         {/* 主要功能區域 */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* 分店選擇 */}
           <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/40 border border-white/20 shadow-xl">
-            <div className="p-8">
-              <h2 className="text-xl font-bold text-primary mb-6 flex items-center justify-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <BuildingStorefrontIcon className="w-6 h-6" />
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-primary mb-4 flex items-center justify-center gap-2">
+                <div className="p-1.5 bg-primary/10 rounded-lg">
+                  <BuildingStorefrontIcon className="w-5 h-5" />
                 </div>
                 選擇分店
               </h2>
               
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setSelectedStore('central')}
-                    className={`group relative px-6 py-8 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                    className={`group relative px-4 py-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
                       selectedStore === 'central'
                         ? 'bg-gradient-to-br from-primary/30 to-purple-500/30 border-primary shadow-lg shadow-primary/20'
                         : 'bg-surface/40 border-white/20 hover:border-primary/50'
                     }`}
                   >
                     <div className={`text-center ${selectedStore === 'central' ? 'text-primary' : 'text-gray-300'}`}>
-                      <div className="text-2xl font-bold">中央店</div>
+                      <div className="text-xl font-bold">中央店</div>
                     </div>
                     {selectedStore === 'central' && (
                       <div className="absolute top-2 right-2 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -135,14 +138,14 @@ function DailyReportGenerator() {
                   </button>
                   <button
                     onClick={() => setSelectedStore('d7')}
-                    className={`group relative px-6 py-8 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                    className={`group relative px-4 py-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
                       selectedStore === 'd7'
                         ? 'bg-gradient-to-br from-primary/30 to-purple-500/30 border-primary shadow-lg shadow-primary/20'
                         : 'bg-surface/40 border-white/20 hover:border-primary/50'
                     }`}
                   >
                     <div className={`text-center ${selectedStore === 'd7' ? 'text-primary' : 'text-gray-300'}`}>
-                      <div className="text-2xl font-bold">D7 店</div>
+                      <div className="text-xl font-bold">D7 店</div>
                     </div>
                     {selectedStore === 'd7' && (
                       <div className="absolute top-2 right-2 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -155,21 +158,21 @@ function DailyReportGenerator() {
 
           {/* 月份選擇 */}
           <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/40 border border-white/20 shadow-xl">
-            <div className="p-8">
-              <h2 className="text-xl font-bold text-primary mb-6 flex items-center justify-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <CalendarIcon className="w-6 h-6" />
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-primary mb-4 flex items-center justify-center gap-2">
+                <div className="p-1.5 bg-primary/10 rounded-lg">
+                  <CalendarIcon className="w-5 h-5" />
                 </div>
                 選擇月份
               </h2>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="flex justify-center">
                   <div className="relative w-full max-w-md">
                     <select
                       value={selectedMonth}
                       onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="input-field w-full appearance-none bg-surface/60 border-2 border-white/20 focus:border-primary transition-all duration-300 text-lg py-4 px-6 rounded-xl hover:bg-surface/80 cursor-pointer text-center"
+                      className="input-field w-full appearance-none bg-surface/60 border-2 border-white/20 focus:border-primary transition-all duration-300 text-base py-3 px-4 rounded-xl hover:bg-surface/80 cursor-pointer text-center"
                     >
                       <option value="">請選擇月份</option>
                       {months.map(month => (
@@ -178,8 +181,8 @@ function DailyReportGenerator() {
                         </option>
                       ))}
                     </select>
-                    <div className="absolute right-6 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
@@ -191,21 +194,21 @@ function DailyReportGenerator() {
 
           {/* 生成按鈕 */}
           <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/40 border border-white/20 shadow-xl">
-            <div className="p-8">
-              <div className="flex items-center justify-center mb-6">
-                <div className="p-3 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-xl border border-primary/30">
-                  <ArchiveIcon className="w-8 h-8 text-primary" />
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="p-2 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-xl border border-primary/30">
+                  <ArchiveIcon className="w-6 h-6 text-primary" />
                 </div>
               </div>
               
-              <div className="space-y-6 text-center">
+              <div className="space-y-4 text-center">
                 <button
                   onClick={handleDownload}
                   disabled={!selectedMonth}
-                  className="group relative w-full max-w-md mx-auto px-8 py-6 bg-gradient-to-r from-primary via-purple-500 to-blue-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 transform hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none"
+                  className="group relative w-full max-w-md mx-auto px-6 py-4 bg-gradient-to-r from-primary via-purple-500 to-blue-500 text-white font-bold text-base rounded-xl shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 transform hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-3">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     下載日報表
