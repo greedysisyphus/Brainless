@@ -153,8 +153,8 @@ const getShiftCodes = (monthKey) => {
   // 解析月份字串 (格式: YYYY-MM)
   const [year, month] = monthKey.split('-').map(Number)
   
-  // 2024年10月及之後使用新版本，之前使用舊版本
-  if (year > 2024 || (year === 2024 && month >= 10)) {
+  // 2025年10月及之後使用新版本，之前使用舊版本
+  if (year > 2025 || (year === 2025 && month >= 10)) {
     return SHIFT_CODES_NEW
   } else {
     return SHIFT_CODES_OLD
@@ -2391,7 +2391,7 @@ function ScheduleManager() {
                  班別代碼說明
                  {selectedMonthForImport && (
                    <span className="text-sm text-gray-400 ml-2">
-                     ({getShiftCodes(selectedMonthForImport) === SHIFT_CODES_NEW ? '10月後新版本' : '9月前舊版本'})
+                     ({getShiftCodes(selectedMonthForImport) === SHIFT_CODES_NEW ? '2025年10月後新版本' : '2025年9月前舊版本'})
                    </span>
                  )}
                </h4>
@@ -2408,8 +2408,8 @@ function ScheduleManager() {
                    <div className="text-sm text-blue-200">
                      <strong>版本切換說明：</strong>
                      <ul className="mt-1 space-y-1">
-                       <li>• 2024年9月及之前：使用舊版本代碼（SS = 特休）</li>
-                       <li>• 2024年10月及之後：使用新版本代碼（SS = 中班，新增 J/JJ/X/XX/S/SSS 等）</li>
+                       <li>• 2025年9月及之前：使用舊版本代碼（SS = 特休）</li>
+                       <li>• 2025年10月及之後：使用新版本代碼（SS = 中班，新增 J/JJ/X/XX/S/SSS 等）</li>
                      </ul>
                    </div>
                  </div>

@@ -143,8 +143,8 @@ export const EarlyShiftStats = ({ schedule, names, employeeTags = {}, showAll = 
             }
           } else {
             // 2025年9月及之前：只有早班
-            if (shift === '早') {
-              count++
+          if (shift === '早') {
+            count++
             }
           }
         }
@@ -474,7 +474,7 @@ export const ConsecutiveWorkStats = ({ schedule, names, employeeTags = {}, showA
             // 遇到休假、特休或其他非上班班別時，結束當前連續期
             if (currentConsecutive > 0) {
               consecutivePeriods.push(currentConsecutive)
-              currentConsecutive = 0
+            currentConsecutive = 0
             }
           }
         }
@@ -623,14 +623,14 @@ export const StockLoverStats = ({ schedule, names, employeeTags = {}, showAll = 
       
       if (useNewAlgorithm) {
         // 新算法：10月及之後，計算星期三的午班和晚班
-        for (let day = 1; day <= daysInMonth; day++) {
+      for (let day = 1; day <= daysInMonth; day++) {
           const date = new Date(targetYear, targetMonth - 1, day)
-          const dayOfWeek = date.getDay() // 0=星期日, 3=星期三
-          
-          if (dayOfWeek === 3) { // 星期三
+        const dayOfWeek = date.getDay() // 0=星期日, 3=星期三
+        
+        if (dayOfWeek === 3) { // 星期三
             filteredEmployeeIds.forEach(employeeId => {
-              const shift = schedule[employeeId]?.[day]
-              
+            const shift = schedule[employeeId]?.[day]
+            
               // 檢查是否為午班或晚班（10月及之後午班和晚班是進貨班）
               // 同時檢查轉換後的代碼和原始代碼，並處理可能的空格問題
               const trimmedShift = shift?.trim()
@@ -642,10 +642,10 @@ export const StockLoverStats = ({ schedule, names, employeeTags = {}, showAll = 
                    trimmedShift === 'J' || trimmedShift === 'JJ' ||
                    trimmedShift?.toUpperCase() === 'Y' || trimmedShift?.toUpperCase() === 'A' || trimmedShift?.toUpperCase() === 'YY' ||
                    trimmedShift?.toUpperCase() === 'J' || trimmedShift?.toUpperCase() === 'JJ')) {
-                const stat = stats.find(s => s.employeeId === employeeId)
-                if (stat) stat.count++
-              }
-            })
+              const stat = stats.find(s => s.employeeId === employeeId)
+              if (stat) stat.count++
+            }
+          })
           }
         }
       } else {

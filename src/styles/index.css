@@ -280,7 +280,7 @@
 
 .group:hover .group-hover\:shadow-xl {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
+} 
 
 /* 圖表響應式設計 */
 @media (max-width: 640px) {

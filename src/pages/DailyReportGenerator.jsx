@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { 
   CalendarIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  DocumentTextIcon
+  BuildingStorefrontIcon
 } from '@heroicons/react/24/outline'
 
 // 自定義檔案圖示
@@ -48,12 +46,8 @@ function ArchiveIcon(props) {
 }
 
 function DailyReportGenerator() {
+  const [selectedStore, setSelectedStore] = useState('central') // 'central' or 'd7'
   const [selectedMonth, setSelectedMonth] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
-  const [error, setError] = useState('')
-  const [showProgress, setShowProgress] = useState(false)
 
   // 月份選項
   const months = [
@@ -77,37 +71,18 @@ function DailyReportGenerator() {
     return daysInMonth[parseInt(month) - 1]
   }
 
-  // 內嵌的範本檔案（從 public 資料夾載入）
-  const createTemplateFile = async () => {
-    try {
-      // 從 public 資料夾載入範本檔案
-      const response = await fetch('/reports/template.numbers')
-      if (!response.ok) {
-        throw new Error('無法載入範本檔案')
-      }
-      const blob = await response.blob()
-      // 設定正確的 MIME 類型
-      return new Blob([blob], { type: 'application/vnd.apple.numbers' })
-    } catch (error) {
-      console.error('載入範本檔案失敗:', error)
-      // 如果載入失敗，使用預設範本
-      const templateContent = `
-桃機報表範本
-日期：__DATE__
-營業時間：__TIME__
-銷售額：__SALES__
-備註：__NOTES__
-      `.trim()
-      
-      return new Blob([templateContent], { type: 'application/vnd.apple.numbers' })
-    }
-  }
-
   // 生成日報表（改為直接下載現成 zip）
   const handleDownload = () => {
     if (!selectedMonth) return;
-    const fileName = `DailyReport_${selectedMonth}_Month.zip`;
-    const url = `https://raw.githubusercontent.com/greedysisyphus/Brainless/main/public/reports/${fileName}`;
+    const prefix = selectedStore === 'd7' ? 'D7_DailyReport' : 'DailyReport';
+    const fileName = `${prefix}_${selectedMonth}_Month.zip`;
+    
+    // 檢查是否為開發環境
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const url = isDev 
+      ? `/reports/${fileName}`  // 開發環境：使用相對路徑
+      : `https://raw.githubusercontent.com/greedysisyphus/Brainless/main/public/reports/${fileName}`; // 生產環境：使用 GitHub
+    
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
@@ -117,119 +92,132 @@ function DailyReportGenerator() {
   };
 
   return (
-    <div className="container-custom py-6">
-      <div className="max-w-2xl mx-auto">
-        {/* 標題 */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <FileIcon className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold mb-2 text-center">報表生成器</h1>
+    <div className="container-custom py-8">
+      <div className="max-w-3xl mx-auto">
+        {/* 標題區域 */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-2xl mb-4 border border-primary/30">
+            <FileIcon className="w-10 h-10 text-primary" />
           </div>
-          {/* 名人金句風格副標題（置中） */}
-          <div className="mb-6">
-            <blockquote className="italic text-gray-400 text-center text-base">
-              「我愛改檔名」
-              <span className="block text-xs text-gray-500 mt-1 text-center">— 紅葉</span>
-            </blockquote>
-          </div>
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary via-purple-400 to-blue-400 bg-clip-text text-transparent">
+            報表生成器
+          </h1>
         </div>
 
         {/* 主要功能區域 */}
-        <div className="space-y-6">
-          {/* 月份選擇 */}
-          <div className="card backdrop-blur-sm bg-surface/80 border border-white/20">
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5" />
-                選擇月份
+        <div className="space-y-8">
+          {/* 分店選擇 */}
+          <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/40 border border-white/20 shadow-xl">
+            <div className="p-8">
+              <h2 className="text-xl font-bold text-primary mb-6 flex items-center justify-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BuildingStorefrontIcon className="w-6 h-6" />
+                </div>
+                選擇分店
               </h2>
               
               <div className="space-y-4">
-                <p className="text-sm text-text-secondary">
-                  選擇要生成日報表的月份
-                </p>
-                
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="input-field w-full max-w-xs"
-                >
-                  <option value="">請選擇月份</option>
-                  {months.map(month => (
-                    <option key={month.value} value={month.value}>
-                      {month.label} ({getDaysInMonth(month.value)}天)
-                    </option>
-                  ))}
-                </select>
-                
-                {selectedMonth && (
-                  <div className="text-sm text-text-secondary">
-                    將生成 {getDaysInMonth(selectedMonth)} 個日報表檔案
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setSelectedStore('central')}
+                    className={`group relative px-6 py-8 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                      selectedStore === 'central'
+                        ? 'bg-gradient-to-br from-primary/30 to-purple-500/30 border-primary shadow-lg shadow-primary/20'
+                        : 'bg-surface/40 border-white/20 hover:border-primary/50'
+                    }`}
+                  >
+                    <div className={`text-center ${selectedStore === 'central' ? 'text-primary' : 'text-gray-300'}`}>
+                      <div className="text-2xl font-bold">中央店</div>
+                    </div>
+                    {selectedStore === 'central' && (
+                      <div className="absolute top-2 right-2 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setSelectedStore('d7')}
+                    className={`group relative px-6 py-8 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                      selectedStore === 'd7'
+                        ? 'bg-gradient-to-br from-primary/30 to-purple-500/30 border-primary shadow-lg shadow-primary/20'
+                        : 'bg-surface/40 border-white/20 hover:border-primary/50'
+                    }`}
+                  >
+                    <div className={`text-center ${selectedStore === 'd7' ? 'text-primary' : 'text-gray-300'}`}>
+                      <div className="text-2xl font-bold">D7 店</div>
+                    </div>
+                    {selectedStore === 'd7' && (
+                      <div className="absolute top-2 right-2 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 月份選擇 */}
+          <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/40 border border-white/20 shadow-xl">
+            <div className="p-8">
+              <h2 className="text-xl font-bold text-primary mb-6 flex items-center justify-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <CalendarIcon className="w-6 h-6" />
+                </div>
+                選擇月份
+              </h2>
+              
+              <div className="space-y-6">
+                <div className="flex justify-center">
+                  <div className="relative w-full max-w-md">
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="input-field w-full appearance-none bg-surface/60 border-2 border-white/20 focus:border-primary transition-all duration-300 text-lg py-4 px-6 rounded-xl hover:bg-surface/80 cursor-pointer text-center"
+                    >
+                      <option value="">請選擇月份</option>
+                      {months.map(month => (
+                        <option key={month.value} value={month.value}>
+                          {month.label} ({getDaysInMonth(month.value)}天)
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-6 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* 生成按鈕 */}
-          <div className="card backdrop-blur-sm bg-surface/80 border border-white/20">
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-                <ArchiveIcon className="w-5 h-5" />
-                生成日報表
-              </h2>
+          <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/40 border border-white/20 shadow-xl">
+            <div className="p-8">
+              <div className="flex items-center justify-center mb-6">
+                <div className="p-3 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-xl border border-primary/30">
+                  <ArchiveIcon className="w-8 h-8 text-primary" />
+                </div>
+              </div>
               
-              <div className="space-y-4">
-                <p className="text-sm text-text-secondary">
-                  點擊下方按鈕開始生成整月日報表
-                </p>
-                
+              <div className="space-y-6 text-center">
                 <button
                   onClick={handleDownload}
                   disabled={!selectedMonth}
-                  className="btn-primary w-full max-w-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative w-full max-w-md mx-auto px-8 py-6 bg-gradient-to-r from-primary via-purple-500 to-blue-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 transform hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  下載日報表
+                  <span className="relative z-10 flex items-center justify-center gap-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    下載日報表
+                  </span>
+                  {selectedMonth && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  )}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* 錯誤訊息 */}
-          {error && (
-            <div className="card backdrop-blur-sm bg-red-500/10 border border-red-500/30">
-              <div className="p-4 flex items-center gap-3">
-                <ExclamationTriangleIcon className="w-5 h-5 text-red-400" />
-                <span className="text-red-400">{error}</span>
-              </div>
-            </div>
-          )}
-
-          {/* 進度條 */}
-          {showProgress && (
-            <div className="card backdrop-blur-sm bg-surface/80 border border-white/20">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-primary">生成進度</h3>
-                  <span className="text-sm text-text-secondary">{Math.round(progress)}%</span>
-                </div>
-                
-                <div className="w-full bg-white/10 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-primary to-purple-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-                
-                {isComplete && (
-                  <div className="mt-4 flex items-center gap-2 text-green-400">
-                    <CheckCircleIcon className="w-5 h-5" />
-                    <span>日報表生成完成！</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

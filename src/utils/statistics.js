@@ -293,39 +293,39 @@ export const calculateShiftOverlap = (schedule, names, selectedMonth = null) => 
     } else {
       // 舊算法：2025年9月及之前
       // 早班與中班搭班
-      if (dayShifts['早'] && dayShifts['中']) {
-        dayShifts['早'].forEach(emp1 => {
-          dayShifts['中'].forEach(emp2 => {
-            if (!overlapStats[emp1][emp2]) overlapStats[emp1][emp2] = 0
-            if (!overlapStats[emp2][emp1]) overlapStats[emp2][emp1] = 0
-            if (!overlapDetails[emp1][emp2]) overlapDetails[emp1][emp2] = []
-            if (!overlapDetails[emp2][emp1]) overlapDetails[emp2][emp1] = []
-            
-            overlapStats[emp1][emp2]++
-            overlapStats[emp2][emp1]++
-            overlapDetails[emp1][emp2].push({ day, shift: '早-中' })
-            overlapDetails[emp2][emp1].push({ day, shift: '中-早' })
-          })
+    if (dayShifts['早'] && dayShifts['中']) {
+      dayShifts['早'].forEach(emp1 => {
+        dayShifts['中'].forEach(emp2 => {
+          if (!overlapStats[emp1][emp2]) overlapStats[emp1][emp2] = 0
+          if (!overlapStats[emp2][emp1]) overlapStats[emp2][emp1] = 0
+          if (!overlapDetails[emp1][emp2]) overlapDetails[emp1][emp2] = []
+          if (!overlapDetails[emp2][emp1]) overlapDetails[emp2][emp1] = []
+          
+          overlapStats[emp1][emp2]++
+          overlapStats[emp2][emp1]++
+          overlapDetails[emp1][emp2].push({ day, shift: '早-中' })
+          overlapDetails[emp2][emp1].push({ day, shift: '中-早' })
         })
-      }
-      
-      // 中班與晚班搭班
-      if (dayShifts['中'] && dayShifts['晚']) {
-        dayShifts['中'].forEach(emp1 => {
-          dayShifts['晚'].forEach(emp2 => {
-            if (!overlapStats[emp1][emp2]) overlapStats[emp1][emp2] = 0
-            if (!overlapStats[emp2][emp1]) overlapStats[emp2][emp1] = 0
-            if (!overlapDetails[emp1][emp2]) overlapDetails[emp1][emp2] = []
-            if (!overlapDetails[emp2][emp1]) overlapDetails[emp2][emp1] = []
-            
-            overlapStats[emp1][emp2]++
-            overlapStats[emp2][emp1]++
-            overlapDetails[emp1][emp2].push({ day, shift: '中-晚' })
-            overlapDetails[emp2][emp1].push({ day, shift: '晚-中' })
-          })
-        })
-      }
+      })
     }
+    
+      // 中班與晚班搭班
+    if (dayShifts['中'] && dayShifts['晚']) {
+      dayShifts['中'].forEach(emp1 => {
+        dayShifts['晚'].forEach(emp2 => {
+          if (!overlapStats[emp1][emp2]) overlapStats[emp1][emp2] = 0
+          if (!overlapStats[emp2][emp1]) overlapStats[emp2][emp1] = 0
+          if (!overlapDetails[emp1][emp2]) overlapDetails[emp1][emp2] = []
+          if (!overlapDetails[emp2][emp1]) overlapDetails[emp2][emp1] = []
+          
+          overlapStats[emp1][emp2]++
+          overlapStats[emp2][emp1]++
+          overlapDetails[emp1][emp2].push({ day, shift: '中-晚' })
+          overlapDetails[emp2][emp1].push({ day, shift: '晚-中' })
+        })
+      })
+    }
+  }
   }
   
   const result = { overlapStats, overlapDetails }

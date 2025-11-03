@@ -161,8 +161,8 @@ export const ScheduleDisplay = ({
           {isEditing && <span className="text-yellow-400 text-lg ml-2">(編輯模式)</span>}
         </h2>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-400">
-            共 {filteredEmployees.length} 位同事
+        <div className="text-sm text-gray-400">
+          共 {filteredEmployees.length} 位同事
           </div>
           {!isEditing ? (
             <button
@@ -241,9 +241,9 @@ export const ScheduleDisplay = ({
                         </select>
                       ) : (
                         shift && (
-                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold border ${getShiftColor(shift)}`}>
-                            {getShiftDisplayName(shift)}
-                          </span>
+                        <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold border ${getShiftColor(shift)}`}>
+                          {getShiftDisplayName(shift)}
+                        </span>
                         )
                       )}
                     </div>
@@ -292,9 +292,9 @@ export const ScheduleDisplay = ({
                         </select>
                       ) : (
                         shift && (
-                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold border ${getShiftColor(shift)}`}>
-                            {getShiftDisplayName(shift)}
-                          </span>
+                        <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold border ${getShiftColor(shift)}`}>
+                          {getShiftDisplayName(shift)}
+                        </span>
                         )
                       )}
                     </div>
