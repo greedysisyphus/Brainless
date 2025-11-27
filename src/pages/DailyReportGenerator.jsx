@@ -161,7 +161,7 @@ function DailyReportGenerator() {
             <div className="p-6">
               <h2 className="text-lg font-bold text-primary mb-4 flex items-center justify-center gap-2">
                 <div className="p-1.5 bg-primary/10 rounded-lg">
-                  <CalendarIcon className="w-5 h-5" />
+                <CalendarIcon className="w-5 h-5" />
                 </div>
                 選擇月份
               </h2>
@@ -169,18 +169,18 @@ function DailyReportGenerator() {
               <div className="space-y-4">
                 <div className="flex justify-center">
                   <div className="relative w-full max-w-md">
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(e.target.value)}
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
                       className="input-field w-full appearance-none bg-surface/60 border-2 border-white/20 focus:border-primary transition-all duration-300 text-base py-3 px-4 rounded-xl hover:bg-surface/80 cursor-pointer text-center"
-                    >
-                      <option value="">請選擇月份</option>
-                      {months.map(month => (
-                        <option key={month.value} value={month.value}>
-                          {month.label} ({getDaysInMonth(month.value)}天)
-                        </option>
-                      ))}
-                    </select>
+                >
+                  <option value="">請選擇月份</option>
+                  {months.map(month => (
+                    <option key={month.value} value={month.value}>
+                      {month.label} ({getDaysInMonth(month.value)}天)
+                    </option>
+                  ))}
+                </select>
                     <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -211,7 +211,7 @@ function DailyReportGenerator() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    下載日報表
+                  下載日報表
                   </span>
                   {selectedMonth && (
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

@@ -1291,7 +1291,7 @@ function ScheduleManager() {
       const currentMonth = currentDate.getMonth() + 1
       return currentYear > 2025 || (currentYear === 2025 && currentMonth >= 10)
     }
-    
+      
     // 解析選定的月份
     let monthKey = selectedMonth
     if (selectedMonth.includes('_')) {
@@ -1300,25 +1300,25 @@ function ScheduleManager() {
     
     const [year, month] = monthKey.split('-').map(Number)
     return year > 2025 || (year === 2025 && month >= 10)
-  }
-
+      }
+      
   // 使用導入的 calculateShiftOverlap 函數
   
   // 取得某位同事的搭班排行（使用 useMemo 優化）
   const getEmployeeOverlapRanking = useMemo(() => {
     return (employeeId) => {
       const { overlapStats } = calculateShiftOverlap(getCurrentSchedule(), names, selectedMonth)
-      const employeeStats = overlapStats[employeeId] || {}
-      
-      return Object.entries(employeeStats)
-        .map(([otherId, count]) => ({
-          employeeId: otherId,
-          name: names[otherId] || otherId,
-          count: count
-        }))
-        .sort((a, b) => b.count - a.count)
-        .filter(item => item.count > 0)
-    }
+    const employeeStats = overlapStats[employeeId] || {}
+    
+    return Object.entries(employeeStats)
+      .map(([otherId, count]) => ({
+        employeeId: otherId,
+        name: names[otherId] || otherId,
+        count: count
+      }))
+      .sort((a, b) => b.count - a.count)
+      .filter(item => item.count > 0)
+  }
   }, [getCurrentSchedule, names, selectedMonth])
   
   // 創建月曆樣式的匯出元素
@@ -1485,6 +1485,26 @@ function ScheduleManager() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-center mb-2">班表管理工具</h1>
         <p className="text-center text-text-secondary">早班好</p>
+      </div>
+      
+      {/* 顯眼告示 */}
+      <div className="mb-6 mx-auto max-w-4xl">
+        <div className="bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-xl p-4 md:p-5 border-2 border-orange-400/50 shadow-lg">
+          <div className="flex items-center justify-center gap-2 md:gap-3">
+            <svg className="w-6 h-6 md:w-7 md:h-7 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <svg className="w-6 h-6 md:w-7 md:h-7 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <svg className="w-6 h-6 md:w-7 md:h-7 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <p className="text-lg md:text-xl font-bold text-orange-200">
+              最近太多遊戲，暫時沒空更新
+            </p>
+          </div>
+        </div>
       </div>
       
       {/* 分頁切換 */}
@@ -2257,30 +2277,30 @@ function ScheduleManager() {
 
               {/* 本月分析內容 */}
               {chartAnalysisTab === 'monthly' && (
-                <div className="space-y-6">
-                  {/* 統計組件 */}
-                  <ScheduleStatistics 
-                    schedule={getCurrentSchedule()}
-                    names={names}
+            <div className="space-y-6">
+              {/* 統計組件 */}
+              <ScheduleStatistics 
+                schedule={getCurrentSchedule()}
+                names={names}
                     employeeTags={employeeTags}
-                    loadingStates={loadingStates}
-                    selectedEmployee={selectedEmployee}
-                    allSchedules={allSchedules}
-                    selectedMonth={selectedMonth}
-                  />
-                  
-                  {/* 圖表組件 */}
-                  <ScheduleCharts 
-                    schedule={getCurrentSchedule()}
-                    names={names}
+                loadingStates={loadingStates}
+                selectedEmployee={selectedEmployee}
+                allSchedules={allSchedules}
+                selectedMonth={selectedMonth}
+              />
+              
+              {/* 圖表組件 */}
+              <ScheduleCharts 
+                schedule={getCurrentSchedule()}
+                names={names}
                     employeeTags={employeeTags}
                     selectedMonth={selectedMonth}
-                  />
-                  
-                  {/* 班次分配偏差度分析 */}
-                  <ShiftBiasAnalysis 
-                    schedule={getCurrentSchedule()}
-                    names={names}
+              />
+              
+              {/* 班次分配偏差度分析 */}
+              <ShiftBiasAnalysis 
+                schedule={getCurrentSchedule()}
+                names={names}
                     selectedMonth={selectedMonth}
                   />
                 </div>
@@ -2447,13 +2467,13 @@ function ScheduleManager() {
             </div>
             
             <div className="mt-6">
-              <label className="block text-sm font-semibold mb-2">Excel 資料</label>
-              <textarea
-                value={importData}
-                onChange={(e) => setImportData(e.target.value)}
-                placeholder="從 Excel 複製資料並貼上這裡..."
-                className="w-full h-32 px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-green-400/50 focus:bg-white/10 resize-none"
-              />
+                <label className="block text-sm font-semibold mb-2">Excel 資料</label>
+                <textarea
+                  value={importData}
+                  onChange={(e) => setImportData(e.target.value)}
+                  placeholder="從 Excel 複製資料並貼上這裡..."
+                  className="w-full h-32 px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-green-400/50 focus:bg-white/10 resize-none"
+                />
             </div>
             
             {importError && (
@@ -2956,9 +2976,9 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
       </div>
 
       {/* 班表內容 */}
-      <div className="overflow-x-auto -mx-4 md:mx-0">
-        <div className="bg-surface/60 rounded-xl shadow-xl border border-white/20 backdrop-blur-sm min-w-full">
-          <div className="w-full">
+    <div className="overflow-x-auto -mx-4 md:mx-0">
+      <div className="bg-surface/60 rounded-xl shadow-xl border border-white/20 backdrop-blur-sm min-w-full">
+        <div className="w-full">
           <div className="overflow-x-auto">
             <table className="w-full text-xs md:text-sm" style={{ borderCollapse: 'collapse', borderSpacing: 0, border: 'none' }}>
               <thead>
@@ -3008,8 +3028,8 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
                         }
                       }
                       
-                      return (
-                        <td key={date} className={`p-1 md:p-2 text-center ${isToday ? 'bg-primary/5' : ''}`} style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
+                                              return (
+                          <td key={date} className={`p-1 md:p-2 text-center ${isToday ? 'bg-primary/5' : ''}`} style={{ border: 'none !important', borderRight: 'none !important', borderLeft: 'none !important', borderTop: 'none !important', borderBottom: 'none !important' }}>
                           {isEditing ? (
                             <select
                               value={shift || ''}
@@ -3023,25 +3043,25 @@ function DateView({ schedule, names, displayDates, filteredEmployees, selectedSh
                               ))}
                             </select>
                           ) : shift ? (
-                            <div className={`
-                              px-2 py-1 md:px-3 md:py-2 rounded-lg text-center text-xs font-bold
+                              <div className={`
+                                px-2 py-1 md:px-3 md:py-2 rounded-lg text-center text-xs font-bold
                               ${isToday ? 'ring-2 ring-primary/50 ' : ''}${getShiftColor(shift)}
-                            `}>
-                              {shift}
-                            </div>
-                          ) : (
-                            <div className={`w-full h-6 md:h-8 rounded-lg border ${isToday ? 'bg-primary/5 border-primary/30' : 'bg-surface/20 border-white/10'}`}></div>
-                          )}
-                        </td>
-                      )
+                              `}>
+                                {shift}
+                              </div>
+                            ) : (
+                              <div className={`w-full h-6 md:h-8 rounded-lg border ${isToday ? 'bg-primary/5 border-primary/30' : 'bg-surface/20 border-white/10'}`}></div>
+                            )}
+                          </td>
+                        )
                     })}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   )
@@ -3203,9 +3223,9 @@ function EmployeeView({ schedule, names, displayDates, filteredEmployees, select
         </div>
       </div>
 
-      <div className="space-y-6">
-        {filteredEmployees.map(employeeId => (
-          <div key={employeeId} className="bg-surface/60 rounded-xl p-6 border border-white/20 shadow-xl backdrop-blur-sm hover:shadow-2xl transition-all duration-300">
+    <div className="space-y-6">
+      {filteredEmployees.map(employeeId => (
+        <div key={employeeId} className="bg-surface/60 rounded-xl p-6 border border-white/20 shadow-xl backdrop-blur-sm hover:shadow-2xl transition-all duration-300">
           <div className="mb-6">
             <h4 className="text-lg font-semibold text-white mb-1">
               {names[employeeId] || employeeId}
@@ -5405,17 +5425,17 @@ function DailyPartnerView({ schedule, names, displayDates, selectedEmployee, sel
           // 舊算法：2025年9月及之前
           // 早班與中班搭班，中班與晚班搭班
           if (
-            (selectedShift === '早' && partnerShift === '中') ||
-            (selectedShift === '中' && partnerShift === '晚') ||
-            (selectedShift === '中' && partnerShift === '早') ||
-            (selectedShift === '晚' && partnerShift === '中')
-          ) {
-            partners.push({
-              id: employeeId,
-              name: names[employeeId] || employeeId,
-              shift: partnerShift,
-              type: '跨班'
-            })
+        (selectedShift === '早' && partnerShift === '中') ||
+        (selectedShift === '中' && partnerShift === '晚') ||
+        (selectedShift === '中' && partnerShift === '早') ||
+        (selectedShift === '晚' && partnerShift === '中')
+      ) {
+        partners.push({
+          id: employeeId,
+          name: names[employeeId] || employeeId,
+          shift: partnerShift,
+          type: '跨班'
+        })
           }
         }
       }

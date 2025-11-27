@@ -12,6 +12,10 @@ export default {
   sandwich: {
     title: '三明治計算器',
     subtitle: '選擇拉奶，選擇成功',
+    selectStore: '選擇分店',
+    storeCentral: '中央店',
+    storeD7: 'D7 店',
+    storeD13: 'D13 店',
     inputsTitle: '計算輸入',
     inputsSubtitle: '輸入現有數量',
     existingHam: '現有的火腿三明治',
