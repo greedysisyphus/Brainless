@@ -80,7 +80,8 @@ const SortableDialogueItem = ({ msg, index, onDelete }) => {
             <ResponsiveButton
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(index);
+                e.preventDefault();
+                onDelete(index, msg.id);
               }}
               variant="ghost"
               size="sm"
@@ -141,6 +142,7 @@ const CustomRuleManager = ({
   const [namesData, setNamesData] = useState({});
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [isLoadingNames, setIsLoadingNames] = useState(false);
+  const [excludedDialogueIds, setExcludedDialogueIds] = useState(new Set());
 
   // 使用 props 中的班表資料或載入自己的班表資料
   useEffect(() => {
@@ -271,26 +273,46 @@ const CustomRuleManager = ({
       });
     });
 
-    // 去重並按優先級排序
+    // 去重並過濾被排除的對話
     const uniqueDialogues = [];
     const seenIds = new Set();
 
     allDialogues.forEach(msg => {
-      if (!seenIds.has(msg.id)) {
+      if (!seenIds.has(msg.id) && !excludedDialogueIds.has(msg.id)) {
         seenIds.add(msg.id);
         uniqueDialogues.push(msg);
       }
     });
 
     return uniqueDialogues;
-  }, [customRules, scheduleTemplates, scheduleData, namesData, speechTexts]);
+  }, [customRules, scheduleTemplates, scheduleData, namesData, speechTexts, excludedDialogueIds]);
 
-  // 當 uniqueDialogues 變化時，更新 sortedDialogues（只使用當前激活的對話）
+  // 當 uniqueDialogues 變化時，智能更新 sortedDialogues
   useEffect(() => {
     if (uniqueDialogues.length > 0) {
-      setSortedDialogues(uniqueDialogues);
+      setSortedDialogues(prev => {
+        // 如果 prev 為空或是初始化狀態，直接使用 uniqueDialogues
+        if (prev.length === 0) {
+          return uniqueDialogues;
+        }
+        
+        // 否則，合併邏輯：保留現有順序，添加新的對話，移除已不存在的對話（但保留被排除的）
+        const prevIds = new Set(prev.map(item => item.id));
+        const newIds = new Set(uniqueDialogues.map(item => item.id));
+        
+        // 過濾掉已經被排除的對話，以及不再存在於 uniqueDialogues 中的對話
+        const filtered = prev.filter(item => 
+          !excludedDialogueIds.has(item.id) && newIds.has(item.id)
+        );
+        
+        // 添加新的對話
+        const newItems = uniqueDialogues.filter(item => !prevIds.has(item.id));
+        
+        // 保持現有順序，添加新項目在末尾
+        return [...filtered, ...newItems];
+      });
     }
-  }, [uniqueDialogues]);
+  }, [uniqueDialogues, excludedDialogueIds]);
 
 
 
@@ -396,8 +418,17 @@ const CustomRuleManager = ({
   };
 
   // 刪除排序後的對話
-  const deleteSortedDialogue = (index) => {
-    setSortedDialogues(prev => prev.filter((_, i) => i !== index));
+  const deleteSortedDialogue = (index, dialogueId) => {
+    if (!dialogueId && sortedDialogues[index]) {
+      dialogueId = sortedDialogues[index].id;
+    }
+    
+    if (dialogueId) {
+      // 將對話ID添加到排除列表
+      setExcludedDialogueIds(prev => new Set([...prev, dialogueId]));
+      // 同時從排序列表中移除
+      setSortedDialogues(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   // 保存排序設置到雲端
@@ -439,6 +470,9 @@ const CustomRuleManager = ({
 
   // 重置排序
   const resetDialogueOrder = () => {
+    // 清除排除列表
+    setExcludedDialogueIds(new Set());
+    
     const allMessages = generateAllSmartMessages(scheduleData, customRules, scheduleTemplates, namesData);
     const smartTextsContent = allMessages.map(msg => msg.message).filter(text => text && typeof text === 'string' && text.trim() !== '');
     const filteredNormalTexts = speechTexts.filter(text => 

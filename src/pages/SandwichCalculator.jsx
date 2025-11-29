@@ -12,6 +12,7 @@ import {
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import zhtw from '../locales/zh-TW'
 import { calculateSandwichPlan } from '../services/sandwichCalculator'
+import anime from 'animejs/lib/anime.es.js'
 
 function SandwichCalculator() {
   const defaultSettings = { breadPerBag: 8, targetHam: 60, targetSalami: 30 }
@@ -65,7 +66,12 @@ function SandwichCalculator() {
   
   const [showSettings, setShowSettings] = useState(false)
   const [draftSettings, setDraftSettings] = useState(settings)
-  const [results, setResults] = useState(null)
+  
+  // 將 results 保存到 localStorage，避免被意外清除
+  const [results, setResults] = useState(() => {
+    const savedResults = localStorage.getItem(`sandwich_results_${selectedStore}`)
+    return savedResults ? JSON.parse(savedResults) : null
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showExtraBagsBubble, setShowExtraBagsBubble] = useState(false)
@@ -73,11 +79,124 @@ function SandwichCalculator() {
   // 用於追蹤 Firebase 訂閱
   const unsubscribeRef = useRef(null)
   const loadingRef = useRef(false)
+  const resultCardsRef = useRef([])
+  const [animationKey, setAnimationKey] = useState(0) // 用於重置動畫狀態
+  
+  // 分店選擇器滑動指示器
+  const storeSelectorRef = useRef(null)
+  const sliderRef = useRef(null)
+  
+  // 滑動指示器動畫
+  useEffect(() => {
+    if (!sliderRef.current || !storeSelectorRef.current) return
+
+    // 等待 DOM 更新完成
+    const timer = setTimeout(() => {
+      const buttons = storeSelectorRef.current.querySelectorAll('button')
+      const storeIndex = selectedStore === 'central' ? 0 : selectedStore === 'd7' ? 1 : 2
+      const button = buttons[storeIndex]
+      
+      if (button && sliderRef.current) {
+        const buttonRect = button.getBoundingClientRect()
+        const containerRect = storeSelectorRef.current.getBoundingClientRect()
+        const left = buttonRect.left - containerRect.left - 4
+        
+        // 使用 Anime.js 動畫
+        anime({
+          targets: sliderRef.current,
+          left: left,
+          duration: 400,
+          easing: 'spring(1, 80, 10, 0)'
+        })
+      }
+    }, 50) // 給 DOM 一點時間更新
+    
+    return () => clearTimeout(timer)
+  }, [selectedStore])
+  
+  // 初始化滑動指示器位置（只在組件掛載時執行一次）
+  useEffect(() => {
+    if (!sliderRef.current || !storeSelectorRef.current) return
+    
+    const timer = setTimeout(() => {
+      const buttons = storeSelectorRef.current.querySelectorAll('button')
+      const storeIndex = selectedStore === 'central' ? 0 : selectedStore === 'd7' ? 1 : 2
+      const button = buttons[storeIndex]
+      
+      if (button && sliderRef.current) {
+        const buttonRect = button.getBoundingClientRect()
+        const containerRect = storeSelectorRef.current.getBoundingClientRect()
+        const left = buttonRect.left - containerRect.left - 4
+        
+        // 初始化位置（無動畫）
+        sliderRef.current.style.left = `${left}px`
+      }
+    }, 100)
+    
+    return () => clearTimeout(timer)
+  }, []) // 只在組件掛載時執行
+  
+  // 將 results 持久化到 localStorage
+  useEffect(() => {
+    if (results) {
+      localStorage.setItem(`sandwich_results_${selectedStore}`, JSON.stringify(results))
+    } else {
+      localStorage.removeItem(`sandwich_results_${selectedStore}`)
+    }
+  }, [results, selectedStore])
   
   // 切換店鋪時清除計算結果
   useEffect(() => {
+    // 清除舊店鋪的結果（避免混亂）
+    const oldStore = selectedStore === 'd7' ? 'd13' : selectedStore === 'd13' ? 'central' : 'd7'
+    localStorage.removeItem(`sandwich_results_${oldStore}`)
+    
+    // 清除當前結果
     setResults(null)
+    setAnimationKey(prev => prev + 1) // 重置動畫鍵值
   }, [selectedStore])
+
+  // 結果卡片進入動畫 - 使用 Anime.js Stagger
+  useEffect(() => {
+    if (!results) return
+
+    // 使用 requestAnimationFrame 確保在下一幀立即設置初始狀態
+    requestAnimationFrame(() => {
+      const cards = resultCardsRef.current.filter(card => card !== null && card !== undefined)
+      if (cards.length === 0) return
+
+      // 立即設置卡片初始隱藏狀態（防止閃現）
+      cards.forEach(card => {
+        if (card) {
+          card.style.opacity = '0'
+          card.style.transform = 'translateY(30px) scale(0.9)'
+        }
+      })
+
+      // 在下一幀再執行動畫
+      requestAnimationFrame(() => {
+        // 使用 Anime.js 創建波浪式進入動畫
+        anime({
+          targets: cards,
+          opacity: [0, 1],
+          translateY: [30, 0],
+          scale: [0.9, 1],
+          delay: anime.stagger(100), // 每個卡片延遲 100ms
+          duration: 500,
+          easing: 'spring(1, 80, 10, 0)',
+          complete: () => {
+            // 動畫完成後清除內聯樣式，讓 CSS 接管
+            cards.forEach(card => {
+              if (card) {
+                card.style.opacity = ''
+                card.style.transform = ''
+              }
+            })
+          }
+        })
+      })
+    })
+  }, [results, animationKey])
   
   // 監聽 Firebase 設定變更（根據選中的店鋪）
   useEffect(() => {
@@ -248,71 +367,134 @@ function SandwichCalculator() {
   return (
     <div className="container-custom py-8">
       <div className="max-w-6xl mx-auto">
-          {/* 頁面標題 */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-xl mb-4 border border-primary/30 shadow-lg">
-            <CalculatorIcon className="w-8 h-8 text-primary" />
+          {/* 頁面標題 - 超現代設計 */}
+        <div className="text-center mb-10 relative">
+          {/* 背景動態光暈 */}
+          <div className="absolute inset-0 flex justify-center -z-10">
+            <div className="w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-glow opacity-50"></div>
           </div>
-          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary via-purple-400 to-blue-400 bg-clip-text text-transparent">
-            {zhtw.sandwich.title}
+          
+          {/* 圖標容器 - 3D 效果 */}
+          <div className="inline-flex items-center justify-center mb-6 relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary via-purple-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
+            <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary/30 via-purple-500/30 to-blue-500/30 rounded-2xl border-2 border-primary/50 shadow-2xl shadow-primary/30 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 overflow-hidden">
+              {/* 流動背景 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
+              <CalculatorIcon className="w-10 h-10 text-primary relative z-10 transform group-hover:scale-110 transition-transform duration-300" />
+            </div>
+          </div>
+          
+          {/* 標題 */}
+          <h1 className="text-4xl sm:text-5xl font-extrabold mb-3 relative">
+            <span className="bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient">
+              {zhtw.sandwich.title}
+            </span>
+            {/* 文字發光效果 */}
+            <span className="absolute inset-0 bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent blur-xl opacity-30 -z-10 animate-pulse-glow">
+              {zhtw.sandwich.title}
+            </span>
           </h1>
-          <p className="text-gray-400 text-sm">{zhtw.sandwich.subtitle}</p>
+          
+          {/* 副標題 */}
+          <p className="text-gray-400 text-base font-medium">{zhtw.sandwich.subtitle}</p>
         </div>
 
-        {/* 分店選擇 */}
-        <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/40 border border-white/20 shadow-xl mb-6">
-          <div className="p-6">
-            <h2 className="text-lg font-bold text-primary mb-4 flex items-center justify-center gap-2">
-              <div className="p-1.5 bg-primary/10 rounded-lg">
-                <BuildingStorefrontIcon className="w-5 h-5" />
-              </div>
-              {zhtw.sandwich.selectStore}
-            </h2>
+        {/* 分店選擇 - 現代化分段控制器 */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
+              <BuildingStorefrontIcon className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-lg font-bold text-primary">{zhtw.sandwich.selectStore}</h2>
+          </div>
+          
+          {/* 分段控制器容器 */}
+          <div 
+            ref={storeSelectorRef}
+            className="relative mx-auto max-w-2xl bg-surface/40 backdrop-blur-xl rounded-2xl p-1.5 border border-white/10 shadow-2xl"
+          >
+            {/* 滑動指示器 */}
+            <div
+              ref={sliderRef}
+              className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 shadow-lg shadow-primary/30"
+              style={{
+                width: `calc(33.333% - 4px)`,
+                left: '4px' // 初始位置，由 Anime.js 控制動畫
+              }}
+            />
             
-            <div className="grid grid-cols-3 gap-3">
-              {stores.map((store) => (
-                <button
-                  key={store.value}
-                  onClick={() => setSelectedStore(store.value)}
-                  className={`group relative px-4 py-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
-                    selectedStore === store.value
-                      ? 'bg-gradient-to-br from-primary/30 to-purple-500/30 border-primary shadow-lg shadow-primary/20'
-                      : 'bg-surface/40 border-white/20 hover:border-primary/50'
-                  }`}
-                >
-                  <div className={`text-center ${selectedStore === store.value ? 'text-primary' : 'text-gray-300'}`}>
-                    <div className="text-xl font-bold">{store.label}</div>
-                  </div>
-                  {selectedStore === store.value && (
-                    <div className="absolute top-2 right-2 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  )}
-                </button>
-              ))}
+            {/* 選項按鈕 */}
+            <div className="relative grid grid-cols-3 gap-1.5">
+              {stores.map((store, index) => {
+                const isSelected = selectedStore === store.value
+                return (
+                  <button
+                    key={store.value}
+                    onClick={() => setSelectedStore(store.value)}
+                    className={`
+                      relative z-10
+                      px-4 py-4 sm:px-6 sm:py-5
+                      rounded-xl
+                      font-bold text-sm sm:text-base
+                      transition-all duration-300
+                      transform
+                      ${isSelected 
+                        ? 'text-white scale-[1.02]' 
+                        : 'text-gray-300 hover:text-white hover:scale-[1.01]'
+                      }
+                    `}
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50" />
+                      )}
+                      <span className="tracking-wide">{store.label}</span>
+                    </span>
+                    
+                    {/* 選中時的發光效果 */}
+                    {isSelected && (
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 animate-pulse-glow opacity-50" />
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          {/* 計算卡片 */}
-          <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/60 border border-white/20 shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                 <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
-                  <CalculatorIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+          {/* 計算卡片 - 超現代設計 */}
+          <div className="relative group">
+            {/* 卡片背景光暈 */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            
+            <div className="relative backdrop-blur-xl bg-gradient-to-br from-surface/90 via-surface/70 to-surface/90 border-2 border-white/20 rounded-2xl p-6 shadow-2xl hover:shadow-primary/20 transition-all duration-500 transform hover:-translate-y-1 overflow-hidden">
+              {/* 流動背景效果 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-purple-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
+              
+              <div className="flex items-center justify-between mb-6 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="relative group/icon">
+                    <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover/icon:bg-primary/30 transition-all duration-300"></div>
+                    <div className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/40 shadow-lg">
+                      <CalculatorIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary transform group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300" />
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+                      {zhtw.sandwich.inputsTitle}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.inputsSubtitle}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-primary">{zhtw.sandwich.inputsTitle}</h2>
-                  <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.inputsSubtitle}</p>
-                </div>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 hover:from-primary/30 hover:to-purple-500/30 border border-primary/40 text-primary transition-all duration-300 hover:scale-110 hover:rotate-90 hover:shadow-lg hover:shadow-primary/30"
+                  title={zhtw.settings.title}
+                >
+                  <Cog6ToothIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
               </div>
-              <button
-                onClick={() => setShowSettings(true)}
-                className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary transition-all duration-200 hover:scale-110"
-                title={zhtw.settings.title}
-              >
-                <Cog6ToothIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-            </div>
 
 
             {loading ? (
@@ -330,30 +512,51 @@ function SandwichCalculator() {
               </div>
             ) : (
               <div className="space-y-4">
-                 {/* 一行摘要條 */}
-                 <div className="grid grid-cols-3 gap-3">
-                   <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-400/20 p-4 text-center backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300">
-                     <div className="text-xs text-blue-300 mb-1 font-medium">{zhtw.sandwichUi.summaryTarget}</div>
-                     <div className="text-xl font-bold text-blue-200">{preview.totalTarget}</div>
+                 {/* 一行摘要條 - 超現代設計 */}
+                 <div className="grid grid-cols-3 gap-2.5 relative z-10">
+                   {/* 目標卡片 */}
+                   <div className="group/card relative rounded-xl bg-gradient-to-br from-blue-500/15 via-cyan-500/10 to-blue-600/15 border border-blue-400/30 p-4 text-center backdrop-blur-md shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 overflow-hidden">
+                     {/* 流動背景 */}
+                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-white/10 to-blue-500/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                     <div className="relative z-10">
+                       <div className="text-xs text-blue-300/90 mb-1.5 font-semibold uppercase tracking-wider">{zhtw.sandwichUi.summaryTarget}</div>
+                       <div className="text-xl sm:text-2xl font-extrabold text-blue-200 drop-shadow-lg">{preview.totalTarget}</div>
+                     </div>
                    </div>
-                   <div className="rounded-xl bg-gradient-to-br from-gray-500/10 to-slate-500/10 border border-gray-400/20 p-4 text-center backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300">
-                     <div className="text-xs text-gray-300 mb-1 font-medium">{zhtw.sandwichUi.summaryExisting}</div>
-                     <div className="text-xl font-bold text-gray-200">{preview.totalExisting}</div>
+                   
+                   {/* 現有卡片 */}
+                   <div className="group/card relative rounded-xl bg-gradient-to-br from-gray-500/15 via-slate-500/10 to-gray-600/15 border border-gray-400/30 p-4 text-center backdrop-blur-md shadow-lg hover:shadow-xl hover:shadow-gray-500/20 transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 overflow-hidden">
+                     <div className="absolute inset-0 bg-gradient-to-r from-gray-500/0 via-white/10 to-gray-500/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                     <div className="relative z-10">
+                       <div className="text-xs text-gray-300/90 mb-1.5 font-semibold uppercase tracking-wider">{zhtw.sandwichUi.summaryExisting}</div>
+                       <div className="text-xl sm:text-2xl font-extrabold text-gray-200 drop-shadow-lg">{preview.totalExisting}</div>
+                     </div>
                    </div>
-                   <div className="rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border-2 border-primary/40 p-4 text-center backdrop-blur-sm shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 transform hover:scale-105">
-                     <div className="text-xs text-primary/80 mb-1 font-medium">{zhtw.sandwichUi.summaryToMake}</div>
-                     <div className="text-2xl font-bold text-primary">{preview.baseTotalNeeded}</div>
+                   
+                   {/* 需要製作卡片 - 重點突出 */}
+                   <div className="group/card relative rounded-xl bg-gradient-to-br from-primary/25 via-purple-500/20 to-blue-500/25 border-2 border-primary/50 p-4 text-center backdrop-blur-md shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 transition-all duration-500 transform hover:scale-110 hover:-translate-y-1 overflow-hidden">
+                     {/* 發光背景 */}
+                     <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-50 group-hover/card:opacity-75 transition-opacity duration-500 animate-pulse-glow"></div>
+                     {/* 背景光暈 */}
+                     <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-xl blur-lg opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                     <div className="relative z-10">
+                       <div className="text-xs text-primary/90 mb-1.5 font-semibold uppercase tracking-wider">{zhtw.sandwichUi.summaryToMake}</div>
+                       <div className="text-2xl sm:text-3xl font-extrabold text-primary drop-shadow-lg">{preview.baseTotalNeeded}</div>
+                     </div>
                    </div>
                  </div>
                  
-                 <div>
-                   <label className="block text-sm font-medium text-gray-300 mb-2.5">
+                 <div className="relative z-10">
+                   <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
                      {zhtw.sandwich.existingHam}
                    </label>
                    <div className="relative group">
+                     {/* 輸入框光暈 */}
+                     <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-400/20 to-pink-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
                      <input
                        type="number"
-                       className="input-field w-full pr-12 py-3 bg-surface/60 border-2 border-white/10 focus:border-purple-400/50 focus:bg-surface/80 rounded-xl transition-all duration-300 text-base"
+                       className="relative w-full pl-4 pr-12 py-2.5 bg-surface/60 border-2 border-white/10 focus:border-purple-400/50 focus:bg-surface/80 rounded-xl transition-all duration-300 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400/30 shadow-lg hover:shadow-xl hover:shadow-purple-500/10"
                        placeholder={zhtw.sandwichUi.inputPlaceholderNumber}
                        min={0}
                        inputMode="numeric"
@@ -369,14 +572,17 @@ function SandwichCalculator() {
                    </div>
                 </div>
 
-                 <div>
-                   <label className="block text-sm font-medium text-gray-300 mb-2.5">
+                 <div className="relative z-10">
+                   <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
                      {zhtw.sandwich.existingSalami}
                    </label>
                    <div className="relative group">
+                     {/* 輸入框光暈 */}
+                     <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-400/20 to-blue-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
                      <input
                        type="number"
-                       className="input-field w-full pr-12 py-3 bg-surface/60 border-2 border-white/10 focus:border-indigo-400/50 focus:bg-surface/80 rounded-xl transition-all duration-300 text-base"
+                       className="relative w-full pl-4 pr-12 py-2.5 bg-surface/60 border-2 border-white/10 focus:border-indigo-400/50 focus:bg-surface/80 rounded-xl transition-all duration-300 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 shadow-lg hover:shadow-xl hover:shadow-indigo-500/10"
                        placeholder={zhtw.sandwichUi.inputPlaceholderNumber}
                        min={0}
                        inputMode="numeric"
@@ -392,35 +598,51 @@ function SandwichCalculator() {
                    </div>
                 </div>
 
-                 <div>
-                   <label className="block text-sm font-medium text-gray-300 mb-2.5">
+                 <div className="relative z-10">
+                   <label className="block text-sm font-medium text-gray-300 mb-2.5 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
                      {zhtw.sandwich.distribution}
                    </label>
-                   <div role="radiogroup" aria-label={zhtw.sandwich.distribution} className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                     {distributionMethods.map((method) => (
-                       <button
-                         key={method.value}
-                         role="radio"
-                         aria-checked={values.distribution === method.value}
-                         title={method.value === 'even' ? zhtw.sandwichUi.tooltipEven : method.value === 'ham' ? zhtw.sandwichUi.tooltipHam : zhtw.sandwichUi.tooltipSalami}
-                         onClick={() => setValues({
-                           ...values,
-                           distribution: method.value
-                         })}
-                         className={`px-4 py-3 rounded-xl transition-all duration-300 text-sm sm:text-base font-medium border-2 ${
-                           values.distribution === method.value
-                             ? 'bg-gradient-to-br from-primary/30 to-purple-500/30 border-primary/50 text-primary shadow-lg shadow-primary/20 transform scale-[1.02]'
-                             : 'bg-surface/40 hover:bg-surface/60 text-gray-300 border-white/10 hover:border-primary/30 hover:scale-[1.02]'
-                         }`}
-                       >
-                         <span>{method.label}</span>
-                       </button>
-                     ))}
+                   <div role="radiogroup" aria-label={zhtw.sandwich.distribution} className="grid grid-cols-3 gap-2.5">
+                     {distributionMethods.map((method) => {
+                       const isSelected = values.distribution === method.value
+                       return (
+                         <button
+                           key={method.value}
+                           role="radio"
+                           aria-checked={isSelected}
+                           title={method.value === 'even' ? zhtw.sandwichUi.tooltipEven : method.value === 'ham' ? zhtw.sandwichUi.tooltipHam : zhtw.sandwichUi.tooltipSalami}
+                           onClick={() => setValues({
+                             ...values,
+                             distribution: method.value
+                           })}
+                           className={`group/btn relative px-3 py-2.5 rounded-xl transition-all duration-500 text-sm font-bold border-2 overflow-hidden whitespace-nowrap ${
+                             isSelected
+                               ? 'bg-gradient-to-br from-primary/40 via-purple-500/30 to-blue-500/40 border-primary/60 text-white shadow-2xl shadow-primary/30 transform scale-[1.05]'
+                               : 'bg-gradient-to-br from-surface/40 to-surface/30 text-gray-300 border-white/10 hover:border-primary/40 hover:bg-surface/60 hover:scale-[1.02] hover:text-white'
+                           }`}
+                         >
+                           {/* 選中時的發光效果 */}
+                           {isSelected && (
+                             <>
+                               <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-50 animate-pulse-glow"></div>
+                               <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-xl blur-lg opacity-50"></div>
+                             </>
+                           )}
+                           <span className="relative z-10 flex items-center justify-center gap-1.5">
+                             {isSelected && (
+                               <CheckCircleIcon className="w-4 h-4 text-white" />
+                             )}
+                             <span>{method.label}</span>
+                           </span>
+                         </button>
+                       )
+                     })}
                    </div>
                  </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2.5">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     {zhtw.sandwich.extraBagsLabel}：<span className="text-primary font-bold">{values.extraBags}</span>
                   </label>
                   <div className="relative">
@@ -504,44 +726,122 @@ function SandwichCalculator() {
                  </div>
               </div>
             )}
+            </div>
           </div>
 
-           {/* 結果卡片 */}
-          <div className="card backdrop-blur-sm bg-gradient-to-br from-surface/80 to-surface/60 border border-white/20 shadow-xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
-                <ChartBarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+           {/* 結果卡片 - 超現代設計 */}
+          <div className="relative group">
+            {/* 卡片背景光暈 */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            
+            <div className="relative backdrop-blur-xl bg-gradient-to-br from-surface/90 via-surface/70 to-surface/90 border-2 border-white/20 rounded-2xl p-6 shadow-2xl hover:shadow-primary/20 transition-all duration-500 transform hover:-translate-y-1 overflow-hidden">
+              {/* 流動背景效果 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-purple-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
+              
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="relative group/icon">
+                  <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover/icon:bg-primary/30 transition-all duration-300"></div>
+                  <div className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/40 shadow-lg">
+                    <ChartBarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary transform group-hover/icon:scale-110 transition-transform duration-300" />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+                    {zhtw.sandwich.resultsTitle}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.resultsSubtitle}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold text-primary">{zhtw.sandwich.resultsTitle}</h2>
-                <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.resultsSubtitle}</p>
-              </div>
-            </div>
 
             {results ? (
-              <div className="space-y-4 animate-fade-in">
-                  <div className="bg-gradient-to-br from-purple-600/20 to-pink-500/20 rounded-xl p-5 border-2 border-purple-400/30 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
-                    <div className="text-3xl font-bold text-purple-200 mb-1">{results.totalHamNeeded}</div>
-                    <div className="text-sm text-purple-300/80 font-medium">{zhtw.sandwich.needHam}（{zhtw.sandwichUi.unitPiece}）</div>
+              <div className="space-y-4 relative z-10">
+                  {/* 火腿卡片 - 超現代設計 */}
+                  <div 
+                    ref={(el) => { 
+                      if (el) {
+                        resultCardsRef.current[0] = el
+                        el.style.opacity = '0'
+                        el.style.transform = 'translateY(30px) scale(0.9)'
+                      }
+                    }}
+                    className="group/card relative rounded-2xl bg-gradient-to-br from-purple-600/20 via-pink-500/15 to-purple-700/20 border-2 border-purple-400/30 p-6 shadow-xl hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-500 backdrop-blur-md transform hover:scale-105 hover:-translate-y-1 overflow-hidden"
+                  >
+                    {/* 發光背景 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-white/10 to-pink-500/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                      <div className="text-3xl sm:text-4xl font-extrabold text-purple-200 mb-2 drop-shadow-lg">{results.totalHamNeeded}</div>
+                      <div className="text-sm text-purple-300/90 font-semibold">{zhtw.sandwich.needHam}（{zhtw.sandwichUi.unitPiece}）</div>
+                    </div>
                   </div>
                  
-                  <div className="bg-gradient-to-br from-indigo-500/20 to-blue-500/20 rounded-xl p-5 border-2 border-indigo-400/30 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
-                    <div className="text-3xl font-bold text-indigo-200 mb-1">{results.totalSalamiNeeded}</div>
-                    <div className="text-sm text-indigo-300/80 font-medium">{zhtw.sandwich.needSalami}（{zhtw.sandwichUi.unitPiece}）</div>
+                  {/* 臘腸卡片 - 超現代設計 */}
+                  <div 
+                    ref={(el) => { 
+                      if (el) {
+                        resultCardsRef.current[1] = el
+                        el.style.opacity = '0'
+                        el.style.transform = 'translateY(30px) scale(0.9)'
+                      }
+                    }}
+                    className="group/card relative rounded-2xl bg-gradient-to-br from-indigo-500/20 via-blue-500/15 to-indigo-600/20 border-2 border-indigo-400/30 p-6 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/30 transition-all duration-500 backdrop-blur-md transform hover:scale-105 hover:-translate-y-1 overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-white/10 to-blue-500/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                      <div className="text-3xl sm:text-4xl font-extrabold text-indigo-200 mb-2 drop-shadow-lg">{results.totalSalamiNeeded}</div>
+                      <div className="text-sm text-indigo-300/90 font-semibold">{zhtw.sandwich.needSalami}（{zhtw.sandwichUi.unitPiece}）</div>
+                    </div>
                   </div>
                  
-                  <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-5 border-2 border-blue-400/30 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
-                    <div className="text-3xl font-bold text-blue-200 mb-1">{results.bagsNeeded}</div>
-                    <div className="text-sm text-blue-300/80 font-medium">{zhtw.sandwich.needBags}（{zhtw.sandwichUi.unitBag}）</div>
+                  {/* 麵包卡片 - 超現代設計 */}
+                  <div 
+                    ref={(el) => { 
+                      if (el) {
+                        resultCardsRef.current[2] = el
+                        el.style.opacity = '0'
+                        el.style.transform = 'translateY(30px) scale(0.9)'
+                      }
+                    }}
+                    className="group/card relative rounded-2xl bg-gradient-to-br from-blue-500/20 via-cyan-500/15 to-blue-600/20 border-2 border-blue-400/30 p-6 shadow-xl hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-500 backdrop-blur-md transform hover:scale-105 hover:-translate-y-1 overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-white/10 to-cyan-500/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                      <div className="text-3xl sm:text-4xl font-extrabold text-blue-200 mb-2 drop-shadow-lg">{results.bagsNeeded}</div>
+                      <div className="text-sm text-blue-300/90 font-semibold">{zhtw.sandwich.needBags}（{zhtw.sandwichUi.unitBag}）</div>
+                    </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-primary/30 to-purple-500/30 rounded-xl p-5 border-2 border-primary/50 shadow-xl hover:shadow-2xl transition-all duration-300 backdrop-blur-sm transform hover:scale-[1.02]">
-                    <div className="text-3xl font-bold text-primary mb-1">{results.totalHamNeeded + results.totalSalamiNeeded}</div>
-                    <div className="text-sm text-primary/90 font-medium">{zhtw.sandwich.totalNeed}（{zhtw.sandwichUi.unitPiece}）</div>
+                  {/* 總計卡片 - 超現代設計 */}
+                  <div 
+                    ref={(el) => { 
+                      if (el) {
+                        resultCardsRef.current[3] = el
+                        el.style.opacity = '0'
+                        el.style.transform = 'translateY(30px) scale(0.9)'
+                      }
+                    }}
+                    className="group/card relative rounded-2xl bg-gradient-to-br from-primary/30 via-purple-500/25 to-blue-500/30 border-2 border-primary/50 p-6 shadow-2xl hover:shadow-primary/40 transition-all duration-500 backdrop-blur-md transform hover:scale-110 hover:-translate-y-1 overflow-hidden"
+                  >
+                    {/* 發光背景 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-50 group-hover/card:opacity-75 transition-opacity duration-500 animate-pulse-glow"></div>
+                    {/* 背景光暈 */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-lg opacity-50 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                      <div className="text-4xl sm:text-5xl font-extrabold text-primary mb-2 drop-shadow-lg">{results.totalHamNeeded + results.totalSalamiNeeded}</div>
+                      <div className="text-sm text-primary/90 font-semibold">{zhtw.sandwich.totalNeed}（{zhtw.sandwichUi.unitPiece}）</div>
+                    </div>
                   </div>
 
                   {/* 容量與分配資訊 */}
-                  <div className="rounded-xl p-5 bg-gradient-to-br from-slate-700/30 to-slate-800/30 border-2 border-slate-600/30 space-y-2.5 backdrop-blur-sm shadow-lg">
+                  <div 
+                    ref={(el) => { 
+                      if (el) {
+                        resultCardsRef.current[4] = el
+                        el.style.opacity = '0'
+                        el.style.transform = 'translateY(30px) scale(0.9)'
+                      }
+                    }}
+                    className="rounded-xl p-5 bg-gradient-to-br from-slate-700/30 to-slate-800/30 border-2 border-slate-600/30 space-y-2.5 backdrop-blur-sm shadow-lg"
+                  >
                     <div className="text-base font-bold text-white mb-3 pb-2 border-b border-white/10">{zhtw.sandwichUi.capacityTitle}</div>
                     <div className="text-sm text-gray-300">
                       <span className="font-medium text-gray-400">{zhtw.sandwichUi.capacityFormula}：</span>
@@ -572,11 +872,12 @@ function SandwichCalculator() {
                   </div>
               </div>
             ) : (
-              <div className="text-center py-12 text-text-secondary">
+              <div className="text-center py-12 text-text-secondary relative z-10">
                 <CalculatorIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>{zhtw.sandwich.emptyHint}</p>
               </div>
             )}
+            </div>
           </div>
         </div>
 
