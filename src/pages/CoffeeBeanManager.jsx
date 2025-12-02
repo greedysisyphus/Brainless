@@ -1799,6 +1799,14 @@ function CoffeeBeanManager() {
         </div>
       </div>
 
+      {/* 浮動重量換算計算器按鈕 */}
+      <button
+        onClick={() => setShowWeightCalculator(true)}
+        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50 hover:scale-110 transform"
+      >
+        <CalculatorIcon className="w-6 h-6" />
+      </button>
+
       {/* 重量換算計算器彈窗 */}
               {showWeightCalculator && (
           <div 
