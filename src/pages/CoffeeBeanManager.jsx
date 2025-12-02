@@ -1015,7 +1015,7 @@ function CoffeeBeanManager() {
           </h1>
           
           {/* 副標題 */}
-          <p className="text-gray-400 text-sm sm:text-base font-medium px-4 mb-6 sm:mb-8">庫存管理與重量換算</p>
+          <p className="text-gray-400 text-sm sm:text-base font-medium px-4 mb-6 sm:mb-8">所以又到星期天</p>
         </div>
 
         {/* 操作按鈕區域 */}

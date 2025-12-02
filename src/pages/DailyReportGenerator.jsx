@@ -95,7 +95,7 @@ function DailyReportGenerator() {
           </h1>
           
           {/* 副標題 */}
-          <p className="text-gray-400 text-sm sm:text-base font-medium px-4">快速生成各分店的日報表</p>
+          <p className="text-gray-400 text-sm sm:text-base font-medium px-4">為了部落</p>
         </div>
 
         {/* 分店選擇 - 現代化分段控制器 */}
