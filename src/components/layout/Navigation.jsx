@@ -266,11 +266,11 @@ function Navigation() {
               </div>
                   <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm text-center leading-tight font-medium relative z-10 px-0.5">
                 {label}
-              </div>
+                  </div>
                   
-                  {/* 底部指示條 */}
+                  {/* 底部指示條 - 在按鈕容器底部 */}
                   {isActive && (
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-gradient-to-r from-primary to-purple-500 rounded-full animate-pulse-glow" />
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-primary rounded-b-lg sm:rounded-b-xl animate-pulse-glow" />
                   )}
                 </>
               )}

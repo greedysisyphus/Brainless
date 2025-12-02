@@ -8,6 +8,14 @@ export default defineConfig({
     port: 3001
   },
   build: {
-    outDir: 'docs'
+    outDir: 'docs',
+    rollupOptions: {
+      output: {
+        // 自動在文件名中加入 hash，這樣每次構建文件名都會改變
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
+      }
+    }
   }
 }) 
