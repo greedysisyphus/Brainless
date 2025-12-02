@@ -333,15 +333,77 @@ const CatSpeechBubble = () => {
   // 載入狀態
   if (isLoading) {
     return (
-      <button
-        onClick={() => setShowLogin(true)}
-        className="fixed top-4 right-4 z-50 w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100"
-        title="管理員登入 (Ctrl+Alt+A)"
-      >
-        <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-      </button>
+      <>
+        <button
+          onClick={() => setShowLogin(true)}
+          className="fixed top-4 right-4 z-[100] w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 touch-manipulation"
+          title="管理員登入 (Ctrl+Alt+A)"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </button>
+        {showLogin && (
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowLogin(false);
+              }
+            }}
+          >
+            <div 
+              className="bg-surface rounded-xl p-6 w-96 border border-primary/20 shadow-2xl max-w-[90vw]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold mb-4 text-white">管理員登入</h2>
+              <input
+                type="email"
+                placeholder="管理員信箱"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full mb-3 p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                onKeyPress={(e) => e.key === 'Enter' && !isLoggingIn && handleAdminLogin()}
+                autoFocus
+              />
+              <input
+                type="password"
+                placeholder="密碼"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full mb-4 p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                onKeyPress={(e) => e.key === 'Enter' && !isLoggingIn && handleAdminLogin()}
+              />
+              {loginError && (
+                <div className="text-red-400 text-sm mb-3 bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+                  {loginError}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAdminLogin}
+                  disabled={isLoggingIn}
+                  className="flex-1 bg-primary text-white p-3 rounded-lg hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  {isLoggingIn ? '登入中...' : '登入'}
+                </button>
+                <button
+                  onClick={() => setShowLogin(false)}
+                  disabled={isLoggingIn}
+                  className="flex-1 bg-white/10 text-white p-3 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50 touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
@@ -352,8 +414,9 @@ const CatSpeechBubble = () => {
         {/* 隱藏的登入按鈕 - 在頁面右上角 */}
         <button
           onClick={() => setShowLogin(true)}
-          className="fixed top-4 right-4 z-50 w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100"
+          className="fixed top-4 right-4 z-[100] w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 touch-manipulation"
           title="管理員登入 (Ctrl+Alt+A)"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -367,6 +430,67 @@ const CatSpeechBubble = () => {
             </div>
           </div>
         </div>
+        
+        {/* 登入對話框 */}
+        {showLogin && (
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowLogin(false);
+              }
+            }}
+          >
+            <div 
+              className="bg-surface rounded-xl p-6 w-96 border border-primary/20 shadow-2xl max-w-[90vw]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold mb-4 text-white">管理員登入</h2>
+              <input
+                type="email"
+                placeholder="管理員信箱"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full mb-3 p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                onKeyPress={(e) => e.key === 'Enter' && !isLoggingIn && handleAdminLogin()}
+                autoFocus
+              />
+              <input
+                type="password"
+                placeholder="密碼"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full mb-4 p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                onKeyPress={(e) => e.key === 'Enter' && !isLoggingIn && handleAdminLogin()}
+              />
+              {loginError && (
+                <div className="text-red-400 text-sm mb-3 bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+                  {loginError}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAdminLogin}
+                  disabled={isLoggingIn}
+                  className="flex-1 bg-primary text-white p-3 rounded-lg hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  {isLoggingIn ? '登入中...' : '登入'}
+                </button>
+                <button
+                  onClick={() => setShowLogin(false)}
+                  disabled={isLoggingIn}
+                  className="flex-1 bg-white/10 text-white p-3 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50 touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -374,15 +498,78 @@ const CatSpeechBubble = () => {
   // 如果沒有啟用或沒有對話內容，只顯示登入按鈕
   if (!showBubble || speechTexts.length === 0) {
     return (
-      <button
-        onClick={() => setShowLogin(true)}
-        className="fixed top-4 right-4 z-50 w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100"
-        title="管理員登入 (Ctrl+Alt+A)"
-      >
-        <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-      </button>
+      <>
+        <button
+          onClick={() => setShowLogin(true)}
+          className="fixed top-4 right-4 z-[100] w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 touch-manipulation"
+          title="管理員登入 (Ctrl+Alt+A)"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </button>
+        {/* 登入對話框 - 確保在所有情況下都能顯示 */}
+        {showLogin && (
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowLogin(false);
+              }
+            }}
+          >
+            <div 
+              className="bg-surface rounded-xl p-6 w-96 border border-primary/20 shadow-2xl max-w-[90vw]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold mb-4 text-white">管理員登入</h2>
+              <input
+                type="email"
+                placeholder="管理員信箱"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full mb-3 p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                onKeyPress={(e) => e.key === 'Enter' && !isLoggingIn && handleAdminLogin()}
+                autoFocus
+              />
+              <input
+                type="password"
+                placeholder="密碼"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full mb-4 p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                onKeyPress={(e) => e.key === 'Enter' && !isLoggingIn && handleAdminLogin()}
+              />
+              {loginError && (
+                <div className="text-red-400 text-sm mb-3 bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+                  {loginError}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAdminLogin}
+                  disabled={isLoggingIn}
+                  className="flex-1 bg-primary text-white p-3 rounded-lg hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  {isLoggingIn ? '登入中...' : '登入'}
+                </button>
+                <button
+                  onClick={() => setShowLogin(false)}
+                  disabled={isLoggingIn}
+                  className="flex-1 bg-white/10 text-white p-3 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50 touch-manipulation"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
@@ -391,8 +578,9 @@ const CatSpeechBubble = () => {
       {/* 隱藏的登入按鈕 - 在頁面右上角 */}
       <button
         onClick={() => setShowLogin(true)}
-        className="fixed top-4 right-4 z-50 w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100"
+        className="fixed top-4 right-4 z-[100] w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 touch-manipulation"
         title="管理員登入 (Ctrl+Alt+A)"
+        style={{ WebkitTapHighlightColor: 'transparent' }}
       >
         <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -450,8 +638,19 @@ const CatSpeechBubble = () => {
 
       {/* 管理員登入介面 */}
       {showLogin && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface rounded-xl p-6 w-96 border border-primary/20">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
+          onClick={(e) => {
+            // 點擊背景關閉對話框
+            if (e.target === e.currentTarget) {
+              setShowLogin(false);
+            }
+          }}
+        >
+          <div 
+            className="bg-surface rounded-xl p-6 w-96 border border-primary/20 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-xl font-bold mb-4 text-white">管理員登入</h2>
             <input
               type="email"

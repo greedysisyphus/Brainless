@@ -82,59 +82,7 @@ function SandwichCalculator() {
   const resultCardsRef = useRef([])
   const [animationKey, setAnimationKey] = useState(0) // 用於重置動畫狀態
   
-  // 分店選擇器滑動指示器
-  const storeSelectorRef = useRef(null)
-  const sliderRef = useRef(null)
-  
-  // 滑動指示器動畫
-  useEffect(() => {
-    if (!sliderRef.current || !storeSelectorRef.current) return
-
-    // 等待 DOM 更新完成
-    const timer = setTimeout(() => {
-      const buttons = storeSelectorRef.current.querySelectorAll('button')
-      const storeIndex = selectedStore === 'central' ? 0 : selectedStore === 'd7' ? 1 : 2
-      const button = buttons[storeIndex]
-      
-      if (button && sliderRef.current) {
-        const buttonRect = button.getBoundingClientRect()
-        const containerRect = storeSelectorRef.current.getBoundingClientRect()
-        const left = buttonRect.left - containerRect.left - 4
-        
-        // 使用 Anime.js 動畫
-        anime({
-          targets: sliderRef.current,
-          left: left,
-          duration: 400,
-          easing: 'spring(1, 80, 10, 0)'
-        })
-      }
-    }, 50) // 給 DOM 一點時間更新
-    
-    return () => clearTimeout(timer)
-  }, [selectedStore])
-  
-  // 初始化滑動指示器位置（只在組件掛載時執行一次）
-  useEffect(() => {
-    if (!sliderRef.current || !storeSelectorRef.current) return
-    
-    const timer = setTimeout(() => {
-      const buttons = storeSelectorRef.current.querySelectorAll('button')
-      const storeIndex = selectedStore === 'central' ? 0 : selectedStore === 'd7' ? 1 : 2
-      const button = buttons[storeIndex]
-      
-      if (button && sliderRef.current) {
-        const buttonRect = button.getBoundingClientRect()
-        const containerRect = storeSelectorRef.current.getBoundingClientRect()
-        const left = buttonRect.left - containerRect.left - 4
-        
-        // 初始化位置（無動畫）
-        sliderRef.current.style.left = `${left}px`
-      }
-    }, 100)
-    
-    return () => clearTimeout(timer)
-  }, []) // 只在組件掛載時執行
+  // 滑動指示器現在完全由 CSS 控制，無需 ref 或 JavaScript 計算
   
   // 將 results 持久化到 localStorage
   useEffect(() => {
@@ -365,27 +313,27 @@ function SandwichCalculator() {
   ]
   
   return (
-    <div className="container-custom py-8">
+    <div className="container-custom py-4 sm:py-6 md:py-8">
       <div className="max-w-6xl mx-auto">
           {/* 頁面標題 - 超現代設計 */}
-        <div className="text-center mb-10 relative">
-          {/* 背景動態光暈 */}
+        <div className="text-center mb-6 sm:mb-8 md:mb-10 relative">
+          {/* 背景動態光暈 - 移動設備縮小 */}
           <div className="absolute inset-0 flex justify-center -z-10">
-            <div className="w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-glow opacity-50"></div>
+            <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-glow opacity-50"></div>
           </div>
           
           {/* 圖標容器 - 3D 效果 */}
-          <div className="inline-flex items-center justify-center mb-6 relative group">
+          <div className="inline-flex items-center justify-center mb-4 sm:mb-5 md:mb-6 relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-purple-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
-            <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary/30 via-purple-500/30 to-blue-500/30 rounded-2xl border-2 border-primary/50 shadow-2xl shadow-primary/30 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 overflow-hidden">
+            <div className="relative inline-flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 bg-gradient-to-br from-primary/30 via-purple-500/30 to-blue-500/30 rounded-xl sm:rounded-2xl border-2 border-primary/50 shadow-2xl shadow-primary/30 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 overflow-hidden">
               {/* 流動背景 */}
               <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
-              <CalculatorIcon className="w-10 h-10 text-primary relative z-10 transform group-hover:scale-110 transition-transform duration-300" />
+              <CalculatorIcon className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 text-primary relative z-10 transform group-hover:scale-110 transition-transform duration-300" />
             </div>
           </div>
           
           {/* 標題 */}
-          <h1 className="text-4xl sm:text-5xl font-extrabold mb-3 relative">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-2 sm:mb-3 relative px-4">
             <span className="bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient">
               {zhtw.sandwich.title}
             </span>
@@ -396,34 +344,33 @@ function SandwichCalculator() {
           </h1>
           
           {/* 副標題 */}
-          <p className="text-gray-400 text-base font-medium">{zhtw.sandwich.subtitle}</p>
+          <p className="text-gray-400 text-sm sm:text-base font-medium px-4">{zhtw.sandwich.subtitle}</p>
         </div>
 
         {/* 分店選擇 - 現代化分段控制器 */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-              <BuildingStorefrontIcon className="w-5 h-5 text-primary" />
+        <div className="mb-6 sm:mb-7 md:mb-8">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
+            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg sm:rounded-xl border border-primary/20">
+              <BuildingStorefrontIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
-            <h2 className="text-lg font-bold text-primary">{zhtw.sandwich.selectStore}</h2>
+            <h2 className="text-base sm:text-lg font-bold text-primary">{zhtw.sandwich.selectStore}</h2>
           </div>
           
-          {/* 分段控制器容器 */}
-          <div 
-            ref={storeSelectorRef}
-            className="relative mx-auto max-w-2xl bg-surface/40 backdrop-blur-xl rounded-2xl p-1.5 border border-white/10 shadow-2xl"
-          >
-            {/* 滑動指示器 */}
+          {/* 分段控制器容器 - 簡化設計，優化性能 */}
+          <div className="relative mx-auto max-w-2xl bg-surface/60 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 border border-white/10">
+            {/* 滑動指示器 - 純 CSS 動畫，極簡實現 */}
             <div
-              ref={sliderRef}
-              className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 shadow-lg shadow-primary/30"
+              className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 transition-[transform] duration-200 ease-out"
               style={{
-                width: `calc(33.333% - 4px)`,
-                left: '4px' // 初始位置，由 Anime.js 控制動畫
+                width: 'calc(33.333% - 4px)',
+                left: '4px',
+                transform: selectedStore === 'central' ? 'translateX(0%)' :
+                          selectedStore === 'd7' ? 'translateX(100%)' :
+                          'translateX(200%)'
               }}
             />
             
-            {/* 選項按鈕 */}
+            {/* 選項按鈕 - 簡化動畫效果 */}
             <div className="relative grid grid-cols-3 gap-1.5">
               {stores.map((store, index) => {
                 const isSelected = selectedStore === store.value
@@ -433,27 +380,30 @@ function SandwichCalculator() {
                     onClick={() => setSelectedStore(store.value)}
                     className={`
                       relative z-10
-                      px-4 py-4 sm:px-6 sm:py-5
-                      rounded-xl
-                      font-bold text-sm sm:text-base
-                      transition-all duration-300
-                      transform
+                      px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5
+                      rounded-lg sm:rounded-xl
+                      font-bold text-xs sm:text-sm md:text-base
+                      transition-colors duration-200
                       ${isSelected 
-                        ? 'text-white scale-[1.02]' 
-                        : 'text-gray-300 hover:text-white hover:scale-[1.01]'
+                        ? 'text-white' 
+                        : 'text-gray-300 active:text-white'
                       }
                     `}
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation'
+                    }}
                   >
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       {isSelected && (
-                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50" />
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full shadow-sm" />
                       )}
                       <span className="tracking-wide">{store.label}</span>
                     </span>
                     
-                    {/* 選中時的發光效果 */}
+                    {/* 選中時的背景效果 - 簡化版本 */}
                     {isSelected && (
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 animate-pulse-glow opacity-50" />
+                      <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-100" />
                     )}
                   </button>
                 )
@@ -462,7 +412,7 @@ function SandwichCalculator() {
           </div>
         </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
           {/* 計算卡片 - 超現代設計 */}
           <div className="relative group">
             {/* 卡片背景光暈 */}
@@ -472,25 +422,26 @@ function SandwichCalculator() {
               {/* 流動背景效果 */}
               <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-purple-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
               
-              <div className="flex items-center justify-between mb-6 relative z-10">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6 relative z-10">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div className="relative group/icon">
-                    <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover/icon:bg-primary/30 transition-all duration-300"></div>
-                    <div className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/40 shadow-lg">
-                      <CalculatorIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary transform group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300" />
+                    <div className="absolute inset-0 bg-primary/20 rounded-lg sm:rounded-xl blur-lg group-hover/icon:bg-primary/30 transition-all duration-300"></div>
+                    <div className="relative p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/40 shadow-lg">
+                      <CalculatorIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary transform group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300" />
                     </div>
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+                    <h2 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
                       {zhtw.sandwich.inputsTitle}
                     </h2>
-                    <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.inputsSubtitle}</p>
+                    <p className="text-[10px] sm:text-xs md:text-sm text-text-secondary">{zhtw.sandwich.inputsSubtitle}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowSettings(true)}
-                  className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 hover:from-primary/30 hover:to-purple-500/30 border border-primary/40 text-primary transition-all duration-300 hover:scale-110 hover:rotate-90 hover:shadow-lg hover:shadow-primary/30"
+                  className="relative p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 hover:from-primary/30 hover:to-purple-500/30 border border-primary/40 text-primary transition-all duration-300 hover:scale-110 hover:rotate-90 hover:shadow-lg hover:shadow-primary/30 touch-manipulation"
                   title={zhtw.settings.title}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <Cog6ToothIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>

@@ -427,7 +427,7 @@ const CustomRuleManager = ({
       // 將對話ID添加到排除列表
       setExcludedDialogueIds(prev => new Set([...prev, dialogueId]));
       // 同時從排序列表中移除
-      setSortedDialogues(prev => prev.filter((_, i) => i !== index));
+    setSortedDialogues(prev => prev.filter((_, i) => i !== index));
     }
   };
 

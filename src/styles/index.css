@@ -23,14 +23,14 @@
   }
 
   .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8;
   }
   
   .input-field {
     @apply bg-surface/50 border border-white/10 
            rounded-lg px-4 py-2 text-text-primary
            focus:border-primary focus:ring-2 focus:ring-primary/50
-           hover:border-white/20 transition-all duration-300
+           transition-colors duration-300
            placeholder:text-text-secondary/50;
   }
 
@@ -98,512 +98,409 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
-  /* 漸變標題 */
-  .gradient-text {
-    @apply font-bold bg-gradient-to-r from-primary via-purple-500 to-secondary 
-           bg-clip-text text-transparent animate-gradient;
+  /* 滑入動畫 */
+  .animate-slide-in {
+    animation: slideIn 0.5s ease-out;
   }
 
-  /* 閃光按鈕效果 */
-  .btn-primary {
-    @apply relative overflow-hidden;
+  @keyframes slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 
-  /* 卡片進入動畫 */
-  .animate-fade-in-up {
-    animation: fadeInUp 0.6s ease-out;
+  /* 脈衝發光動畫 */
+  .animate-pulse-glow {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
   }
 
-  /* 價格變化動畫 */
-  .animate-price-change {
-    animation: priceChange 0.5s ease-in-out;
+  /* 漸變動畫 */
+  .animate-gradient {
+    animation: gradient-shift 3s ease infinite alternate;
   }
 
-  @keyframes priceChange {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.1);
-      color: theme('colors.green.400');
-    }
-    100% {
-      transform: scale(1);
-    }
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
   }
 
-  .btn-primary::after {
-    @apply absolute inset-0 bg-gradient-to-r from-transparent 
-           via-white/20 to-transparent -translate-x-full;
-    content: '';
-    animation: shimmer 2s infinite;
-  }
-
-  .logo {
-    @apply transition-all duration-500;
-    /* 旋轉懸停效果 */
-    &:hover {
-      @apply transform rotate-[360deg];
-    }
-  }
-
-  /* 呼吸光效果 */
-  .logo-glow {
-    @apply transition-all duration-1000;
-    animation: logo-pulse 3s infinite;
-  }
-
-  /* 漂浮效果 */
+  /* Logo 浮動動畫 */
   .logo-float {
     animation: float 3s ease-in-out infinite;
   }
 
-  .btn-icon {
-    @apply p-2 rounded-lg text-text-secondary 
-           hover:bg-white/10 transition-colors
-           focus:outline-none focus:ring-2 focus:ring-primary;
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0px); }
   }
-}
 
-/* 自定義滾動條 */
-::-webkit-scrollbar {
-  @apply w-2;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-surface/50 rounded;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply rounded transition-all duration-300;
-  background: linear-gradient(to bottom, theme('colors.primary'), theme('colors.secondary'));
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, theme('colors.purple.500'), theme('colors.indigo.500'));
-}
-
-/* 自定義滾動條樣式 */
-.custom-scrollbar::-webkit-scrollbar {
-  @apply w-2;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-surface/30 rounded-full;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply rounded-full transition-all duration-300;
-  background: linear-gradient(to bottom, theme('colors.primary'), theme('colors.secondary'));
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, theme('colors.purple.500'), theme('colors.indigo.500'));
-}
-
-/* 動畫 */
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
+  /* Logo 發光動畫 */
+  .logo-glow {
+    filter: drop-shadow(0 0 5px theme('colors.primary')) drop-shadow(0 0 10px theme('colors.primary')/50);
+    transition: filter 0.3s ease-in-out;
   }
-}
 
-@keyframes glow {
-  0% { box-shadow: 0 0 5px theme('colors.primary'), 0 0 10px theme('colors.primary'); }
-  100% { box-shadow: 0 0 20px theme('colors.primary'), 0 0 30px theme('colors.primary'); }
-}
-
-.animate-glow {
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes logo-pulse {
-  0%, 100% { 
-    filter: drop-shadow(0 0 0.5rem theme('colors.primary')); 
+  .logo-glow:hover {
+    filter: drop-shadow(0 0 8px theme('colors.primary')) drop-shadow(0 0 15px theme('colors.primary')/70);
   }
-  50% { 
-    filter: drop-shadow(0 0 1.5rem theme('colors.secondary')); 
+
+  /* 3D 旋轉效果 */
+  .perspective-1000 {
+    perspective: 1000px;
   }
-}
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
+  .transform-style-preserve-3d {
+    transform-style: preserve-3d;
   }
-  50% {
-    transform: translateY(-10px);
+
+  .rotate-y-12 {
+    transform: rotateY(12deg);
   }
-}
 
-/* 3D 視圖相關樣式 */
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-.transform-style-preserve-3d {
-  transform-style: preserve-3d;
-}
-
-.rotate-y-12 {
-  transform: rotateY(12deg);
-}
-
-.rotate-y-6 {
-  transform: rotateY(6deg);
-}
-
-/* 時間軸動畫 */
-@keyframes timeline-pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
+  .rotate-y-6 {
+    transform: rotateY(6deg);
   }
-  50% {
+
+  /* 時間軸動畫 */
+  @keyframes timeline-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.8;
+    }
+  }
+
+  .timeline-point {
+    animation: timeline-pulse 2s ease-in-out infinite;
+  }
+
+  /* 3D 卡片懸停效果 */
+  .group:hover .group-hover\\:rotate-y-12 {
+    transform: rotateY(12deg);
+  }
+
+  .group:hover .group-hover\\:scale-110 {
     transform: scale(1.1);
-    opacity: 0.8;
   }
-}
 
-.timeline-point {
-  animation: timeline-pulse 2s ease-in-out infinite;
-}
+  .group:hover .group-hover\\:shadow-xl {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  } 
 
-/* 3D 卡片懸停效果 */
-.group:hover .group-hover\:rotate-y-12 {
-  transform: rotateY(12deg);
-}
+  /* 圖表響應式設計 */
+  @media (max-width: 640px) {
+    .x-axis-responsive .recharts-xAxis .recharts-text {
+      font-size: 10px !important;
+      transform: rotate(-45deg);
+      transform-origin: bottom right;
+      text-anchor: end;
+    }
+    
+    .recharts-tooltip-wrapper {
+      font-size: 12px !important;
+      max-width: 200px !important;
+    }
+    
+    .recharts-legend-wrapper {
+      font-size: 12px !important;
+      margin-top: 10px !important;
+    }
+    
+    .recharts-cartesian-axis-tick-value {
+      font-size: 10px !important;
+    }
+    
+    /* 統計卡片響應式優化 */
+    .stat-card-mobile {
+      @apply p-3 text-sm;
+    }
+    
+    .stat-card-mobile .stat-title {
+      @apply text-sm font-semibold;
+    }
+    
+    .stat-card-mobile .stat-value {
+      @apply text-lg font-bold;
+    }
+    
+    /* 彈窗響應式優化 */
+    .modal-mobile {
+      @apply max-h-[98vh] p-4 mx-2;
+    }
+    
+    .modal-content-mobile {
+      @apply max-w-full p-4;
+    }
+    
+    /* 搭班統計表移動端優化 */
+    .overlap-table-mobile {
+      @apply text-xs;
+    }
+    
+    .overlap-table-mobile th,
+    .overlap-table-mobile td {
+      @apply p-1.5;
+    }
 
-.group:hover .group-hover\:scale-110 {
-  transform: scale(1.1);
-}
+    /* 移動設備全局優化 */
+    .container-custom {
+      @apply px-3;
+    }
+    
+    /* 移動設備卡片優化 */
+    .card {
+      @apply p-4;
+    }
+    
+    /* 移動設備輸入框優化 */
+    input[type="number"],
+    input[type="text"],
+    select {
+      font-size: 16px !important; /* 防止 iOS Safari 自動縮放 */
+    }
+    
+    /* 移動設備按鈕優化 */
+    button {
+      min-height: 44px; /* Apple 推薦的最小觸控區域 */
+    }
+  }
 
-.group:hover .group-hover\:shadow-xl {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-} 
+  /* iPad 響應式設計 */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .x-axis-responsive .recharts-xAxis .recharts-text {
+      font-size: 11px !important;
+    }
+    
+    .recharts-tooltip-wrapper {
+      font-size: 13px !important;
+      max-width: 250px !important;
+    }
+    
+    .recharts-legend-wrapper {
+      font-size: 13px !important;
+      margin-top: 15px !important;
+    }
+    
+    /* iPad 統計卡片優化 */
+    .stat-card-tablet {
+      @apply p-4;
+    }
+    
+    .stat-card-tablet .stat-title {
+      @apply text-base font-semibold;
+    }
+    
+    .stat-card-tablet .stat-value {
+      @apply text-xl font-bold;
+    }
+    
+    /* iPad 彈窗優化 */
+    .modal-tablet {
+      @apply max-h-[95vh] p-6 mx-4;
+    }
+    
+    .modal-content-tablet {
+      @apply max-w-4xl p-6;
+    }
+  }
 
-/* 圖表響應式設計 */
-@media (max-width: 640px) {
-  .x-axis-responsive .recharts-xAxis .recharts-text {
-    font-size: 10px !important;
-    transform: rotate(-45deg);
-    transform-origin: bottom right;
-    text-anchor: end;
+  /* 大螢幕響應式設計 */
+  @media (min-width: 1280px) {
+    .stat-card-desktop {
+      @apply p-6;
+    }
+    
+    .stat-card-desktop .stat-title {
+      @apply text-lg font-semibold;
+    }
+    
+    .stat-card-desktop .stat-value {
+      @apply text-2xl font-bold;
+    }
+    
+    .modal-desktop {
+      @apply max-h-[90vh] p-8;
+    }
+    
+    .modal-content-desktop {
+      @apply max-w-5xl p-8;
+    }
+  }
+
+  /* 隱藏滾動條（用於 Navigation 水平滾動） */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* 觸控優化 */
+  @media (hover: none) and (pointer: coarse) {
+    /* 觸控設備優化 */
+    .touch-optimized {
+      @apply min-h-[44px] min-w-[44px];
+    }
+    
+    .touch-button {
+      @apply p-3 rounded-lg;
+    }
+    
+    .touch-card {
+      @apply p-4 rounded-xl;
+    }
+    
+    /* 觸控友好的間距 */
+    .touch-spacing > * + * {
+      @apply mt-4;
+    }
+    
+    /* 觸控友好的滾動 */
+    .touch-scroll {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    
+    /* 移動設備按鈕優化 */
+    button, a {
+      @apply min-h-[44px];
+    }
+    
+    /* 移動設備輸入框優化 */
+    input, select, textarea {
+      @apply min-h-[44px] text-base;
+    }
+  }
+
+  /* 高解析度螢幕優化 */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .high-dpi-optimized {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  }
+
+  /* 深色模式優化 */
+  @media (prefers-color-scheme: dark) {
+    .dark-mode-optimized {
+      @apply bg-gray-900 text-gray-100;
+    }
+  }
+
+  /* 減少動畫優化 */
+  @media (prefers-reduced-motion: reduce) {
+    .reduce-motion {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* 咖啡豆管理工具：禁用所有 hover 變大效果 - 最高優先級 */
+  /* 覆蓋 .card 類的所有 hover 變大效果 */
+  .coffee-bean-container .card,
+  .coffee-bean-container .card.no-hover-scale {
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  .coffee-bean-container .card:hover,
+  .coffee-bean-container .card.no-hover-scale:hover {
+    transform: none !important !important;
+    scale: 1 !important !important;
+    translate: none !important !important;
+    -webkit-transform: none !important !important;
+    -moz-transform: none !important !important;
+    -ms-transform: none !important !important;
+    -o-transform: none !important !important;
+    will-change: auto !important;
   }
   
-  .recharts-tooltip-wrapper {
-    font-size: 12px !important;
-    max-width: 200px !important;
+  /* 強制覆蓋 Tailwind 的 hover:scale 類 */
+  .coffee-bean-container .card[class*="hover"]:hover {
+    transform: none !important !important;
+    scale: 1 !important !important;
+  }
+
+  .coffee-bean-container [class*="bg-gradient-to-br"] {
+    transform: none !important;
+  }
+
+  .coffee-bean-container [class*="bg-gradient-to-br"]:hover {
+    transform: none !important;
+    scale: 1 !important;
+  }
+
+  .coffee-bean-container input {
+    transform: none !important;
+    scale: 1 !important;
+  }
+
+  .coffee-bean-container input:hover {
+    transform: none !important;
+    scale: 1 !important;
+  }
+
+  .coffee-bean-container input:focus {
+    transform: none !important;
+    scale: 1 !important;
+  }
+
+  .coffee-bean-container input:focus:hover {
+    transform: none !important;
+    scale: 1 !important;
+  }
+
+  /* 禁用輸入框和卡片的 hover 變大效果（但允許標題圖示動畫） */
+  .coffee-bean-container input,
+  .coffee-bean-container input:hover,
+  .coffee-bean-container input:focus {
+    transform: none !important;
+    scale: 1 !important;
+  }
+
+  .coffee-bean-container [class*="bg-gradient-to-br"]:hover:not(.text-center *) {
+    transform: none !important;
+    scale: 1 !important;
   }
   
-  .recharts-legend-wrapper {
-    font-size: 12px !important;
-    margin-top: 10px !important;
+  /* 明確排除標題圖示區域，允許所有動畫 - 使用特殊類名 */
+  .coffee-bean-container .title-icon-group,
+  .coffee-bean-container .title-icon-group:hover,
+  .coffee-bean-container .title-icon-group > div,
+  .coffee-bean-container .title-icon-group:hover > div,
+  .coffee-bean-container .title-icon-group > div > svg,
+  .coffee-bean-container .title-icon-group:hover > div > svg {
+    transform: revert !important;
+    transition-property: all !important;
   }
   
-  .recharts-cartesian-axis-tick-value {
-    font-size: 10px !important;
+  /* 確保標題圖示的 hover 動畫正常工作 */
+  .coffee-bean-container .title-icon-group:hover > div[class*="transform"] {
+    transform: scale(1.1) rotate(6deg) !important;
   }
   
-  /* 統計卡片響應式優化 */
-  .stat-card-mobile {
-    @apply p-3 text-sm;
-  }
-  
-  .stat-card-mobile .stat-title {
-    @apply text-sm font-semibold;
-  }
-  
-  .stat-card-mobile .stat-value {
-    @apply text-lg font-bold;
-  }
-  
-  /* 彈窗響應式優化 */
-  .modal-mobile {
-    @apply max-h-[98vh] p-4 mx-2;
-  }
-  
-  .modal-content-mobile {
-    @apply max-w-full p-4;
-  }
-  
-  /* 搭班統計表移動端優化 */
-  .overlap-table-mobile {
-    @apply text-xs;
-  }
-  
-  .overlap-table-mobile th,
-  .overlap-table-mobile td {
-    @apply p-1.5;
+  .coffee-bean-container .title-icon-group:hover svg[class*="transform"] {
+    transform: scale(1.1) !important;
   }
 }
 
-/* iPad 響應式設計 */
-@media (min-width: 641px) and (max-width: 1024px) {
-  .x-axis-responsive .recharts-xAxis .recharts-text {
-    font-size: 11px !important;
-  }
-  
-  .recharts-tooltip-wrapper {
-    font-size: 13px !important;
-    max-width: 250px !important;
-  }
-  
-  .recharts-legend-wrapper {
-    font-size: 13px !important;
-    margin-top: 15px !important;
-  }
-  
-  /* iPad 統計卡片優化 */
-  .stat-card-tablet {
-    @apply p-4;
-  }
-  
-  .stat-card-tablet .stat-title {
-    @apply text-base font-semibold;
-  }
-  
-  .stat-card-tablet .stat-value {
-    @apply text-xl font-bold;
-  }
-  
-  /* iPad 彈窗優化 */
-  .modal-tablet {
-    @apply max-h-[95vh] p-6 mx-4;
-  }
-  
-  .modal-content-tablet {
-    @apply max-w-4xl p-6;
-  }
-}
-
-/* 大螢幕響應式設計 */
-@media (min-width: 1280px) {
-  .stat-card-desktop {
-    @apply p-6;
-  }
-  
-  .stat-card-desktop .stat-title {
-    @apply text-lg font-semibold;
-  }
-  
-  .stat-card-desktop .stat-value {
-    @apply text-2xl font-bold;
-  }
-  
-  .modal-desktop {
-    @apply max-h-[90vh] p-8;
-  }
-  
-  .modal-content-desktop {
-    @apply max-w-5xl p-8;
-  }
-}
-
-/* 觸控優化 */
-@media (hover: none) and (pointer: coarse) {
-  /* 觸控設備優化 */
-  .touch-optimized {
-    @apply min-h-[44px] min-w-[44px];
-  }
-  
-  .touch-button {
-    @apply p-3 rounded-lg;
-  }
-  
-  .touch-card {
-    @apply p-4 rounded-xl;
-  }
-  
-  /* 觸控友好的間距 */
-  .touch-spacing > * + * {
-    @apply mt-4;
-  }
-  
-  /* 觸控友好的滾動 */
-  .touch-scroll {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-}
-
-/* 高解析度螢幕優化 */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .high-dpi-optimized {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-  }
-}
-
-/* 深色模式優化 */
-@media (prefers-color-scheme: dark) {
-  .dark-mode-optimized {
-    @apply bg-gray-900 text-gray-100;
-  }
-}
-
-/* 減少動畫優化 */
-@media (prefers-reduced-motion: reduce) {
-  .reduce-motion {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Anime.js 風格增強動畫 */
-
-/* 流暢的滑入動畫 */
-@keyframes slideInFromBottom {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.animate-slide-in {
-  animation: slideInFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* 彈性動畫 */
-@keyframes bounceIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.3) translateY(-50px);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05) translateY(0);
-  }
-  70% {
-    transform: scale(0.95);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.animate-bounce-in {
-  animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-}
-
-/* 漸變動畫 */
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
-}
-
-/* 發光脈衝動畫 */
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3),
-                0 0 40px rgba(139, 92, 246, 0.2),
-                0 0 60px rgba(139, 92, 246, 0.1);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5),
-                0 0 60px rgba(139, 92, 246, 0.3),
-                0 0 90px rgba(139, 92, 246, 0.2);
-  }
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* 旋轉光暈 */
-@keyframes rotate-glow {
-  0% {
-    filter: hue-rotate(0deg) brightness(1);
-  }
-  100% {
-    filter: hue-rotate(360deg) brightness(1.2);
-  }
-}
-
-.animate-rotate-glow {
-  animation: rotate-glow 4s linear infinite;
-}
-
-/* 波紋效果 */
-@keyframes ripple {
-  0% {
-    transform: scale(0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-
-.ripple-effect {
-  position: relative;
-  overflow: hidden;
-}
-
-.ripple-effect::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  width: 100px;
-  height: 100px;
-  margin-top: -50px;
-  margin-left: -50px;
-  top: 50%;
-  left: 50%;
-  opacity: 0;
-  transform: scale(0);
-  transition: transform 0.6s, opacity 0.6s;
-}
-
-.ripple-effect:active::after {
-  animation: ripple 0.6s ease-out;
-}
-
-/* 平滑滾動 */
-html {
-  scroll-behavior: smooth;
-}
-
-/* 滾動時淡入效果 */
+/* 動畫關鍵幀 */
 @keyframes fadeInOnScroll {
   from {
     opacity: 0;

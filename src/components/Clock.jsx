@@ -58,16 +58,17 @@ function Clock() {
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="text-text-secondary">
+    <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm flex-wrap justify-center">
+      <span className="text-text-secondary whitespace-nowrap">
         {countdownType === 'workEnd' 
-          ? `${shift === 'morning' ? '早班' : '晚班'}離下班還有 ` 
-          : '早班離上班還有 '}
+          ? `${shift === 'morning' ? '早班' : '晚班'}離下班還有` 
+          : '早班離上班還有'}
       </span>
       <span className={`
-        font-medium px-3 py-1 rounded-full
+        font-medium px-2 sm:px-3 py-0.5 sm:py-1 rounded-full
         ${getTimeStyle(countdown)}
         transition-all duration-300
+        whitespace-nowrap
       `}>
         {formatCountdown(countdown)}
       </span>

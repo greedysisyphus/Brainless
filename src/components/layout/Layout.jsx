@@ -13,18 +13,18 @@ function Layout({ children }) {
       
       {/* 內容層 */}
       <div className="relative z-10">
-        {/* 頁首 - 最高層次 */}
-        <Header />
-        
-        {/* 導航 - 第二層次 */}
-        <Navigation />
-        
-        {/* 主要內容 - 第三層次 */}
-        <main className="py-6">
-          <div className="container-custom">
-            {children}
-          </div>
-        </main>
+      {/* 頁首 - 最高層次 */}
+      <Header />
+      
+      {/* 導航 - 第二層次 */}
+      <Navigation />
+      
+      {/* 主要內容 - 第三層次 */}
+      <main className="py-4 sm:py-5 md:py-6">
+        <div className="container-custom">
+          {children}
+        </div>
+      </main>
       </div>
     </div>
   )

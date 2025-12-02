@@ -3,11 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 const months = [31,28,31,30,31,30,31,31,30,31,30,31];
-const templatePath = path.join(__dirname, '../public/reports/template.numbers');
+// 使用新的中央店模板
+const templatePath = path.join(__dirname, '../public/reports/Central_temple.numbers');
 const outDir = path.join(__dirname, '../public/reports');
 
 if (!fs.existsSync(templatePath)) {
-  console.error('找不到 template.numbers');
+  console.error('找不到 Central_temple.numbers');
   process.exit(1);
 }
 const template = fs.readFileSync(templatePath);
@@ -25,4 +26,5 @@ const template = fs.readFileSync(templatePath);
     fs.writeFileSync(path.join(outDir, zipName), content);
     console.log(`已產生: ${zipName}`);
   }
+  console.log('所有中央店報表已生成完成！');
 })();

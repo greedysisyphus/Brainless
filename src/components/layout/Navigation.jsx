@@ -197,19 +197,20 @@ function Navigation() {
   }
 
   return (
-    <nav className="bg-surface/60 backdrop-blur-xl sticky top-0 z-50 shadow-xl border-b border-white/10">
-      <div className="container-custom py-2 sm:py-4">
+    <nav className="bg-surface/60 backdrop-blur-xl sticky top-0 z-50 shadow-xl border-b border-white/10 overflow-visible">
+      <div className="container-custom py-2 sm:py-3 md:py-4 overflow-visible">
         {/* 錯誤提示 */}
         {error && (
-          <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 animate-slide-in">
+          <div className="mb-3 sm:mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 sm:p-3 animate-slide-in">
             <div className="flex items-center gap-2">
-              <div className="text-amber-500">⚠️</div>
-              <p className="text-amber-400 text-sm">{error}</p>
+              <div className="text-amber-500 text-sm sm:text-base">⚠️</div>
+              <p className="text-amber-400 text-xs sm:text-sm">{error}</p>
             </div>
           </div>
         )}
 
-        <div className="flex justify-center gap-2 sm:gap-4 flex-wrap">
+        {/* 全部在同一排顯示，不換行 - 確保邊框完整顯示 */}
+        <div className="flex justify-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 flex-nowrap overflow-x-auto overflow-y-visible scrollbar-hide py-1">
           {allMenuItems.map(({ path, label, icon }, index) => (
             <NavLink
               key={path}
@@ -218,31 +219,36 @@ function Navigation() {
                 if (el) navItemsRef.current[index] = el
               }}
               onMouseEnter={(e) => {
-                // 懸停時的微動畫
-                anime({
-                  targets: e.currentTarget,
-                  scale: 1.05,
-                  rotateZ: [0, -3, 3, 0],
-                  duration: 300,
-                  easing: 'easeOutElastic(1, .6)'
-                })
+                // 懸停時的微動畫（僅桌面）
+                if (window.innerWidth >= 640) {
+                  anime({
+                    targets: e.currentTarget,
+                    scale: 1.05,
+                    rotateZ: [0, -3, 3, 0],
+                    duration: 300,
+                    easing: 'easeOutElastic(1, .6)'
+                  })
+                }
               }}
               className={({ isActive }) => `
                 group relative
-                flex flex-col items-center
-                w-[5.5rem] sm:w-28
-                min-h-[4.5rem] sm:min-h-20
-                p-2 sm:p-3
-                rounded-xl
+                flex flex-col items-center justify-center
+                flex-shrink-0
+                w-[3.5rem] sm:w-[4rem] md:w-[4.5rem] lg:w-28
+                min-h-[3rem] sm:min-h-[3.5rem] md:min-h-[4rem] lg:min-h-20
+                p-1 sm:p-1.5 md:p-2 lg:p-3
+                rounded-lg sm:rounded-xl
                 transition-all duration-300
                 opacity-0
+                touch-manipulation
                 ${isActive 
                   ? 'text-primary bg-gradient-to-br from-primary/20 to-purple-500/20 shadow-lg shadow-primary/20 scale-105' 
-                  : 'text-text-secondary hover:text-text-primary hover:bg-white/10'
+                  : 'text-text-secondary active:text-text-primary active:bg-white/10'
                 }
-                hover:shadow-xl hover:shadow-primary/10
-                border border-white/5 hover:border-primary/30
+                active:shadow-xl active:shadow-primary/10
+                border border-white/5 active:border-primary/30
               `}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               {({ isActive }) => (
                 <>
@@ -251,16 +257,16 @@ function Navigation() {
                     <div className="absolute inset-0 rounded-xl bg-primary/10 animate-pulse-glow opacity-50" />
                   )}
                   
-                  <div className={`mb-1.5 sm:mb-2 relative z-10 transition-all duration-300 ${
+                  <div className={`mb-0.5 sm:mb-1 md:mb-1.5 lg:mb-2 relative z-10 transition-all duration-300 ${
                     isActive ? 'scale-110' : 'group-hover:scale-110'
                   }`}>
-                    {React.cloneElement(icon, { 
-                      className: "w-6 h-6 sm:w-7 sm:h-7 transition-transform duration-300" 
-                    })}
-                  </div>
-                  <div className="text-xs sm:text-sm text-center leading-tight font-medium relative z-10">
-                    {label}
-                  </div>
+                {React.cloneElement(icon, { 
+                      className: "w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 transition-transform duration-300" 
+                })}
+              </div>
+                  <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm text-center leading-tight font-medium relative z-10 px-0.5">
+                {label}
+              </div>
                   
                   {/* 底部指示條 */}
                   {isActive && (

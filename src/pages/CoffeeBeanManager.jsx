@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
-import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline'
+import { db } from '../utils/firebase'
+import { doc, onSnapshot, setDoc } from 'firebase/firestore'
+import { useLocalStorage } from '../hooks/useLocalStorage'
 
 // 咖啡豆種類定義
 const BEAN_TYPES = {
@@ -66,6 +69,9 @@ function CoffeeBeanManager() {
   // 重量換算狀態
   const [weightMode, setWeightMode] = useState('bag') // 'bag' 或 'ikea'
   
+  // 重量計算器店鋪選擇
+  const [selectedWeightStore, setSelectedWeightStore] = useState('central') // 'central', 'd7', 'd13'
+  
   // 快速輸入模式狀態
   const [quickInputMode, setQuickInputMode] = useState(false)
   const [quickInputData, setQuickInputData] = useState({})
@@ -73,22 +79,26 @@ function CoffeeBeanManager() {
   // 區域指示器狀態
   const [currentSection, setCurrentSection] = useState('brewing')
   
+  // 當前可見的子分類標題（用於顯示在頂部固定欄）
+  const [currentSubSection, setCurrentSubSection] = useState(null) // 'pourOver', 'espresso', null
+  
   // 匯出模式狀態
   const [exportMode, setExportMode] = useState('original') // 'original'、'minimalist' 或 'web-consistent'
   
-  const [weightSettings, setWeightSettings] = useState(() => {
-    // 在初始化時就從 localStorage 讀取
-    const savedSettings = localStorage.getItem('coffeeBeanWeightSettings')
-    if (savedSettings) {
-      try {
-        return JSON.parse(savedSettings)
-      } catch (e) {
-        console.error('解析重量設定失敗:', e)
-        return DEFAULT_WEIGHTS
-      }
-    }
-    return DEFAULT_WEIGHTS
-  })
+  // 為每個店鋪分別存儲重量設定
+  const [weightSettingsCentral, setWeightSettingsCentral] = useLocalStorage('coffeeBeanWeightSettings_central', DEFAULT_WEIGHTS)
+  const [weightSettingsD7, setWeightSettingsD7] = useLocalStorage('coffeeBeanWeightSettings_d7', DEFAULT_WEIGHTS)
+  const [weightSettingsD13, setWeightSettingsD13] = useLocalStorage('coffeeBeanWeightSettings_d13', DEFAULT_WEIGHTS)
+  
+  // 當前選中店鋪的重量設定
+  const weightSettings = useMemo(() => {
+    if (selectedWeightStore === 'd7') return weightSettingsD7
+    if (selectedWeightStore === 'd13') return weightSettingsD13
+    return weightSettingsCentral
+  }, [selectedWeightStore, weightSettingsCentral, weightSettingsD7, weightSettingsD13])
+  
+  // 用於追蹤 Firebase 訂閱
+  const weightUnsubscribeRef = useRef(null)
   const [calculations, setCalculations] = useState(() => {
     // 在初始化時就從 localStorage 讀取
     const savedCalculations = localStorage.getItem('coffeeBeanCalculations')
@@ -117,10 +127,88 @@ function CoffeeBeanManager() {
     }
   }, [])
 
-  // 儲存重量設定到 localStorage
+  // 監聽 Firebase 重量設定變更（根據選中的店鋪）
   useEffect(() => {
-    localStorage.setItem('coffeeBeanWeightSettings', JSON.stringify(weightSettings))
-  }, [weightSettings])
+    // 清理舊的訂閱
+    if (weightUnsubscribeRef.current) {
+      weightUnsubscribeRef.current()
+      weightUnsubscribeRef.current = null
+    }
+    
+    const firebaseDocId = `coffeeBeanWeight_${selectedWeightStore}`
+    let unsubscribe
+    let isMounted = true
+    let timeoutId
+    
+    try {
+      // 根據當前店鋪選擇對應的設定更新函數
+      const updateWeightSettingsForStore = (data) => {
+        if (!isMounted) return
+        // 確保數據結構正確
+        const validData = {
+          bagWeight: data?.bagWeight || DEFAULT_WEIGHTS.bagWeight,
+          ikeaBoxWeight: data?.ikeaBoxWeight || DEFAULT_WEIGHTS.ikeaBoxWeight,
+          beanWeightPerPack: data?.beanWeightPerPack || DEFAULT_WEIGHTS.beanWeightPerPack
+        }
+        if (selectedWeightStore === 'd7') {
+          setWeightSettingsD7(validData)
+        } else if (selectedWeightStore === 'd13') {
+          setWeightSettingsD13(validData)
+        } else {
+          setWeightSettingsCentral(validData)
+        }
+      }
+      
+      // 設置超時機制，5秒後如果還沒有回應就使用本地設定
+      timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn('Firebase 連接超時，使用本地重量設定')
+        }
+      }, 5000)
+      
+      unsubscribe = onSnapshot(
+        doc(db, 'settings', firebaseDocId),
+        (docSnapshot) => {
+          if (!isMounted) return
+          if (timeoutId) clearTimeout(timeoutId)
+          
+          if (docSnapshot.exists()) {
+            updateWeightSettingsForStore(docSnapshot.data())
+          } else {
+            // 如果文件不存在，創建預設值
+            setDoc(docSnapshot.ref, DEFAULT_WEIGHTS)
+              .then(() => {
+                if (isMounted) {
+                  updateWeightSettingsForStore(DEFAULT_WEIGHTS)
+                }
+              })
+              .catch(error => {
+                console.error('創建重量設定文件失敗:', error)
+              })
+          }
+        },
+        (error) => {
+          console.error('讀取重量設定錯誤:', error)
+          if (timeoutId) clearTimeout(timeoutId)
+          // 如果 Firebase 連接失敗，使用本地設定
+        }
+      )
+      
+      weightUnsubscribeRef.current = unsubscribe
+    } catch (error) {
+      console.error('Firebase 初始化錯誤:', error)
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+
+    return () => {
+      isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+      if (weightUnsubscribeRef.current) {
+        weightUnsubscribeRef.current()
+        weightUnsubscribeRef.current = null
+      }
+    }
+  }, [selectedWeightStore, setWeightSettingsCentral, setWeightSettingsD7, setWeightSettingsD13]) // 依賴店鋪選擇和設定函數
 
   // 儲存盤點表到 localStorage
   useEffect(() => {
@@ -137,28 +225,121 @@ function CoffeeBeanManager() {
     localStorage.setItem('coffeeBeanWeightMode', weightMode)
   }, [weightMode])
 
-  // 監聽滾動來更新當前區域
+  // 檢測主要區域
   useEffect(() => {
-    const handleScroll = () => {
-      const brewingSection = document.getElementById('brewing-section')
-      const retailSection = document.getElementById('retail-section')
+    const brewingSection = document.getElementById('brewing-section')
+    const retailSection = document.getElementById('retail-section')
+    
+    if (!brewingSection || !retailSection) return
+
+    let ticking = false
+
+    const updateCurrentSection = () => {
+      const brewingRect = brewingSection.getBoundingClientRect()
+      const retailRect = retailSection.getBoundingClientRect()
+      const viewportCenter = window.innerHeight / 2
       
-      if (brewingSection && retailSection) {
-        const brewingRect = brewingSection.getBoundingClientRect()
-        const retailRect = retailSection.getBoundingClientRect()
-        
-        // 判斷哪個區域在視窗中央
-        if (brewingRect.top < window.innerHeight / 2 && brewingRect.bottom > window.innerHeight / 2) {
-          setCurrentSection('brewing')
-        } else if (retailRect.top < window.innerHeight / 2 && retailRect.bottom > window.innerHeight / 2) {
-          setCurrentSection('retail')
-        }
+      const brewingCenter = brewingRect.top + brewingRect.height / 2
+      const retailCenter = retailRect.top + retailRect.height / 2
+      
+      const brewingDistance = Math.abs(brewingCenter - viewportCenter)
+      const retailDistance = Math.abs(retailCenter - viewportCenter)
+      
+      const brewingVisible = brewingRect.top < window.innerHeight && brewingRect.bottom > 0
+      const retailVisible = retailRect.top < window.innerHeight && retailRect.bottom > 0
+      
+      if (brewingVisible && retailVisible) {
+        setCurrentSection(brewingDistance < retailDistance ? 'brewing' : 'retail')
+      } else if (brewingVisible) {
+        setCurrentSection('brewing')
+      } else if (retailVisible) {
+        setCurrentSection('retail')
+      }
+      
+      ticking = false
+    }
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateCurrentSection)
+        ticking = true
       }
     }
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    updateCurrentSection()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+    }
   }, [])
+
+  // 檢測子分類標題可見性 - 使用滾動事件
+  useEffect(() => {
+    if (currentSection !== 'brewing') {
+      setCurrentSubSection(null)
+      return
+    }
+
+    const pourOverTitle = document.getElementById('pourOver-title')
+    const espressoTitle = document.getElementById('espresso-title')
+    
+    if (!pourOverTitle || !espressoTitle) return
+
+    let ticking = false
+
+    const checkTitles = () => {
+      const pourOverRect = pourOverTitle.getBoundingClientRect()
+      const espressoRect = espressoTitle.getBoundingClientRect()
+      
+      // Header + Navigation 高度約 180px
+      const headerHeight = 180
+      
+      // 判斷標題是否在視窗內可見（標題底部在 headerHeight 以下且在視窗內）
+      const pourOverVisible = pourOverRect.bottom > headerHeight && pourOverRect.top < window.innerHeight
+      const espressoVisible = espressoRect.bottom > headerHeight && espressoRect.top < window.innerHeight
+      
+      if (pourOverVisible || espressoVisible) {
+        // 至少有一個標題可見，不顯示固定欄
+        setCurrentSubSection(null)
+      } else {
+        // 兩個標題都不可見，判斷當前在哪個區域
+        const viewportCenter = window.innerHeight / 2
+        const pourOverCenter = pourOverRect.top + pourOverRect.height / 2
+        const espressoCenter = espressoRect.top + espressoRect.height / 2
+        
+        const pourOverDistance = Math.abs(viewportCenter - pourOverCenter)
+        const espressoDistance = Math.abs(viewportCenter - espressoCenter)
+        
+        // 選擇更接近視窗中心的標題
+        if (pourOverDistance < espressoDistance) {
+          setCurrentSubSection('pourOver')
+        } else {
+          setCurrentSubSection('espresso')
+        }
+      }
+      
+      ticking = false
+    }
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(checkTitles)
+        ticking = true
+      }
+    }
+
+    checkTitles()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+    }
+  }, [currentSection])
 
   // 初始化豆種的數量陣列
   const initializeBeanType = (category, subCategory, beanType) => {
@@ -264,11 +445,31 @@ function CoffeeBeanManager() {
   }
 
   // 更新重量設定
-  const updateWeightSetting = (key, value) => {
-    setWeightSettings(prev => ({
-      ...prev,
-      [key]: parseFloat(value) || 0
-    }))
+  // 更新重量設定（根據選中的店鋪）
+  const updateWeightSetting = async (key, value) => {
+    const newWeight = parseFloat(value) || 0
+    const updatedSettings = {
+      ...weightSettings,
+      [key]: newWeight
+    }
+    
+    // 先更新本地（含 localStorage）
+    if (selectedWeightStore === 'd7') {
+      setWeightSettingsD7(updatedSettings)
+    } else if (selectedWeightStore === 'd13') {
+      setWeightSettingsD13(updatedSettings)
+    } else {
+      setWeightSettingsCentral(updatedSettings)
+    }
+    
+    // 同步到 Firebase
+    try {
+      const firebaseDocId = `coffeeBeanWeight_${selectedWeightStore}`
+      await setDoc(doc(db, 'settings', firebaseDocId), updatedSettings)
+    } catch (error) {
+      console.error('更新重量設定錯誤:', error)
+      // 即使 Firebase 失敗，本地設定已保存
+    }
   }
 
   // 新增計算欄位
@@ -407,23 +608,42 @@ function CoffeeBeanManager() {
         retail: {}
       })
       setCalculations([{ id: 1, totalWeight: '', estimatedPacks: 0 }])
-      setWeightSettings(DEFAULT_WEIGHTS)
+      // 重置所有店鋪的重量設定
+      setWeightSettingsCentral(DEFAULT_WEIGHTS)
+      setWeightSettingsD7(DEFAULT_WEIGHTS)
+      setWeightSettingsD13(DEFAULT_WEIGHTS)
       setWeightMode('bag')
       setQuickInputMode(false)
       setQuickInputData({})
       localStorage.removeItem('coffeeBeanInventory')
-      localStorage.removeItem('coffeeBeanWeightSettings')
+      localStorage.removeItem('coffeeBeanWeightSettings_central')
+      localStorage.removeItem('coffeeBeanWeightSettings_d7')
+      localStorage.removeItem('coffeeBeanWeightSettings_d13')
       localStorage.removeItem('coffeeBeanCalculations')
       localStorage.removeItem('coffeeBeanWeightMode')
     }
   }
 
   // 回復原本重量設定
-  const resetWeightSettings = () => {
+  // 回復原本重量設定（根據選中的店鋪）
+  const resetWeightSettings = async () => {
     if (confirm('確定要回復原本的重量設定嗎？')) {
-      setWeightSettings(DEFAULT_WEIGHTS)
-      // 清除重量設定的 localStorage，讓下次載入時使用預設值
-      localStorage.removeItem('coffeeBeanWeightSettings')
+      // 先更新本地
+      if (selectedWeightStore === 'd7') {
+        setWeightSettingsD7(DEFAULT_WEIGHTS)
+      } else if (selectedWeightStore === 'd13') {
+        setWeightSettingsD13(DEFAULT_WEIGHTS)
+      } else {
+        setWeightSettingsCentral(DEFAULT_WEIGHTS)
+      }
+      
+      // 同步到 Firebase
+      try {
+        const firebaseDocId = `coffeeBeanWeight_${selectedWeightStore}`
+        await setDoc(doc(db, 'settings', firebaseDocId), DEFAULT_WEIGHTS)
+      } catch (error) {
+        console.error('更新重量設定錯誤:', error)
+      }
     }
   }
 
@@ -731,111 +951,187 @@ function CoffeeBeanManager() {
 
 
 
+  // 獲取當前區塊的完整路徑文字
+  const getCurrentBreadcrumb = () => {
+    if (currentSection === 'brewing') {
+      if (currentSubSection === 'pourOver') {
+        return { main: '出杯豆', sub: '手沖豆' }
+      } else if (currentSubSection === 'espresso') {
+        return { main: '出杯豆', sub: '義式豆' }
+      }
+      return { main: '出杯豆', sub: null }
+    } else if (currentSection === 'retail') {
+      return { main: '賣豆', sub: null }
+    }
+    return { main: null, sub: null }
+  }
+
+  const breadcrumb = getCurrentBreadcrumb()
+
   return (
-    <div className="container-custom py-6 space-y-6">
-      {/* 標題區域 */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
-            <ClipboardDocumentListIcon className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">咖啡豆管理工具</h1>
-            <p className="text-sm text-text-secondary mt-1">庫存管理與重量換算</p>
+    <div className="coffee-bean-container container-custom py-4 sm:py-6 md:py-8">
+      {/* 固定標題欄 - 當子分類標題不可見時顯示 */}
+      {breadcrumb.main && breadcrumb.sub && (
+        <div className="fixed top-[140px] sm:top-[160px] md:top-[180px] left-0 right-0 z-40 px-4 sm:px-6 md:px-8 pointer-events-none">
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-surface/95 backdrop-blur-md border-b border-white/20 shadow-lg rounded-b-xl p-3 pointer-events-auto animate-slide-in">
+              <div className="flex items-center gap-2 text-sm sm:text-base">
+                <span className="text-blue-400 font-semibold">{breadcrumb.main}</span>
+                <span className="text-gray-400">/</span>
+                <span className="text-blue-300 font-medium">{breadcrumb.sub}</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="flex gap-2">
+      )}
+      
+      <div className="max-w-6xl mx-auto">
+        {/* 頁面標題 - 超現代設計 */}
+        <div className="text-center mb-6 sm:mb-8 md:mb-10 relative">
+          {/* 背景動態光暈 - 移動設備縮小 */}
+          <div className="absolute inset-0 flex justify-center -z-10">
+            <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-glow opacity-50"></div>
+          </div>
+          
+          {/* 圖標容器 - 3D 效果 */}
+          <div className="inline-flex items-center justify-center mb-4 sm:mb-5 md:mb-6 relative group title-icon-group">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary via-purple-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
+            <div className="relative inline-flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 bg-gradient-to-br from-primary/30 via-purple-500/30 to-blue-500/30 rounded-xl sm:rounded-2xl border-2 border-primary/50 shadow-2xl shadow-primary/30 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 overflow-hidden">
+              {/* 流動背景 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
+              <ClipboardDocumentListIcon className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 text-primary relative z-10 transform group-hover:scale-110 transition-transform duration-300" />
+            </div>
+          </div>
+          
+          {/* 標題 */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-2 sm:mb-3 relative px-4">
+            <span className="bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient">
+              咖啡豆管理工具
+            </span>
+            {/* 文字發光效果 */}
+            <span className="absolute inset-0 bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent blur-xl opacity-30 -z-10 animate-pulse-glow">
+              咖啡豆管理工具
+            </span>
+          </h1>
+          
+          {/* 副標題 */}
+          <p className="text-gray-400 text-sm sm:text-base font-medium px-4 mb-6 sm:mb-8">庫存管理與重量換算</p>
+        </div>
+
+        {/* 操作按鈕區域 */}
+        <div className="flex flex-wrap justify-center gap-3 mb-6 sm:mb-8">
+          <button
+            onClick={() => setShowWeightCalculator(true)}
+            className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-2"
+          >
+            <CalculatorIcon className="w-4 h-4" />
+            重量換算
+          </button>
           {!quickInputMode ? (
             <button
               onClick={startQuickInput}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 text-green-400 hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-500/50 transition-all duration-200 flex items-center gap-2"
+              className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 text-green-400 hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-500/50 transition-all duration-200 flex items-center gap-2"
             >
               <CalculatorIcon className="w-4 h-4" />
               快速盤點
             </button>
           ) : (
-            <div className="flex gap-2">
+            <>
               <button
                 onClick={saveQuickInput}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 text-blue-400 hover:from-blue-500/30 hover:to-cyan-500/30 hover:border-blue-500/50 transition-all duration-200 flex items-center gap-2"
+                className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 text-blue-400 hover:from-blue-500/30 hover:to-cyan-500/30 hover:border-blue-500/50 transition-all duration-200 flex items-center gap-2"
               >
                 <ClipboardDocumentListIcon className="w-4 h-4" />
                 儲存盤點
               </button>
               <button
                 onClick={cancelQuickInput}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
+                className="px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
               >
                 取消
               </button>
-            </div>
+            </>
           )}
           <button
             onClick={resetAllData}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
+            className="px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
           >
             重置數據
           </button>
         </div>
-      </div>
 
       {/* 一、咖啡豆盤點表 */}
-      <div className="card backdrop-blur-sm bg-surface/80 border border-white/20" ref={inventoryRef}>
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-primary mb-1">咖啡豆盤點表</h2>
-            <p className="text-sm text-text-secondary">即時更新庫存數量</p>
-          </div>
-          <div className="flex gap-2">
-            {/* 匯出模式選擇 */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-surface/40 rounded-lg border border-white/10">
-              <label className="flex items-center gap-2 text-xs text-text-secondary">
-                <input
-                  type="radio"
-                  value="original"
-                  checked={exportMode === 'original'}
-                  onChange={(e) => setExportMode(e.target.value)}
-                  className="text-blue-400 w-3 h-3"
-                />
-                <span>原始風格</span>
-              </label>
-              <div className="w-px h-4 bg-white/20"></div>
-              <label className="flex items-center gap-2 text-xs text-text-secondary">
-                <input
-                  type="radio"
-                  value="minimalist"
-                  checked={exportMode === 'minimalist'}
-                  onChange={(e) => setExportMode(e.target.value)}
-                  className="text-blue-400 w-3 h-3"
-                />
-                <span>Minimalist</span>
-              </label>
-              <div className="w-px h-4 bg-white/20"></div>
-              <label className="flex items-center gap-2 text-xs text-text-secondary">
-                <input
-                  type="radio"
-                  value="web-consistent"
-                  checked={exportMode === 'web-consistent'}
-                  onChange={(e) => setExportMode(e.target.value)}
-                  className="text-blue-400 w-3 h-3"
-                />
-                <span>網頁風格</span>
-              </label>
+      <div className="relative group mb-6 sm:mb-8">
+        {/* 卡片背景光暈 */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        
+        <div className="relative backdrop-blur-xl bg-gradient-to-br from-surface/90 via-surface/70 to-surface/90 border-2 border-white/20 rounded-2xl p-4 sm:p-5 md:p-6 shadow-2xl overflow-hidden" ref={inventoryRef} style={{ transform: 'none', willChange: 'auto' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.scale = '1'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.scale = '1'; }}>
+          {/* 流動背景效果 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-purple-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
+          
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="relative group/icon">
+                <div className="absolute inset-0 bg-primary/20 rounded-lg sm:rounded-xl blur-lg group-hover/icon:bg-primary/30 transition-all duration-300"></div>
+                <div className="relative p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/40 shadow-lg">
+                  <ClipboardDocumentListIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary transform group-hover/icon:scale-110 transition-transform duration-300" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent mb-1">咖啡豆盤點表</h2>
+                <p className="text-xs sm:text-sm text-text-secondary">即時更新庫存數量</p>
+              </div>
             </div>
-            
-            <button
-              onClick={exportInventoryAsImage}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 text-blue-400 hover:from-blue-500/30 hover:to-cyan-500/30 hover:border-blue-500/50 transition-all duration-200 flex items-center gap-2"
-            >
-              <ArrowDownTrayIcon className="w-4 h-4" />
-              匯出圖片
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {/* 匯出模式選擇 */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-surface/40 rounded-lg border border-white/10">
+                <label className="flex items-center gap-2 text-xs text-text-secondary">
+                  <input
+                    type="radio"
+                    value="original"
+                    checked={exportMode === 'original'}
+                    onChange={(e) => setExportMode(e.target.value)}
+                    className="text-blue-400 w-3 h-3"
+                  />
+                  <span>原始風格</span>
+                </label>
+                <div className="w-px h-4 bg-white/20"></div>
+                <label className="flex items-center gap-2 text-xs text-text-secondary">
+                  <input
+                    type="radio"
+                    value="minimalist"
+                    checked={exportMode === 'minimalist'}
+                    onChange={(e) => setExportMode(e.target.value)}
+                    className="text-blue-400 w-3 h-3"
+                  />
+                  <span>Minimalist</span>
+                </label>
+                <div className="w-px h-4 bg-white/20"></div>
+                <label className="flex items-center gap-2 text-xs text-text-secondary">
+                  <input
+                    type="radio"
+                    value="web-consistent"
+                    checked={exportMode === 'web-consistent'}
+                    onChange={(e) => setExportMode(e.target.value)}
+                    className="text-blue-400 w-3 h-3"
+                  />
+                  <span>網頁風格</span>
+                </label>
+              </div>
+              
+              <button
+                onClick={exportInventoryAsImage}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 text-blue-400 hover:from-blue-500/30 hover:to-cyan-500/30 hover:border-blue-500/50 transition-all duration-200 flex items-center gap-2"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                匯出圖片
+              </button>
+            </div>
           </div>
-        </div>
         
                           {/* 出杯豆 */}
         <div id="brewing-section" className="space-y-4">
-          <div className="sticky top-0 z-30 flex items-center gap-3 mb-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-400/20 backdrop-blur-md">
+          <div id="brewing-title" className="flex items-center gap-3 mb-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-400/20 backdrop-blur-md shadow-lg">
             <div className="w-2 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></div>
             <div>
               <h3 className="text-xl font-bold text-blue-400">出杯豆</h3>
@@ -849,7 +1145,7 @@ function CoffeeBeanManager() {
             
             {/* 手沖豆 */}
             <div className="space-y-3">
-              <div className="sticky top-16 z-20 flex items-center gap-3 mb-3 p-3 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 rounded-lg border border-blue-400/10 backdrop-blur-sm">
+              <div id="pourOver-title" className="flex items-center gap-3 mb-3 p-3 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 rounded-lg border border-blue-400/10 backdrop-blur-sm shadow-md">
                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                 <h4 className="text-md font-semibold text-blue-300">手沖豆</h4>
                 <span className="text-xs text-blue-300/60">手沖咖啡專用</span>
@@ -862,8 +1158,8 @@ function CoffeeBeanManager() {
                 const quickData = quickInputData[quickKey]
                 
                 return (
-                  <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 ${
-                    quickInputMode ? 'border-green-400/50 hover:border-green-400/70' : 'border-white/10 hover:border-primary/30'
+                  <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border ${
+                    quickInputMode ? 'border-green-400/50' : 'border-white/10'
                   }`}>
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
@@ -884,7 +1180,7 @@ function CoffeeBeanManager() {
                             value={quickData?.store || '0'}
                             onChange={(e) => updateQuickInput(quickKey, 'store', e.target.value)}
                             placeholder="數量"
-                            className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all text-center font-semibold"
+                            className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-blue-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
                             inputMode="decimal"
                           />
                         </div>
@@ -901,7 +1197,7 @@ function CoffeeBeanManager() {
                               value={quickData?.breakRoom || '0'}
                               onChange={(e) => updateQuickInput(quickKey, 'breakRoom', e.target.value)}
                               placeholder="數量"
-                              className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10 hover:border-green-400/30 transition-all text-center font-semibold"
+                              className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-green-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
                               inputMode="decimal"
                             />
                           </div>
@@ -939,7 +1235,7 @@ function CoffeeBeanManager() {
                                   value={quantity}
                                   onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
                                   placeholder="數量"
-                                  className="input-field flex-1 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all"
+                                  className="input-field flex-1 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
                                   inputMode="decimal"
                                 />
                                 {(beanData?.store || []).length > 1 && (
@@ -1011,7 +1307,7 @@ function CoffeeBeanManager() {
 
           {/* 義式豆 */}
           <div className="space-y-3">
-            <div className="sticky top-16 z-20 flex items-center gap-3 mb-3 p-3 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-lg border border-purple-400/10 backdrop-blur-sm">
+            <div id="espresso-title" className="flex items-center gap-3 mb-3 p-3 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-lg border border-purple-400/10 backdrop-blur-sm shadow-md">
               <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
               <h4 className="text-md font-semibold text-purple-300">義式豆</h4>
               <span className="text-xs text-purple-300/60">義式咖啡專用</span>
@@ -1024,8 +1320,8 @@ function CoffeeBeanManager() {
                 const quickData = quickInputData[quickKey]
                 
                 return (
-                  <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 ${
-                    quickInputMode ? 'border-green-400/50 hover:border-green-400/70' : 'border-white/10 hover:border-primary/30'
+                  <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border ${
+                    quickInputMode ? 'border-green-400/50' : 'border-white/10'
                   }`}>
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
@@ -1046,7 +1342,7 @@ function CoffeeBeanManager() {
                             value={quickData?.store || '0'}
                             onChange={(e) => updateQuickInput(quickKey, 'store', e.target.value)}
                             placeholder="數量"
-                            className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all text-center font-semibold"
+                            className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-blue-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
                             inputMode="decimal"
                           />
                         </div>
@@ -1063,7 +1359,7 @@ function CoffeeBeanManager() {
                               value={quickData?.breakRoom || '0'}
                               onChange={(e) => updateQuickInput(quickKey, 'breakRoom', e.target.value)}
                               placeholder="數量"
-                              className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10 hover:border-green-400/30 transition-all text-center font-semibold"
+                              className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-green-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
                               inputMode="decimal"
                             />
                           </div>
@@ -1174,7 +1470,7 @@ function CoffeeBeanManager() {
 
         {/* 賣豆 */}
         <div id="retail-section" className="space-y-4 mt-8">
-          <div className="sticky top-0 z-30 flex items-center gap-3 mb-4 p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-xl border border-orange-400/20 backdrop-blur-md">
+          <div id="retail-title" className="flex items-center gap-3 mb-4 p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-xl border border-orange-400/20 backdrop-blur-md shadow-lg">
             <div className="w-2 h-8 bg-gradient-to-b from-orange-400 to-yellow-400 rounded-full"></div>
             <div>
               <h3 className="text-xl font-bold text-orange-400">賣豆</h3>
@@ -1193,8 +1489,8 @@ function CoffeeBeanManager() {
               const quickData = quickInputData[quickKey]
               
               return (
-                <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 ${
-                  quickInputMode ? 'border-green-400/50 hover:border-green-400/70' : 'border-white/10 hover:border-primary/30'
+                <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border ${
+                  quickInputMode ? 'border-green-400/50' : 'border-white/10'
                 }`}>
                   <div className="flex items-center justify-between mb-3">
                     <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
@@ -1215,7 +1511,7 @@ function CoffeeBeanManager() {
                           value={quickData?.store || '0'}
                           onChange={(e) => updateQuickInput(quickKey, 'store', e.target.value)}
                           placeholder="數量"
-                          className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all text-center font-semibold"
+                          className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-blue-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
                           inputMode="decimal"
                         />
                       </div>
@@ -1232,7 +1528,7 @@ function CoffeeBeanManager() {
                             value={quickData?.breakRoom || '0'}
                             onChange={(e) => updateQuickInput(quickKey, 'breakRoom', e.target.value)}
                             placeholder="數量"
-                            className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10 hover:border-green-400/30 transition-all text-center font-semibold"
+                            className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-green-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
                             inputMode="decimal"
                           />
                         </div>
@@ -1477,41 +1773,33 @@ function CoffeeBeanManager() {
             })}
           </div>
         </div>
-
+        </div>
       </div>
 
-      {/* 浮動區域指示器 */}
-      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="bg-surface/90 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 shadow-lg">
-          <div className="flex items-center gap-3">
+      {/* 浮動區域指示器 - 放在右側，不擋到標題和導航 */}
+      <div className="fixed top-32 right-4 sm:top-36 sm:right-6 md:top-40 md:right-8 z-40">
+        <div className="bg-surface/90 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 shadow-lg">
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => document.getElementById('brewing-section')?.scrollIntoView({ behavior: 'smooth' })}
-              className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all duration-300 ${currentSection === 'brewing' ? 'bg-blue-400/20 text-blue-400' : 'text-gray-400 hover:text-blue-300'}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 ${currentSection === 'brewing' ? 'bg-blue-400/20 text-blue-400' : 'text-gray-400 hover:text-blue-300'}`}
             >
               <div className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSection === 'brewing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
-              <span className="text-sm font-medium">出杯豆</span>
+              <span className="text-xs sm:text-sm font-medium">出杯豆</span>
             </button>
             <div className="w-px h-4 bg-gray-600"></div>
             <button 
               onClick={() => document.getElementById('retail-section')?.scrollIntoView({ behavior: 'smooth' })}
-              className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all duration-300 ${currentSection === 'retail' ? 'bg-orange-400/20 text-orange-400' : 'text-gray-400 hover:text-orange-300'}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 ${currentSection === 'retail' ? 'bg-orange-400/20 text-orange-400' : 'text-gray-400 hover:text-orange-300'}`}
             >
               <div className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSection === 'retail' ? 'bg-orange-400' : 'bg-gray-400'}`}></div>
-              <span className="text-sm font-medium">賣豆</span>
+              <span className="text-xs sm:text-sm font-medium">賣豆</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 浮動重量換算計算器按鈕 */}
-      <button
-        onClick={() => setShowWeightCalculator(true)}
-        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50 hover:scale-110 transform"
-      >
-        <CalculatorIcon className="w-6 h-6" />
-      </button>
-
-      {/* 浮動重量換算計算器彈窗 */}
+      {/* 重量換算計算器彈窗 */}
               {showWeightCalculator && (
           <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -1545,6 +1833,74 @@ function CoffeeBeanManager() {
                 >
                   <XMarkIcon className="w-5 h-5" />
                 </button>
+              </div>
+            </div>
+
+            {/* 店鋪選擇 */}
+            <div className="mb-6">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="p-1.5 bg-primary/10 rounded-lg border border-primary/20">
+                  <BuildingStorefrontIcon className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="text-base font-bold text-primary">選擇分店</h3>
+              </div>
+              
+              {/* 分段控制器容器 */}
+              <div className="relative mx-auto max-w-2xl bg-surface/60 rounded-xl p-1 border border-white/10">
+                {/* 滑動指示器 */}
+                <div
+                  className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 transition-[transform] duration-200 ease-out"
+                  style={{
+                    width: 'calc(33.333% - 4px)',
+                    left: '4px',
+                    transform: selectedWeightStore === 'central' ? 'translateX(0%)' :
+                              selectedWeightStore === 'd7' ? 'translateX(100%)' :
+                              'translateX(200%)'
+                  }}
+                />
+                
+                {/* 選項按鈕 */}
+                <div className="relative grid grid-cols-3 gap-1.5">
+                  {[
+                    { value: 'central', label: '中央店' },
+                    { value: 'd7', label: 'D7 店' },
+                    { value: 'd13', label: 'D13 店' }
+                  ].map((store) => {
+                    const isSelected = selectedWeightStore === store.value
+                    return (
+                      <button
+                        key={store.value}
+                        onClick={() => setSelectedWeightStore(store.value)}
+                        className={`
+                          relative z-10
+                          px-3 py-3 sm:px-4 sm:py-4
+                          rounded-lg
+                          font-bold text-xs sm:text-sm
+                          transition-colors duration-200
+                          ${isSelected 
+                            ? 'text-white' 
+                            : 'text-gray-300 active:text-white'
+                          }
+                        `}
+                        style={{
+                          WebkitTapHighlightColor: 'transparent',
+                          touchAction: 'manipulation'
+                        }}
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          {isSelected && (
+                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full shadow-sm" />
+                          )}
+                          <span className="tracking-wide">{store.label}</span>
+                        </span>
+                        
+                        {isSelected && (
+                          <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-100" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
             
@@ -1605,7 +1961,7 @@ function CoffeeBeanManager() {
                       weightMode === 'bag' ? 'bagWeight' : 'ikeaBoxWeight', 
                       e.target.value
                     )}
-                    className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 hover:border-blue-400/30 transition-all"
+                    className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
                     placeholder="輸入重量"
                     inputMode="decimal"
                   />
@@ -1646,7 +2002,7 @@ function CoffeeBeanManager() {
               </div>
               
               {calculations.map((calc) => (
-                <div key={calc.id} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10 hover:border-primary/30 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10">
+                <div key={calc.id} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <h5 className="font-semibold text-primary">計算欄位 #{calc.id}</h5>
@@ -1693,6 +2049,7 @@ function CoffeeBeanManager() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
