@@ -1,13 +1,16 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Clock from '../Clock'
 import CatSpeechBubble from '../CatSpeechBubble'
+import YouTubeModal from '../YouTubeModal'
 import { useTheme } from '../../contexts/ThemeContext'
 import logoCat from '../../assets/logo-cat.png'
 import { SparklesIcon, PaintBrushIcon } from '@heroicons/react/24/outline'
 
 function Header() {
   const { theme, toggleTheme } = useTheme()
+  const [showVideo, setShowVideo] = useState(false)
 
   return (
     <header className={`${theme === 'linear' ? 'bg-[#0d0d0d]/80 backdrop-blur-xl border-b border-white/5' : 'bg-surface'} text-white sticky top-0 z-50`}>
@@ -41,9 +44,12 @@ function Header() {
               <motion.img 
                 src={logoCat}
                 alt="Cat Logo" 
-                className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-primary p-1 logo logo-glow logo-float"
+                className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-primary p-1 logo logo-glow logo-float cursor-pointer"
                 whileHover={{ scale: 1.05, rotate: 5 }}
+                whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 300 }}
+                onClick={() => setShowVideo(true)}
+                title="點擊我！"
               />
               <div className="flex flex-col items-center gap-0.5 sm:gap-1">
                 <h1 className={`text-xl sm:text-2xl md:text-4xl font-bold ${
@@ -67,6 +73,13 @@ function Header() {
           </div>
         </div>
       </div>
+      
+      {/* YouTube 影片彈窗 */}
+      <YouTubeModal 
+        isOpen={showVideo} 
+        onClose={() => setShowVideo(false)} 
+        videoId="dQw4w9WgXcQ"
+      />
     </header>
   )
 }

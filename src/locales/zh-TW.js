@@ -11,7 +11,7 @@ export default {
   },
   sandwich: {
     title: '三明治計算器',
-    subtitle: '選擇拉奶，選擇成功',
+    subtitle: '壽終正寢',
     selectStore: '選擇分店',
     storeCentral: '中央店',
     storeD7: 'D7 店',

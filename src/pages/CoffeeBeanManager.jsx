@@ -21,6 +21,7 @@ const STORE_ONLY_BEANS = ['台灣豆', 'Geisha']
 const DEFAULT_WEIGHTS = {
   bagWeight: 121,
   ikeaBoxWeight: 365,
+  mujiBoxWeight: 365, // MUJI 盒子重量（預設與 IKEA 相同，可根據實際情況調整）
   beanWeightPerPack: 19
 }
 
@@ -147,6 +148,7 @@ function CoffeeBeanManager() {
         const validData = {
           bagWeight: data?.bagWeight || DEFAULT_WEIGHTS.bagWeight,
           ikeaBoxWeight: data?.ikeaBoxWeight || DEFAULT_WEIGHTS.ikeaBoxWeight,
+          mujiBoxWeight: data?.mujiBoxWeight || DEFAULT_WEIGHTS.mujiBoxWeight,
           beanWeightPerPack: data?.beanWeightPerPack || DEFAULT_WEIGHTS.beanWeightPerPack
         }
         if (selectedWeightStore === 'd7') {
@@ -373,37 +375,70 @@ function CoffeeBeanManager() {
   // 重量換算計算
   const calculateEstimatedPacks = (totalWeight) => {
     if (!totalWeight) return 0
-    const containerWeight = weightMode === 'bag' ? weightSettings.bagWeight : weightSettings.ikeaBoxWeight
+    const containerWeight = weightMode === 'bag' 
+      ? weightSettings.bagWeight 
+      : (selectedWeightStore === 'd13' 
+          ? (weightSettings.mujiBoxWeight || weightSettings.ikeaBoxWeight)
+          : weightSettings.ikeaBoxWeight)
     const beanWeight = totalWeight - containerWeight
     if (beanWeight <= 0) return 0
     return Math.round((beanWeight / weightSettings.beanWeightPerPack) * 10) / 10
   }
 
+  // 臨時存儲輸入值（用於解決輸入框問題）
+  const [tempInputValues, setTempInputValues] = useState({})
+
+  // 當切換店鋪時清除臨時輸入值
+  useEffect(() => {
+    setTempInputValues({})
+  }, [selectedWeightStore])
+
   // 更新重量設定
   // 更新重量設定（根據選中的店鋪）
-  const updateWeightSetting = async (key, value) => {
-    const newWeight = parseFloat(value) || 0
-    const updatedSettings = {
-      ...weightSettings,
-      [key]: newWeight
-    }
-    
-    // 先更新本地（含 localStorage）
-    if (selectedWeightStore === 'd7') {
-      setWeightSettingsD7(updatedSettings)
-    } else if (selectedWeightStore === 'd13') {
-      setWeightSettingsD13(updatedSettings)
+  const updateWeightSetting = async (key, value, isBlur = false) => {
+    // 如果是失去焦點事件，才真正更新設定值
+    if (isBlur) {
+      // 如果值為空或無效，保持原值
+      const parsedValue = value === '' ? null : parseFloat(value)
+      const newWeight = (parsedValue === null || isNaN(parsedValue)) 
+        ? weightSettings[key] 
+        : parsedValue
+      
+      const updatedSettings = {
+        ...weightSettings,
+        [key]: newWeight
+      }
+      
+      // 先更新本地（含 localStorage）
+      if (selectedWeightStore === 'd7') {
+        setWeightSettingsD7(updatedSettings)
+      } else if (selectedWeightStore === 'd13') {
+        setWeightSettingsD13(updatedSettings)
+      } else {
+        setWeightSettingsCentral(updatedSettings)
+      }
+      
+      // 同步到 Firebase
+      try {
+        const firebaseDocId = `coffeeBeanWeight_${selectedWeightStore}`
+        await setDoc(doc(db, 'settings', firebaseDocId), updatedSettings)
+      } catch (error) {
+        console.error('更新重量設定錯誤:', error)
+        // 即使 Firebase 失敗，本地設定已保存
+      }
+      
+      // 清除臨時值
+      setTempInputValues(prev => {
+        const newTemp = { ...prev }
+        delete newTemp[key]
+        return newTemp
+      })
     } else {
-      setWeightSettingsCentral(updatedSettings)
-    }
-    
-    // 同步到 Firebase
-    try {
-      const firebaseDocId = `coffeeBeanWeight_${selectedWeightStore}`
-      await setDoc(doc(db, 'settings', firebaseDocId), updatedSettings)
-    } catch (error) {
-      console.error('更新重量設定錯誤:', error)
-      // 即使 Firebase 失敗，本地設定已保存
+      // 輸入過程中只更新臨時值
+      setTempInputValues(prev => ({
+        ...prev,
+        [key]: value
+      }))
     }
   }
 
@@ -1791,7 +1826,7 @@ function CoffeeBeanManager() {
                   />
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                    <span className="font-medium">外包裝袋</span>
+                    <span className="font-medium">銀袋</span>
                   </div>
                 </label>
                 <label className="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-amber-400/30 transition-all duration-200 cursor-pointer bg-gradient-to-br from-surface/40 to-surface/20">
@@ -1804,7 +1839,7 @@ function CoffeeBeanManager() {
                   />
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                    <span className="font-medium">IKEA 盒子</span>
+                    <span className="font-medium">{selectedWeightStore === 'd13' ? 'MUJI 盒子' : 'IKEA 盒子'}</span>
                   </div>
                 </label>
               </div>
@@ -1822,14 +1857,25 @@ function CoffeeBeanManager() {
                 <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
                   <label className="block text-sm font-semibold mb-3 text-primary flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                    {weightMode === 'bag' ? '外包裝袋重量' : 'IKEA 盒重量'} (g)
+                    {weightMode === 'bag' 
+                      ? '銀袋重量' 
+                      : (selectedWeightStore === 'd13' ? 'MUJI 盒重量' : 'IKEA 盒重量')} (g)
                   </label>
                   <input
                     type="number"
-                    value={weightMode === 'bag' ? weightSettings.bagWeight : weightSettings.ikeaBoxWeight}
+                    value={(() => {
+                      const key = weightMode === 'bag' ? 'bagWeight' : (selectedWeightStore === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight')
+                      return tempInputValues[key] !== undefined ? tempInputValues[key] : (weightMode === 'bag' ? weightSettings.bagWeight : (selectedWeightStore === 'd13' ? weightSettings.mujiBoxWeight || weightSettings.ikeaBoxWeight : weightSettings.ikeaBoxWeight))
+                    })()}
                     onChange={(e) => updateWeightSetting(
-                      weightMode === 'bag' ? 'bagWeight' : 'ikeaBoxWeight', 
-                      e.target.value
+                      weightMode === 'bag' ? 'bagWeight' : (selectedWeightStore === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight'), 
+                      e.target.value,
+                      false
+                    )}
+                    onBlur={(e) => updateWeightSetting(
+                      weightMode === 'bag' ? 'bagWeight' : (selectedWeightStore === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight'), 
+                      e.target.value,
+                      true
                     )}
                     className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
                     placeholder="輸入重量"
@@ -1843,8 +1889,9 @@ function CoffeeBeanManager() {
                   </label>
                   <input
                     type="number"
-                    value={weightSettings.beanWeightPerPack}
-                    onChange={(e) => updateWeightSetting('beanWeightPerPack', e.target.value)}
+                    value={tempInputValues.beanWeightPerPack !== undefined ? tempInputValues.beanWeightPerPack : weightSettings.beanWeightPerPack}
+                    onChange={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, false)}
+                    onBlur={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, true)}
                     className="input-field w-full text-sm py-2.5 px-3 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
                     placeholder="輸入重量"
                     inputMode="decimal"
