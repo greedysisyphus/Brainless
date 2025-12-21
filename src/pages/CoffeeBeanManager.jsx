@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { db } from '../utils/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import logoCat from '../assets/logo-cat.png'
+import BeanTypesSettingsModal from '../components/BeanTypesSettingsModal'
 
-// 咖啡豆種類定義
-const BEAN_TYPES = {
+// 預設咖啡豆種類定義
+const DEFAULT_BEAN_TYPES = {
   brewing: {
     pourOver: ['水洗', '日曬', '阿寶', '台灣豆', 'Geisha'],
     espresso: ['ESP', '水洗']
@@ -14,8 +15,23 @@ const BEAN_TYPES = {
   retail: ['水洗', '日曬', '阿寶', '季節', '台灣豆', 'Geisha']
 }
 
-// 只有店面庫存的豆種
-const STORE_ONLY_BEANS = ['台灣豆', 'Geisha']
+// 預設品項位置設定：{ '品項名稱': { store: true/false, breakRoom: true/false } }
+const DEFAULT_BEAN_LOCATIONS = {
+  '台灣豆': { store: true, breakRoom: false },
+  'Geisha': { store: true, breakRoom: false }
+}
+
+// 將舊的 storeOnlyBeans 格式轉換為新的 beanLocations 格式
+const convertStoreOnlyToLocations = (storeOnlyBeans, allBeanNames) => {
+  const locations = {}
+  allBeanNames.forEach(beanName => {
+    locations[beanName] = {
+      store: true,
+      breakRoom: !storeOnlyBeans.includes(beanName)
+    }
+  })
+  return locations
+}
 
 // 預設重量設定
 const DEFAULT_WEIGHTS = {
@@ -27,6 +43,28 @@ const DEFAULT_WEIGHTS = {
 
 function CoffeeBeanManager() {
   const [showWeightCalculator, setShowWeightCalculator] = useState(false)
+  const [showBeanTypesSettings, setShowBeanTypesSettings] = useState(false)
+  
+  // 咖啡豆種類狀態（從 Firebase 讀取）
+  const [beanTypes, setBeanTypes] = useState(DEFAULT_BEAN_TYPES)
+  const [beanLocations, setBeanLocations] = useState({})
+  const [beanLocationsLoaded, setBeanLocationsLoaded] = useState(false)
+  
+  // 初始化品項位置（如果品項不存在，預設兩個位置都啟用）
+  const getBeanLocation = (beanName) => {
+    // 如果還沒有載入完成，使用 DEFAULT_BEAN_LOCATIONS 作為臨時值，避免閃爍
+    if (!beanLocationsLoaded) {
+      return DEFAULT_BEAN_LOCATIONS[beanName] || { store: true, breakRoom: true }
+    }
+    return beanLocations[beanName] || { store: true, breakRoom: true }
+  }
+  
+  // 用於追蹤 Firebase 品項設定訂閱
+  const beanTypesUnsubscribeRef = useRef(null)
+  
+  // 用於追蹤 beanLocations 的變化
+  const prevBeanLocationsRef = useRef('')
+  const prevBeanTypesRef = useRef(JSON.stringify(beanTypes))
   
   // 滾動鎖定功能
   useEffect(() => {
@@ -211,6 +249,186 @@ function CoffeeBeanManager() {
     }
   }, [selectedWeightStore, setWeightSettingsCentral, setWeightSettingsD7, setWeightSettingsD13]) // 依賴店鋪選擇和設定函數
 
+  // 監聽 Firebase 品項設定變更
+  useEffect(() => {
+    // 清理舊的訂閱
+    if (beanTypesUnsubscribeRef.current) {
+      beanTypesUnsubscribeRef.current()
+      beanTypesUnsubscribeRef.current = null
+    }
+
+    let unsubscribe
+    let isMounted = true
+    let timeoutId
+
+    try {
+      timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn('Firebase 品項設定連接超時，使用預設設定')
+        }
+      }, 5000)
+
+      unsubscribe = onSnapshot(
+        doc(db, 'settings', 'coffeeBeanTypes'),
+        (docSnapshot) => {
+          if (!isMounted) return
+          if (timeoutId) clearTimeout(timeoutId)
+
+          if (docSnapshot.exists()) {
+            const data = docSnapshot.data()
+            setBeanTypes(data.beanTypes || DEFAULT_BEAN_TYPES)
+            
+            // 處理數據遷移：如果存在舊的 storeOnlyBeans，轉換為新的 beanLocations
+            let newBeanLocations
+            if (data.beanLocations) {
+              newBeanLocations = data.beanLocations
+            } else if (data.storeOnlyBeans) {
+              // 遷移舊格式
+              const allBeanNames = new Set()
+              const beanTypesData = data.beanTypes || DEFAULT_BEAN_TYPES
+              beanTypesData.brewing?.pourOver?.forEach(name => allBeanNames.add(name))
+              beanTypesData.brewing?.espresso?.forEach(name => allBeanNames.add(name))
+              beanTypesData.retail?.forEach(name => allBeanNames.add(name))
+              newBeanLocations = convertStoreOnlyToLocations(data.storeOnlyBeans, Array.from(allBeanNames))
+            } else {
+              newBeanLocations = DEFAULT_BEAN_LOCATIONS
+            }
+            setBeanLocations(newBeanLocations)
+            setBeanLocationsLoaded(true)
+          } else {
+            // 如果文件不存在，創建預設值
+            setDoc(doc(db, 'settings', 'coffeeBeanTypes'), {
+              beanTypes: DEFAULT_BEAN_TYPES,
+              beanLocations: DEFAULT_BEAN_LOCATIONS,
+              _lastUpdated: new Date().toISOString()
+            }).catch(error => {
+              console.error('創建品項設定文件失敗:', error)
+            })
+            setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+            setBeanLocationsLoaded(true)
+          }
+        },
+        (error) => {
+          console.error('讀取品項設定錯誤:', error)
+          if (timeoutId) clearTimeout(timeoutId)
+          // 如果 Firebase 連接失敗，使用預設設定
+          if (isMounted) {
+            setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+            setBeanLocationsLoaded(true)
+          }
+        }
+      )
+
+      beanTypesUnsubscribeRef.current = unsubscribe
+    } catch (error) {
+      console.error('Firebase 品項設定初始化錯誤:', error)
+      if (timeoutId) clearTimeout(timeoutId)
+      // 如果初始化失敗，使用預設設定
+      setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+      setBeanLocationsLoaded(true)
+    }
+
+    return () => {
+      isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+      if (beanTypesUnsubscribeRef.current) {
+        beanTypesUnsubscribeRef.current()
+        beanTypesUnsubscribeRef.current = null
+      }
+    }
+  }, [])
+
+  // 當 beanLocations 改變時，更新現有的 inventory 結構以符合新的設定
+  useEffect(() => {
+    // 如果 beanLocations 還沒有載入完成，等待載入
+    if (!beanLocationsLoaded) return
+    if (!beanLocations || Object.keys(beanLocations).length === 0) return
+    if (!beanTypes) return
+
+    const currentBeanLocationsStr = JSON.stringify(beanLocations)
+    const currentBeanTypesStr = JSON.stringify(beanTypes)
+    
+    // 如果 beanLocations 或 beanTypes 沒有改變，跳過更新
+    if (currentBeanLocationsStr === prevBeanLocationsRef.current && 
+        currentBeanTypesStr === prevBeanTypesRef.current) {
+      return
+    }
+    
+    // 更新 ref
+    prevBeanLocationsRef.current = currentBeanLocationsStr
+    prevBeanTypesRef.current = currentBeanTypesStr
+
+    setInventory(prev => {
+      const updated = { ...prev }
+      let hasChanges = false
+
+      // 處理出杯豆
+      Object.keys(beanTypes.brewing).forEach(subCategory => {
+        if (!beanTypes.brewing[subCategory]) return
+        
+        beanTypes.brewing[subCategory].forEach(beanType => {
+          const location = beanLocations[beanType] || { store: true, breakRoom: true }
+          const currentData = prev.brewing[subCategory]?.[beanType]
+
+          if (currentData) {
+            const newData = { ...currentData }
+            let dataChanged = false
+
+            // 如果應該有 store 但沒有，添加它
+            if (location.store && !currentData.store) {
+              newData.store = ['']
+              dataChanged = true
+            }
+            // 如果應該有 breakRoom 但沒有，添加它
+            if (location.breakRoom && !currentData.breakRoom) {
+              newData.breakRoom = ['']
+              dataChanged = true
+            }
+
+            if (dataChanged) {
+              if (!updated.brewing) updated.brewing = { ...prev.brewing }
+              if (!updated.brewing[subCategory]) updated.brewing[subCategory] = { ...prev.brewing[subCategory] }
+              updated.brewing[subCategory][beanType] = newData
+              hasChanges = true
+            }
+          }
+        })
+      })
+
+      // 處理賣豆
+      if (beanTypes.retail && Array.isArray(beanTypes.retail)) {
+        beanTypes.retail.forEach(beanType => {
+          const location = beanLocations[beanType] || { store: true, breakRoom: true }
+          const currentData = prev.retail?.[beanType]
+
+          if (currentData) {
+            const newData = { ...currentData }
+            let dataChanged = false
+
+            // 如果應該有 store 但沒有，添加它
+            if (location.store && !currentData.store) {
+              newData.store = ['']
+              dataChanged = true
+            }
+            // 如果應該有 breakRoom 但沒有，添加它
+            if (location.breakRoom && !currentData.breakRoom) {
+              newData.breakRoom = ['']
+              dataChanged = true
+            }
+
+            if (dataChanged) {
+              if (!updated.retail) updated.retail = { ...prev.retail }
+              updated.retail[beanType] = newData
+              hasChanges = true
+            }
+          }
+        })
+      }
+
+      return hasChanges ? updated : prev
+    })
+  }, [beanLocations, beanTypes, beanLocationsLoaded])
+
   // 儲存盤點表到 localStorage
   useEffect(() => {
     localStorage.setItem('coffeeBeanInventory', JSON.stringify(inventory))
@@ -281,10 +499,10 @@ function CoffeeBeanManager() {
   // 初始化豆種的數量陣列
   const initializeBeanType = (category, subCategory, beanType) => {
     if (!inventory[category][subCategory]?.[beanType]) {
-      const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
-      const initialStructure = isStoreOnly 
-        ? { store: [''] }
-        : { store: [''], breakRoom: [''] }
+      const location = getBeanLocation(beanType)
+      const initialStructure = {}
+      if (location.store) initialStructure.store = ['']
+      if (location.breakRoom) initialStructure.breakRoom = ['']
       
       setInventory(prev => ({
         ...prev,
@@ -471,10 +689,10 @@ function CoffeeBeanManager() {
     const initialData = {}
     
     // 初始化所有豆種的快速輸入數據
-    BEAN_TYPES.brewing.pourOver.forEach(beanType => {
+    beanTypes.brewing.pourOver.forEach(beanType => {
       const beanData = inventory.brewing.pourOver[beanType]
       const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = STORE_ONLY_BEANS.includes(beanType) ? 0 : calculateTotal(beanData?.breakRoom || [])
+      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
       
       initialData[`brewing-pourOver-${beanType}`] = {
         store: storeTotal.toString(),
@@ -485,10 +703,10 @@ function CoffeeBeanManager() {
       }
     })
     
-    BEAN_TYPES.brewing.espresso.forEach(beanType => {
+    beanTypes.brewing.espresso.forEach(beanType => {
       const beanData = inventory.brewing.espresso[beanType]
       const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = STORE_ONLY_BEANS.includes(beanType) ? 0 : calculateTotal(beanData?.breakRoom || [])
+      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
       
       initialData[`brewing-espresso-${beanType}`] = {
         store: storeTotal.toString(),
@@ -499,10 +717,10 @@ function CoffeeBeanManager() {
       }
     })
     
-    BEAN_TYPES.retail.forEach(beanType => {
+    beanTypes.retail.forEach(beanType => {
       const beanData = inventory.retail[beanType]
       const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = STORE_ONLY_BEANS.includes(beanType) ? 0 : calculateTotal(beanData?.breakRoom || [])
+      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
       
       initialData[`retail-${beanType}`] = {
         store: storeTotal.toString(),
@@ -529,7 +747,7 @@ function CoffeeBeanManager() {
             ...prev.retail,
             [beanType]: {
               store: [store],
-              ...(STORE_ONLY_BEANS.includes(beanType) ? {} : { breakRoom: [breakRoom] })
+              ...(getBeanLocation(beanType).breakRoom ? { breakRoom: [breakRoom] } : {})
             }
           }
         }))
@@ -543,7 +761,7 @@ function CoffeeBeanManager() {
               ...prev[category][subCategory],
               [beanType]: {
                 store: [store],
-                ...(STORE_ONLY_BEANS.includes(beanType) ? {} : { breakRoom: [breakRoom] })
+                ...(getBeanLocation(beanType).breakRoom ? { breakRoom: [breakRoom] } : {})
               }
             }
           }
@@ -622,10 +840,10 @@ function CoffeeBeanManager() {
     const tableData = []
     
     // 手沖豆
-    BEAN_TYPES.brewing.pourOver.forEach(beanType => {
+    beanTypes.brewing.pourOver.forEach(beanType => {
       const beanData = inventory.brewing.pourOver[beanType]
       const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = STORE_ONLY_BEANS.includes(beanType) ? 0 : calculateTotal(beanData?.breakRoom || [])
+      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
       const grandTotal = storeTotal + breakRoomTotal
       
       tableData.push({
@@ -638,10 +856,10 @@ function CoffeeBeanManager() {
     })
     
     // 義式豆
-    BEAN_TYPES.brewing.espresso.forEach(beanType => {
+    beanTypes.brewing.espresso.forEach(beanType => {
       const beanData = inventory.brewing.espresso[beanType]
       const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = STORE_ONLY_BEANS.includes(beanType) ? 0 : calculateTotal(beanData?.breakRoom || [])
+      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
       const grandTotal = storeTotal + breakRoomTotal
       
       tableData.push({
@@ -654,10 +872,10 @@ function CoffeeBeanManager() {
     })
     
     // 賣豆
-    BEAN_TYPES.retail.forEach(beanType => {
+    beanTypes.retail.forEach(beanType => {
       const beanData = inventory.retail[beanType]
       const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = STORE_ONLY_BEANS.includes(beanType) ? 0 : calculateTotal(beanData?.breakRoom || [])
+      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
       const grandTotal = storeTotal + breakRoomTotal
       
       tableData.push({
@@ -961,6 +1179,13 @@ function CoffeeBeanManager() {
             </>
           )}
           <button
+            onClick={() => setShowBeanTypesSettings(true)}
+            className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-purple-400 hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-500/50 transition-all duration-200 flex items-center gap-2"
+          >
+            <Cog6ToothIcon className="w-4 h-4" />
+            品項設定
+          </button>
+          <button
             onClick={resetAllData}
             className="px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
           >
@@ -1048,8 +1273,8 @@ function CoffeeBeanManager() {
                 <span className="text-xs text-blue-300/60">手沖咖啡專用</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {BEAN_TYPES.brewing.pourOver.map(beanType => {
-                const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
+              {beanTypes.brewing.pourOver.map(beanType => {
+                const location = getBeanLocation(beanType)
                 const beanData = inventory.brewing.pourOver[beanType]
                 const quickKey = `brewing-pourOver-${beanType}`
                 const quickData = quickInputData[quickKey]
@@ -1082,8 +1307,8 @@ function CoffeeBeanManager() {
                           />
                         </div>
 
-                        {/* 員休室庫存（只有非 Taiwan/Geisha 才有） */}
-                        {!isStoreOnly && (
+                        {/* 員休室庫存 */}
+                        {location.breakRoom && (
                           <div>
                             <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
@@ -1148,8 +1373,8 @@ function CoffeeBeanManager() {
                           </div>
                         </div>
 
-                        {/* 員休室庫存（只有非 Taiwan/Geisha 才有） */}
-                        {!isStoreOnly && (
+                        {/* 員休室庫存 */}
+                        {location.breakRoom && (
                           <div className="mb-3">
                             <div className="flex items-center justify-between mb-2">
                               <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
@@ -1210,8 +1435,8 @@ function CoffeeBeanManager() {
               <span className="text-xs text-purple-300/60">義式咖啡專用</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {BEAN_TYPES.brewing.espresso.map(beanType => {
-                const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
+              {beanTypes.brewing.espresso.map(beanType => {
+                const location = getBeanLocation(beanType)
                 const beanData = inventory.brewing.espresso[beanType]
                 const quickKey = `brewing-espresso-${beanType}`
                 const quickData = quickInputData[quickKey]
@@ -1244,8 +1469,8 @@ function CoffeeBeanManager() {
                           />
                         </div>
 
-                        {/* 員休室庫存（只有非 Taiwan/Geisha 才有） */}
-                        {!isStoreOnly && (
+                        {/* 員休室庫存 */}
+                        {location.breakRoom && (
                           <div>
                             <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
@@ -1310,8 +1535,8 @@ function CoffeeBeanManager() {
                           </div>
                         </div>
 
-                        {/* 員休室庫存（只有非 Taiwan/Geisha 才有） */}
-                        {!isStoreOnly && (
+                        {/* 員休室庫存 */}
+                        {location.breakRoom && (
                           <div className="mb-3">
                             <div className="flex items-center justify-between mb-2">
                               <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
@@ -1379,8 +1604,8 @@ function CoffeeBeanManager() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {BEAN_TYPES.retail.map(beanType => {
-              const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
+            {beanTypes.retail.map(beanType => {
+              const location = getBeanLocation(beanType)
               const beanData = inventory.retail[beanType]
               const quickKey = `retail-${beanType}`
               const quickData = quickInputData[quickKey]
@@ -1413,8 +1638,8 @@ function CoffeeBeanManager() {
                         />
                       </div>
 
-                      {/* 員休室庫存（只有非 Taiwan/Geisha 才有） */}
-                      {!isStoreOnly && (
+                      {/* 員休室庫存 */}
+                      {location.breakRoom && (
                         <div>
                           <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
@@ -1451,10 +1676,10 @@ function CoffeeBeanManager() {
                             onClick={() => {
                               // 為賣豆初始化結構
                               if (!inventory.retail[beanType]) {
-                                const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
-                                const initialStructure = isStoreOnly 
-                                  ? { store: [''] }
-                                  : { store: [''], breakRoom: [''] }
+                                const loc = getBeanLocation(beanType)
+                                const initialStructure = {}
+                                if (loc.store) initialStructure.store = ['']
+                                if (loc.breakRoom) initialStructure.breakRoom = ['']
                                 
                                 setInventory(prev => ({
                                   ...prev,
@@ -1492,10 +1717,10 @@ function CoffeeBeanManager() {
                                 onChange={(e) => {
                                   // 為賣豆初始化結構
                                   if (!inventory.retail[beanType]) {
-                                    const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
-                                    const initialStructure = isStoreOnly 
-                                      ? { store: [''] }
-                                      : { store: [''], breakRoom: [''] }
+                                    const loc = getBeanLocation(beanType)
+                                    const initialStructure = {}
+                                    if (loc.store) initialStructure.store = ['']
+                                    if (loc.breakRoom) initialStructure.breakRoom = ['']
                                     
                                     setInventory(prev => ({
                                       ...prev,
@@ -1548,8 +1773,8 @@ function CoffeeBeanManager() {
                         </div>
                       </div>
 
-                      {/* 員休室庫存（只有非 Taiwan/Geisha 才有） */}
-                      {!isStoreOnly && (
+                      {/* 員休室庫存 */}
+                      {location.breakRoom && (
                         <div className="mb-3">
                           <div className="flex items-center justify-between mb-2">
                             <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
@@ -1560,10 +1785,10 @@ function CoffeeBeanManager() {
                               onClick={() => {
                                 // 為賣豆初始化結構
                                 if (!inventory.retail[beanType]) {
-                                  const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
-                                  const initialStructure = isStoreOnly 
-                                    ? { store: [''] }
-                                    : { store: [''], breakRoom: [''] }
+                                  const loc = getBeanLocation(beanType)
+                                  const initialStructure = {}
+                                  if (loc.store) initialStructure.store = ['']
+                                  if (loc.breakRoom) initialStructure.breakRoom = ['']
                                   
                                   setInventory(prev => ({
                                     ...prev,
@@ -1601,10 +1826,10 @@ function CoffeeBeanManager() {
                                   onChange={(e) => {
                                     // 為賣豆初始化結構
                                     if (!inventory.retail[beanType]) {
-                                      const isStoreOnly = STORE_ONLY_BEANS.includes(beanType)
-                                      const initialStructure = isStoreOnly 
-                                        ? { store: [''] }
-                                        : { store: [''], breakRoom: [''] }
+                                      const loc = getBeanLocation(beanType)
+                                      const initialStructure = {}
+                                      if (loc.store) initialStructure.store = ['']
+                                      if (loc.breakRoom) initialStructure.breakRoom = ['']
                                       
                                       setInventory(prev => ({
                                         ...prev,
@@ -1966,6 +2191,12 @@ function CoffeeBeanManager() {
           </div>
         </div>
       )}
+
+      {/* 品項設定模態視窗 */}
+      <BeanTypesSettingsModal
+        isOpen={showBeanTypesSettings}
+        onClose={() => setShowBeanTypesSettings(false)}
+      />
       </div>
     </div>
   )
