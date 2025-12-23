@@ -39,7 +39,7 @@ const initializeBeanLocation = (beanLocations, beanName) => {
   return beanLocations[beanName]
 }
 
-function BeanTypesSettingsModal({ isOpen, onClose }) {
+function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) {
   const [beanTypes, setBeanTypes] = useState(DEFAULT_BEAN_TYPES)
   const [beanLocations, setBeanLocations] = useState(DEFAULT_BEAN_LOCATIONS)
   const [editingItem, setEditingItem] = useState(null) // { category, subCategory, index } 或 { category, index } 或 'storeOnly'
@@ -50,17 +50,19 @@ function BeanTypesSettingsModal({ isOpen, onClose }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
-  // 從 Firebase 載入設定
+  // 從 Firebase 載入設定（根據選中的店鋪）
   useEffect(() => {
     if (!isOpen) return
 
+    setIsLoading(true)
     let unsubscribe
     let isMounted = true
 
     const loadSettings = async () => {
       try {
+        const firebaseDocId = `coffeeBeanTypes_${selectedStore}`
         unsubscribe = onSnapshot(
-          doc(db, 'settings', 'coffeeBeanTypes'),
+          doc(db, 'settings', firebaseDocId),
           (docSnapshot) => {
             if (!isMounted) return
 
@@ -85,13 +87,15 @@ function BeanTypesSettingsModal({ isOpen, onClose }) {
               }
             } else {
               // 如果文件不存在，創建預設值
-              setDoc(doc(db, 'settings', 'coffeeBeanTypes'), {
+              setDoc(doc(db, 'settings', firebaseDocId), {
                 beanTypes: DEFAULT_BEAN_TYPES,
                 beanLocations: DEFAULT_BEAN_LOCATIONS,
                 _lastUpdated: new Date().toISOString()
               }).catch(error => {
                 console.error('創建品項設定文件失敗:', error)
               })
+              setBeanTypes(DEFAULT_BEAN_TYPES)
+              setBeanLocations(DEFAULT_BEAN_LOCATIONS)
             }
             setIsLoading(false)
           },
@@ -99,6 +103,8 @@ function BeanTypesSettingsModal({ isOpen, onClose }) {
             console.error('讀取品項設定錯誤:', error)
             if (isMounted) {
               setIsLoading(false)
+              setBeanTypes(DEFAULT_BEAN_TYPES)
+              setBeanLocations(DEFAULT_BEAN_LOCATIONS)
             }
           }
         )
@@ -106,6 +112,8 @@ function BeanTypesSettingsModal({ isOpen, onClose }) {
         console.error('Firebase 初始化錯誤:', error)
         if (isMounted) {
           setIsLoading(false)
+          setBeanTypes(DEFAULT_BEAN_TYPES)
+          setBeanLocations(DEFAULT_BEAN_LOCATIONS)
         }
       }
     }
@@ -118,7 +126,7 @@ function BeanTypesSettingsModal({ isOpen, onClose }) {
         unsubscribe()
       }
     }
-  }, [isOpen])
+  }, [isOpen, selectedStore])
 
   // 滾動鎖定
   useEffect(() => {
@@ -139,11 +147,12 @@ function BeanTypesSettingsModal({ isOpen, onClose }) {
     }
   }, [isOpen])
 
-  // 保存設定到 Firebase
+  // 保存設定到 Firebase（根據選中的店鋪）
   const saveSettings = async () => {
     setIsSaving(true)
     try {
-      await setDoc(doc(db, 'settings', 'coffeeBeanTypes'), {
+      const firebaseDocId = `coffeeBeanTypes_${selectedStore}`
+      await setDoc(doc(db, 'settings', firebaseDocId), {
         beanTypes,
         beanLocations,
         _lastUpdated: new Date().toISOString()
@@ -345,7 +354,9 @@ function BeanTypesSettingsModal({ isOpen, onClose }) {
               <div className="flex items-center justify-between p-6 border-b border-white/10">
                 <div>
                   <h2 className="text-2xl font-bold text-primary mb-1">品項設定</h2>
-                  <p className="text-sm text-text-secondary">管理咖啡豆品項和分類</p>
+                  <p className="text-sm text-text-secondary">
+                    管理咖啡豆品項和分類（{selectedStore === 'central' ? '中央店' : selectedStore === 'd7' ? 'D7 店' : 'D13 店'}）
+                  </p>
                 </div>
                 <button
                   onClick={onClose}

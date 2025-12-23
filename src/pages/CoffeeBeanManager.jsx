@@ -45,10 +45,57 @@ function CoffeeBeanManager() {
   const [showWeightCalculator, setShowWeightCalculator] = useState(false)
   const [showBeanTypesSettings, setShowBeanTypesSettings] = useState(false)
   
-  // 咖啡豆種類狀態（從 Firebase 讀取）
-  const [beanTypes, setBeanTypes] = useState(DEFAULT_BEAN_TYPES)
-  const [beanLocations, setBeanLocations] = useState({})
+  // 店鋪選擇（用於庫存管理和品項設定）
+  const [selectedStore, setSelectedStore] = useState('central') // 'central', 'd7', 'd13'
+  
+  // 為每個店鋪分別存儲品項設定
+  const [beanTypesCentral, setBeanTypesCentral] = useState(DEFAULT_BEAN_TYPES)
+  const [beanTypesD7, setBeanTypesD7] = useState(DEFAULT_BEAN_TYPES)
+  const [beanTypesD13, setBeanTypesD13] = useState(DEFAULT_BEAN_TYPES)
+  
+  const [beanLocationsCentral, setBeanLocationsCentral] = useState(DEFAULT_BEAN_LOCATIONS)
+  const [beanLocationsD7, setBeanLocationsD7] = useState(DEFAULT_BEAN_LOCATIONS)
+  const [beanLocationsD13, setBeanLocationsD13] = useState(DEFAULT_BEAN_LOCATIONS)
+  
   const [beanLocationsLoaded, setBeanLocationsLoaded] = useState(false)
+  
+  // 當前選中店鋪的品項設定
+  const beanTypes = useMemo(() => {
+    if (selectedStore === 'd7') return beanTypesD7
+    if (selectedStore === 'd13') return beanTypesD13
+    return beanTypesCentral
+  }, [selectedStore, beanTypesCentral, beanTypesD7, beanTypesD13])
+  
+  const beanLocations = useMemo(() => {
+    if (selectedStore === 'd7') return beanLocationsD7
+    if (selectedStore === 'd13') return beanLocationsD13
+    return beanLocationsCentral
+  }, [selectedStore, beanLocationsCentral, beanLocationsD7, beanLocationsD13])
+  
+  // 更新當前店鋪的品項設定（支持函數式更新）
+  const setBeanTypes = (newBeanTypes) => {
+    if (typeof newBeanTypes === 'function') {
+      if (selectedStore === 'd7') setBeanTypesD7(newBeanTypes)
+      else if (selectedStore === 'd13') setBeanTypesD13(newBeanTypes)
+      else setBeanTypesCentral(newBeanTypes)
+    } else {
+      if (selectedStore === 'd7') setBeanTypesD7(newBeanTypes)
+      else if (selectedStore === 'd13') setBeanTypesD13(newBeanTypes)
+      else setBeanTypesCentral(newBeanTypes)
+    }
+  }
+  
+  const setBeanLocations = (newBeanLocations) => {
+    if (typeof newBeanLocations === 'function') {
+      if (selectedStore === 'd7') setBeanLocationsD7(newBeanLocations)
+      else if (selectedStore === 'd13') setBeanLocationsD13(newBeanLocations)
+      else setBeanLocationsCentral(newBeanLocations)
+    } else {
+      if (selectedStore === 'd7') setBeanLocationsD7(newBeanLocations)
+      else if (selectedStore === 'd13') setBeanLocationsD13(newBeanLocations)
+      else setBeanLocationsCentral(newBeanLocations)
+    }
+  }
   
   // 初始化品項位置（如果品項不存在，預設兩個位置都啟用）
   const getBeanLocation = (beanName) => {
@@ -97,14 +144,39 @@ function CoffeeBeanManager() {
 
   const inventoryRef = useRef(null)
   
-  // 盤點表狀態
-  const [inventory, setInventory] = useState({
+  // 為每個店鋪分別存儲盤點表
+  const defaultInventory = {
     brewing: {
       pourOver: {},
       espresso: {}
     },
     retail: {}
-  })
+  }
+  const [inventoryCentral, setInventoryCentral] = useLocalStorage('coffeeBeanInventory_central', defaultInventory)
+  const [inventoryD7, setInventoryD7] = useLocalStorage('coffeeBeanInventory_d7', defaultInventory)
+  const [inventoryD13, setInventoryD13] = useLocalStorage('coffeeBeanInventory_d13', defaultInventory)
+  
+  // 當前選中店鋪的盤點表
+  const inventory = useMemo(() => {
+    if (selectedStore === 'd7') return inventoryD7
+    if (selectedStore === 'd13') return inventoryD13
+    return inventoryCentral
+  }, [selectedStore, inventoryCentral, inventoryD7, inventoryD13])
+  
+  // 更新當前店鋪的盤點表（支持函數式更新）
+  const setInventory = (newInventory) => {
+    if (typeof newInventory === 'function') {
+      // 函數式更新
+      if (selectedStore === 'd7') setInventoryD7(newInventory)
+      else if (selectedStore === 'd13') setInventoryD13(newInventory)
+      else setInventoryCentral(newInventory)
+    } else {
+      // 直接設置值
+      if (selectedStore === 'd7') setInventoryD7(newInventory)
+      else if (selectedStore === 'd13') setInventoryD13(newInventory)
+      else setInventoryCentral(newInventory)
+    }
+  }
 
   // 重量換算狀態
   const [weightMode, setWeightMode] = useState('bag') // 'bag' 或 'ikea'
@@ -151,19 +223,104 @@ function CoffeeBeanManager() {
     return [{ id: 1, totalWeight: '', estimatedPacks: 0 }]
   })
 
-  // 從 localStorage 載入設定
+  // 從 localStorage 載入重量模式
   useEffect(() => {
-    // 只載入盤點表和重量模式，重量設定和計算欄位已在初始化時載入
-    const savedInventory = localStorage.getItem('coffeeBeanInventory')
-    if (savedInventory) {
-      setInventory(JSON.parse(savedInventory))
-    }
-
     const savedWeightMode = localStorage.getItem('coffeeBeanWeightMode')
     if (savedWeightMode) {
       setWeightMode(savedWeightMode)
     }
   }, [])
+  
+  // 用於追蹤 Firebase 庫存訂閱
+  const inventoryUnsubscribeRef = useRef(null)
+  // 用於追蹤當前同步操作的店鋪，避免店鋪切換時造成衝突
+  const inventorySyncStoreRef = useRef(null)
+  
+  // 監聽 Firebase 庫存變更（根據選中的店鋪）
+  useEffect(() => {
+    // 清理舊的訂閱
+    if (inventoryUnsubscribeRef.current) {
+      inventoryUnsubscribeRef.current()
+      inventoryUnsubscribeRef.current = null
+    }
+    
+    const firebaseDocId = `coffeeBeanInventory_${selectedStore}`
+    let unsubscribe
+    let isMounted = true
+    let timeoutId
+    
+    try {
+      // 根據當前店鋪選擇對應的設定更新函數
+      const updateInventoryForStore = (data) => {
+        if (!isMounted) return
+        // 確保數據結構正確
+        const validData = {
+          brewing: data?.brewing || { pourOver: {}, espresso: {} },
+          retail: data?.retail || {}
+        }
+        if (selectedStore === 'd7') {
+          setInventoryD7(validData)
+        } else if (selectedStore === 'd13') {
+          setInventoryD13(validData)
+        } else {
+          setInventoryCentral(validData)
+        }
+      }
+      
+      // 設置超時機制，5秒後如果還沒有回應就使用本地設定
+      timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn('Firebase 庫存連接超時，使用本地庫存')
+        }
+      }, 5000)
+      
+      unsubscribe = onSnapshot(
+        doc(db, 'settings', firebaseDocId),
+        (docSnapshot) => {
+          if (!isMounted) return
+          if (timeoutId) clearTimeout(timeoutId)
+          
+          if (docSnapshot.exists()) {
+            updateInventoryForStore(docSnapshot.data())
+          } else {
+            // 如果文件不存在，使用預設值創建
+            const defaultInventoryData = {
+              brewing: { pourOver: {}, espresso: {} },
+              retail: {}
+            }
+            setDoc(docSnapshot.ref, defaultInventoryData)
+              .then(() => {
+                if (isMounted) {
+                  updateInventoryForStore(defaultInventoryData)
+                }
+              })
+              .catch(error => {
+                console.error('創建庫存文件失敗:', error)
+              })
+          }
+        },
+        (error) => {
+          console.error('讀取庫存錯誤:', error)
+          if (timeoutId) clearTimeout(timeoutId)
+          // 如果 Firebase 連接失敗，使用本地設定
+        }
+      )
+      
+      inventoryUnsubscribeRef.current = unsubscribe
+    } catch (error) {
+      console.error('Firebase 庫存初始化錯誤:', error)
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+
+    return () => {
+      isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+      if (inventoryUnsubscribeRef.current) {
+        inventoryUnsubscribeRef.current()
+        inventoryUnsubscribeRef.current = null
+      }
+    }
+  }, [selectedStore]) // 只需要在 selectedStore 改變時重新訂閱
 
   // 監聽 Firebase 重量設定變更（根據選中的店鋪）
   useEffect(() => {
@@ -249,7 +406,7 @@ function CoffeeBeanManager() {
     }
   }, [selectedWeightStore, setWeightSettingsCentral, setWeightSettingsD7, setWeightSettingsD13]) // 依賴店鋪選擇和設定函數
 
-  // 監聽 Firebase 品項設定變更
+  // 監聽 Firebase 品項設定變更（根據選中的店鋪）
   useEffect(() => {
     // 清理舊的訂閱
     if (beanTypesUnsubscribeRef.current) {
@@ -265,18 +422,44 @@ function CoffeeBeanManager() {
       timeoutId = setTimeout(() => {
         if (isMounted) {
           console.warn('Firebase 品項設定連接超時，使用預設設定')
+          setBeanLocationsLoaded(true)
         }
       }, 5000)
 
+      const firebaseDocId = `coffeeBeanTypes_${selectedStore}`
       unsubscribe = onSnapshot(
-        doc(db, 'settings', 'coffeeBeanTypes'),
+        doc(db, 'settings', firebaseDocId),
         (docSnapshot) => {
           if (!isMounted) return
           if (timeoutId) clearTimeout(timeoutId)
 
+          // 根據當前店鋪選擇對應的設定更新函數
+          const updateBeanTypesForStore = (beanTypesData) => {
+            if (!isMounted) return
+            if (selectedStore === 'd7') {
+              setBeanTypesD7(beanTypesData)
+            } else if (selectedStore === 'd13') {
+              setBeanTypesD13(beanTypesData)
+            } else {
+              setBeanTypesCentral(beanTypesData)
+            }
+          }
+          
+          const updateBeanLocationsForStore = (locationsData) => {
+            if (!isMounted) return
+            if (selectedStore === 'd7') {
+              setBeanLocationsD7(locationsData)
+            } else if (selectedStore === 'd13') {
+              setBeanLocationsD13(locationsData)
+            } else {
+              setBeanLocationsCentral(locationsData)
+            }
+            setBeanLocationsLoaded(true)
+          }
+
           if (docSnapshot.exists()) {
             const data = docSnapshot.data()
-            setBeanTypes(data.beanTypes || DEFAULT_BEAN_TYPES)
+            updateBeanTypesForStore(data.beanTypes || DEFAULT_BEAN_TYPES)
             
             // 處理數據遷移：如果存在舊的 storeOnlyBeans，轉換為新的 beanLocations
             let newBeanLocations
@@ -293,19 +476,18 @@ function CoffeeBeanManager() {
             } else {
               newBeanLocations = DEFAULT_BEAN_LOCATIONS
             }
-            setBeanLocations(newBeanLocations)
-            setBeanLocationsLoaded(true)
+            updateBeanLocationsForStore(newBeanLocations)
           } else {
-            // 如果文件不存在，創建預設值
-            setDoc(doc(db, 'settings', 'coffeeBeanTypes'), {
+            // 如果文件不存在，使用預設值創建
+            setDoc(docSnapshot.ref, {
               beanTypes: DEFAULT_BEAN_TYPES,
               beanLocations: DEFAULT_BEAN_LOCATIONS,
               _lastUpdated: new Date().toISOString()
             }).catch(error => {
               console.error('創建品項設定文件失敗:', error)
             })
-            setBeanLocations(DEFAULT_BEAN_LOCATIONS)
-            setBeanLocationsLoaded(true)
+            updateBeanTypesForStore(DEFAULT_BEAN_TYPES)
+            updateBeanLocationsForStore(DEFAULT_BEAN_LOCATIONS)
           }
         },
         (error) => {
@@ -313,7 +495,13 @@ function CoffeeBeanManager() {
           if (timeoutId) clearTimeout(timeoutId)
           // 如果 Firebase 連接失敗，使用預設設定
           if (isMounted) {
-            setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+            if (selectedStore === 'd7') {
+              setBeanLocationsD7(DEFAULT_BEAN_LOCATIONS)
+            } else if (selectedStore === 'd13') {
+              setBeanLocationsD13(DEFAULT_BEAN_LOCATIONS)
+            } else {
+              setBeanLocationsCentral(DEFAULT_BEAN_LOCATIONS)
+            }
             setBeanLocationsLoaded(true)
           }
         }
@@ -324,7 +512,13 @@ function CoffeeBeanManager() {
       console.error('Firebase 品項設定初始化錯誤:', error)
       if (timeoutId) clearTimeout(timeoutId)
       // 如果初始化失敗，使用預設設定
-      setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+      if (selectedStore === 'd7') {
+        setBeanLocationsD7(DEFAULT_BEAN_LOCATIONS)
+      } else if (selectedStore === 'd13') {
+        setBeanLocationsD13(DEFAULT_BEAN_LOCATIONS)
+      } else {
+        setBeanLocationsCentral(DEFAULT_BEAN_LOCATIONS)
+      }
       setBeanLocationsLoaded(true)
     }
 
@@ -336,7 +530,7 @@ function CoffeeBeanManager() {
         beanTypesUnsubscribeRef.current = null
       }
     }
-  }, [])
+  }, [selectedStore]) // 只需要在 selectedStore 改變時重新訂閱
 
   // 當 beanLocations 改變時，更新現有的 inventory 結構以符合新的設定
   useEffect(() => {
@@ -429,10 +623,23 @@ function CoffeeBeanManager() {
     })
   }, [beanLocations, beanTypes, beanLocationsLoaded])
 
-  // 儲存盤點表到 localStorage
+  // 同步盤點表到 Firebase（根據選中的店鋪）
   useEffect(() => {
-    localStorage.setItem('coffeeBeanInventory', JSON.stringify(inventory))
-  }, [inventory])
+    // 使用 ref 追蹤當前要同步的店鋪
+    inventorySyncStoreRef.current = selectedStore
+    const firebaseDocId = `coffeeBeanInventory_${selectedStore}`
+    // 使用防抖來避免過於頻繁的寫入
+    const timeoutId = setTimeout(() => {
+      // 確保店鋪沒有改變才進行同步（避免在快速切換店鋪時造成衝突）
+      if (inventorySyncStoreRef.current === selectedStore) {
+        setDoc(doc(db, 'settings', firebaseDocId), inventory).catch(error => {
+          console.error('同步庫存到 Firebase 失敗:', error)
+        })
+      }
+    }, 500)
+    
+    return () => clearTimeout(timeoutId)
+  }, [inventory, selectedStore])
 
   // 儲存計算欄位到 localStorage
   useEffect(() => {
@@ -791,10 +998,8 @@ function CoffeeBeanManager() {
   // 重置所有數據
   const resetAllData = () => {
     if (confirm('確定要重置所有數據嗎？此操作無法復原。')) {
-      setInventory({
-        brewing: { pourOver: {}, espresso: {} },
-        retail: {}
-      })
+      // 重置當前店鋪的庫存
+      setInventory(defaultInventory)
       setCalculations([{ id: 1, totalWeight: '', estimatedPacks: 0 }])
       // 重置所有店鋪的重量設定
       setWeightSettingsCentral(DEFAULT_WEIGHTS)
@@ -803,7 +1008,6 @@ function CoffeeBeanManager() {
       setWeightMode('bag')
       setQuickInputMode(false)
       setQuickInputData({})
-      localStorage.removeItem('coffeeBeanInventory')
       localStorage.removeItem('coffeeBeanWeightSettings_central')
       localStorage.removeItem('coffeeBeanWeightSettings_d7')
       localStorage.removeItem('coffeeBeanWeightSettings_d13')
@@ -1142,6 +1346,75 @@ function CoffeeBeanManager() {
           
           {/* 副標題 */}
           <p className="text-gray-400 text-sm sm:text-base font-medium px-4 mb-6 sm:mb-8">所以又到星期天</p>
+        </div>
+
+        {/* 分店選擇 - 現代化分段控制器 */}
+        <div className="mb-6 sm:mb-7 md:mb-8">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
+            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg sm:rounded-xl border border-primary/20">
+              <BuildingStorefrontIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            </div>
+            <h2 className="text-base sm:text-lg font-bold text-primary">選擇分店</h2>
+          </div>
+          
+          {/* 分段控制器容器 - 簡化設計，優化性能 */}
+          <div className="relative mx-auto max-w-2xl bg-surface/60 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 border border-white/10">
+            {/* 滑動指示器 - 純 CSS 動畫，極簡實現 */}
+            <div
+              className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 transition-[transform] duration-200 ease-out"
+              style={{
+                width: 'calc(33.333% - 4px)',
+                left: '4px',
+                transform: selectedStore === 'central' ? 'translateX(0%)' :
+                          selectedStore === 'd7' ? 'translateX(100%)' :
+                          'translateX(200%)'
+              }}
+            />
+            
+            {/* 選項按鈕 - 簡化動畫效果 */}
+            <div className="relative grid grid-cols-3 gap-1.5">
+              {[
+                { value: 'central', label: '中央店' },
+                { value: 'd7', label: 'D7 店' },
+                { value: 'd13', label: 'D13 店' }
+              ].map((store) => {
+                const isSelected = selectedStore === store.value
+                return (
+                  <button
+                    key={store.value}
+                    onClick={() => setSelectedStore(store.value)}
+                    className={`
+                      relative z-10
+                      px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5
+                      rounded-lg sm:rounded-xl
+                      font-bold text-xs sm:text-sm md:text-base
+                      transition-colors duration-200
+                      ${isSelected 
+                        ? 'text-white' 
+                        : 'text-gray-300 active:text-white'
+                      }
+                    `}
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation'
+                    }}
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full shadow-sm" />
+                      )}
+                      <span className="tracking-wide">{store.label}</span>
+                    </span>
+                    
+                    {/* 選中時的背景效果 - 簡化版本 */}
+                    {isSelected && (
+                      <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-100" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
 
         {/* 操作按鈕區域 */}
@@ -2196,6 +2469,7 @@ function CoffeeBeanManager() {
       <BeanTypesSettingsModal
         isOpen={showBeanTypesSettings}
         onClose={() => setShowBeanTypesSettings(false)}
+        selectedStore={selectedStore}
       />
       </div>
     </div>
