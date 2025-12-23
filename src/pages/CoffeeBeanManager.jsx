@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { db } from '../utils/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { useLocalStorage } from '../hooks/useLocalStorage'
@@ -183,10 +183,6 @@ function CoffeeBeanManager() {
   
   // 重量計算器店鋪選擇
   const [selectedWeightStore, setSelectedWeightStore] = useState('central') // 'central', 'd7', 'd13'
-  
-  // 快速輸入模式狀態
-  const [quickInputMode, setQuickInputMode] = useState(false)
-  const [quickInputData, setQuickInputData] = useState({})
   
   // 區域指示器狀態
   const [currentSection, setCurrentSection] = useState('brewing')
@@ -889,110 +885,11 @@ function CoffeeBeanManager() {
     ))
   }
 
-  // 快速輸入模式相關函數
-  const startQuickInput = () => {
-    setQuickInputMode(true)
-    // 初始化快速輸入數據
-    const initialData = {}
-    
-    // 初始化所有豆種的快速輸入數據
-    beanTypes.brewing.pourOver.forEach(beanType => {
-      const beanData = inventory.brewing.pourOver[beanType]
-      const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
-      
-      initialData[`brewing-pourOver-${beanType}`] = {
-        store: storeTotal.toString(),
-        breakRoom: breakRoomTotal.toString(),
-        category: 'brewing',
-        subCategory: 'pourOver',
-        beanType
-      }
-    })
-    
-    beanTypes.brewing.espresso.forEach(beanType => {
-      const beanData = inventory.brewing.espresso[beanType]
-      const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
-      
-      initialData[`brewing-espresso-${beanType}`] = {
-        store: storeTotal.toString(),
-        breakRoom: breakRoomTotal.toString(),
-        category: 'brewing',
-        subCategory: 'espresso',
-        beanType
-      }
-    })
-    
-    beanTypes.retail.forEach(beanType => {
-      const beanData = inventory.retail[beanType]
-      const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
-      
-      initialData[`retail-${beanType}`] = {
-        store: storeTotal.toString(),
-        breakRoom: breakRoomTotal.toString(),
-        category: 'retail',
-        subCategory: null,
-        beanType
-      }
-    })
-    
-    setQuickInputData(initialData)
-  }
-
-  const saveQuickInput = () => {
-    // 將快速輸入的數據轉換為正式庫存格式
-    Object.entries(quickInputData).forEach(([key, data]) => {
-      const { category, subCategory, beanType, store, breakRoom } = data
-      
-      if (category === 'retail') {
-        // 賣豆處理
-        setInventory(prev => ({
-          ...prev,
-          retail: {
-            ...prev.retail,
-            [beanType]: {
-              store: [store],
-              ...(getBeanLocation(beanType).breakRoom ? { breakRoom: [breakRoom] } : {})
-            }
-          }
-        }))
-      } else {
-        // 出杯豆處理
-        setInventory(prev => ({
-          ...prev,
-          [category]: {
-            ...prev[category],
-            [subCategory]: {
-              ...prev[category][subCategory],
-              [beanType]: {
-                store: [store],
-                ...(getBeanLocation(beanType).breakRoom ? { breakRoom: [breakRoom] } : {})
-              }
-            }
-          }
-        }))
-      }
-    })
-    
-    setQuickInputMode(false)
-    setQuickInputData({})
-  }
-
-  const cancelQuickInput = () => {
-    setQuickInputMode(false)
-    setQuickInputData({})
-  }
-
-  const updateQuickInput = (key, field, value) => {
-    setQuickInputData(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        [field]: value
-      }
-    }))
+  // 重置計算結果
+  const resetCalculations = () => {
+    if (confirm('確定要重置所有計算結果嗎？')) {
+      setCalculations([{ id: 1, totalWeight: '', estimatedPacks: 0 }])
+    }
   }
 
   // 重置所有數據
@@ -1006,8 +903,6 @@ function CoffeeBeanManager() {
       setWeightSettingsD7(DEFAULT_WEIGHTS)
       setWeightSettingsD13(DEFAULT_WEIGHTS)
       setWeightMode('bag')
-      setQuickInputMode(false)
-      setQuickInputData({})
       localStorage.removeItem('coffeeBeanWeightSettings_central')
       localStorage.removeItem('coffeeBeanWeightSettings_d7')
       localStorage.removeItem('coffeeBeanWeightSettings_d13')
@@ -1426,31 +1321,6 @@ function CoffeeBeanManager() {
             <CalculatorIcon className="w-4 h-4" />
             重量換算
           </button>
-          {!quickInputMode ? (
-            <button
-              onClick={startQuickInput}
-              className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 text-green-400 hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-500/50 transition-all duration-200 flex items-center gap-2"
-            >
-              <CalculatorIcon className="w-4 h-4" />
-              快速盤點
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={saveQuickInput}
-                className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 text-blue-400 hover:from-blue-500/30 hover:to-cyan-500/30 hover:border-blue-500/50 transition-all duration-200 flex items-center gap-2"
-              >
-                <ClipboardDocumentListIcon className="w-4 h-4" />
-                儲存盤點
-              </button>
-              <button
-                onClick={cancelQuickInput}
-                className="px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
-              >
-                取消
-              </button>
-            </>
-          )}
           <button
             onClick={() => setShowBeanTypesSettings(true)}
             className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-purple-400 hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-500/50 transition-all duration-200 flex items-center gap-2"
@@ -1549,151 +1419,99 @@ function CoffeeBeanManager() {
               {beanTypes.brewing.pourOver.map(beanType => {
                 const location = getBeanLocation(beanType)
                 const beanData = inventory.brewing.pourOver[beanType]
-                const quickKey = `brewing-pourOver-${beanType}`
-                const quickData = quickInputData[quickKey]
                 
                 return (
-                  <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border ${
-                    quickInputMode ? 'border-green-400/50' : 'border-white/10'
-                  }`}>
+                  <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
-                      <div className={`w-2 h-2 rounded-full ${quickInputMode ? 'bg-green-400' : 'bg-primary/60'}`}></div>
+                      <div className="w-2 h-2 rounded-full bg-primary/60"></div>
                     </div>
                     
-                    {quickInputMode ? (
-                      // 快速輸入模式
-                      <div className="space-y-3">
-                        {/* 店面庫存 */}
-                        <div>
-                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                            店面庫存
-                          </h6>
-                          <input
-                            type="number"
-                            value={quickData?.store || '0'}
-                            onChange={(e) => updateQuickInput(quickKey, 'store', e.target.value)}
-                            placeholder="數量"
-                            className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-blue-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
-                            inputMode="decimal"
-                          />
-                        </div>
-
-                        {/* 員休室庫存 */}
-                        {location.breakRoom && (
-                          <div>
-                            <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                              員休室庫存
-                            </h6>
+                    {/* 店面庫存 */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                          店面庫存
+                        </h6>
+                        <button
+                          onClick={() => addQuantityField('brewing', 'pourOver', beanType, 'store')}
+                          className="p-1.5 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors hover:scale-110 transform"
+                        >
+                          <PlusIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        {(beanData?.store || ['']).map((quantity, index) => (
+                          <div key={index} className="flex items-center gap-1.5">
                             <input
                               type="number"
-                              value={quickData?.breakRoom || '0'}
-                              onChange={(e) => updateQuickInput(quickKey, 'breakRoom', e.target.value)}
+                              value={quantity}
+                              onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
                               placeholder="數量"
-                              className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-green-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
+                              className="input-field flex-1 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
                               inputMode="decimal"
                             />
+                            {(beanData?.store || []).length > 1 && (
+                              <button
+                                onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'store', index)}
+                                className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                              >
+                                <TrashIcon className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
-                        )}
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 員休室庫存 */}
+                    {location.breakRoom && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                            員休室庫存
+                          </h6>
+                          <button
+                            onClick={() => addQuantityField('brewing', 'pourOver', beanType, 'breakRoom')}
+                            className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
+                          >
+                            <PlusIcon className="w-3 h-3" />
+                          </button>
+                        </div>
                         
-                        <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-green-500/10 to-transparent rounded-lg p-2">
-                          <span className="text-xs font-semibold text-green-400">
-                            總計: {parseInt(quickData?.store || 0) + parseInt(quickData?.breakRoom || 0)} 包
-                          </span>
+                        <div className="space-y-1.5">
+                          {(beanData?.breakRoom || ['']).map((quantity, index) => (
+                            <div key={index} className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)}
+                                placeholder="數量"
+                                className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
+                                inputMode="decimal"
+                              />
+                              {(beanData?.breakRoom || []).length > 1 && (
+                                <button
+                                  onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'breakRoom', index)}
+                                  className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ) : (
-                      // 正常模式
-                      <>
-                        {/* 店面庫存 */}
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                              店面庫存
-                            </h6>
-                            <button
-                              onClick={() => addQuantityField('brewing', 'pourOver', beanType, 'store')}
-                              className="p-1.5 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors hover:scale-110 transform"
-                            >
-                              <PlusIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                          
-                          <div className="space-y-1.5">
-                            {(beanData?.store || ['']).map((quantity, index) => (
-                              <div key={index} className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  value={quantity}
-                                  onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
-                                  placeholder="數量"
-                                  className="input-field flex-1 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
-                                  inputMode="decimal"
-                                />
-                                {(beanData?.store || []).length > 1 && (
-                                  <button
-                                    onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'store', index)}
-                                    className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                  >
-                                    <TrashIcon className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* 員休室庫存 */}
-                        {location.breakRoom && (
-                          <div className="mb-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                                員休室庫存
-                              </h6>
-                              <button
-                                onClick={() => addQuantityField('brewing', 'pourOver', beanType, 'breakRoom')}
-                                className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
-                              >
-                                <PlusIcon className="w-3 h-3" />
-                              </button>
-                            </div>
-                            
-                            <div className="space-y-1.5">
-                              {(beanData?.breakRoom || ['']).map((quantity, index) => (
-                                <div key={index} className="flex items-center gap-1.5">
-                                  <input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)}
-                                    placeholder="數量"
-                                    className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
-                                    inputMode="decimal"
-                                  />
-                                  {(beanData?.breakRoom || []).length > 1 && (
-                                    <button
-                                      onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'breakRoom', index)}
-                                      className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                    >
-                                      <TrashIcon className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
-                          <span className="text-xs font-semibold text-primary">
-                            {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
-                          </span>
-                        </div>
-                      </>
                     )}
+                    
+                    <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
+                      <span className="text-xs font-semibold text-primary">
+                        {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
+                      </span>
+                    </div>
                   </div>
                 )
               })}
@@ -1711,151 +1529,99 @@ function CoffeeBeanManager() {
               {beanTypes.brewing.espresso.map(beanType => {
                 const location = getBeanLocation(beanType)
                 const beanData = inventory.brewing.espresso[beanType]
-                const quickKey = `brewing-espresso-${beanType}`
-                const quickData = quickInputData[quickKey]
                 
                 return (
-                  <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border ${
-                    quickInputMode ? 'border-green-400/50' : 'border-white/10'
-                  }`}>
+                  <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
-                      <div className={`w-2 h-2 rounded-full ${quickInputMode ? 'bg-green-400' : 'bg-primary/60'}`}></div>
+                      <div className="w-2 h-2 rounded-full bg-primary/60"></div>
                     </div>
                     
-                    {quickInputMode ? (
-                      // 快速輸入模式
-                      <div className="space-y-3">
-                        {/* 店面庫存 */}
-                        <div>
-                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                            店面庫存
-                          </h6>
-                          <input
-                            type="number"
-                            value={quickData?.store || '0'}
-                            onChange={(e) => updateQuickInput(quickKey, 'store', e.target.value)}
-                            placeholder="數量"
-                            className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-blue-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
-                            inputMode="decimal"
-                          />
-                        </div>
-
-                        {/* 員休室庫存 */}
-                        {location.breakRoom && (
-                          <div>
-                            <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                              員休室庫存
-                            </h6>
+                    {/* 店面庫存 */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                          店面庫存
+                        </h6>
+                        <button
+                          onClick={() => addQuantityField('brewing', 'espresso', beanType, 'store')}
+                          className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
+                        >
+                          <PlusIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        {(beanData?.store || ['']).map((quantity, index) => (
+                          <div key={index} className="flex items-center gap-1.5">
                             <input
                               type="number"
-                              value={quickData?.breakRoom || '0'}
-                              onChange={(e) => updateQuickInput(quickKey, 'breakRoom', e.target.value)}
+                              value={quantity}
+                              onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)}
                               placeholder="數量"
-                              className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-green-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
+                              className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
                               inputMode="decimal"
                             />
+                            {(beanData?.store || []).length > 1 && (
+                              <button
+                                onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'store', index)}
+                                className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                              >
+                                <TrashIcon className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
-                        )}
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 員休室庫存 */}
+                    {location.breakRoom && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                            員休室庫存
+                          </h6>
+                          <button
+                            onClick={() => addQuantityField('brewing', 'espresso', beanType, 'breakRoom')}
+                            className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
+                          >
+                            <PlusIcon className="w-3 h-3" />
+                          </button>
+                        </div>
                         
-                        <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-green-500/10 to-transparent rounded-lg p-2">
-                          <span className="text-xs font-semibold text-green-400">
-                            總計: {parseInt(quickData?.store || 0) + parseInt(quickData?.breakRoom || 0)} 包
-                          </span>
+                        <div className="space-y-1.5">
+                          {(beanData?.breakRoom || ['']).map((quantity, index) => (
+                            <div key={index} className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)}
+                                placeholder="數量"
+                                className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
+                                inputMode="decimal"
+                              />
+                              {(beanData?.breakRoom || []).length > 1 && (
+                                <button
+                                  onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'breakRoom', index)}
+                                  className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ) : (
-                      // 正常模式
-                      <>
-                        {/* 店面庫存 */}
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                              店面庫存
-                            </h6>
-                            <button
-                              onClick={() => addQuantityField('brewing', 'espresso', beanType, 'store')}
-                              className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
-                            >
-                              <PlusIcon className="w-3 h-3" />
-                            </button>
-                          </div>
-                          
-                          <div className="space-y-1.5">
-                            {(beanData?.store || ['']).map((quantity, index) => (
-                              <div key={index} className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  value={quantity}
-                                  onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)}
-                                  placeholder="數量"
-                                  className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
-                                  inputMode="decimal"
-                                />
-                                {(beanData?.store || []).length > 1 && (
-                                  <button
-                                    onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'store', index)}
-                                    className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                  >
-                                    <TrashIcon className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* 員休室庫存 */}
-                        {location.breakRoom && (
-                          <div className="mb-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                                員休室庫存
-                              </h6>
-                              <button
-                                onClick={() => addQuantityField('brewing', 'espresso', beanType, 'breakRoom')}
-                                className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
-                              >
-                                <PlusIcon className="w-3 h-3" />
-                              </button>
-                            </div>
-                            
-                            <div className="space-y-1.5">
-                              {(beanData?.breakRoom || ['']).map((quantity, index) => (
-                                <div key={index} className="flex items-center gap-1.5">
-                                  <input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)}
-                                    placeholder="數量"
-                                    className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
-                                    inputMode="decimal"
-                                  />
-                                  {(beanData?.breakRoom || []).length > 1 && (
-                                    <button
-                                      onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'breakRoom', index)}
-                                      className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                    >
-                                      <TrashIcon className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
-                          <span className="text-xs font-semibold text-primary">
-                            {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
-                          </span>
-                        </div>
-                      </>
                     )}
+                    
+                    <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
+                      <span className="text-xs font-semibold text-primary">
+                        {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
+                      </span>
+                    </div>
                   </div>
                 )
               })}
@@ -1880,73 +1646,64 @@ function CoffeeBeanManager() {
             {beanTypes.retail.map(beanType => {
               const location = getBeanLocation(beanType)
               const beanData = inventory.retail[beanType]
-              const quickKey = `retail-${beanType}`
-              const quickData = quickInputData[quickKey]
               
               return (
-                <div key={beanType} className={`bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border ${
-                  quickInputMode ? 'border-green-400/50' : 'border-white/10'
-                }`}>
+                <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
                   <div className="flex items-center justify-between mb-3">
                     <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
-                    <div className={`w-2 h-2 rounded-full ${quickInputMode ? 'bg-green-400' : 'bg-primary/60'}`}></div>
+                    <div className="w-2 h-2 rounded-full bg-primary/60"></div>
                   </div>
                   
-                  {quickInputMode ? (
-                    // 快速輸入模式
-                    <div className="space-y-3">
-                      {/* 店面庫存 */}
-                      <div>
-                        <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                          店面庫存
-                        </h6>
-                        <input
-                          type="number"
-                          value={quickData?.store || '0'}
-                          onChange={(e) => updateQuickInput(quickKey, 'store', e.target.value)}
-                          placeholder="數量"
-                          className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-blue-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
-                          inputMode="decimal"
-                        />
-                      </div>
-
-                      {/* 員休室庫存 */}
-                      {location.breakRoom && (
-                        <div>
-                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1 mb-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                            員休室庫存
-                          </h6>
+                  {/* 店面庫存 */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                        店面庫存
+                      </h6>
+                      <button
+                        onClick={() => {
+                          // 為賣豆初始化結構
+                          if (!inventory.retail[beanType]) {
+                            const loc = getBeanLocation(beanType)
+                            const initialStructure = {}
+                            if (loc.store) initialStructure.store = ['']
+                            if (loc.breakRoom) initialStructure.breakRoom = ['']
+                            
+                            setInventory(prev => ({
+                              ...prev,
+                              retail: {
+                                ...prev.retail,
+                                [beanType]: initialStructure
+                              }
+                            }))
+                          }
+                          
+                          // 新增數量欄位
+                          setInventory(prev => ({
+                            ...prev,
+                            retail: {
+                              ...prev.retail,
+                              [beanType]: {
+                                ...prev.retail[beanType],
+                                store: [...(prev.retail[beanType]?.store || ['']), '']
+                              }
+                            }
+                          }))
+                        }}
+                        className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
+                      >
+                        <PlusIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      {(beanData?.store || ['']).map((quantity, index) => (
+                        <div key={index} className="flex items-center gap-1.5">
                           <input
                             type="number"
-                            value={quickData?.breakRoom || '0'}
-                            onChange={(e) => updateQuickInput(quickKey, 'breakRoom', e.target.value)}
-                            placeholder="數量"
-                            className="w-full text-sm py-3 px-4 rounded-lg bg-white/5 border border-white/10 focus:border-green-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400/30 transition-colors text-center font-semibold text-white placeholder-gray-500"
-                            inputMode="decimal"
-                          />
-                        </div>
-                      )}
-                      
-                      <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-green-500/10 to-transparent rounded-lg p-2">
-                        <span className="text-xs font-semibold text-green-400">
-                          總計: {parseInt(quickData?.store || 0) + parseInt(quickData?.breakRoom || 0)} 包
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    // 正常模式
-                    <>
-                      {/* 店面庫存 */}
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                            店面庫存
-                          </h6>
-                          <button
-                            onClick={() => {
+                            value={quantity}
+                            onChange={(e) => {
                               // 為賣豆初始化結構
                               if (!inventory.retail[beanType]) {
                                 const loc = getBeanLocation(beanType)
@@ -1963,99 +1720,99 @@ function CoffeeBeanManager() {
                                 }))
                               }
                               
-                              // 新增數量欄位
+                              // 更新數量
                               setInventory(prev => ({
                                 ...prev,
                                 retail: {
                                   ...prev.retail,
                                   [beanType]: {
                                     ...prev.retail[beanType],
-                                    store: [...(prev.retail[beanType]?.store || ['']), '']
+                                    store: prev.retail[beanType]?.store?.map((q, i) => 
+                                      i === index ? e.target.value : q
+                                    ) || ['']
                                   }
                                 }
                               }))
                             }}
-                            className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
-                          >
-                            <PlusIcon className="w-3 h-3" />
-                          </button>
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          {(beanData?.store || ['']).map((quantity, index) => (
-                            <div key={index} className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                value={quantity}
-                                onChange={(e) => {
-                                  // 為賣豆初始化結構
-                                  if (!inventory.retail[beanType]) {
-                                    const loc = getBeanLocation(beanType)
-                                    const initialStructure = {}
-                                    if (loc.store) initialStructure.store = ['']
-                                    if (loc.breakRoom) initialStructure.breakRoom = ['']
-                                    
-                                    setInventory(prev => ({
-                                      ...prev,
-                                      retail: {
-                                        ...prev.retail,
-                                        [beanType]: initialStructure
-                                      }
-                                    }))
-                                  }
-                                  
-                                  // 更新數量
-                                  setInventory(prev => ({
-                                    ...prev,
-                                    retail: {
-                                      ...prev.retail,
-                                      [beanType]: {
-                                        ...prev.retail[beanType],
-                                        store: prev.retail[beanType]?.store?.map((q, i) => 
-                                          i === index ? e.target.value : q
-                                        ) || ['']
-                                      }
-                                    }
-                                  }))
-                                }}
-                                placeholder="數量"
-                                className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
-                                inputMode="decimal"
-                              />
-                              {(beanData?.store || []).length > 1 && (
-                                <button
-                                  onClick={() => {
-                                    setInventory(prev => ({
-                                      ...prev,
-                                      retail: {
-                                        ...prev.retail,
-                                        [beanType]: {
-                                          ...prev.retail[beanType],
-                                          store: prev.retail[beanType]?.store?.filter((_, i) => i !== index) || ['']
-                                        }
-                                      }
-                                    }))
-                                  }}
-                                  className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                >
-                                  <TrashIcon className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 員休室庫存 */}
-                      {location.breakRoom && (
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                              <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                              員休室庫存
-                            </h6>
+                            placeholder="數量"
+                            className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                            inputMode="decimal"
+                          />
+                          {(beanData?.store || []).length > 1 && (
                             <button
                               onClick={() => {
+                                setInventory(prev => ({
+                                  ...prev,
+                                  retail: {
+                                    ...prev.retail,
+                                    [beanType]: {
+                                      ...prev.retail[beanType],
+                                      store: prev.retail[beanType]?.store?.filter((_, i) => i !== index) || ['']
+                                    }
+                                  }
+                                }))
+                              }}
+                              className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                            >
+                              <TrashIcon className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 員休室庫存 */}
+                  {location.breakRoom && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                          員休室庫存
+                        </h6>
+                        <button
+                          onClick={() => {
+                            // 為賣豆初始化結構
+                            if (!inventory.retail[beanType]) {
+                              const loc = getBeanLocation(beanType)
+                              const initialStructure = {}
+                              if (loc.store) initialStructure.store = ['']
+                              if (loc.breakRoom) initialStructure.breakRoom = ['']
+                              
+                              setInventory(prev => ({
+                                ...prev,
+                                retail: {
+                                  ...prev.retail,
+                                  [beanType]: initialStructure
+                                }
+                              }))
+                            }
+                            
+                            // 新增數量欄位
+                            setInventory(prev => ({
+                              ...prev,
+                              retail: {
+                                ...prev.retail,
+                                [beanType]: {
+                                  ...prev.retail[beanType],
+                                  breakRoom: [...(prev.retail[beanType]?.breakRoom || ['']), '']
+                                }
+                              }
+                            }))
+                          }}
+                          className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
+                        >
+                          <PlusIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        {(beanData?.breakRoom || ['']).map((quantity, index) => (
+                          <div key={index} className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              value={quantity}
+                              onChange={(e) => {
                                 // 為賣豆初始化結構
                                 if (!inventory.retail[beanType]) {
                                   const loc = getBeanLocation(beanType)
@@ -2072,97 +1829,54 @@ function CoffeeBeanManager() {
                                   }))
                                 }
                                 
-                                // 新增數量欄位
+                                // 更新數量
                                 setInventory(prev => ({
                                   ...prev,
                                   retail: {
                                     ...prev.retail,
                                     [beanType]: {
                                       ...prev.retail[beanType],
-                                      breakRoom: [...(prev.retail[beanType]?.breakRoom || ['']), '']
+                                      breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => 
+                                        i === index ? e.target.value : q
+                                      ) || ['']
                                     }
                                   }
                                 }))
                               }}
-                              className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
-                            >
-                              <PlusIcon className="w-3 h-3" />
-                            </button>
-                          </div>
-                          
-                          <div className="space-y-1.5">
-                            {(beanData?.breakRoom || ['']).map((quantity, index) => (
-                              <div key={index} className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  value={quantity}
-                                  onChange={(e) => {
-                                    // 為賣豆初始化結構
-                                    if (!inventory.retail[beanType]) {
-                                      const loc = getBeanLocation(beanType)
-                                      const initialStructure = {}
-                                      if (loc.store) initialStructure.store = ['']
-                                      if (loc.breakRoom) initialStructure.breakRoom = ['']
-                                      
-                                      setInventory(prev => ({
-                                        ...prev,
-                                        retail: {
-                                          ...prev.retail,
-                                          [beanType]: initialStructure
-                                        }
-                                      }))
-                                    }
-                                    
-                                    // 更新數量
-                                    setInventory(prev => ({
-                                      ...prev,
-                                      retail: {
-                                        ...prev.retail,
-                                        [beanType]: {
-                                          ...prev.retail[beanType],
-                                          breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => 
-                                            i === index ? e.target.value : q
-                                          ) || ['']
-                                        }
+                              placeholder="數量"
+                              className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
+                              inputMode="decimal"
+                            />
+                            {(beanData?.breakRoom || []).length > 1 && (
+                              <button
+                                onClick={() => {
+                                  setInventory(prev => ({
+                                    ...prev,
+                                    retail: {
+                                      ...prev.retail,
+                                      [beanType]: {
+                                        ...prev.retail[beanType],
+                                        breakRoom: prev.retail[beanType]?.breakRoom?.filter((_, i) => i !== index) || ['']
                                       }
-                                    }))
-                                  }}
-                                  placeholder="數量"
-                                  className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
-                                  inputMode="decimal"
-                                />
-                                {(beanData?.breakRoom || []).length > 1 && (
-                                  <button
-                                    onClick={() => {
-                                      setInventory(prev => ({
-                                        ...prev,
-                                        retail: {
-                                          ...prev.retail,
-                                          [beanType]: {
-                                            ...prev.retail[beanType],
-                                            breakRoom: prev.retail[beanType]?.breakRoom?.filter((_, i) => i !== index) || ['']
-                                          }
-                                        }
-                                      }))
-                                    }}
-                                    className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                  >
-                                    <TrashIcon className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
+                                    }
+                                  }))
+                                }}
+                                className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                              >
+                                <TrashIcon className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
-                        </div>
-                      )}
-                      
-                      <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
-                        <span className="text-xs font-semibold text-primary">
-                          {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
-                        </span>
+                        ))}
                       </div>
-                    </>
+                    </div>
                   )}
+                  
+                  <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
+                    <span className="text-xs font-semibold text-primary">
+                      {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
+                    </span>
+                  </div>
                 </div>
               )
             })}
@@ -2411,9 +2125,19 @@ function CoffeeBeanManager() {
 
             {/* 計算欄位 */}
             <div className="space-y-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-1 h-6 bg-gradient-to-b from-green-400 to-emerald-400 rounded-full"></div>
-                <h3 className="text-lg font-bold text-primary">計算結果</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-green-400 to-emerald-400 rounded-full"></div>
+                  <h3 className="text-lg font-bold text-primary">計算結果</h3>
+                </div>
+                <button
+                  onClick={resetCalculations}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-2"
+                  title="重置所有計算結果"
+                >
+                  <ArrowPathIcon className="w-4 h-4" />
+                  重置結果
+                </button>
               </div>
               
               {calculations.map((calc) => (
@@ -2460,6 +2184,37 @@ function CoffeeBeanManager() {
                   </div>
                 </div>
               ))}
+              
+              {/* 總計卡片 - 僅在有多個計算欄位時顯示 */}
+              {calculations.length > 1 && (
+                <div className="relative group mt-6">
+                  {/* 卡片背景光暈 */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-500/30 via-emerald-500/30 to-green-400/30 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
+                  
+                  <div className="relative backdrop-blur-xl bg-gradient-to-br from-green-500/20 via-emerald-500/20 to-green-400/20 border-2 border-green-400/40 rounded-2xl p-6 shadow-2xl overflow-hidden">
+                    {/* 流動背景效果 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-emerald-500/10 to-green-400/0 opacity-50 animate-gradient bg-[length:200%_100%]"></div>
+                    
+                    <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-xl bg-gradient-to-br from-green-400/30 to-emerald-400/30 border border-green-400/50 shadow-lg">
+                          <CalculatorIcon className="w-6 h-6 text-green-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-text-secondary mb-1">總計估算包數</h4>
+                          <p className="text-xs text-text-secondary/70">所有計算欄位的加總</p>
+                        </div>
+                      </div>
+                      <div className="text-center sm:text-right">
+                        <div className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-400 to-green-300 bg-clip-text text-transparent mb-1">
+                          {calculations.reduce((sum, calc) => sum + (calc.estimatedPacks || 0), 0).toFixed(1)}
+                        </div>
+                        <div className="text-base font-bold text-green-400">包</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
