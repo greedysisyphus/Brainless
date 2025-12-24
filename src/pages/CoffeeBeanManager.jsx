@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon, ArrowPathIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { db } from '../utils/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { useLocalStorage } from '../hooks/useLocalStorage'
@@ -244,7 +244,19 @@ function CoffeeBeanManager() {
   
   
   // 匯出模式狀態
-  const [exportMode, setExportMode] = useState('cat') // 'cat' 或 'minimalist'
+  const [exportMode, setExportMode] = useState('cat') // 'cat'、'minimalist' 或 'custom'
+  
+  // 自訂 logo（用於匯出）
+  const [customLogoBase64, setCustomLogoBase64] = useState(() => {
+    // 從 localStorage 讀取自訂 logo
+    try {
+      const saved = localStorage.getItem('customExportLogo')
+      return saved || null
+    } catch (error) {
+      console.error('讀取自訂 logo 失敗:', error)
+      return null
+    }
+  })
   
   // 為每個店鋪分別存儲重量設定
   const [weightSettingsCentral, setWeightSettingsCentral] = useLocalStorage('coffeeBeanWeightSettings_central', DEFAULT_WEIGHTS)
@@ -1078,10 +1090,21 @@ function CoffeeBeanManager() {
     return tableData
   }
 
+  // 獲取店鋪名稱
+  const getStoreName = (store) => {
+    const storeNames = {
+      'central': '中央店',
+      'd7': 'D7 店',
+      'd13': 'D13 店'
+    }
+    return storeNames[store] || '中央店'
+  }
+
   // 創建 Minimalist 風格表格 HTML（不帶 logo，純簡潔風格）
-  const createMinimalistTableHTML = () => {
+  const createMinimalistTableHTML = (store = 'central') => {
     const tableData = createSummaryTable()
     const date = new Date().toLocaleDateString('zh-TW')
+    const storeName = getStoreName(store)
     
     // 按分類分組
     const groupedData = {}
@@ -1097,7 +1120,7 @@ function CoffeeBeanManager() {
         <div style="background: white; border-radius: 20px; padding: 50px; box-shadow: 0 8px 32px rgba(0,0,0,0.08);">
           <div style="text-align: center; margin-bottom: 50px;">
             <h1 style="color: #1d1d1f; margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px;">咖啡豆盤點表</h1>
-            <p style="color: #86868b; margin: 12px 0 0 0; font-size: 17px; font-weight: 400;">盤點日期：${date}</p>
+            <p style="color: #86868b; margin: 12px 0 0 0; font-size: 17px; font-weight: 400;">${storeName} | 盤點日期：${date}</p>
           </div>
           
           ${Object.entries(groupedData).map(([category, rows]) => {
@@ -1157,10 +1180,66 @@ function CoffeeBeanManager() {
     }
   }
 
+  // 處理 logo 上傳
+  const handleLogoUpload = (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    // 檢查文件類型
+    if (!file.type.startsWith('image/')) {
+      alert('請選擇圖片文件（PNG、JPG、WebP 等）')
+      return
+    }
+
+    // 檢查文件大小（限制 5MB，base64 編碼後約 6.7MB）
+    if (file.size > 5 * 1024 * 1024) {
+      alert('圖片大小不能超過 5MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64 = reader.result
+      setCustomLogoBase64(base64)
+      // 上傳後自動切換到自定 Logo 模式
+      setExportMode('custom')
+      try {
+        localStorage.setItem('customExportLogo', base64)
+      } catch (error) {
+        console.error('保存自訂 logo 失敗:', error)
+        alert('保存失敗，可能是存儲空間不足')
+      }
+    }
+    reader.onerror = () => {
+      alert('讀取圖片失敗，請重試')
+    }
+    reader.readAsDataURL(file)
+    
+    // 重置 input，允許重新選擇相同文件
+    event.target.value = ''
+  }
+
+  // 移除自訂 logo，恢復預設
+  const removeCustomLogo = () => {
+    if (confirm('確定要移除自訂 Logo 嗎？')) {
+      setCustomLogoBase64(null)
+      // 移除後自動切換到 Cat 模式
+      if (exportMode === 'custom') {
+        setExportMode('cat')
+      }
+      try {
+        localStorage.removeItem('customExportLogo')
+      } catch (error) {
+        console.error('移除自訂 logo 失敗:', error)
+      }
+    }
+  }
+
   // 創建 Cat 風格表格 HTML（帶 logo）
-  const createCatStyleTableHTML = (logoBase64 = null) => {
+  const createCatStyleTableHTML = (logoBase64 = null, store = 'central') => {
     const tableData = createSummaryTable()
     const date = new Date().toLocaleDateString('zh-TW')
+    const storeName = getStoreName(store)
     
     // 按分類分組
     const groupedData = {}
@@ -1182,10 +1261,10 @@ function CoffeeBeanManager() {
           <div style="text-align: center; margin-bottom: 50px; position: relative; z-index: 1;">
             <!-- Logo 和標題 -->
             <div style="display: inline-flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-              ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #e5e5e7; flex-shrink: 0; transform: translateY(12px);" />` : ''}
+              ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #e5e5e7; flex-shrink: 0; transform: translateY(16px);" />` : ''}
               <h1 style="color: #1d1d1f; margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1;">咖啡豆盤點表</h1>
             </div>
-            <p style="color: #86868b; margin: 8px 0 0 0; font-size: 17px; font-weight: 400;">盤點日期：${date}</p>
+            <p style="color: #86868b; margin: 8px 0 0 0; font-size: 17px; font-weight: 400;">${storeName} | 盤點日期：${date}</p>
           </div>
           
           ${Object.entries(groupedData).map(([category, rows]) => {
@@ -1243,17 +1322,25 @@ function CoffeeBeanManager() {
       
       // 根據模式選擇HTML模板
       let htmlContent
-      if (exportMode === 'cat') {
-        // 將 logo 轉換為 base64 以確保在 GitHub Pages 上正常顯示
+      if (exportMode === 'custom') {
+        // 自定 Logo 模式：必須使用自訂 logo
+        if (!customLogoBase64) {
+          alert('請先上傳自訂 Logo')
+          return
+        }
+        htmlContent = createCatStyleTableHTML(customLogoBase64, selectedStore)
+      } else if (exportMode === 'cat') {
+        // Cat 模式：使用預設 logo
         let logoBase64 = null
         try {
           logoBase64 = await imageToBase64(logoCat)
         } catch (error) {
           console.warn('Logo 轉換失敗，將使用原始路徑:', error)
         }
-        htmlContent = createCatStyleTableHTML(logoBase64)
+        htmlContent = createCatStyleTableHTML(logoBase64, selectedStore)
       } else {
-        htmlContent = createMinimalistTableHTML()
+        // Minimalist 模式：無 logo
+        htmlContent = createMinimalistTableHTML(selectedStore)
       }
       
       // 創建臨時容器
@@ -1294,7 +1381,7 @@ function CoffeeBeanManager() {
       
       // 創建下載連結
       const link = document.createElement('a')
-      const modeText = exportMode === 'cat' ? 'Cat' : 'Minimalist'
+      const modeText = exportMode === 'custom' ? '自定Logo' : (exportMode === 'cat' ? 'Cat' : 'Minimalist')
       link.download = `咖啡豆盤點表_${modeText}_${new Date().toLocaleDateString('zh-TW')}.png`
       link.href = canvas.toDataURL('image/png', 1.0)
       link.click()
@@ -1458,9 +1545,9 @@ function CoffeeBeanManager() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {/* 匯出模式選擇 */}
+              {/* 匯出模式選擇 - 三選一 */}
               <div className="flex items-center gap-2 px-3 py-2 bg-surface/40 rounded-lg border border-white/10">
-                <label className="flex items-center gap-2 text-xs text-text-secondary">
+                <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
                   <input
                     type="radio"
                     value="cat"
@@ -1471,7 +1558,7 @@ function CoffeeBeanManager() {
                   <span>Cat</span>
                 </label>
                 <div className="w-px h-4 bg-white/20"></div>
-                <label className="flex items-center gap-2 text-xs text-text-secondary">
+                <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
                   <input
                     type="radio"
                     value="minimalist"
@@ -1481,7 +1568,72 @@ function CoffeeBeanManager() {
                   />
                   <span>Minimalist</span>
                 </label>
+                <div className="w-px h-4 bg-white/20"></div>
+                <label 
+                  className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer"
+                  onClick={(e) => {
+                    if (!customLogoBase64) {
+                      // 如果沒有自訂 logo，阻止 radio 選中，觸發文件選擇
+                      e.preventDefault()
+                      document.getElementById('custom-logo-upload').click()
+                    }
+                  }}
+                >
+                  <input
+                    type="radio"
+                    value="custom"
+                    checked={exportMode === 'custom'}
+                    onChange={(e) => {
+                      if (customLogoBase64) {
+                        setExportMode('custom')
+                      }
+                    }}
+                    className="text-purple-400 w-3 h-3"
+                  />
+                  <span className={exportMode === 'custom' ? 'text-purple-400' : ''}>自定 Logo</span>
+                </label>
               </div>
+              
+              {/* Logo 預覽和移除（僅在自定 Logo 模式顯示） */}
+              {exportMode === 'custom' && customLogoBase64 && (
+                <div className="relative flex items-center gap-2 px-3 py-2 bg-surface/40 rounded-lg border border-white/10">
+                  <img 
+                    src={customLogoBase64} 
+                    alt="自訂 Logo" 
+                    className="w-6 h-6 rounded-full object-cover border border-white/20"
+                  />
+                  <button
+                    onClick={removeCustomLogo}
+                    className="text-xs text-text-secondary hover:text-red-400 transition-colors"
+                    title="移除自訂 Logo"
+                  >
+                    移除
+                  </button>
+                </div>
+              )}
+              
+              {/* 隱藏的檔案上傳 input */}
+              <input
+                id="custom-logo-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+              />
+              
+              {/* 更換 Logo 按鈕（僅在自定 Logo 模式且已有 logo 時顯示） */}
+              {exportMode === 'custom' && customLogoBase64 && (
+                <label className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-400 hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-500/50 transition-all duration-200 flex items-center gap-2 cursor-pointer">
+                  <PhotoIcon className="w-4 h-4" />
+                  更換 Logo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </label>
+              )}
               
               <button
                 onClick={exportInventoryAsImage}
