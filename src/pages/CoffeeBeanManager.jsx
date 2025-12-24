@@ -15,11 +15,19 @@ const DEFAULT_BEAN_TYPES = {
   retail: ['水洗', '日曬', '阿寶', '季節', '台灣豆', 'Geisha']
 }
 
-// 預設品項位置設定：{ '品項名稱': { store: true/false, breakRoom: true/false } }
-const DEFAULT_BEAN_LOCATIONS = {
-  '台灣豆': { store: true, breakRoom: false },
-  'Geisha': { store: true, breakRoom: false }
+// 根據店鋪獲取預設品項位置設定
+// D7 店：所有品項的 dryStorage 預設為 true
+// 中央店和 D13 店：所有品項的 dryStorage 預設為 false
+const getDefaultBeanLocationsForStore = (store) => {
+  const dryStorageDefault = store === 'd7' ? true : false
+  return {
+    '台灣豆': { store: true, breakRoom: false, dryStorage: dryStorageDefault },
+    'Geisha': { store: true, breakRoom: false, dryStorage: dryStorageDefault }
+  }
 }
+
+// 預設品項位置設定（用於向後兼容，中央店預設）
+const DEFAULT_BEAN_LOCATIONS = getDefaultBeanLocationsForStore('central')
 
 // 將舊的 storeOnlyBeans 格式轉換為新的 beanLocations 格式
 const convertStoreOnlyToLocations = (storeOnlyBeans, allBeanNames) => {
@@ -27,7 +35,8 @@ const convertStoreOnlyToLocations = (storeOnlyBeans, allBeanNames) => {
   allBeanNames.forEach(beanName => {
     locations[beanName] = {
       store: true,
-      breakRoom: !storeOnlyBeans.includes(beanName)
+      breakRoom: !storeOnlyBeans.includes(beanName),
+      dryStorage: false
     }
   })
   return locations
@@ -53,9 +62,9 @@ function CoffeeBeanManager() {
   const [beanTypesD7, setBeanTypesD7] = useState(DEFAULT_BEAN_TYPES)
   const [beanTypesD13, setBeanTypesD13] = useState(DEFAULT_BEAN_TYPES)
   
-  const [beanLocationsCentral, setBeanLocationsCentral] = useState(DEFAULT_BEAN_LOCATIONS)
-  const [beanLocationsD7, setBeanLocationsD7] = useState(DEFAULT_BEAN_LOCATIONS)
-  const [beanLocationsD13, setBeanLocationsD13] = useState(DEFAULT_BEAN_LOCATIONS)
+  const [beanLocationsCentral, setBeanLocationsCentral] = useState(getDefaultBeanLocationsForStore('central'))
+  const [beanLocationsD7, setBeanLocationsD7] = useState(getDefaultBeanLocationsForStore('d7'))
+  const [beanLocationsD13, setBeanLocationsD13] = useState(getDefaultBeanLocationsForStore('d13'))
   
   const [beanLocationsLoaded, setBeanLocationsLoaded] = useState(false)
   
@@ -97,13 +106,59 @@ function CoffeeBeanManager() {
     }
   }
   
-  // 初始化品項位置（如果品項不存在，預設兩個位置都啟用）
-  const getBeanLocation = (beanName) => {
+  // 獲取品項的完整鍵（包含分類信息）
+  const getBeanKey = (beanName, category, subCategory) => {
+    if (category === 'retail') {
+      return `retail.${beanName}`
+    } else if (subCategory) {
+      return `brewing.${subCategory}.${beanName}`
+    } else {
+      // 如果沒有提供分類信息，使用舊格式（向後兼容）
+      return beanName
+    }
+  }
+
+  // 初始化品項位置（如果品項不存在，預設所有位置都啟用）
+  // category: 'brewing' | 'retail'
+  // subCategory: 'pourOver' | 'espresso' (僅當 category === 'brewing' 時需要)
+  const getBeanLocation = (beanName, category = null, subCategory = null) => {
+    const defaultLocation = { store: true, breakRoom: true, dryStorage: true }
+    
     // 如果還沒有載入完成，使用 DEFAULT_BEAN_LOCATIONS 作為臨時值，避免閃爍
     if (!beanLocationsLoaded) {
-      return DEFAULT_BEAN_LOCATIONS[beanName] || { store: true, breakRoom: true }
+      const location = DEFAULT_BEAN_LOCATIONS[beanName] || defaultLocation
+      return {
+        store: location.store ?? true,
+        breakRoom: location.breakRoom ?? true,
+        dryStorage: location.dryStorage ?? false
+      }
     }
-    return beanLocations[beanName] || { store: true, breakRoom: true }
+    
+    // 如果有分類信息，嘗試使用分類鍵（新格式）
+    if (category) {
+      const beanKey = getBeanKey(beanName, category, subCategory)
+      if (beanLocations[beanKey]) {
+        const location = beanLocations[beanKey]
+        return {
+          store: location.store ?? true,
+          breakRoom: location.breakRoom ?? true,
+          dryStorage: location.dryStorage ?? false
+        }
+      }
+    }
+    
+    // 嘗試舊格式（向後兼容）
+    if (beanLocations[beanName]) {
+      const location = beanLocations[beanName]
+      return {
+        store: location.store ?? true,
+        breakRoom: location.breakRoom ?? true,
+        dryStorage: location.dryStorage ?? false
+      }
+    }
+    
+    // 都不存在，返回預設值
+    return defaultLocation
   }
   
   // 用於追蹤 Firebase 品項設定訂閱
@@ -489,14 +544,15 @@ function CoffeeBeanManager() {
         (error) => {
           console.error('讀取品項設定錯誤:', error)
           if (timeoutId) clearTimeout(timeoutId)
-          // 如果 Firebase 連接失敗，使用預設設定
+          // 如果 Firebase 連接失敗，使用預設設定（根據店鋪設置不同的預設值）
           if (isMounted) {
+            const defaultBeanLocations = getDefaultBeanLocationsForStore(selectedStore)
             if (selectedStore === 'd7') {
-              setBeanLocationsD7(DEFAULT_BEAN_LOCATIONS)
+              setBeanLocationsD7(defaultBeanLocations)
             } else if (selectedStore === 'd13') {
-              setBeanLocationsD13(DEFAULT_BEAN_LOCATIONS)
+              setBeanLocationsD13(defaultBeanLocations)
             } else {
-              setBeanLocationsCentral(DEFAULT_BEAN_LOCATIONS)
+              setBeanLocationsCentral(defaultBeanLocations)
             }
             setBeanLocationsLoaded(true)
           }
@@ -507,13 +563,14 @@ function CoffeeBeanManager() {
     } catch (error) {
       console.error('Firebase 品項設定初始化錯誤:', error)
       if (timeoutId) clearTimeout(timeoutId)
-      // 如果初始化失敗，使用預設設定
+      // 如果初始化失敗，使用預設設定（根據店鋪設置不同的預設值）
+      const defaultBeanLocations = getDefaultBeanLocationsForStore(selectedStore)
       if (selectedStore === 'd7') {
-        setBeanLocationsD7(DEFAULT_BEAN_LOCATIONS)
+        setBeanLocationsD7(defaultBeanLocations)
       } else if (selectedStore === 'd13') {
-        setBeanLocationsD13(DEFAULT_BEAN_LOCATIONS)
+        setBeanLocationsD13(defaultBeanLocations)
       } else {
-        setBeanLocationsCentral(DEFAULT_BEAN_LOCATIONS)
+        setBeanLocationsCentral(defaultBeanLocations)
       }
       setBeanLocationsLoaded(true)
     }
@@ -557,7 +614,10 @@ function CoffeeBeanManager() {
         if (!beanTypes.brewing[subCategory]) return
         
         beanTypes.brewing[subCategory].forEach(beanType => {
-          const location = beanLocations[beanType] || { store: true, breakRoom: true }
+          const dryStorageDefault = selectedStore === 'd7' ? true : false
+          // 先嘗試使用分類鍵（新格式）
+          const beanKey = getBeanKey(beanType, 'brewing', subCategory)
+          const location = beanLocations[beanKey] || beanLocations[beanType] || { store: true, breakRoom: true, dryStorage: dryStorageDefault }
           const currentData = prev.brewing[subCategory]?.[beanType]
 
           if (currentData) {
@@ -574,6 +634,11 @@ function CoffeeBeanManager() {
               newData.breakRoom = ['']
               dataChanged = true
             }
+            // 如果應該有 dryStorage 但沒有，添加它
+            if (location.dryStorage && !currentData.dryStorage) {
+              newData.dryStorage = ['']
+              dataChanged = true
+            }
 
             if (dataChanged) {
               if (!updated.brewing) updated.brewing = { ...prev.brewing }
@@ -588,7 +653,10 @@ function CoffeeBeanManager() {
       // 處理賣豆
       if (beanTypes.retail && Array.isArray(beanTypes.retail)) {
         beanTypes.retail.forEach(beanType => {
-          const location = beanLocations[beanType] || { store: true, breakRoom: true }
+          const dryStorageDefault = selectedStore === 'd7' ? true : false
+          // 先嘗試使用分類鍵（新格式）
+          const beanKey = getBeanKey(beanType, 'retail')
+          const location = beanLocations[beanKey] || beanLocations[beanType] || { store: true, breakRoom: true, dryStorage: dryStorageDefault }
           const currentData = prev.retail?.[beanType]
 
           if (currentData) {
@@ -605,6 +673,11 @@ function CoffeeBeanManager() {
               newData.breakRoom = ['']
               dataChanged = true
             }
+            // 如果應該有 dryStorage 但沒有，添加它
+            if (location.dryStorage && !currentData.dryStorage) {
+              newData.dryStorage = ['']
+              dataChanged = true
+            }
 
             if (dataChanged) {
               if (!updated.retail) updated.retail = { ...prev.retail }
@@ -617,7 +690,7 @@ function CoffeeBeanManager() {
 
       return hasChanges ? updated : prev
     })
-  }, [beanLocations, beanTypes, beanLocationsLoaded])
+  }, [beanLocations, beanTypes, beanLocationsLoaded, selectedStore])
 
   // 同步盤點表到 Firebase（根據選中的店鋪）
   useEffect(() => {
@@ -699,13 +772,14 @@ function CoffeeBeanManager() {
   }, [])
 
 
-  // 初始化豆種的數量陣列
+  // 初始化豆種的數量陣列（出杯豆用）
   const initializeBeanType = (category, subCategory, beanType) => {
     if (!inventory[category][subCategory]?.[beanType]) {
-      const location = getBeanLocation(beanType)
+      const location = getBeanLocation(beanType, category, subCategory)
       const initialStructure = {}
       if (location.store) initialStructure.store = ['']
       if (location.breakRoom) initialStructure.breakRoom = ['']
+      if (location.dryStorage) initialStructure.dryStorage = ['']
       
       setInventory(prev => ({
         ...prev,
@@ -715,6 +789,25 @@ function CoffeeBeanManager() {
             ...prev[category]?.[subCategory],
             [beanType]: initialStructure
           }
+        }
+      }))
+    }
+  }
+
+  // 初始化賣豆的數量陣列
+  const initializeRetailBeanType = (beanType) => {
+    if (!inventory.retail[beanType]) {
+      const location = getBeanLocation(beanType, 'retail')
+      const initialStructure = {}
+      if (location.store) initialStructure.store = ['']
+      if (location.breakRoom) initialStructure.breakRoom = ['']
+      if (location.dryStorage) initialStructure.dryStorage = ['']
+      
+      setInventory(prev => ({
+        ...prev,
+        retail: {
+          ...prev.retail,
+          [beanType]: initialStructure
         }
       }))
     }
@@ -789,6 +882,9 @@ function CoffeeBeanManager() {
     }
     if (beanData.breakRoom) {
       total += calculateTotal(beanData.breakRoom)
+    }
+    if (beanData.dryStorage) {
+      total += calculateTotal(beanData.dryStorage)
     }
     return total
   }
@@ -903,6 +999,10 @@ function CoffeeBeanManager() {
       setWeightSettingsD7(DEFAULT_WEIGHTS)
       setWeightSettingsD13(DEFAULT_WEIGHTS)
       setWeightMode('bag')
+      // 清除所有店鋪的庫存 localStorage
+      localStorage.removeItem('coffeeBeanInventory_central')
+      localStorage.removeItem('coffeeBeanInventory_d7')
+      localStorage.removeItem('coffeeBeanInventory_d13')
       localStorage.removeItem('coffeeBeanWeightSettings_central')
       localStorage.removeItem('coffeeBeanWeightSettings_d7')
       localStorage.removeItem('coffeeBeanWeightSettings_d13')
@@ -938,52 +1038,41 @@ function CoffeeBeanManager() {
   const createSummaryTable = () => {
     const tableData = []
     
-    // 手沖豆
-    beanTypes.brewing.pourOver.forEach(beanType => {
-      const beanData = inventory.brewing.pourOver[beanType]
+    // 輔助函數：處理單一品項的數據
+    const processBeanType = (beanType, beanData, categoryName, category = null, subCategory = null) => {
+      const location = getBeanLocation(beanType, category, subCategory)
       const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
-      const grandTotal = storeTotal + breakRoomTotal
+      const breakRoomTotal = location.breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
+      const dryStorageTotal = location.dryStorage ? calculateTotal(beanData?.dryStorage || []) : 0
+      const grandTotal = storeTotal + breakRoomTotal + dryStorageTotal
       
       tableData.push({
-        category: '出杯豆',
+        category: categoryName,
         beanType,
         storeTotal,
         breakRoomTotal,
-        grandTotal
+        dryStorageTotal,
+        grandTotal,
+        hasDryStorage: location.dryStorage
       })
+    }
+    
+    // 手沖豆
+    beanTypes.brewing.pourOver.forEach(beanType => {
+      const beanData = inventory.brewing.pourOver[beanType]
+      processBeanType(beanType, beanData, '出杯豆', 'brewing', 'pourOver')
     })
     
     // 義式豆
     beanTypes.brewing.espresso.forEach(beanType => {
       const beanData = inventory.brewing.espresso[beanType]
-      const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
-      const grandTotal = storeTotal + breakRoomTotal
-      
-      tableData.push({
-        category: '義式豆',
-        beanType,
-        storeTotal,
-        breakRoomTotal,
-        grandTotal
-      })
+      processBeanType(beanType, beanData, '義式豆', 'brewing', 'espresso')
     })
     
     // 賣豆
     beanTypes.retail.forEach(beanType => {
       const beanData = inventory.retail[beanType]
-      const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = getBeanLocation(beanType).breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
-      const grandTotal = storeTotal + breakRoomTotal
-      
-      tableData.push({
-        category: '賣豆',
-        beanType,
-        storeTotal,
-        breakRoomTotal,
-        grandTotal
-      })
+      processBeanType(beanType, beanData, '賣豆', 'retail')
     })
     
     return tableData
@@ -1011,7 +1100,9 @@ function CoffeeBeanManager() {
             <p style="color: #86868b; margin: 12px 0 0 0; font-size: 17px; font-weight: 400;">盤點日期：${date}</p>
           </div>
           
-          ${Object.entries(groupedData).map(([category, rows]) => `
+          ${Object.entries(groupedData).map(([category, rows]) => {
+            const hasAnyDryStorage = rows.some(row => row.hasDryStorage)
+            return `
             <div style="margin-bottom: 40px;">
               <h2 style="color: #1d1d1f; background: #f5f5f7; padding: 16px 24px; border-radius: 12px; margin: 0 0 24px 0; font-size: 20px; font-weight: 600; text-align: center; border: none;">
                 ${category}
@@ -1024,6 +1115,7 @@ function CoffeeBeanManager() {
                       <th style="padding: 0 20px; text-align: left; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">豆種</th>
                       <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">店面庫存</th>
                       <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">員休室庫存</th>
+                      ${hasAnyDryStorage ? '<th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">乾倉</th>' : ''}
                       <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">總計</th>
                     </tr>
                   </thead>
@@ -1033,6 +1125,7 @@ function CoffeeBeanManager() {
                         <td style="padding: 16px 20px; text-align: left; font-weight: 500; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.beanType}</td>
                         <td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.storeTotal}</td>
                         <td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.breakRoomTotal}</td>
+                        ${hasAnyDryStorage ? `<td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.hasDryStorage ? (row.dryStorageTotal || 0) : ''}</td>` : ''}
                         <td style="padding: 16px 20px; text-align: center; font-weight: 600; color: #007aff; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.grandTotal}</td>
                       </tr>
                     `).join('')}
@@ -1040,7 +1133,8 @@ function CoffeeBeanManager() {
                 </table>
               </div>
             </div>
-          `).join('')}
+            `
+          }).join('')}
         </div>
       </div>
     `
@@ -1094,7 +1188,9 @@ function CoffeeBeanManager() {
             <p style="color: #86868b; margin: 8px 0 0 0; font-size: 17px; font-weight: 400;">盤點日期：${date}</p>
           </div>
           
-          ${Object.entries(groupedData).map(([category, rows]) => `
+          ${Object.entries(groupedData).map(([category, rows]) => {
+            const hasAnyDryStorage = rows.some(row => row.hasDryStorage)
+            return `
             <div style="margin-bottom: 40px;">
               <h2 style="color: #1d1d1f; background: #f5f5f7; padding: 16px 24px; border-radius: 12px; margin: 0 0 24px 0; font-size: 20px; font-weight: 600; text-align: center; border: none;">
                 ${category}
@@ -1107,6 +1203,7 @@ function CoffeeBeanManager() {
                       <th style="padding: 0 20px; text-align: left; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">豆種</th>
                       <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">店面庫存</th>
                       <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">員休室庫存</th>
+                      ${hasAnyDryStorage ? '<th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">乾倉</th>' : ''}
                       <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">總計</th>
                     </tr>
                   </thead>
@@ -1116,6 +1213,7 @@ function CoffeeBeanManager() {
                         <td style="padding: 16px 20px; text-align: left; font-weight: 500; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.beanType}</td>
                         <td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.storeTotal}</td>
                         <td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.breakRoomTotal}</td>
+                        ${hasAnyDryStorage ? `<td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.hasDryStorage ? (row.dryStorageTotal || 0) : ''}</td>` : ''}
                         <td style="padding: 16px 20px; text-align: center; font-weight: 600; color: #007aff; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.grandTotal}</td>
                       </tr>
                     `).join('')}
@@ -1123,7 +1221,8 @@ function CoffeeBeanManager() {
                 </table>
               </div>
             </div>
-          `).join('')}
+            `
+          }).join('')}
         </div>
       </div>
     `
@@ -1417,7 +1516,7 @@ function CoffeeBeanManager() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {beanTypes.brewing.pourOver.map(beanType => {
-                const location = getBeanLocation(beanType)
+                const location = getBeanLocation(beanType, 'brewing', 'pourOver')
                 const beanData = inventory.brewing.pourOver[beanType]
                 
                 return (
@@ -1506,6 +1605,47 @@ function CoffeeBeanManager() {
                         </div>
                       </div>
                     )}
+
+                    {/* 乾倉 */}
+                    {location.dryStorage && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
+                            乾倉
+                          </h6>
+                          <button
+                            onClick={() => addQuantityField('brewing', 'pourOver', beanType, 'dryStorage')}
+                            className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors"
+                          >
+                            <PlusIcon className="w-3 h-3" />
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          {(beanData?.dryStorage || ['']).map((quantity, index) => (
+                            <div key={index} className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, e.target.value)}
+                                placeholder="數量"
+                                className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10"
+                                inputMode="decimal"
+                              />
+                              {(beanData?.dryStorage || []).length > 1 && (
+                                <button
+                                  onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'dryStorage', index)}
+                                  className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
                       <span className="text-xs font-semibold text-primary">
@@ -1527,7 +1667,7 @@ function CoffeeBeanManager() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {beanTypes.brewing.espresso.map(beanType => {
-                const location = getBeanLocation(beanType)
+                const location = getBeanLocation(beanType, 'brewing', 'espresso')
                 const beanData = inventory.brewing.espresso[beanType]
                 
                 return (
@@ -1616,6 +1756,47 @@ function CoffeeBeanManager() {
                         </div>
                       </div>
                     )}
+
+                    {/* 乾倉 */}
+                    {location.dryStorage && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
+                            乾倉
+                          </h6>
+                          <button
+                            onClick={() => addQuantityField('brewing', 'espresso', beanType, 'dryStorage')}
+                            className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors"
+                          >
+                            <PlusIcon className="w-3 h-3" />
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          {(beanData?.dryStorage || ['']).map((quantity, index) => (
+                            <div key={index} className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, e.target.value)}
+                                placeholder="數量"
+                                className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10"
+                                inputMode="decimal"
+                              />
+                              {(beanData?.dryStorage || []).length > 1 && (
+                                <button
+                                  onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'dryStorage', index)}
+                                  className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
                       <span className="text-xs font-semibold text-primary">
@@ -1644,7 +1825,7 @@ function CoffeeBeanManager() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {beanTypes.retail.map(beanType => {
-              const location = getBeanLocation(beanType)
+              const location = getBeanLocation(beanType, 'retail')
               const beanData = inventory.retail[beanType]
               
               return (
@@ -1663,21 +1844,7 @@ function CoffeeBeanManager() {
                       </h6>
                       <button
                         onClick={() => {
-                          // 為賣豆初始化結構
-                          if (!inventory.retail[beanType]) {
-                            const loc = getBeanLocation(beanType)
-                            const initialStructure = {}
-                            if (loc.store) initialStructure.store = ['']
-                            if (loc.breakRoom) initialStructure.breakRoom = ['']
-                            
-                            setInventory(prev => ({
-                              ...prev,
-                              retail: {
-                                ...prev.retail,
-                                [beanType]: initialStructure
-                              }
-                            }))
-                          }
+                          initializeRetailBeanType(beanType)
                           
                           // 新增數量欄位
                           setInventory(prev => ({
@@ -1704,21 +1871,7 @@ function CoffeeBeanManager() {
                             type="number"
                             value={quantity}
                             onChange={(e) => {
-                              // 為賣豆初始化結構
-                              if (!inventory.retail[beanType]) {
-                                const loc = getBeanLocation(beanType)
-                                const initialStructure = {}
-                                if (loc.store) initialStructure.store = ['']
-                                if (loc.breakRoom) initialStructure.breakRoom = ['']
-                                
-                                setInventory(prev => ({
-                                  ...prev,
-                                  retail: {
-                                    ...prev.retail,
-                                    [beanType]: initialStructure
-                                  }
-                                }))
-                              }
+                              initializeRetailBeanType(beanType)
                               
                               // 更新數量
                               setInventory(prev => ({
@@ -1772,21 +1925,7 @@ function CoffeeBeanManager() {
                         </h6>
                         <button
                           onClick={() => {
-                            // 為賣豆初始化結構
-                            if (!inventory.retail[beanType]) {
-                              const loc = getBeanLocation(beanType)
-                              const initialStructure = {}
-                              if (loc.store) initialStructure.store = ['']
-                              if (loc.breakRoom) initialStructure.breakRoom = ['']
-                              
-                              setInventory(prev => ({
-                                ...prev,
-                                retail: {
-                                  ...prev.retail,
-                                  [beanType]: initialStructure
-                                }
-                              }))
-                            }
+                            initializeRetailBeanType(beanType)
                             
                             // 新增數量欄位
                             setInventory(prev => ({
@@ -1813,21 +1952,7 @@ function CoffeeBeanManager() {
                               type="number"
                               value={quantity}
                               onChange={(e) => {
-                                // 為賣豆初始化結構
-                                if (!inventory.retail[beanType]) {
-                                  const loc = getBeanLocation(beanType)
-                                  const initialStructure = {}
-                                  if (loc.store) initialStructure.store = ['']
-                                  if (loc.breakRoom) initialStructure.breakRoom = ['']
-                                  
-                                  setInventory(prev => ({
-                                    ...prev,
-                                    retail: {
-                                      ...prev.retail,
-                                      [beanType]: initialStructure
-                                    }
-                                  }))
-                                }
+                                initializeRetailBeanType(beanType)
                                 
                                 // 更新數量
                                 setInventory(prev => ({
@@ -1857,6 +1982,88 @@ function CoffeeBeanManager() {
                                       [beanType]: {
                                         ...prev.retail[beanType],
                                         breakRoom: prev.retail[beanType]?.breakRoom?.filter((_, i) => i !== index) || ['']
+                                      }
+                                    }
+                                  }))
+                                }}
+                                className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                              >
+                                <TrashIcon className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 乾倉 */}
+                  {location.dryStorage && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
+                          乾倉
+                        </h6>
+                        <button
+                          onClick={() => {
+                            initializeRetailBeanType(beanType)
+                            
+                            // 新增數量欄位
+                            setInventory(prev => ({
+                              ...prev,
+                              retail: {
+                                ...prev.retail,
+                                [beanType]: {
+                                  ...prev.retail[beanType],
+                                  dryStorage: [...(prev.retail[beanType]?.dryStorage || ['']), '']
+                                }
+                              }
+                            }))
+                          }}
+                          className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors"
+                        >
+                          <PlusIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        {(beanData?.dryStorage || ['']).map((quantity, index) => (
+                          <div key={index} className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              value={quantity}
+                              onChange={(e) => {
+                                initializeRetailBeanType(beanType)
+                                
+                                // 更新數量
+                                setInventory(prev => ({
+                                  ...prev,
+                                  retail: {
+                                    ...prev.retail,
+                                    [beanType]: {
+                                      ...prev.retail[beanType],
+                                      dryStorage: prev.retail[beanType]?.dryStorage?.map((q, i) => 
+                                        i === index ? e.target.value : q
+                                      ) || ['']
+                                    }
+                                  }
+                                }))
+                              }}
+                              placeholder="數量"
+                              className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10"
+                              inputMode="decimal"
+                            />
+                            {(beanData?.dryStorage || []).length > 1 && (
+                              <button
+                                onClick={() => {
+                                  setInventory(prev => ({
+                                    ...prev,
+                                    retail: {
+                                      ...prev.retail,
+                                      [beanType]: {
+                                        ...prev.retail[beanType],
+                                        dryStorage: prev.retail[beanType]?.dryStorage?.filter((_, i) => i !== index) || ['']
                                       }
                                     }
                                   }))

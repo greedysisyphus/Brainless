@@ -13,10 +13,10 @@ const DEFAULT_BEAN_TYPES = {
   retail: ['水洗', '日曬', '阿寶', '季節', '台灣豆', 'Geisha']
 }
 
-// 預設品項位置設定：{ '品項名稱': { store: true/false, breakRoom: true/false } }
+// 預設品項位置設定：{ '品項名稱': { store: true/false, breakRoom: true/false, dryStorage: true/false } }
 const DEFAULT_BEAN_LOCATIONS = {
-  '台灣豆': { store: true, breakRoom: false },
-  'Geisha': { store: true, breakRoom: false }
+  '台灣豆': { store: true, breakRoom: false, dryStorage: false },
+  'Geisha': { store: true, breakRoom: false, dryStorage: false }
 }
 
 // 將舊的 storeOnlyBeans 格式轉換為新的 beanLocations 格式
@@ -25,23 +25,41 @@ const convertStoreOnlyToLocations = (storeOnlyBeans, allBeanNames) => {
   allBeanNames.forEach(beanName => {
     locations[beanName] = {
       store: true,
-      breakRoom: !storeOnlyBeans.includes(beanName)
+      breakRoom: !storeOnlyBeans.includes(beanName),
+      dryStorage: false
     }
   })
   return locations
 }
 
-// 初始化品項位置（如果品項不存在，預設兩個位置都啟用）
-const initializeBeanLocation = (beanLocations, beanName) => {
-  if (!beanLocations[beanName]) {
-    return { store: true, breakRoom: true }
+// 根據店鋪獲取預設品項位置設定
+// D7 店：所有品項的 dryStorage 預設為 true
+// 中央店和 D13 店：所有品項的 dryStorage 預設為 false
+const getDefaultBeanLocationsForStore = (store) => {
+  const dryStorageDefault = store === 'd7' ? true : false
+  return {
+    '台灣豆': { store: true, breakRoom: false, dryStorage: dryStorageDefault },
+    'Geisha': { store: true, breakRoom: false, dryStorage: dryStorageDefault }
   }
-  return beanLocations[beanName]
+}
+
+// 初始化品項位置（如果品項不存在，根據店鋪設置預設值）
+const initializeBeanLocation = (beanLocations, beanName, selectedStore) => {
+  if (!beanLocations[beanName]) {
+    const dryStorageDefault = selectedStore === 'd7' ? true : false
+    return { store: true, breakRoom: true, dryStorage: dryStorageDefault }
+  }
+  // 確保現有數據包含 dryStorage 屬性（向後兼容）
+  return {
+    store: beanLocations[beanName].store ?? true,
+    breakRoom: beanLocations[beanName].breakRoom ?? true,
+    dryStorage: beanLocations[beanName].dryStorage ?? (selectedStore === 'd7' ? true : false)
+  }
 }
 
 function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) {
   const [beanTypes, setBeanTypes] = useState(DEFAULT_BEAN_TYPES)
-  const [beanLocations, setBeanLocations] = useState(DEFAULT_BEAN_LOCATIONS)
+  const [beanLocations, setBeanLocations] = useState(getDefaultBeanLocationsForStore(selectedStore))
   const [editingItem, setEditingItem] = useState(null) // { category, subCategory, index } 或 { category, index } 或 'storeOnly'
   const [editValue, setEditValue] = useState('')
   const [newItemValue, setNewItemValue] = useState('')
@@ -83,19 +101,20 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
                 const converted = convertStoreOnlyToLocations(data.storeOnlyBeans, Array.from(allBeanNames))
                 setBeanLocations(converted)
               } else {
-                setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+                setBeanLocations(getDefaultBeanLocationsForStore(selectedStore))
               }
             } else {
-              // 如果文件不存在，創建預設值
+              // 如果文件不存在，創建預設值（根據店鋪設置不同的預設值）
+              const defaultBeanLocations = getDefaultBeanLocationsForStore(selectedStore)
               setDoc(doc(db, 'settings', firebaseDocId), {
                 beanTypes: DEFAULT_BEAN_TYPES,
-                beanLocations: DEFAULT_BEAN_LOCATIONS,
+                beanLocations: defaultBeanLocations,
                 _lastUpdated: new Date().toISOString()
               }).catch(error => {
                 console.error('創建品項設定文件失敗:', error)
               })
               setBeanTypes(DEFAULT_BEAN_TYPES)
-              setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+              setBeanLocations(defaultBeanLocations)
             }
             setIsLoading(false)
           },
@@ -104,7 +123,7 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
             if (isMounted) {
               setIsLoading(false)
               setBeanTypes(DEFAULT_BEAN_TYPES)
-              setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+              setBeanLocations(getDefaultBeanLocationsForStore(selectedStore))
             }
           }
         )
@@ -113,7 +132,7 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
         if (isMounted) {
           setIsLoading(false)
           setBeanTypes(DEFAULT_BEAN_TYPES)
-          setBeanLocations(DEFAULT_BEAN_LOCATIONS)
+          setBeanLocations(getDefaultBeanLocationsForStore(selectedStore))
         }
       }
     }
@@ -194,12 +213,28 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
       : beanTypes[editingItem.category][editingItem.index]
     const newBeanName = editValue.trim()
 
-    // 如果名稱改變，需要更新位置設定
-    if (oldBeanName !== newBeanName && beanLocations[oldBeanName]) {
+    // 如果名稱改變，需要更新位置設定（使用分類鍵）
+    if (oldBeanName !== newBeanName) {
+      // 計算舊鍵和新鍵
+      const oldKey = editingItem.subCategory
+        ? `brewing.${editingItem.subCategory}.${oldBeanName}`
+        : `retail.${oldBeanName}`
+      const newKey = editingItem.subCategory
+        ? `brewing.${editingItem.subCategory}.${newBeanName}`
+        : `retail.${newBeanName}`
+      
       setBeanLocations(prev => {
         const newLocations = { ...prev }
-        newLocations[newBeanName] = prev[oldBeanName]
-        delete newLocations[oldBeanName]
+        // 如果舊鍵存在，移動到新鍵
+        if (newLocations[oldKey]) {
+          newLocations[newKey] = newLocations[oldKey]
+          delete newLocations[oldKey]
+        }
+        // 也處理舊格式（向後兼容）
+        if (newLocations[oldBeanName] && !newLocations[newKey]) {
+          newLocations[newKey] = newLocations[oldBeanName]
+          delete newLocations[oldBeanName]
+        }
         return newLocations
       })
     }
@@ -241,11 +276,13 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
       ]
     }
 
-    // 為新品項初始化位置設定（預設兩個位置都啟用）
-    if (!beanLocations[newBeanName]) {
+    // 為新品項初始化位置設定（根據店鋪設置不同的預設值，使用分類鍵）
+    const newBeanKey = getBeanKey(newBeanName)
+    if (!beanLocations[newBeanKey] && !beanLocations[newBeanName]) {
+      const dryStorageDefault = selectedStore === 'd7' ? true : false
       setBeanLocations(prev => ({
         ...prev,
-        [newBeanName]: { store: true, breakRoom: true }
+        [newBeanKey]: { store: true, breakRoom: true, dryStorage: dryStorageDefault }
       }))
     }
 
@@ -273,14 +310,19 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
       newBeanTypes[item.category] = newBeanTypes[item.category].filter((_, i) => i !== item.index)
     }
 
-    // 如果刪除的品項有位置設定，也一併刪除
-    if (beanLocations[beanName]) {
-      setBeanLocations(prev => {
-        const newLocations = { ...prev }
+    // 如果刪除的品項有位置設定，也一併刪除（使用分類鍵和舊格式）
+    const beanKey = getBeanKey(beanName)
+    setBeanLocations(prev => {
+      const newLocations = { ...prev }
+      if (newLocations[beanKey]) {
+        delete newLocations[beanKey]
+      }
+      // 也刪除舊格式（向後兼容）
+      if (newLocations[beanName]) {
         delete newLocations[beanName]
-        return newLocations
-      })
-    }
+      }
+      return newLocations
+    })
 
     setBeanTypes(newBeanTypes)
   }
@@ -313,17 +355,83 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
     setBeanTypes(newBeanTypes)
   }
 
-  // 切換品項位置設定
+  // 獲取品項的完整鍵（包含分類信息）
+  const getBeanKey = (beanName) => {
+    if (selectedCategory === 'retail') {
+      return `retail.${beanName}`
+    } else {
+      return `brewing.${selectedSubCategory}.${beanName}`
+    }
+  }
+
+  // 從 beanLocations 中獲取指定品項的位置設定（支援分類區分）
+  const getLocationForBean = (beanName) => {
+    const beanKey = getBeanKey(beanName)
+    // 先嘗試使用分類鍵（新格式）
+    if (beanLocations[beanKey]) {
+      return beanLocations[beanKey]
+    }
+    // 如果不存在，嘗試舊格式（向後兼容）
+    if (beanLocations[beanName]) {
+      return beanLocations[beanName]
+    }
+    // 如果都不存在，返回預設值
+    const dryStorageDefault = selectedStore === 'd7' ? true : false
+    return { store: true, breakRoom: true, dryStorage: dryStorageDefault }
+  }
+
+  // 切換品項位置設定（使用分類鍵）
   const toggleBeanLocation = (beanName, location) => {
     setBeanLocations(prev => {
-      const currentLocation = initializeBeanLocation(prev, beanName)
+      const beanKey = getBeanKey(beanName)
+      const currentLocation = getLocationForBean(beanName)
       return {
         ...prev,
-        [beanName]: {
+        [beanKey]: {
           ...currentLocation,
           [location]: !currentLocation[location]
         }
       }
+    })
+  }
+
+  // 獲取當前選中分類的所有品項名稱
+  const getCurrentBeanNames = () => {
+    if (selectedCategory === 'retail') {
+      return beanTypes.retail || []
+    } else {
+      return beanTypes.brewing[selectedSubCategory] || []
+    }
+  }
+
+  // 檢查指定位置是否全部開啟
+  const areAllLocationsEnabled = (location) => {
+    const beanNames = getCurrentBeanNames()
+    if (beanNames.length === 0) return false
+    return beanNames.every(beanName => {
+      const loc = getLocationForBean(beanName)
+      return loc[location] === true
+    })
+  }
+
+  // 一鍵切換所有品項的位置設定（只影響當前分類）
+  const toggleAllLocations = (location) => {
+    const beanNames = getCurrentBeanNames()
+    const allEnabled = areAllLocationsEnabled(location)
+    const newValue = !allEnabled
+
+    setBeanLocations(prev => {
+      const updated = { ...prev }
+      beanNames.forEach(beanName => {
+        const beanKey = getBeanKey(beanName)
+        const currentLocation = getLocationForBean(beanName)
+        // 使用分類鍵存儲，確保不同分類的設定分開
+        updated[beanKey] = {
+          ...currentLocation,
+          [location]: newValue
+        }
+      })
+      return updated
     })
   }
 
@@ -442,6 +550,45 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
                               : '賣豆品項'}
                           </h3>
                         </div>
+                        {/* 一鍵全開/全關按鈕 */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleAllLocations('store')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                              areAllLocationsEnabled('store')
+                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                                : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-blue-500/30'
+                            }`}
+                            title={areAllLocationsEnabled('store') ? '一鍵全關店面' : '一鍵全開店面'}
+                          >
+                            <div className={`w-2 h-2 rounded-full ${areAllLocationsEnabled('store') ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
+                            <span>全{areAllLocationsEnabled('store') ? '關' : '開'}店面</span>
+                          </button>
+                          <button
+                            onClick={() => toggleAllLocations('breakRoom')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                              areAllLocationsEnabled('breakRoom')
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                                : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-green-500/30'
+                            }`}
+                            title={areAllLocationsEnabled('breakRoom') ? '一鍵全關員休庫存' : '一鍵全開員休庫存'}
+                          >
+                            <div className={`w-2 h-2 rounded-full ${areAllLocationsEnabled('breakRoom') ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                            <span>全{areAllLocationsEnabled('breakRoom') ? '關' : '開'}員休庫存</span>
+                          </button>
+                          <button
+                            onClick={() => toggleAllLocations('dryStorage')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                              areAllLocationsEnabled('dryStorage')
+                                ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
+                                : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-orange-500/30'
+                            }`}
+                            title={areAllLocationsEnabled('dryStorage') ? '一鍵全關乾倉' : '一鍵全開乾倉'}
+                          >
+                            <div className={`w-2 h-2 rounded-full ${areAllLocationsEnabled('dryStorage') ? 'bg-orange-400' : 'bg-gray-400'}`}></div>
+                            <span>全{areAllLocationsEnabled('dryStorage') ? '關' : '開'}乾倉</span>
+                          </button>
+                        </div>
                       </div>
 
                       <div className="space-y-2 mb-4">
@@ -515,7 +662,7 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
                                       <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                           type="checkbox"
-                                          checked={initializeBeanLocation(beanLocations, item).store}
+                                          checked={getLocationForBean(item).store}
                                           onChange={() => toggleBeanLocation(item, 'store')}
                                           className="w-4 h-4 text-blue-400 rounded border-white/20 bg-white/5 focus:ring-blue-400/50"
                                         />
@@ -524,11 +671,20 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
                                       <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                           type="checkbox"
-                                          checked={initializeBeanLocation(beanLocations, item).breakRoom}
+                                          checked={getLocationForBean(item).breakRoom}
                                           onChange={() => toggleBeanLocation(item, 'breakRoom')}
                                           className="w-4 h-4 text-green-400 rounded border-white/20 bg-white/5 focus:ring-green-400/50"
                                         />
                                         <span className="text-xs text-text-secondary">員休庫存</span>
+                                      </label>
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={getLocationForBean(item).dryStorage}
+                                          onChange={() => toggleBeanLocation(item, 'dryStorage')}
+                                          className="w-4 h-4 text-orange-400 rounded border-white/20 bg-white/5 focus:ring-orange-400/50"
+                                        />
+                                        <span className="text-xs text-text-secondary">乾倉</span>
                                       </label>
                                     </div>
                                   </div>

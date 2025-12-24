@@ -75,7 +75,7 @@ function SandwichCalculator() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showExtraBagsBubble, setShowExtraBagsBubble] = useState(false)
-  
+
   // 用於追蹤 Firebase 訂閱
   const unsubscribeRef = useRef(null)
   const loadingRef = useRef(false)
@@ -207,13 +207,13 @@ function SandwichCalculator() {
                 }
               })
               .catch(error => {
-                console.error('創建設定文件失敗:', error)
+              console.error('創建設定文件失敗:', error)
                 if (isMounted) {
                   setError('無法同步到 Firebase，使用本地設定')
                   setLoading(false)
                   loadingRef.current = false
                 }
-              })
+            })
           }
         },
         (error) => {
@@ -221,8 +221,8 @@ function SandwichCalculator() {
           if (timeoutId) clearTimeout(timeoutId)
           // 如果 Firebase 連接失敗，使用本地設定
           if (isMounted) {
-            setError('無法連接到 Firebase，使用本地設定')
-            setLoading(false)
+          setError('無法連接到 Firebase，使用本地設定')
+          setLoading(false)
             loadingRef.current = false
           }
         }
@@ -233,8 +233,8 @@ function SandwichCalculator() {
       console.error('Firebase 初始化錯誤:', error)
       if (timeoutId) clearTimeout(timeoutId)
       if (isMounted) {
-        setError('Firebase 連接失敗，使用本地設定')
-        setLoading(false)
+      setError('Firebase 連接失敗，使用本地設定')
+      setLoading(false)
         loadingRef.current = false
       }
     }
@@ -339,7 +339,7 @@ function SandwichCalculator() {
             </span>
             {/* 文字發光效果 */}
             <span className="absolute inset-0 bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent blur-xl opacity-30 -z-10 animate-pulse-glow">
-              {zhtw.sandwich.title}
+            {zhtw.sandwich.title}
             </span>
           </h1>
           
@@ -429,23 +429,23 @@ function SandwichCalculator() {
                     <div className="relative p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/40 shadow-lg">
                       <CalculatorIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary transform group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300" />
                     </div>
-                  </div>
-                  <div>
+                </div>
+                <div>
                     <h2 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
                       {zhtw.sandwich.inputsTitle}
                     </h2>
                     <p className="text-[10px] sm:text-xs md:text-sm text-text-secondary">{zhtw.sandwich.inputsSubtitle}</p>
-                  </div>
                 </div>
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="relative p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 hover:from-primary/30 hover:to-purple-500/30 border border-primary/40 text-primary transition-all duration-300 hover:scale-110 hover:rotate-90 hover:shadow-lg hover:shadow-primary/30 touch-manipulation"
-                  title={zhtw.settings.title}
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                >
-                  <Cog6ToothIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
               </div>
+              <button
+                onClick={() => setShowSettings(true)}
+                  className="relative p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 hover:from-primary/30 hover:to-purple-500/30 border border-primary/40 text-primary transition-all duration-300 hover:scale-110 hover:rotate-90 hover:shadow-lg hover:shadow-primary/30 touch-manipulation"
+                title={zhtw.settings.title}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <Cog6ToothIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
 
 
             {loading ? (
@@ -558,15 +558,15 @@ function SandwichCalculator() {
                      {distributionMethods.map((method) => {
                        const isSelected = values.distribution === method.value
                        return (
-                         <button
-                           key={method.value}
-                           role="radio"
+                     <button
+                       key={method.value}
+                       role="radio"
                            aria-checked={isSelected}
-                           title={method.value === 'even' ? zhtw.sandwichUi.tooltipEven : method.value === 'ham' ? zhtw.sandwichUi.tooltipHam : zhtw.sandwichUi.tooltipSalami}
-                           onClick={() => setValues({
-                             ...values,
-                             distribution: method.value
-                           })}
+                        title={method.value === 'even' ? zhtw.sandwichUi.tooltipEven : method.value === 'ham' ? zhtw.sandwichUi.tooltipHam : zhtw.sandwichUi.tooltipSalami}
+                       onClick={() => setValues({
+                         ...values,
+                         distribution: method.value
+                       })}
                            className={`group/btn relative px-3 py-2.5 rounded-xl transition-all duration-500 text-sm font-bold border-2 overflow-hidden whitespace-nowrap ${
                              isSelected
                                ? 'bg-gradient-to-br from-primary/40 via-purple-500/30 to-blue-500/40 border-primary/60 text-white shadow-2xl shadow-primary/30 transform scale-[1.05]'
@@ -586,11 +586,11 @@ function SandwichCalculator() {
                              )}
                              <span>{method.label}</span>
                            </span>
-                         </button>
+                     </button>
                        )
                      })}
-                   </div>
                  </div>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -662,7 +662,7 @@ function SandwichCalculator() {
                    >
                      <span className="relative z-10 flex items-center justify-center gap-2">
                        <CalculatorIcon className="w-5 h-5" />
-                       {zhtw.sandwich.calculate}
+                     {zhtw.sandwich.calculate}
                      </span>
                      <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                    </button>
@@ -677,7 +677,7 @@ function SandwichCalculator() {
                  </div>
               </div>
             )}
-            </div>
+          </div>
           </div>
 
            {/* 結果卡片 - 超現代設計 */}
@@ -695,14 +695,14 @@ function SandwichCalculator() {
                   <div className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/40 shadow-lg">
                     <ChartBarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary transform group-hover/icon:scale-110 transition-transform duration-300" />
                   </div>
-                </div>
-                <div>
+              </div>
+              <div>
                   <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
                     {zhtw.sandwich.resultsTitle}
                   </h2>
-                  <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.resultsSubtitle}</p>
-                </div>
+                <p className="text-xs sm:text-sm text-text-secondary">{zhtw.sandwich.resultsSubtitle}</p>
               </div>
+            </div>
 
             {results ? (
               <div className="space-y-4 relative z-10">

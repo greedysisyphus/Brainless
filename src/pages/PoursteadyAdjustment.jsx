@@ -139,15 +139,15 @@ export default function PoursteadyAdjustment() {
 
         {/* 操作按鈕區域 */}
         <div className="flex flex-wrap justify-center gap-3 mb-6 sm:mb-8">
-          <button
-            onClick={handleReset}
+        <button
+          onClick={handleReset}
             className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-400/30 text-red-400 hover:from-red-500/30 hover:to-orange-500/30 hover:border-red-500/50 transition-all duration-200 flex items-center gap-2"
           >
             <ArrowPathIcon className="w-4 h-4" />
-            重設
-          </button>
-        </div>
-
+          重設
+        </button>
+      </div>
+      
         {/* 模式切換 - 現代化分段控制器 */}
         <div className="mb-6 sm:mb-7 md:mb-8">
           <div className="relative mx-auto max-w-md bg-surface/60 backdrop-blur-md rounded-xl p-1.5 sm:p-2 border border-white/10 shadow-lg">
@@ -161,28 +161,28 @@ export default function PoursteadyAdjustment() {
               }}
             ></div>
             <div className="relative grid grid-cols-2 gap-1.5">
-              <button
-                onClick={() => setMode('hot')}
+        <button
+          onClick={() => setMode('hot')}
                 className={`relative flex-1 px-4 py-2 text-sm sm:text-base font-medium rounded-lg transition-colors duration-300 z-10 ${
                   mode === 'hot' ? 'text-white' : 'text-gray-400 hover:text-gray-200'
                 }`}
-              >
-                熱手沖
-              </button>
-              <button
-                onClick={() => setMode('cold')}
+        >
+          熱手沖
+        </button>
+        <button
+          onClick={() => setMode('cold')}
                 className={`relative flex-1 px-4 py-2 text-sm sm:text-base font-medium rounded-lg transition-colors duration-300 z-10 ${
                   mode === 'cold' ? 'text-white' : 'text-gray-400 hover:text-gray-200'
                 }`}
-              >
-                冰手沖
-              </button>
+        >
+          冰手沖
+        </button>
             </div>
           </div>
-        </div>
+      </div>
 
-        {/* 冰手沖方案選擇 */}
-        {mode === 'cold' && (
+      {/* 冰手沖方案選擇 */}
+      {mode === 'cold' && (
           <div className="mb-6 sm:mb-7 md:mb-8">
             <div className="relative mx-auto max-w-md bg-surface/60 backdrop-blur-md rounded-xl p-1.5 sm:p-2 border border-white/10 shadow-lg">
               {/* 滑動指示器 */}
@@ -198,31 +198,31 @@ export default function PoursteadyAdjustment() {
               ></div>
               <div className="relative grid grid-cols-3 gap-1.5">
                 {['150ml', '140ml', '130ml'].map((scheme) => (
-                  <button
+          <button
                     key={scheme}
                     onClick={() => handleColdSchemeChange(scheme)}
                     className={`relative flex-1 px-4 py-2 text-sm sm:text-base font-medium rounded-lg transition-colors duration-300 z-10 ${
                       coldScheme === scheme ? 'text-white' : 'text-gray-400 hover:text-gray-200'
                     }`}
-                  >
+          >
                     {scheme}
-                  </button>
+          </button>
                 ))}
               </div>
             </div>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* 注水量調整表 */}
+      {/* 注水量調整表 */}
         <div className="space-y-4 sm:space-y-5 md:space-y-6 mb-6 sm:mb-8">
-          {(mode === 'hot' ? STANDARD_VOLUMES.hot : STANDARD_VOLUMES.cold[coldScheme]).map((standardVolume, index) => {
-            const displayVolume = getDisplayVolume(index);
-            const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
-            const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
-            const standardSegmentVolume = mode === 'hot' ? STANDARD_SEGMENTS.hot[index] : STANDARD_SEGMENTS.cold[coldScheme][index];
-            const adjustment = Math.round(segmentVolume - standardSegmentVolume);
-            
-            return (
+        {(mode === 'hot' ? STANDARD_VOLUMES.hot : STANDARD_VOLUMES.cold[coldScheme]).map((standardVolume, index) => {
+          const displayVolume = getDisplayVolume(index);
+          const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
+          const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
+          const standardSegmentVolume = mode === 'hot' ? STANDARD_SEGMENTS.hot[index] : STANDARD_SEGMENTS.cold[coldScheme][index];
+          const adjustment = Math.round(segmentVolume - standardSegmentVolume);
+          
+          return (
               <div key={index} className="relative group">
                 {/* 卡片背景光暈 */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-cyan-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -248,52 +248,52 @@ export default function PoursteadyAdjustment() {
                             <div className="absolute inset-0 rounded-lg sm:rounded-xl blur-lg group-hover/icon:bg-blue-500/30 transition-all duration-300"></div>
                             <div className="relative p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/40 shadow-lg">
                               <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-                                {index + 1}
+                    {index + 1}
                               </span>
                             </div>
                           </>
                         )}
-                      </div>
-                      <div>
+                  </div>
+                  <div>
                         <h3 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-1">
                           第 {index + 1} 段注水
                         </h3>
                         <p className="text-xs sm:text-sm text-text-secondary">
-                          累計標準: {standardVolume} ml
-                          <span className="block sm:inline sm:ml-2">
-                            單段標準: {standardSegmentVolume} ml
-                          </span>
+                      累計標準: {standardVolume} ml
+                      <span className="block sm:inline sm:ml-2">
+                        單段標準: {standardSegmentVolume} ml
+                      </span>
                         </p>
-                      </div>
-                    </div>
+                  </div>
+                </div>
 
                     <div className="flex items-center gap-3 sm:gap-4">
                       <div className="text-center">
-                        <input
-                          type="number"
-                          value={currentVolumes[mode][index]}
-                          onChange={(e) => handleDirectInput(index, e.target.value)}
+                    <input
+                      type="number"
+                      value={currentVolumes[mode][index]}
+                      onChange={(e) => handleDirectInput(index, e.target.value)}
                           placeholder={mode === 'hot' ? STANDARD_VOLUMES.hot[index] : STANDARD_VOLUMES.cold[coldScheme][index]}
-                          step="0.1"
+                      step="0.1"
                           className="w-24 sm:w-32 px-3 py-2.5 text-center text-lg sm:text-xl font-bold rounded-lg bg-surface/60 border border-white/10 text-white focus:border-blue-400/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-colors"
-                        />
+                    />
                         {adjustment !== 0 && (
                           <div className={`text-xs sm:text-sm mt-1 font-medium ${
                             adjustment > 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {adjustment > 0 ? `+${adjustment}` : adjustment} ml
-                          </div>
-                        )}
+                      }`}>
+                        {adjustment > 0 ? `+${adjustment}` : adjustment} ml
                       </div>
-                    </div>
+                    )}
+                      </div>
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* 總水量顯示 */}
+      {/* 總水量顯示 */}
         <div className="relative group mb-6 sm:mb-8">
           {/* 卡片背景光暈 */}
           <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-cyan-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -303,39 +303,39 @@ export default function PoursteadyAdjustment() {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-cyan-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
             
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 relative z-10">
-              <div>
+          <div>
                 <div className="text-xs sm:text-sm text-text-secondary mb-1">總注水量</div>
                 <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                  {getDisplayVolume(5)} ml
-                </div>
-                {(() => {
-                  const currentTotal = getDisplayVolume(5);
-                  const standardTotal = mode === 'hot' ? STANDARD_VOLUMES.hot[5] : STANDARD_VOLUMES.cold[coldScheme][5];
-                  const difference = Math.round(currentTotal - standardTotal);
-                  return difference !== 0 ? (
+              {getDisplayVolume(5)} ml
+            </div>
+            {(() => {
+              const currentTotal = getDisplayVolume(5);
+              const standardTotal = mode === 'hot' ? STANDARD_VOLUMES.hot[5] : STANDARD_VOLUMES.cold[coldScheme][5];
+              const difference = Math.round(currentTotal - standardTotal);
+              return difference !== 0 ? (
                     <div className={`text-sm mt-1 font-medium ${
                       difference > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {difference > 0 ? `+${difference}` : difference} ml
-                    </div>
-                  ) : null;
-                })()}
-              </div>
+                }`}>
+                  {difference > 0 ? `+${difference}` : difference} ml
+                </div>
+              ) : null;
+            })()}
+          </div>
               <div className="text-right">
                 <div className="text-xs sm:text-sm text-text-secondary mb-1">標準總量</div>
                 <div className="text-xl sm:text-2xl font-medium">
-                  {mode === 'hot' ? STANDARD_VOLUMES.hot[5] : STANDARD_VOLUMES.cold[coldScheme][5]} ml
-                </div>
+              {mode === 'hot' ? STANDARD_VOLUMES.hot[5] : STANDARD_VOLUMES.cold[coldScheme][5]} ml
+            </div>
                 <div className={`text-xs mt-2 px-3 py-1 rounded-full w-fit ml-auto ${
                   mode === 'hot' 
-                    ? 'bg-rose-500/10 text-rose-400' 
-                    : 'bg-blue-500/10 text-blue-400'
+                ? 'bg-rose-500/10 text-rose-400' 
+                : 'bg-blue-500/10 text-blue-400'
                 }`}>
-                  {mode === 'hot' ? '熱手沖' : '冰手沖'}
-                </div>
-              </div>
+              {mode === 'hot' ? '熱手沖' : '冰手沖'}
             </div>
           </div>
+        </div>
+      </div>
         </div>
 
         {/* 調整建議區塊 */}
@@ -358,41 +358,41 @@ export default function PoursteadyAdjustment() {
               </div>
 
               <div className="grid gap-2 sm:gap-3">
-                {(mode === 'hot' ? STANDARD_SEGMENTS.hot : STANDARD_SEGMENTS.cold[coldScheme]).map((standardSegment, index) => {
-                  const displayVolume = getDisplayVolume(index);
-                  const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
-                  const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
-                  const adjustment = Math.round(standardSegment - segmentVolume);
-                  
-                  if (adjustment === 0) return null;  // 只顯示需要調整的段落
-                  
-                  return (
-                    <div 
-                      key={index}
+          {(mode === 'hot' ? STANDARD_SEGMENTS.hot : STANDARD_SEGMENTS.cold[coldScheme]).map((standardSegment, index) => {
+            const displayVolume = getDisplayVolume(index);
+            const prevDisplayVolume = index > 0 ? getDisplayVolume(index - 1) : 0;
+            const segmentVolume = index === 0 ? displayVolume : displayVolume - prevDisplayVolume;
+            const adjustment = Math.round(standardSegment - segmentVolume);
+            
+            if (adjustment === 0) return null;  // 只顯示需要調整的段落
+            
+            return (
+              <div 
+                key={index}
                       className={`flex items-center justify-between px-4 py-3 rounded-xl ${
                         mode === 'hot' ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-blue-500/10 border border-blue-500/20'
                       }`}
-                    >
-                      <div className="flex items-center gap-3">
+              >
+                <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                           mode === 'hot' 
                             ? 'bg-rose-400/20 text-rose-400' 
                             : 'bg-blue-400/20 text-blue-400'
                         }`}>
-                          {index + 1}
-                        </div>
+                    {index + 1}
+                  </div>
                         <span className="font-medium">第 {index + 1} 段注水</span>
-                      </div>
+                </div>
                       <span className={`text-sm px-4 py-1.5 rounded-full font-medium ${
                         adjustment > 0 
                           ? 'bg-green-400/20 text-green-400 border border-green-400/30' 
                           : 'bg-red-400/20 text-red-400 border border-red-400/30'
                       }`}>
-                        {adjustment > 0 ? `+${adjustment}` : adjustment} ml
-                      </span>
-                    </div>
-                  );
-                })}
+                  {adjustment > 0 ? `+${adjustment}` : adjustment} ml
+                </span>
+              </div>
+            );
+          })}
               </div>
             </div>
           </div>
@@ -400,4 +400,4 @@ export default function PoursteadyAdjustment() {
       </div>
     </div>
   );
-}
+} 

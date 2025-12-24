@@ -334,16 +334,16 @@ const CatSpeechBubble = () => {
   if (isLoading) {
     return (
       <>
-        <button
-          onClick={() => setShowLogin(true)}
+      <button
+        onClick={() => setShowLogin(true)}
           className="fixed top-4 right-4 z-[100] w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 touch-manipulation"
-          title="管理員登入 (Ctrl+Alt+A)"
+        title="管理員登入 (Ctrl+Alt+A)"
           style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </button>
+      >
+        <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </button>
         {showLogin && (
           <div 
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
@@ -499,16 +499,16 @@ const CatSpeechBubble = () => {
   if (!showBubble || speechTexts.length === 0) {
     return (
       <>
-        <button
-          onClick={() => setShowLogin(true)}
+      <button
+        onClick={() => setShowLogin(true)}
           className="fixed top-4 right-4 z-[100] w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 touch-manipulation"
-          title="管理員登入 (Ctrl+Alt+A)"
+        title="管理員登入 (Ctrl+Alt+A)"
           style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </button>
+      >
+        <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </button>
         {/* 登入對話框 - 確保在所有情況下都能顯示 */}
         {showLogin && (
           <div 

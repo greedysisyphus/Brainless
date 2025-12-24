@@ -141,63 +141,63 @@
     0% { transform: translateY(0px); }
     50% { transform: translateY(-5px); }
     100% { transform: translateY(0px); }
-  }
+}
 
   /* Logo 發光動畫 */
   .logo-glow {
     filter: drop-shadow(0 0 5px theme('colors.primary')) drop-shadow(0 0 10px theme('colors.primary')/50);
     transition: filter 0.3s ease-in-out;
-  }
+}
 
   .logo-glow:hover {
     filter: drop-shadow(0 0 8px theme('colors.primary')) drop-shadow(0 0 15px theme('colors.primary')/70);
-  }
+}
 
   /* 3D 旋轉效果 */
-  .perspective-1000 {
-    perspective: 1000px;
-  }
+.perspective-1000 {
+  perspective: 1000px;
+}
 
-  .transform-style-preserve-3d {
-    transform-style: preserve-3d;
-  }
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
 
-  .rotate-y-12 {
-    transform: rotateY(12deg);
-  }
+.rotate-y-12 {
+  transform: rotateY(12deg);
+}
 
-  .rotate-y-6 {
-    transform: rotateY(6deg);
-  }
+.rotate-y-6 {
+  transform: rotateY(6deg);
+}
 
-  /* 時間軸動畫 */
-  @keyframes timeline-pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.1);
-      opacity: 0.8;
-    }
+/* 時間軸動畫 */
+@keyframes timeline-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
   }
-
-  .timeline-point {
-    animation: timeline-pulse 2s ease-in-out infinite;
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
   }
+}
 
-  /* 3D 卡片懸停效果 */
+.timeline-point {
+  animation: timeline-pulse 2s ease-in-out infinite;
+}
+
+/* 3D 卡片懸停效果 */
   .group:hover .group-hover\\:rotate-y-12 {
-    transform: rotateY(12deg);
-  }
+  transform: rotateY(12deg);
+}
 
   .group:hover .group-hover\\:scale-110 {
-    transform: scale(1.1);
-  }
+  transform: scale(1.1);
+}
 
   .group:hover .group-hover\\:shadow-xl {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  } 
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+} 
 
   /* 圖表響應式設計 */
   @media (max-width: 640px) {

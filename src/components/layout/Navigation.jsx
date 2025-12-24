@@ -266,7 +266,7 @@ function Navigation() {
               </div>
                   <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm text-center leading-tight font-medium relative z-10 px-0.5">
                 {label}
-                  </div>
+              </div>
                   
                   {/* 底部指示條 - 在按鈕容器底部 */}
                   {isActive && (

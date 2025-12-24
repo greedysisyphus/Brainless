@@ -42,26 +42,26 @@ function Header() {
           <div className="flex flex-col items-center gap-2 sm:gap-3 md:gap-4 px-12 sm:px-0">
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
               <motion.img 
-                src={logoCat}
-                alt="Cat Logo" 
+              src={logoCat}
+              alt="Cat Logo" 
                 className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-primary p-1 logo logo-glow logo-float cursor-pointer"
                 whileHover={{ scale: 1.05, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 300 }}
                 onClick={() => setShowVideo(true)}
                 title="點擊我！"
-              />
+            />
               <div className="flex flex-col items-center gap-0.5 sm:gap-1">
                 <h1 className={`text-xl sm:text-2xl md:text-4xl font-bold ${
                   theme === 'linear' 
                     ? 'text-white' 
                     : 'bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent'
                 }`}>
-                  Brainless
-                </h1>
+                Brainless
+              </h1>
                 {/* 時鐘 - 移動設備也顯示，但調整樣式 */}
                 <div className="w-full max-w-xs">
-                  <Clock />
+              <Clock />
                 </div>
               </div>
             </div>
@@ -69,7 +69,7 @@ function Header() {
           
           {/* 貓咪留言區域 - 移動設備優化 */}
           <div className="hidden sm:block mt-2">
-            <CatSpeechBubble />
+          <CatSpeechBubble />
           </div>
         </div>
       </div>

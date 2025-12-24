@@ -83,7 +83,7 @@ function DailyReportGenerator() {
             </div>
           </div>
           
-          {/* 標題 */}
+        {/* 標題 */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-2 sm:mb-3 relative px-4">
             <span className="bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient">
               報表生成器
@@ -190,18 +190,18 @@ function DailyReportGenerator() {
 
               <div className="relative z-10">
                 <div className="relative w-full">
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
                     className="relative w-full pl-4 pr-12 py-3 bg-surface/60 border-2 border-white/10 focus:border-primary/50 focus:bg-surface/80 rounded-xl transition-all duration-300 text-base text-white cursor-pointer appearance-none hover:bg-surface/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  >
+                >
                     <option value="" className="bg-surface text-gray-400">請選擇月份</option>
-                    {months.map(month => (
+                  {months.map(month => (
                       <option key={month.value} value={month.value} className="bg-surface text-white">
-                        {month.label} ({getDaysInMonth(month.value)}天)
-                      </option>
-                    ))}
-                  </select>
+                      {month.label} ({getDaysInMonth(month.value)}天)
+                    </option>
+                  ))}
+                </select>
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -244,7 +244,7 @@ function DailyReportGenerator() {
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     <ArchiveBoxArrowDownIcon className="w-5 h-5" />
-                    下載日報表
+                  下載日報表
                   </span>
                   {selectedMonth && (
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
