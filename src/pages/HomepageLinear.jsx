@@ -8,6 +8,7 @@ import {
   CalendarIcon,
   DocumentTextIcon,
   BeakerIcon,
+  MusicalNoteIcon,
 } from '@heroicons/react/24/outline'
 
 
@@ -74,6 +75,13 @@ const FEATURES = [
     title: '手沖機調整',
     description: '精準調整手沖咖啡機參數',
     color: 'from-red-500/20 to-rose-500/20'
+  },
+  {
+    path: '/music',
+    icon: MusicalNoteIcon,
+    title: 'Playground',
+    description: '實驗性功能和個人專案展示',
+    color: 'from-purple-500/20 to-pink-500/20'
   },
 ]
 

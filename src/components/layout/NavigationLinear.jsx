@@ -9,6 +9,7 @@ import {
   DocumentTextIcon,
   CalendarIcon,
   Cog6ToothIcon,
+  MusicalNoteIcon,
 } from '@heroicons/react/24/outline'
 import React from 'react'
 import { auth, checkAdminStatus } from '../../utils/firebase'
@@ -68,6 +69,11 @@ const MENU_ITEMS = [
     path: '/alcohol',
     label: '酒精計算',
     icon: CocktailIcon
+  },
+  {
+    path: '/music',
+    label: 'Playground',
+    icon: MusicalNoteIcon
   }
 ];
 
