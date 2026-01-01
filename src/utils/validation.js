@@ -91,8 +91,8 @@ export const validateDate = (month, date) => {
   
   if (isNaN(dateNum) || dateNum < 1 || dateNum > 31) {
     return { valid: false, error: '日期必須在1-31之間' };
-  }
-  
+    }
+    
   // 檢查日期是否有效
   const testDate = new Date(2024, monthNum - 1, dateNum);
   if (testDate.getMonth() !== monthNum - 1 || testDate.getDate() !== dateNum) {
@@ -156,8 +156,8 @@ export const validateCustomRule = (rule) => {
   if (rule.type === 'monthlyDate') {
     if (!rule.date || rule.date < 1 || rule.date > 31) {
       errors.push('每月日期必須在1-31之間');
+      }
     }
-  }
   
   return {
     valid: errors.length === 0,
@@ -270,9 +270,9 @@ export const validateStatisticsInput = (input) => {
   for (const field of requiredFields) {
     if (!input[field]) {
       return { valid: false, error: `缺少必要欄位: ${field}` };
-    }
   }
-  
+}
+
   // 檢查日期格式
   const startDate = new Date(input.startDate);
   const endDate = new Date(input.endDate);

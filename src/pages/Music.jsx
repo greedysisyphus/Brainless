@@ -426,17 +426,20 @@ function Music() {
     return hourlyData
   }, [recentTracksForChart])
 
-  // 播放時間趨勢圖數據（按日期分組，最近7天）
+  // 播放時間趨勢圖數據（按日期分組，最近7天或30天）
   const dailyChartData = useMemo(() => {
     if (!recentTracksForChart || recentTracksForChart.length === 0) return []
     
-    // 創建7天的數組，從6天前到今天
+    // 根據 scrobblesView 決定天數
+    const daysCount = scrobblesView === '30days' ? 30 : 7
+    
+    // 創建天數的數組，從 (daysCount-1) 天前到今天
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()) // 使用本地時區的今天開始時間
     
-    const days = Array.from({ length: 7 }, (_, i) => {
+    const days = Array.from({ length: daysCount }, (_, i) => {
       const date = new Date(today)
-      date.setDate(date.getDate() - (6 - i))
+      date.setDate(date.getDate() - (daysCount - 1 - i))
       // 創建一個標準化的日期字符串用於匹配（YYYY-MM-DD格式）
       const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
       return {
@@ -473,7 +476,7 @@ function Music() {
     })
     
     return days
-  }, [recentTracksForChart])
+  }, [recentTracksForChart, scrobblesView])
 
   // 計算總播放次數
   const totalScrobbles = useMemo(() => {
@@ -518,6 +521,17 @@ function Music() {
           trackDate.setHours(0, 0, 0, 0)
           const diffDays = Math.floor((today - trackDate) / (1000 * 60 * 60 * 24))
           return diffDays >= 0 && diffDays < 7
+        })
+      : scrobblesView === '30days'
+      ? recentTracksForChart.filter(track => {
+          if (!track.date?.uts || track['@attr']?.nowplaying) return false
+          const timestamp = parseInt(track.date.uts, 10) * 1000
+          const trackDate = new Date(timestamp)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          trackDate.setHours(0, 0, 0, 0)
+          const diffDays = Math.floor((today - trackDate) / (1000 * 60 * 60 * 24))
+          return diffDays >= 0 && diffDays < 30
         })
       : recentTracksForChart // 總計模式：使用所有數據（最多200條）
     
@@ -1117,6 +1131,16 @@ function Music() {
                             7 天
                           </button>
                           <button
+                            onClick={() => setScrobblesView('30days')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                              scrobblesView === '30days'
+                                ? 'bg-white/20 text-white shadow-sm'
+                                : 'text-pink-200/70 hover:text-white hover:bg-white/5'
+                            }`}
+                          >
+                            30 天
+                          </button>
+                          <button
                             onClick={() => setScrobblesView('total')}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                               scrobblesView === 'total'
@@ -1129,17 +1153,19 @@ function Music() {
                         </div>
                       </div>
                       <div className="text-6xl font-bold text-white mb-2">
-                        {scrobblesView === '7days' 
-                          ? totalScrobbles 
-                          : formatNumber(userInfo?.playcount || 0)
+                        {scrobblesView === 'total' 
+                          ? formatNumber(userInfo?.playcount || 0)
+                          : totalScrobbles
                         }
                       </div>
                       <div className="text-pink-300 text-sm">
-                        {scrobblesView === '7days' ? '最近 7 天' : '總播放次數'}
+                        {scrobblesView === '7days' ? '最近 7 天' : 
+                         scrobblesView === '30days' ? '最近 30 天' : 
+                         '總播放次數'}
                       </div>
                     </div>
-                    {/* 條形圖 - 只在 7 天視圖時顯示 */}
-                    {scrobblesView === '7days' && dailyChartData.length > 0 && (
+                    {/* 條形圖 - 在 7 天和 30 天視圖時顯示 */}
+                    {(scrobblesView === '7days' || scrobblesView === '30days') && dailyChartData.length > 0 && (
                       <div className="w-64 h-32">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart 
@@ -1154,10 +1180,10 @@ function Music() {
                             />
                             <XAxis 
                               dataKey="day" 
-                              tick={{ fill: '#fff', fontSize: 9 }}
+                              tick={{ fill: '#fff', fontSize: scrobblesView === '30days' ? 7 : 9 }}
                               axisLine={false}
                               tickLine={false}
-                              interval={0}
+                              interval={scrobblesView === '30days' ? 4 : 0}
                             />
                             <YAxis 
                               hide={true}
@@ -1253,7 +1279,9 @@ function Music() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {/* Top Artist */}
                 {(() => {
-                  const currentTopArtists = scrobblesView === '7days' ? topArtists7day : topArtistsOverall
+                  const currentTopArtists = scrobblesView === '7days' ? topArtists7day : 
+                                           scrobblesView === '30days' ? topArtists30day : 
+                                           topArtistsOverall
                   if (currentTopArtists.length === 0) return null
                   const topArtist = currentTopArtists[0]
                   const artistImage = topArtist.image?.find(img => img.size === 'large')?.['#text'] ||
@@ -1297,7 +1325,9 @@ function Music() {
 
                 {/* Top Album */}
                 {(() => {
-                  const currentTopAlbums = scrobblesView === '7days' ? topAlbums7day : topAlbumsOverall
+                  const currentTopAlbums = scrobblesView === '7days' ? topAlbums7day : 
+                                          scrobblesView === '30days' ? topAlbums30day : 
+                                          topAlbumsOverall
                   if (currentTopAlbums.length === 0) return null
                   const topAlbum = currentTopAlbums[0]
                   const albumImage = topAlbum.image?.find(img => img.size === 'large')?.['#text'] ||
@@ -1341,7 +1371,9 @@ function Music() {
 
                 {/* Top Track */}
                 {(() => {
-                  const currentTopTracks = scrobblesView === '7days' ? topTracks7day : topTracksOverall
+                  const currentTopTracks = scrobblesView === '7days' ? topTracks7day : 
+                                         scrobblesView === '30days' ? topTracks30day : 
+                                         topTracksOverall
                   const topTrackList = Array.isArray(currentTopTracks) ? currentTopTracks : [currentTopTracks].filter(Boolean)
                   if (topTrackList.length === 0) return null
                   
