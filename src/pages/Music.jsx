@@ -39,7 +39,7 @@ function Music() {
   const [topAlbumsOverall, setTopAlbumsOverall] = useState([])
   const [topTracksOverall, setTopTracksOverall] = useState([])
   const [activeTab, setActiveTab] = useState('recent')
-  const [scrobblesView, setScrobblesView] = useState('7days') // '7days' 或 'total'
+  const [scrobblesView, setScrobblesView] = useState('7days') // '7days', '30days' 或 'total'
   const [periodView, setPeriodView] = useState('7days') // '7days', '30days', 'overall' - 用於藝術家、專輯、歌曲標籤頁
   const [recentTracksLimit, setRecentTracksLimit] = useState(20) // 最近播放列表顯示數量
   const [loadingMore, setLoadingMore] = useState(false)
