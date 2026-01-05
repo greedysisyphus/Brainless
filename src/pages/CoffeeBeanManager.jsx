@@ -1205,9 +1205,9 @@ function CoffeeBeanManager() {
     return `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; background: #fafafa; color: #1d1d1f; min-height: 100vh;">
         <div style="background: white; border-radius: 20px; padding: 50px; box-shadow: 0 8px 32px rgba(0,0,0,0.08);">
-          <div style="text-align: center; margin-bottom: 50px;">
-            <h1 style="color: #1d1d1f; margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px;">咖啡豆盤點表</h1>
-            <p style="color: #86868b; margin: 12px 0 0 0; font-size: 17px; font-weight: 400;">${storeName} | 盤點日期：${date}</p>
+          <div style="text-align: center; margin-bottom: 50px; display: block; width: 100%;">
+            <h1 style="color: #1d1d1f; margin: 0 0 12px 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2; display: block; width: 100%;">咖啡豆盤點表</h1>
+            <p style="color: #86868b; margin: 0; font-size: 17px; font-weight: 400; display: block; width: 100%;">${storeName} | 盤點日期：${date}</p>
           </div>
           
           ${Object.entries(groupedData).map(([category, rows]) => {
@@ -1444,18 +1444,64 @@ function CoffeeBeanManager() {
       // 等待渲染完成
       await new Promise(resolve => setTimeout(resolve, 500))
       
+      // Minimalist 模式：移除所有可能的 logo 相關元素和圓形陰影
+      if (exportMode === 'minimalist') {
+        // 移除所有圖片元素
+        const images = tempContainer.querySelectorAll('img')
+        images.forEach(img => img.remove())
+        
+        // 移除所有可能的圓形陰影元素（border-radius: 50% 且可能在標題區域）
+        const allElements = tempContainer.querySelectorAll('*')
+        allElements.forEach(el => {
+          const style = el.style
+          const computedStyle = window.getComputedStyle(el)
+          
+          // 檢查是否是圓形元素且在標題區域
+          const isCircular = style.borderRadius === '50%' || 
+                            computedStyle.borderRadius === '50%' ||
+                            computedStyle.borderRadius?.includes('50%')
+          
+          if (isCircular) {
+            const rect = el.getBoundingClientRect()
+            const containerRect = tempContainer.getBoundingClientRect()
+            // 如果是標題區域（前 200px）的圓形元素，移除它
+            if (rect.top < containerRect.top + 200) {
+              el.style.display = 'none'
+              el.style.visibility = 'hidden'
+            }
+          }
+        })
+      }
+      
       const canvas = await html2canvas(tempContainer.firstElementChild, {
         backgroundColor: '#fafafa',
         scale: 1,
         useCORS: true,
         allowTaint: true,
-        logging: true,
+        logging: false,
         width: 900,
         height: tempContainer.firstElementChild.scrollHeight,
         scrollX: 0,
         scrollY: 0,
         windowWidth: 900,
-        windowHeight: tempContainer.firstElementChild.scrollHeight
+        windowHeight: tempContainer.firstElementChild.scrollHeight,
+        ignoreElements: (element) => {
+          // Minimalist 模式：忽略所有可能的 logo 相關元素
+          if (exportMode === 'minimalist') {
+            if (element.tagName === 'IMG') return true
+            const style = element.style
+            const computedStyle = window.getComputedStyle(element)
+            const isCircular = style.borderRadius === '50%' || 
+                              computedStyle.borderRadius === '50%' ||
+                              computedStyle.borderRadius?.includes('50%')
+            if (isCircular) {
+              const rect = element.getBoundingClientRect()
+              const containerRect = tempContainer.getBoundingClientRect()
+              return rect.top < containerRect.top + 200
+            }
+          }
+          return false
+        }
       })
       
       // 移除臨時容器
