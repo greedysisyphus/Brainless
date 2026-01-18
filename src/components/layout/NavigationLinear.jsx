@@ -71,7 +71,7 @@ const MENU_ITEMS = [
     icon: CocktailIcon
   },
   {
-    path: '/music',
+    path: '/playground',
     label: 'Playground',
     icon: MusicalNoteIcon
   }

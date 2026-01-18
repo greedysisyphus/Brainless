@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { motion } from 'framer-motion'
 import Clock from '../Clock'
 import CatSpeechBubble from '../CatSpeechBubble'
@@ -13,7 +13,7 @@ function Header() {
   const [showVideo, setShowVideo] = useState(false)
 
   return (
-    <header className={`${theme === 'linear' ? 'bg-[#0d0d0d]/80 backdrop-blur-xl border-b border-white/5' : 'bg-surface'} text-white sticky top-0 z-50`}>
+    <header className={`${theme === 'linear' ? 'bg-[#0d0d0d]/80 backdrop-blur-xl border-b border-white/5' : 'bg-surface'} text-white sticky top-6 z-50`}>
       <div className="container-custom py-3 sm:py-4 md:py-6">
         <div className="flex flex-col items-center relative min-h-[80px] sm:min-h-[100px]">
           {/* 主題切換按鈕 - 固定在左上角，移動設備優化 */}
@@ -84,4 +84,5 @@ function Header() {
   )
 }
 
-export default Header 
+// 使用 React.memo 包裝組件，防止 CatSpeechBubble 的狀態更新導致不必要的重新渲染
+export default memo(Header) 

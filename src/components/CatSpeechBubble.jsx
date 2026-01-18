@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../utils/firebase';
 import { generateSmartMessage, generateAllSmartMessages, clearSmartMessageCache, setGlobalAllSchedules } from '../utils/smartMessageGenerator';
+import { useNavigate } from 'react-router-dom';
 
 const CatSpeechBubble = () => {
+  const navigate = useNavigate();
   const [showBubble, setShowBubble] = useState(false);
   const [speechTexts, setSpeechTexts] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -273,9 +275,10 @@ const CatSpeechBubble = () => {
   // 快捷鍵監聽
   useEffect(() => {
     const handleKeyPress = (e) => {
-      // Ctrl + Alt + A 觸發管理員登入
+      // Ctrl + Alt + A 導航到管理設定頁面
       if (e.ctrlKey && e.altKey && e.key === 'A') {
-        setShowLogin(true);
+        e.preventDefault();
+        navigate('/admin');
       }
       
       // Ctrl+R: 刷新智能對話（僅在智能模式時）
@@ -286,7 +289,7 @@ const CatSpeechBubble = () => {
     };
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [smartMode]);
+  }, [smartMode, navigate]);
 
   // 管理員登入
   const handleAdminLogin = async () => {
@@ -335,9 +338,9 @@ const CatSpeechBubble = () => {
     return (
       <>
       <button
-        onClick={() => setShowLogin(true)}
+        onClick={() => navigate('/admin')}
           className="fixed top-4 right-4 z-[100] w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 touch-manipulation"
-        title="管理員登入 (Ctrl+Alt+A)"
+        title="前往管理設定 (Ctrl+Alt+A)"
           style={{ WebkitTapHighlightColor: 'transparent' }}
       >
         <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -500,9 +503,9 @@ const CatSpeechBubble = () => {
     return (
       <>
       <button
-        onClick={() => setShowLogin(true)}
+        onClick={() => navigate('/admin')}
           className="fixed top-4 right-4 z-[100] w-8 h-8 bg-primary/20 hover:bg-primary/30 rounded-full border border-primary/30 hover:border-primary/50 transition-all duration-200 opacity-50 hover:opacity-100 touch-manipulation"
-        title="管理員登入 (Ctrl+Alt+A)"
+        title="前往管理設定 (Ctrl+Alt+A)"
           style={{ WebkitTapHighlightColor: 'transparent' }}
       >
         <svg className="w-4 h-4 mx-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -698,4 +701,5 @@ const CatSpeechBubble = () => {
   );
 };
 
-export default CatSpeechBubble;
+// 使用 React.memo 包裝組件，防止不必要的重新渲染
+export default memo(CatSpeechBubble);

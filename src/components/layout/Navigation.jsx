@@ -93,7 +93,7 @@ const MENU_ITEMS = [
     icon: <CocktailIcon className="w-5 h-5" />
   },
   {
-    path: '/music',
+    path: '/playground',
     label: 'Playground',
     icon: <MusicalNoteIcon className="w-5 h-5" />
   }

@@ -12,6 +12,9 @@ import ResponsiveContainer, {
   ResponsiveText 
 } from '../components/common/ResponsiveContainer';
 import CustomRuleManager from '../components/CustomRuleManager';
+import CatBubbleSettings from '../components/admin/CatBubbleSettings';
+import NowPlayingMarqueeSettings from '../components/admin/NowPlayingMarqueeSettings';
+import AdminLoginForm from '../components/admin/AdminLoginForm';
 
 const AdminPanel = () => {
   const [showBubble, setShowBubble] = useState(false);
@@ -26,6 +29,7 @@ const AdminPanel = () => {
   const [smartMode, setSmartMode] = useState(false);
   const [customRules, setCustomRules] = useState([]);
   const [scheduleTemplates, setScheduleTemplates] = useState([]);
+  const [activeTab, setActiveTab] = useState('catBubble'); // 'catBubble' 或 'marquee'
   const navigate = useNavigate();
 
   // 檢查管理員狀態
@@ -37,16 +41,19 @@ const AdminPanel = () => {
           setIsAdmin(adminStatus);
           if (!adminStatus) {
             setError('您沒有管理員權限');
+            // 非管理員帳號登入後，3秒後自動跳轉
             setTimeout(() => navigate('/'), 3000);
+          } else {
+            setError(''); // 清除錯誤訊息
           }
         } catch (error) {
           setError('檢查權限時發生錯誤');
           console.error('權限檢查失敗:', error);
         }
       } else {
+        // 未登入時，不自動跳轉，顯示登入表單
         setIsAdmin(false);
-        setError('請先登入');
-        setTimeout(() => navigate('/'), 2000);
+        setError(''); // 清除錯誤訊息，讓登入表單正常顯示
       }
       setIsLoading(false);
     });
@@ -192,40 +199,19 @@ const AdminPanel = () => {
     );
   }
 
-  // 錯誤狀態
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center max-w-md mx-auto">
-          <div className="text-red-400 text-4xl mb-4">⚠️</div>
-          <ResponsiveTitle level={2} className="mb-4">發生錯誤</ResponsiveTitle>
-          <ResponsiveText className="mb-6">{error}</ResponsiveText>
-          <div className="space-y-3">
-            <ResponsiveButton
-              onClick={() => navigate('/')}
-              variant="primary"
-              size="lg"
-              className="w-full"
-            >
-              返回首頁
-            </ResponsiveButton>
-            <ResponsiveButton
-              onClick={() => window.location.reload()}
-              variant="secondary"
-              size="lg"
-              className="w-full"
-            >
-              重新載入
-            </ResponsiveButton>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 非管理員
+  // 如果未登入或非管理員，顯示登入表單
   if (!isAdmin) {
-    return null;
+    return (
+      <AdminLoginForm
+        onLoginSuccess={(user) => {
+          // 登入成功後，會自動觸發 auth.onAuthStateChanged，重新檢查權限
+          console.log('登入成功:', user.email);
+        }}
+        onLoginError={(errorMessage) => {
+          setError(errorMessage);
+        }}
+      />
+    );
   }
 
   return (
@@ -260,55 +246,82 @@ const AdminPanel = () => {
           </ResponsiveButton>
         </div>
 
+        {/* Tab 切換 */}
+        <div className="flex border-b border-white/10 mb-6">
+          <button
+            onClick={() => setActiveTab('catBubble')}
+            className={`px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'catBubble'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            貓咪對話設定
+          </button>
+          <button
+            onClick={() => setActiveTab('marquee')}
+            className={`px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'marquee'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            跑馬燈設定
+          </button>
+        </div>
 
+        {/* Cat Bubble 設定 Tab */}
+        {activeTab === 'catBubble' && (
+          <CatBubbleSettings
+            showBubble={showBubble}
+            onShowBubbleChange={(newShowBubble) => updateGlobalSettings({ 
+              texts: speechTexts, 
+              enabled: newShowBubble, 
+              intervalSeconds: intervalSeconds,
+              smartMode: smartMode,
+              customRules: customRules,
+              scheduleTemplates: scheduleTemplates
+            })}
+            speechTexts={speechTexts}
+            onSpeechTextsChange={(newTexts) => updateGlobalSettings({ 
+              texts: newTexts, 
+              enabled: showBubble, 
+              intervalSeconds: intervalSeconds,
+              smartMode: smartMode,
+              customRules: customRules,
+              scheduleTemplates: scheduleTemplates
+            })}
+            intervalSeconds={intervalSeconds}
+            onIntervalSecondsChange={(newInterval) => updateGlobalSettings({ 
+              texts: speechTexts, 
+              enabled: showBubble, 
+              intervalSeconds: newInterval,
+              smartMode: smartMode,
+              customRules: customRules,
+              scheduleTemplates: scheduleTemplates
+            })}
+            smartMode={smartMode}
+            onSmartModeChange={(newSmartMode) => updateGlobalSettings({ 
+              texts: speechTexts, 
+              enabled: showBubble, 
+              intervalSeconds: intervalSeconds,
+              smartMode: newSmartMode,
+              customRules: customRules,
+              scheduleTemplates: scheduleTemplates
+            })}
+            customRules={customRules}
+            onCustomRulesChange={handleCustomRulesChange}
+            scheduleTemplates={scheduleTemplates}
+            onScheduleTemplatesChange={handleScheduleTemplatesChange}
+            scheduleData={scheduleData}
+            isSaving={isSaving}
+          />
+        )}
 
-        {/* 智能對話規則管理 */}
-        <CustomRuleManager
-          customRules={customRules}
-          scheduleTemplates={scheduleTemplates}
-          onRulesChange={handleCustomRulesChange}
-          onTemplatesChange={handleScheduleTemplatesChange}
-          isSaving={isSaving}
-          // 班表資料相關 props
-          scheduleData={scheduleData}
-          // 對話管理相關 props
-          speechTexts={speechTexts}
-          onSpeechTextsChange={(newTexts) => updateGlobalSettings({ 
-            texts: newTexts, 
-            enabled: showBubble, 
-            intervalSeconds: intervalSeconds,
-            smartMode: smartMode,
-            customRules: customRules,
-            scheduleTemplates: scheduleTemplates
-          })}
-          showBubble={showBubble}
-          onShowBubbleChange={(newShowBubble) => updateGlobalSettings({ 
-            texts: speechTexts, 
-            enabled: newShowBubble, 
-            intervalSeconds: intervalSeconds,
-            smartMode: smartMode,
-            customRules: customRules,
-            scheduleTemplates: scheduleTemplates
-          })}
-          intervalSeconds={intervalSeconds}
-          onIntervalSecondsChange={(newInterval) => updateGlobalSettings({ 
-            texts: speechTexts, 
-            enabled: showBubble, 
-            intervalSeconds: newInterval,
-            smartMode: smartMode,
-            customRules: customRules,
-            scheduleTemplates: scheduleTemplates
-          })}
-          smartMode={smartMode}
-          onSmartModeChange={(newSmartMode) => updateGlobalSettings({ 
-            texts: speechTexts, 
-            enabled: showBubble, 
-            intervalSeconds: intervalSeconds,
-            smartMode: newSmartMode,
-            customRules: customRules,
-            scheduleTemplates: scheduleTemplates
-          })}
-        />
+        {/* 跑馬燈設定 Tab */}
+        {activeTab === 'marquee' && (
+          <NowPlayingMarqueeSettings />
+        )}
 
 
       </ResponsiveContainer>

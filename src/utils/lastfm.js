@@ -287,4 +287,3 @@ export async function getTrackInfo(artistName, trackName) {
     throw error
   }
 }
-

@@ -15,7 +15,7 @@ import DailyReportGenerator from './pages/DailyReportGenerator'
 import ScheduleManager from './pages/ScheduleManager'
 import DataFormatTester from './pages/DataFormatTester'
 import HomepageLinear from './pages/HomepageLinear'
-import Music from './pages/Music'
+import Playground from './pages/Playground'
 
 // 懶加載頁面
 const CashierManagement = lazy(() => import('./pages/CashierManagement'))
@@ -80,7 +80,8 @@ function AppContent() {
               <Route path="/schedule" element={<ScheduleManager />} />
               <Route path="/data-tester" element={<DataFormatTester />} />
               <Route path="/poursteady" element={<PoursteadyAdjustment />} />
-              <Route path="/music" element={<Music />} />
+              <Route path="/playground" element={<Playground />} />
+              <Route path="/music" element={<Navigate to="/playground#music" replace />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="*" element={<ErrorPage />} />
             </Routes>

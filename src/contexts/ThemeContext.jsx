@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 
 const ThemeContext = createContext()
 
@@ -27,12 +27,19 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('app-theme', theme)
   }, [theme])
 
-  const toggleTheme = () => {
+  // 使用 useCallback 記憶化 toggleTheme 函數，避免每次渲染都創建新函數
+  const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'classic' ? 'linear' : 'classic')
-  }
+  }, [])
+
+  // 使用 useMemo 記憶化 context value，避免每次渲染都創建新對象
+  const value = useMemo(() => ({
+    theme,
+    toggleTheme
+  }), [theme, toggleTheme])
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   )

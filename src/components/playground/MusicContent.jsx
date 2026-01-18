@@ -18,10 +18,8 @@ import {
   getArtistInfo,
   getTrackInfo,
   API_KEY
-} from '../utils/lastfm'
-import PersonalTableGenerator from '../components/PersonalTableGenerator'
-
-function Music() {
+} from '../../utils/lastfm'
+function MusicContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [userInfo, setUserInfo] = useState(null)
@@ -39,7 +37,6 @@ function Music() {
   const [topArtistsOverall, setTopArtistsOverall] = useState([]) // 總計數據
   const [topAlbumsOverall, setTopAlbumsOverall] = useState([])
   const [topTracksOverall, setTopTracksOverall] = useState([])
-  const [mainTab, setMainTab] = useState('music') // 'music' 或 'table'
   const [activeTab, setActiveTab] = useState('recent') // 音樂相關的子 tab
   const [scrobblesView, setScrobblesView] = useState('7days') // '7days', '30days' 或 'total'
   const [periodView, setPeriodView] = useState('7days') // '7days', '30days', 'overall' - 用於藝術家、專輯、歌曲標籤頁
@@ -655,9 +652,9 @@ function Music() {
                 <MusicalNoteIcon className="w-8 h-8 text-purple-400" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-primary mb-1">Playground</h1>
+                <h1 className="text-3xl font-bold text-primary mb-1">音樂</h1>
                 <p className="text-text-secondary">
-                  實驗一些實驗
+                  Last.fm 音樂統計和播放記錄
                 </p>
               </div>
             </div>
@@ -670,8 +667,8 @@ function Music() {
             </button>
           </div>
 
-          {/* 統計卡片（僅在音樂 tab 顯示） */}
-          {mainTab === 'music' && userInfo && (
+          {/* 統計卡片 */}
+          {userInfo && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
                 <div className="text-2xl font-bold text-primary mb-1">
@@ -695,35 +692,7 @@ function Music() {
           )}
         </div>
 
-        {/* 頂層 Tab 切換 */}
-        <div className="flex gap-2 mb-6 border-b border-white/10">
-          {[
-            { id: 'music', label: '音樂' },
-            { id: 'table', label: '個人表格' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setMainTab(tab.id)}
-              className={`px-4 py-2 font-medium transition-colors ${
-                mainTab === tab.id
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-text-secondary hover:text-primary'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* 個人表格 */}
-        {mainTab === 'table' && (
-          <PersonalTableGenerator />
-        )}
-
-        {/* 音樂內容 */}
-        {mainTab === 'music' && (
-          <>
-            {/* 音樂相關的子 Tab 切換 */}
+        {/* 音樂相關的子 Tab 切換 */}
             <div className="flex gap-2 mb-6 border-b border-white/10">
               {[
                 { id: 'recent', label: '最近播放' },
@@ -1564,12 +1533,10 @@ function Music() {
                 <p className="text-text-secondary">沒有歌曲資料</p>
               </div>
             )}
-          </>
-        )}
       </div>
     </div>
   )
 }
 
-export default Music
+export default MusicContent
 

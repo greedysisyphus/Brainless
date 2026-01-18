@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { motion } from 'framer-motion'
 import { useTheme } from '../../contexts/ThemeContext'
 import Clock from '../Clock'
@@ -19,7 +19,7 @@ function HeaderLinear() {
   const [showVideo, setShowVideo] = useState(false)
 
   return (
-    <header className={`sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/[0.06] transition-all duration-300 ${isHomepage ? 'bg-transparent border-transparent' : ''}`}>
+    <header className={`sticky top-6 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/[0.06] transition-all duration-300 ${isHomepage ? 'bg-transparent border-transparent' : ''}`}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16 relative">
           {/* Logo 和標題 - 極簡設計 */}
@@ -91,4 +91,6 @@ function HeaderLinear() {
   )
 }
 
-export default HeaderLinear
+// 使用 React.memo 包裝組件，防止 CatSpeechBubble 的狀態更新導致不必要的重新渲染
+// 但由於使用了 useLocation，路由變化時仍會重新渲染（這是預期的行為）
+export default memo(HeaderLinear)

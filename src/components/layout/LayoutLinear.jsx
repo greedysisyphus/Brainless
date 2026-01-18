@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, memo } from 'react'
 import { useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
 import { motion, AnimatePresence } from 'framer-motion'
 import HeaderLinear from './HeaderLinear'
 import NavigationLinear from './NavigationLinear'
+import NowPlayingMarquee from '../NowPlayingMarquee'
 
 /**
  * Linear 風格的 Layout
@@ -76,6 +77,9 @@ function LayoutLinear({ children }) {
 
       {/* 內容層 */}
       <div className="relative z-10">
+        {/* 當前播放歌曲跑馬燈 - 最頂層 */}
+        <NowPlayingMarquee />
+        
         {/* Linear 風格頁首 */}
         <HeaderLinear />
         
@@ -109,4 +113,10 @@ function LayoutLinear({ children }) {
   )
 }
 
-export default LayoutLinear
+// 使用 React.memo 包裝 LayoutLinear 組件，防止不必要的重新渲染
+// 但由於 children 和 location 可能會改變，我們需要自定義比較函數
+export default memo(LayoutLinear, (prevProps, nextProps) => {
+  // 如果 children 相同，不重新渲染
+  // 注意：location 的變化會導致組件重新渲染，這是預期的行為
+  return prevProps.children === nextProps.children
+})
