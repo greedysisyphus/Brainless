@@ -292,9 +292,9 @@ const NowPlayingMarquee = () => {
     weather?.daily?.time
   ]);
 
-  // 生成重複元素
+  // 生成重複元素（增加數量以確保在 iOS Safari 上無縫循環）
   const marqueeItems = useMemo(() => {
-    return Array.from({ length: 30 }, (_, index) => index);
+    return Array.from({ length: 50 }, (_, index) => index);
   }, []);
 
   // 如果未啟用，不顯示跑馬燈
@@ -340,10 +340,18 @@ const NowPlayingMarquee = () => {
       <style>{`
         .marquee-container {
           will-change: transform;
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
         }
         .marquee-content {
           display: flex;
+          width: max-content;
+          -webkit-animation: marquee ${settings.speed || 60}s linear infinite;
           animation: marquee ${settings.speed || 60}s linear infinite;
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
         }
         .marquee-item {
           flex-shrink: 0;
@@ -351,6 +359,8 @@ const NowPlayingMarquee = () => {
           align-items: center;
           padding-left: 1.5rem;
           padding-right: 1.5rem;
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
         }
         .marquee-icon-container {
           flex-shrink: 0;
@@ -360,11 +370,23 @@ const NowPlayingMarquee = () => {
           white-space: nowrap;
           flex-shrink: 0;
         }
-        @keyframes marquee {
+        @-webkit-keyframes marquee {
           0% {
+            -webkit-transform: translateX(0);
             transform: translateX(0);
           }
           100% {
+            -webkit-transform: translateX(-50%);
+            transform: translateX(-50%);
+          }
+        }
+        @keyframes marquee {
+          0% {
+            -webkit-transform: translateX(0);
+            transform: translateX(0);
+          }
+          100% {
+            -webkit-transform: translateX(-50%);
             transform: translateX(-50%);
           }
         }

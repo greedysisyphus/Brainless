@@ -189,9 +189,27 @@ function WeatherContent() {
                       </span>
                     </div>
                   )}
-                  <div className="text-4xl font-bold text-primary">
-                    {weatherData.current.temperature_2m}°C
+                  <div className="flex items-baseline gap-3 mb-2">
+                    <div className="text-4xl font-bold text-primary">
+                      {Math.round(weatherData.current.temperature_2m)}°C
+                    </div>
+                    {weatherData.daily && weatherData.daily.temperature_2m_max && weatherData.daily.temperature_2m_min && weatherData.daily.time && (
+                      <div className="flex items-center gap-2 text-lg text-text-secondary">
+                        <span className="text-primary font-semibold">
+                          {Math.round(weatherData.daily.temperature_2m_max[0])}°
+                        </span>
+                        <span className="text-text-secondary">/</span>
+                        <span className="text-text-secondary">
+                          {Math.round(weatherData.daily.temperature_2m_min[0])}°
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  {weatherData.daily && weatherData.daily.temperature_2m_max && weatherData.daily.temperature_2m_min && (
+                    <div className="text-sm text-text-secondary">
+                      最高 {Math.round(weatherData.daily.temperature_2m_max[0])}°C / 最低 {Math.round(weatherData.daily.temperature_2m_min[0])}°C
+                    </div>
+                  )}
                 </div>
                 <div className="text-6xl">
                   {getWeatherInfo(weatherData.current.weather_code).icon}
@@ -251,14 +269,20 @@ function WeatherContent() {
                       <div className="text-3xl mb-3">
                         {getWeatherInfo(weatherData.daily.weather_code[index]).icon}
                       </div>
-                      <div className="text-sm text-text-secondary mb-1">
+                      <div className="text-sm text-text-secondary mb-2">
                         {getWeatherInfo(weatherData.daily.weather_code[index]).description}
                       </div>
-                      <div className="text-lg font-bold text-primary mb-1">
-                        {weatherData.daily.temperature_2m_max[index]}°
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <span className="text-lg font-bold text-primary">
+                          {Math.round(weatherData.daily.temperature_2m_max[index])}°
+                        </span>
+                        <span className="text-text-secondary">/</span>
+                        <span className="text-sm text-text-secondary">
+                          {Math.round(weatherData.daily.temperature_2m_min[index])}°
+                        </span>
                       </div>
-                      <div className="text-sm text-text-secondary">
-                        {weatherData.daily.temperature_2m_min[index]}°
+                      <div className="text-xs text-text-secondary">
+                        最高 {Math.round(weatherData.daily.temperature_2m_max[index])}°C / 最低 {Math.round(weatherData.daily.temperature_2m_min[index])}°C
                       </div>
                       {weatherData.daily.precipitation_sum && weatherData.daily.precipitation_sum[index] > 0 && (
                         <div className="text-xs text-blue-400 mt-2">
