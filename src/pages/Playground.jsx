@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   MusicalNoteIcon, 
-  DocumentTextIcon,
   CloudIcon,
+  CalendarIcon,
   ArrowLeftIcon
 } from '@heroicons/react/24/outline'
 import { Suspense, lazy } from 'react'
 import LoadingPage from './LoadingPage'
 
-// 懶加載音樂、個人表格和天氣組件
+// 懶加載音樂、天氣和班表管理組件
 const MusicContent = lazy(() => import('../components/playground/MusicContent'))
-const PersonalTableGenerator = lazy(() => import('../components/PersonalTableGenerator'))
 const WeatherContent = lazy(() => import('../components/playground/WeatherContent'))
+const ScheduleManager = lazy(() => import('../components/playground/ScheduleManager'))
 
 function Playground() {
   const navigate = useNavigate()
@@ -24,10 +24,10 @@ function Playground() {
     const hash = location.hash
     if (hash.includes('#music')) {
       setCurrentPage('music')
-    } else if (hash.includes('#table')) {
-      setCurrentPage('table')
     } else if (hash.includes('#weather')) {
       setCurrentPage('weather')
+    } else if (hash.includes('#schedule')) {
+      setCurrentPage('schedule')
     } else {
       setCurrentPage(null)
     }
@@ -68,19 +68,6 @@ function Playground() {
               </div>
             </button>
 
-            {/* 個人表格 */}
-            <button
-              onClick={() => navigate('/playground#table')}
-              className="group bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-blue-500/30 transition-all hover:scale-105"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg group-hover:scale-110 transition-transform">
-                  <DocumentTextIcon className="w-6 h-6 text-blue-400" />
-                </div>
-                <h2 className="text-xl font-bold text-primary">個人表格</h2>
-              </div>
-            </button>
-
             {/* 天氣 */}
             <button
               onClick={() => navigate('/playground#weather')}
@@ -91,6 +78,19 @@ function Playground() {
                   <CloudIcon className="w-6 h-6 text-cyan-400" />
                 </div>
                 <h2 className="text-xl font-bold text-primary">天氣</h2>
+              </div>
+            </button>
+
+            {/* 班表匯出 */}
+            <button
+              onClick={() => navigate('/playground#schedule')}
+              className="group bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-green-500/30 transition-all hover:scale-105"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg group-hover:scale-110 transition-transform">
+                  <CalendarIcon className="w-6 h-6 text-green-400" />
+                </div>
+                <h2 className="text-xl font-bold text-primary">班表匯出</h2>
               </div>
             </button>
           </div>
@@ -115,8 +115,8 @@ function Playground() {
         {/* 內容區域 */}
         <Suspense fallback={<LoadingPage />}>
           {currentPage === 'music' && <MusicContent />}
-          {currentPage === 'table' && <PersonalTableGenerator />}
           {currentPage === 'weather' && <WeatherContent />}
+          {currentPage === 'schedule' && <ScheduleManager />}
         </Suspense>
       </div>
     </div>

@@ -19,7 +19,6 @@ import {
   getTrackInfo,
   API_KEY
 } from '../utils/lastfm'
-import PersonalTableGenerator from '../components/PersonalTableGenerator'
 
 function Music() {
   const [loading, setLoading] = useState(true)
@@ -698,8 +697,7 @@ function Music() {
         {/* 頂層 Tab 切換 */}
         <div className="flex gap-2 mb-6 border-b border-white/10">
           {[
-            { id: 'music', label: '音樂' },
-            { id: 'table', label: '個人表格' }
+            { id: 'music', label: '音樂' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -714,11 +712,6 @@ function Music() {
             </button>
           ))}
         </div>
-
-        {/* 個人表格 */}
-        {mainTab === 'table' && (
-          <PersonalTableGenerator />
-        )}
 
         {/* 音樂內容 */}
         {mainTab === 'music' && (

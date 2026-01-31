@@ -132,9 +132,6 @@ export default function PoursteadyAdjustment() {
               Poursteady 注水量調整
             </span>
           </h1>
-          
-          {/* 副標題 */}
-          <p className="text-gray-400 text-sm sm:text-base font-medium px-4">最近才發現沒有長智齒</p>
         </div>
 
         {/* 操作按鈕區域 */}

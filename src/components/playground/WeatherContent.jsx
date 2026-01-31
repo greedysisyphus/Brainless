@@ -216,11 +216,20 @@ function WeatherContent() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
                 <div>
                   <div className="text-sm text-text-secondary mb-1">天氣</div>
                   <div className="text-primary font-medium">
                     {getWeatherInfo(weatherData.current.weather_code).description}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-text-secondary mb-1">下雨機率</div>
+                  <div className="text-primary font-medium">
+                    {weatherData.daily && weatherData.daily.precipitation_probability_max && weatherData.daily.precipitation_probability_max[0] !== undefined
+                      ? `${weatherData.daily.precipitation_probability_max[0]}%`
+                      : '--'
+                    }
                   </div>
                 </div>
                 <div>
@@ -284,9 +293,14 @@ function WeatherContent() {
                       <div className="text-xs text-text-secondary">
                         最高 {Math.round(weatherData.daily.temperature_2m_max[index])}°C / 最低 {Math.round(weatherData.daily.temperature_2m_min[index])}°C
                       </div>
-                      {weatherData.daily.precipitation_sum && weatherData.daily.precipitation_sum[index] > 0 && (
+                      {weatherData.daily.precipitation_probability_max && weatherData.daily.precipitation_probability_max[index] !== undefined && (
                         <div className="text-xs text-blue-400 mt-2">
-                          💧 {weatherData.daily.precipitation_sum[index]}mm
+                          🌧️ 下雨機率 {weatherData.daily.precipitation_probability_max[index]}%
+                        </div>
+                      )}
+                      {weatherData.daily.precipitation_sum && weatherData.daily.precipitation_sum[index] > 0 && (
+                        <div className="text-xs text-blue-400 mt-1">
+                          💧 降雨量 {weatherData.daily.precipitation_sum[index]}mm
                         </div>
                       )}
                     </div>

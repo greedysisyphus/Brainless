@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PrinterIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { PrinterIcon, ArrowDownTrayIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
 
 function PersonalTableGenerator() {
   const [machineType, setMachineType] = useState('')
@@ -445,6 +445,100 @@ function PersonalTableGenerator() {
     previewWindow.document.close()
   }
 
+  // 匯出為 PDF
+  const handleExportPDF = async () => {
+    try {
+      // 先檢查模組是否可用
+      let html2pdf
+      try {
+        html2pdf = (await import('html2pdf.js')).default
+      } catch (importError) {
+        console.error('html2pdf.js 載入失敗:', importError)
+        alert('PDF 匯出功能暫時無法使用，請重新整理頁面後再試')
+        return
+      }
+
+      const htmlContent = createTableContentHTML()
+      
+      // 創建臨時容器
+      const tempContainer = document.createElement('div')
+      tempContainer.innerHTML = htmlContent
+      tempContainer.style.position = 'absolute'
+      tempContainer.style.left = '-9999px'
+      tempContainer.style.top = '0'
+      tempContainer.style.width = '1123px'
+      tempContainer.style.height = '794px'
+      tempContainer.style.overflow = 'visible'
+      tempContainer.style.backgroundColor = '#fafafa'
+      document.body.appendChild(tempContainer)
+      
+      // 獲取要渲染的元素
+      const elementToRender = tempContainer.firstElementChild
+      
+      if (!elementToRender) {
+        throw new Error('無法找到要渲染的元素')
+      }
+      
+      // 等待渲染完成
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // 確保元素可見（html2pdf 需要元素在視圖中）
+      const originalLeft = tempContainer.style.left
+      tempContainer.style.left = '0'
+      tempContainer.style.top = '0'
+      tempContainer.style.zIndex = '9999'
+      
+      try {
+        // 設定 PDF 選項（A4 橫向）
+        const opt = {
+          margin: 0,
+          filename: `個人表格_${year && month && day ? `${year}_${month}_${day}` : '未填寫日期'}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#fafafa',
+            width: 1123,
+            height: 794,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: 1123,
+            windowHeight: 794
+          },
+          jsPDF: { 
+            unit: 'mm', 
+            format: [297, 210], // A4 橫向 (landscape)
+            orientation: 'landscape'
+          }
+        }
+        
+        // 生成 PDF
+        await html2pdf().set(opt).from(elementToRender).save()
+        
+        // 恢復原始位置
+        tempContainer.style.left = originalLeft
+        
+        // 移除臨時容器
+        setTimeout(() => {
+          if (tempContainer.parentNode) {
+            document.body.removeChild(tempContainer)
+          }
+        }, 1000)
+      } catch (renderError) {
+        // 恢復原始位置
+        tempContainer.style.left = originalLeft
+        // 移除臨時容器
+        if (tempContainer.parentNode) {
+          document.body.removeChild(tempContainer)
+        }
+        throw renderError
+      }
+    } catch (error) {
+      console.error('匯出 PDF 失敗:', error)
+      alert(`匯出 PDF 失敗：${error.message}`)
+    }
+  }
+
   // 匯出為 PNG
   const handleExportPNG = async () => {
     try {
@@ -644,6 +738,14 @@ function PersonalTableGenerator() {
         >
           <PrinterIcon className="w-5 h-5" />
           列印表格
+        </button>
+        
+        <button
+          onClick={handleExportPDF}
+          className="flex-1 min-w-[140px] px-6 py-3 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors font-medium flex items-center justify-center gap-2"
+        >
+          <DocumentArrowDownIcon className="w-5 h-5" />
+          匯出 PDF
         </button>
         
         <button
