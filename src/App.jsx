@@ -20,6 +20,7 @@ import Playground from './pages/Playground'
 // 懶加載頁面
 const CashierManagement = lazy(() => import('./pages/CashierManagement'))
 const AdminPanel = lazy(() => import('./pages/AdminPanel'))
+const FlightData = lazy(() => import('./pages/FlightData'))
 
 // 內部組件：根據主題選擇 Layout
 function AppContent() {
@@ -80,6 +81,7 @@ function AppContent() {
               <Route path="/schedule" element={<ScheduleManager />} />
               <Route path="/data-tester" element={<DataFormatTester />} />
               <Route path="/poursteady" element={<PoursteadyAdjustment />} />
+              <Route path="/flight-data" element={<FlightData />} />
               <Route path="/playground" element={<Playground />} />
               <Route path="/music" element={<Navigate to="/playground#music" replace />} />
               <Route path="/admin" element={<AdminPanel />} />

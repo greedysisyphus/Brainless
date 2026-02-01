@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>航班資料 API</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .endpoint {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #8b5cf6;
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #8b5cf6;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        code {
+            background: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        pre {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        h1, h2 {
+            color: #e0e0e0;
+        }
+        a {
+            color: #a78bfa;
+        }
+    </style>
+</head>
+<body>
+    <h1>✈️ 桃園機場 D11-D18 航班資料 API</h1>
+    
+    <h2>API 端點</h2>
+    
+    <div class="endpoint">
+        <span class="method">GET</span>
+        <strong>獲取指定日期的航班資料</strong>
+        <p>URL: <code>?date=YYYY-MM-DD</code></p>
+        <p>範例: <code>?date=2026-02-01</code></p>
+    </div>
+
+    <div class="endpoint">
+        <span class="method">GET</span>
+        <strong>獲取今天的航班資料</strong>
+        <p>URL: <code>?date=today</code> 或無參數</p>
+    </div>
+
+    <h2>直接使用 JSON 檔案（推薦）</h2>
+    <p>您也可以直接使用 JSON 檔案 URL，無需通過此 API 頁面：</p>
+    <pre><code>https://greedysisyphus.github.io/Brainless/data/flight-data-YYYY-MM-DD.json</code></pre>
+    
+    <p>範例：</p>
+    <pre><code>https://greedysisyphus.github.io/Brainless/data/flight-data-2026-02-01.json</code></pre>
+
+    <h2>iOS Shortcut 使用方式</h2>
+    <ol>
+        <li>在 Shortcut 中使用「取得網頁內容」動作</li>
+        <li>URL 使用：<code>https://greedysisyphus.github.io/Brainless/data/flight-data-YYYY-MM-DD.json</code></li>
+        <li>方法選擇：GET</li>
+        <li>使用「取得 JSON 字典值」來解析資料</li>
+    </ol>
+
+    <h2>回應格式</h2>
+    <pre><code>{
+  "date": "2026-02-01",
+  "flights": [
+    {
+      "time": "06:30",
+      "gate": "D16",
+      "flight_code": "BR178",
+      "airline_name": "長榮航空",
+      "status": "出發DEPARTED",
+      "destination": "Osaka Kansai (KIX)",
+      ...
+    }
+  ],
+  "summary": {
+    "total_flights": 50,
+    "before_17:00": 30,
+    "after_17:00": 20
+  }
+}</code></pre>
+
+    <div id="result" style="margin-top: 30px; padding: 20px; background: #2a2a2a; border-radius: 8px; display: none;">
+        <h3>API 測試結果</h3>
+        <pre id="output"></pre>
+    </div>
+
+    <script>
+        // 解析 URL 參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const dateParam = urlParams.get('date');
+        
+        // 如果沒有參數，顯示說明
+        if (!dateParam) {
+            document.getElementById('result').style.display = 'none';
+        } else {
+            // 處理日期參數
+            let targetDate = dateParam;
+            if (dateParam === 'today') {
+                const today = new Date();
+                targetDate = today.toISOString().split('T')[0];
+            }
+            
+            // 構建 JSON 檔案 URL
+            const basePath = window.location.pathname.includes('/playground/api/') 
+                ? '../../data/' 
+                : '/Brainless/data/';
+            const jsonUrl = `${basePath}flight-data-${targetDate}.json`;
+            
+            // 設置 Content-Type 為 JSON
+            fetch(jsonUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 顯示結果
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+                    
+                    // 設置正確的 Content-Type（雖然在 HTML 中無法完全實現，但可以提示）
+                    console.log('API Response:', data);
+                })
+                .catch(error => {
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('output').textContent = `錯誤: ${error.message}`;
+                });
+        }
+    </script>
+</body>
+</html>

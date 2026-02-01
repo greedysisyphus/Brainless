@@ -12,6 +12,7 @@ import {
   CalendarIcon,
   Cog6ToothIcon,
   MusicalNoteIcon,
+  PaperAirplaneIcon,
 } from '@heroicons/react/24/outline'
 import React from 'react'
 import { auth, checkAdminStatus } from '../../utils/firebase'
@@ -91,6 +92,11 @@ const MENU_ITEMS = [
     path: '/alcohol',
     label: '酒精計算',
     icon: <CocktailIcon className="w-5 h-5" />
+  },
+  {
+    path: '/flight-data',
+    label: '航班資料',
+    icon: <PaperAirplaneIcon className="w-5 h-5" />
   },
   {
     path: '/playground',

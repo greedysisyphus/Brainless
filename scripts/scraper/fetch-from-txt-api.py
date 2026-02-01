@@ -323,6 +323,7 @@ if __name__ == '__main__':
                 formatted_display.append(display_str)
             
             # 建立最終輸出格式
+            from datetime import datetime
             output = {
                 "date": date_key,
                 "flights": formatted_data["flights"],
@@ -331,7 +332,8 @@ if __name__ == '__main__':
                     "before_17:00": formatted_data["summary"]["before_17:00"],
                     "after_17:00": formatted_data["summary"]["after_17:00"]
                 },
-                "formatted_display": formatted_display
+                "formatted_display": formatted_display,
+                "updated_at": datetime.now().isoformat()
             }
             
             # 儲存 JSON 檔案

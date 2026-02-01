@@ -1,5 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+// const axios = require("axios"); // 已取消 API 功能
 admin.initializeApp();
 
 // 定義接送地點
@@ -124,3 +125,7 @@ exports.getTomorrowPickup = functions.https.onRequest(async (req, res) => {
     res.status(500).json({error: "發生錯誤"});
   }
 });
+
+// 航班資料 API 端點（已取消）
+// exports.getFlightData = functions.https.onRequest(async (req, res) => { ... });
+// exports.getFlightSummary = functions.https.onRequest(async (req, res) => { ... });

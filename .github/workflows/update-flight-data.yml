@@ -2,8 +2,8 @@ name: Update Flight Data
 
 on:
   schedule:
-    # 每 30 分鐘執行一次
-    - cron: '*/30 * * * *'
+    # 每 15 分鐘執行一次
+    - cron: '*/15 * * * *'
   workflow_dispatch: # 允許手動觸發
   push:
     branches:
@@ -39,7 +39,12 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add data/
-          git diff --staged --quiet || git commit -m "Update flight data [skip workflow]"
-          git push
+          # updated_at 欄位每次都會更新，所以應該會有變更
+          if git diff --staged --quiet; then
+            echo "No changes detected (this should be rare since updated_at changes every time)"
+          else
+            git commit -m "Update flight data [skip workflow]"
+            git push
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
