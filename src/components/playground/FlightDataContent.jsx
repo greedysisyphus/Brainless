@@ -273,32 +273,24 @@ function FlightDataContent() {
 
   // 自動載入今天的資料（只在組件掛載時執行一次）
   useEffect(() => {
-    // 確保 selectedDate 和實際載入的日期一致
-    // 使用本地時區計算今天的日期，避免 UTC 時區問題
-    const now = new Date()
-    const localYear = now.getFullYear()
-    const localMonth = now.getMonth() + 1
-    const localDay = now.getDate()
-    const today = `${localYear}-${String(localMonth).padStart(2, '0')}-${String(localDay).padStart(2, '0')}`
+    // 強制計算今天的日期，使用本地時區
+    const getTodayDate = () => {
+      const now = new Date()
+      // 使用本地時區的日期組件，避免 UTC 時區問題
+      const year = now.getFullYear()
+      const month = now.getMonth() + 1
+      const day = now.getDate()
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    }
     
-    console.log('初始化日期:', {
-      now: now.toISOString(),
-      localDate: `${localYear}-${localMonth}-${localDay}`,
-      today: today,
-      selectedDate: selectedDate
-    })
+    const today = getTodayDate()
     
-    // 更新 selectedDate 為今天（強制更新，即使值相同）
+    // 強制更新 selectedDate 為今天
     setSelectedDate(today)
     
-    // 如果當前 selectedDate 不是今天，強制載入今天的資料
-    if (selectedDate !== today) {
-      console.log('日期不一致，強制載入今天的資料:', today)
-      loadFlightData(today)
-    } else {
-      // 即使日期一致，也確保載入今天的資料（防止緩存問題）
-      loadFlightData(today)
-    }
+    // 立即載入今天的資料（不檢查 selectedDate，因為它可能還是舊值）
+    console.log('[FlightData] 初始化：載入今天的資料', today)
+    loadFlightData(today)
     
     // 清理函數
     return () => {
