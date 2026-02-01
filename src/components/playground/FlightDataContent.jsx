@@ -177,9 +177,13 @@ function FlightDataContent() {
   }
 
   const handleLoadYesterday = () => {
+    // 使用本地日期而不是 UTC，確保獲取正確的昨天日期
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
-    const dateStr = yesterday.toISOString().split('T')[0]
+    const year = yesterday.getFullYear()
+    const month = String(yesterday.getMonth() + 1).padStart(2, '0')
+    const day = String(yesterday.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
     setSelectedDate(dateStr)
     loadFlightData(dateStr)
   }
