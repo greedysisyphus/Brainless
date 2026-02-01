@@ -4,7 +4,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 function FlightDataContent() {
   const [selectedDate, setSelectedDate] = useState(() => {
-    return new Date().toISOString().split('T')[0]
+    // 使用本地日期而不是 UTC，確保獲取正確的今天日期
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   })
   const [flightData, setFlightData] = useState(null)
   const [status, setStatus] = useState({ message: '', type: '' })
@@ -143,7 +148,12 @@ function FlightDataContent() {
   }
 
   const handleLoadToday = () => {
-    const today = new Date().toISOString().split('T')[0]
+    // 使用本地日期而不是 UTC
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const today = `${year}-${month}-${day}`
     setSelectedDate(today)
     loadFlightData(today)
   }
