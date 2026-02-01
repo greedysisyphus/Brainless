@@ -348,22 +348,22 @@ function FlightDataContent() {
   const summaryCards = useMemo(() => {
     if (!flightData || !flightData.summary) return null
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-6 text-center text-white">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+        <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-4 sm:p-6 text-center text-white">
           <h3 className="text-sm opacity-90 mb-2">總航班數</h3>
           <div className="text-4xl font-bold mb-1">
             {flightData.summary.total_flights ?? 0}
           </div>
           <div className="text-xs opacity-80">班</div>
         </div>
-        <div className="bg-gradient-to-br from-pink-500 to-red-500 rounded-xl p-6 text-center text-white">
+        <div className="bg-gradient-to-br from-pink-500 to-red-500 rounded-xl p-4 sm:p-6 text-center text-white">
           <h3 className="text-sm opacity-90 mb-2">17:00 前</h3>
           <div className="text-4xl font-bold mb-1">
             {flightData.summary['before_17:00'] ?? flightData.summary.before_17_00 ?? 0}
           </div>
           <div className="text-xs opacity-80">班</div>
         </div>
-        <div className="bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl p-6 text-center text-white">
+        <div className="bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl p-4 sm:p-6 text-center text-white">
           <h3 className="text-sm opacity-90 mb-2">17:00 後</h3>
           <div className="text-4xl font-bold mb-1">
             {flightData.summary['after_17:00'] ?? flightData.summary.after_17_00 ?? 0}
@@ -670,53 +670,63 @@ function FlightDataContent() {
       </div>
 
       {/* 控制區 */}
-      <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 shadow-md">
-        <div className="flex flex-wrap items-center gap-4 mb-4">
-          <label className="font-semibold text-primary">選擇日期：</label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-4 py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50"
-          />
-          <button
-            onClick={handleLoadData}
-            disabled={loading}
-            className="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            載入資料
-          </button>
-          <button
-            onClick={handleLoadToday}
-            disabled={loading}
-            className="px-6 py-2 bg-purple-500/50 hover:bg-purple-500/70 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
-          >
-            今天
-          </button>
-          <button
-            onClick={handleLoadYesterday}
-            disabled={loading}
-            className="px-6 py-2 bg-purple-500/50 hover:bg-purple-500/70 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
-          >
-            昨天
-          </button>
-          {loading && (
+      <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-md">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1">
+            <label className="font-semibold text-primary text-sm sm:text-base whitespace-nowrap">選擇日期：</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-4 py-3 sm:py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50 text-base sm:text-sm min-h-[44px] sm:min-h-0"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button
-              onClick={handleCancelLoad}
-              className="px-4 py-2 bg-red-500/50 hover:bg-red-500/70 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+              onClick={handleLoadData}
+              disabled={loading}
+              className="px-4 sm:px-6 py-3 sm:py-2 bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base min-h-[44px] sm:min-h-0 flex-1 sm:flex-none"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <XMarkIcon className="w-4 h-4" />
-              取消
+              載入資料
             </button>
-          )}
-          <label className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={handleLoadToday}
+              disabled={loading}
+              className="px-4 sm:px-6 py-3 sm:py-2 bg-purple-500/50 hover:bg-purple-500/70 active:bg-purple-500/80 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 text-sm sm:text-base min-h-[44px] sm:min-h-0"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              今天
+            </button>
+            <button
+              onClick={handleLoadYesterday}
+              disabled={loading}
+              className="px-4 sm:px-6 py-3 sm:py-2 bg-purple-500/50 hover:bg-purple-500/70 active:bg-purple-500/80 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 text-sm sm:text-base min-h-[44px] sm:min-h-0"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              昨天
+            </button>
+            {loading && (
+              <button
+                onClick={handleCancelLoad}
+                className="px-4 py-3 sm:py-2 bg-red-500/50 hover:bg-red-500/70 active:bg-red-500/80 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="sm:hidden">取消</span>
+              </button>
+            )}
+          </div>
+          <label className="flex items-center gap-2 sm:ml-auto cursor-pointer touch-manipulation">
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="w-4 h-4 text-purple-500 rounded focus:ring-purple-500"
+              className="w-5 h-5 sm:w-4 sm:h-4 text-purple-500 rounded focus:ring-purple-500 cursor-pointer"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             />
-            <span className="text-sm text-text-secondary">自動刷新（每 5 分鐘）</span>
+            <span className="text-xs sm:text-sm text-text-secondary">自動刷新（每 5 分鐘）</span>
           </label>
         </div>
         
@@ -752,24 +762,26 @@ function FlightDataContent() {
       </div>
 
       {/* Tab 切換 */}
-      <div className="flex gap-2 border-b border-white/10 mb-6">
+      <div className="flex gap-2 border-b border-white/10 mb-4 sm:mb-6">
         <button
           onClick={() => setActiveTab('data')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 sm:px-6 py-3 sm:py-2 font-medium transition-colors text-sm sm:text-base min-h-[44px] sm:min-h-0 ${
             activeTab === 'data'
               ? 'text-primary border-b-2 border-primary'
-              : 'text-text-secondary hover:text-primary'
+              : 'text-text-secondary active:text-primary'
           }`}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           航班資料
         </button>
         <button
           onClick={() => setActiveTab('statistics')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 sm:px-6 py-3 sm:py-2 font-medium transition-colors text-sm sm:text-base min-h-[44px] sm:min-h-0 ${
             activeTab === 'statistics'
               ? 'text-primary border-b-2 border-primary'
-              : 'text-text-secondary hover:text-primary'
+              : 'text-text-secondary active:text-primary'
           }`}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           統計分析
         </button>
@@ -786,41 +798,44 @@ function FlightDataContent() {
         <SkeletonScreen />
       ) : flightData && flightData.flights ? (
         <div className="space-y-4">
-          <div className="flex justify-between items-center border-b-2 border-purple-500/30 pb-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 border-b-2 border-purple-500/30 pb-3 sm:pb-2">
             <div className="flex flex-col">
-              <h2 className="text-2xl font-bold text-primary">
+              <h2 className="text-xl sm:text-2xl font-bold text-primary">
                 桃園機場 D11-D18 航班資料
               </h2>
-              <p className="text-sm text-text-secondary mt-1">航班列表</p>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">航班列表</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setViewMode('simple')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg font-semibold transition-colors text-xs sm:text-sm min-h-[44px] sm:min-h-0 ${
                   viewMode === 'simple'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-surface/40 text-text-secondary hover:bg-surface/60'
+                    ? 'bg-purple-500 text-white active:bg-purple-600'
+                    : 'bg-surface/40 text-text-secondary active:bg-surface/60'
                 }`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 簡潔模式
               </button>
               <button
                 onClick={() => setViewMode('detailed')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg font-semibold transition-colors text-xs sm:text-sm min-h-[44px] sm:min-h-0 ${
                   viewMode === 'detailed'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-surface/40 text-text-secondary hover:bg-surface/60'
+                    ? 'bg-purple-500 text-white active:bg-purple-600'
+                    : 'bg-surface/40 text-text-secondary active:bg-surface/60'
                 }`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 詳細模式
               </button>
               <button
                 onClick={handleExportPNG}
-                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                className="px-3 sm:px-4 py-2.5 sm:py-2 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-h-[44px] sm:min-h-0"
                 title="匯出為 PNG"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <ArrowDownTrayIcon className="w-4 h-4" />
-                匯出
+                <span>匯出</span>
               </button>
             </div>
           </div>
@@ -833,14 +848,14 @@ function FlightDataContent() {
               ref={exportTableRef}
               className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg"
             >
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
+              <div className="overflow-x-auto -mx-2 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <table className="w-full border-collapse min-w-[600px] sm:min-w-0">
                   <thead>
                     <tr className="bg-gradient-to-r from-purple-500/25 via-pink-500/20 to-purple-500/25 border-b-2 border-purple-500/40">
-                      <th className="px-5 py-4 text-left text-sm font-bold text-primary tracking-wide">時間</th>
-                      <th className="px-5 py-4 text-left text-sm font-bold text-primary tracking-wide">登機門</th>
-                      <th className="px-5 py-4 text-left text-sm font-bold text-primary tracking-wide">航班</th>
-                      <th className="px-5 py-4 text-left text-sm font-bold text-primary tracking-wide">狀態</th>
+                      <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">時間</th>
+                      <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">登機門</th>
+                      <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">航班</th>
+                      <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">狀態</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -872,29 +887,29 @@ function FlightDataContent() {
                           key={idx}
                           className={`border-b border-white/10 transition-all duration-200 ${
                             isUpcoming
-                              ? 'bg-yellow-500/20 hover:bg-yellow-500/30'
+                              ? 'bg-yellow-500/20 active:bg-yellow-500/30'
                               : idx % 2 === 0 
-                              ? 'bg-white/3 hover:bg-white/10' 
-                              : 'bg-white/6 hover:bg-white/12'
+                              ? 'bg-white/3 active:bg-white/10' 
+                              : 'bg-white/6 active:bg-white/12'
                           }`}
                         >
-                          <td className="px-5 py-4">
-                            <span className={`font-bold text-lg tracking-tight drop-shadow-sm ${
+                          <td className="px-3 sm:px-5 py-3 sm:py-4">
+                            <span className={`font-bold text-base sm:text-lg tracking-tight drop-shadow-sm ${
                               isUpcoming ? 'text-yellow-300' : 'text-purple-300 dark:text-purple-200'
                             }`}>
                               {flight.time}
                             </span>
                           </td>
-                          <td className="px-5 py-4">
-                            <span className="bg-gradient-to-br from-purple-500 to-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-md inline-flex items-center justify-center min-w-[3.5rem] h-7">
+                          <td className="px-3 sm:px-5 py-3 sm:py-4">
+                            <span className="bg-gradient-to-br from-purple-500 to-purple-600 text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-bold shadow-md inline-flex items-center justify-center min-w-[3rem] sm:min-w-[3.5rem] h-6 sm:h-7">
                               {flight.gate}
                             </span>
                           </td>
-                          <td className="px-5 py-4">
-                            <span className="text-text-secondary font-medium">{flightDisplay}</span>
+                          <td className="px-3 sm:px-5 py-3 sm:py-4">
+                            <span className="text-text-secondary font-medium text-sm sm:text-base break-words">{flightDisplay}</span>
                           </td>
-                          <td className="px-5 py-4">
-                            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 ${statusColorClass} shadow-sm inline-block`}>
+                          <td className="px-3 sm:px-5 py-3 sm:py-4">
+                            <span className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold border-2 ${statusColorClass} shadow-sm inline-block whitespace-nowrap`}>
                               {status || '未知'}
                             </span>
                           </td>
@@ -922,11 +937,11 @@ function FlightDataContent() {
         <div className="space-y-6">
           {/* 當天統計圖表 - 移到最上方 */}
           {statistics && flightData && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* 各登機門航班數量分布 */}
-              <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 shadow-lg">
-                <h3 className="text-xl font-bold text-primary mb-4">各登機門航班數量分布（當天）</h3>
-                <ResponsiveContainer width="100%" height={300}>
+              <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+                <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">各登機門航班數量分布（當天）</h3>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={statistics.gateDistribution}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                     <XAxis 
@@ -1046,7 +1061,7 @@ function FlightDataContent() {
           {hourlyTrendingData && hourlyTrendingData.data && (
             <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 shadow-lg">
               <h3 className="text-xl font-bold text-primary mb-4">每小時航班數趨勢（多天比較）</h3>
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={hourlyTrendingData.data}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis 
