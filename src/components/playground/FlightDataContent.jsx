@@ -90,7 +90,7 @@ function FlightDataContent() {
     const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
     const dataUrl = `${basePath}flight-data-${date}.json`
     
-    console.log('Loading data from:', dataUrl) // 調試用
+    console.log('[FlightData] 載入資料:', { date, dataUrl, timestamp: new Date().toISOString() })
 
     try {
       // 模擬載入進度
