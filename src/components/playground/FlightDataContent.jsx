@@ -727,7 +727,12 @@ function FlightDataContent() {
             <input
               type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => {
+                const newDate = e.target.value
+                setSelectedDate(newDate)
+                // 自動載入新選擇的日期
+                loadFlightData(newDate)
+              }}
               className="px-4 py-3 sm:py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50 text-base sm:text-sm min-h-[44px] sm:min-h-0"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             />
