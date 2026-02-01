@@ -193,39 +193,68 @@ function FlightDataContent() {
   // 載入多天數據
   const loadMultiDayData = useCallback(async (days = 7) => {
     setLoadingMultiDay(true)
-    const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-    const today = new Date()
-    const dataPromises = []
-    
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
-      const dataUrl = `${basePath}flight-data-${dateStr}.json`
-      
-      dataPromises.push(
-        fetch(dataUrl)
-          .then(res => res.ok ? res.json() : null)
-          .catch(() => null)
-      )
-    }
     
     try {
-      const results = await Promise.all(dataPromises)
-      const validData = results
-        .map((data, index) => {
-          if (!data) return null
-          const date = new Date(today)
-          date.setDate(date.getDate() - index)
+      // 優先從 Firebase 讀取歷史資料
+      let validData = []
+      
+      try {
+        const { db } = await import('../../utils/firebase')
+        const { collection, query, orderBy, limit, getDocs } = await import('firebase/firestore')
+        
+        const flightDataRef = collection(db, 'flightData')
+        const q = query(flightDataRef, orderBy('date', 'desc'), limit(days))
+        const snapshot = await getDocs(q)
+        
+        validData = snapshot.docs.map(doc => {
+          const data = doc.data()
+          const date = new Date(data.date)
           return {
-            date: date.toISOString().split('T')[0],
+            date: data.date,
             dateLabel: date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }),
             totalFlights: data.summary?.total_flights || 0,
             flights: data.flights || []
           }
-        })
-        .filter(Boolean)
-        .reverse() // 從舊到新排序
+        }).reverse() // 從舊到新排序
+        
+        console.log(`✅ 從 Firebase 載入 ${validData.length} 天的資料`)
+      } catch (firebaseError) {
+        console.warn('Firebase 讀取失敗，改用 GitHub Pages:', firebaseError)
+        
+        // 如果 Firebase 失敗，回退到 GitHub Pages
+        const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
+        const today = new Date()
+        const dataPromises = []
+        
+        for (let i = 0; i < days; i++) {
+          const date = new Date(today)
+          date.setDate(date.getDate() - i)
+          const dateStr = date.toISOString().split('T')[0]
+          const dataUrl = `${basePath}flight-data-${dateStr}.json`
+          
+          dataPromises.push(
+            fetch(dataUrl)
+              .then(res => res.ok ? res.json() : null)
+              .catch(() => null)
+          )
+        }
+        
+        const results = await Promise.all(dataPromises)
+        validData = results
+          .map((data, index) => {
+            if (!data) return null
+            const date = new Date(today)
+            date.setDate(date.getDate() - index)
+            return {
+              date: date.toISOString().split('T')[0],
+              dateLabel: date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }),
+              totalFlights: data.summary?.total_flights || 0,
+              flights: data.flights || []
+            }
+          })
+          .filter(Boolean)
+          .reverse() // 從舊到新排序
+      }
       
       setMultiDayData(validData)
     } catch (error) {

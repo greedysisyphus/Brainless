@@ -34,6 +34,18 @@ jobs:
           cd scripts/scraper
           python3 fetch-from-txt-api.py
       
+      - name: Save to Firebase
+        run: |
+          cd scripts/scraper
+          python3 save-to-firebase.py
+        env:
+          FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
+          FIREBASE_CLIENT_X509_CERT_URL: ${{ secrets.FIREBASE_CLIENT_X509_CERT_URL }}
+        continue-on-error: true  # 如果 Firebase 失敗，不影響主要流程
+      
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
