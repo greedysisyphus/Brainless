@@ -38,11 +38,20 @@ jobs:
         run: npm run build
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+      
+      - name: Copy data files to build output
+        run: |
+          mkdir -p docs/data
+          cp -r data/*.json docs/data/ || echo "No JSON files to copy"
+          echo "Data files copied:"
+          ls -la docs/data/ || echo "No data directory"
           
       - name: Check build output
         run: |
           echo "Build output contents:"
           ls -la docs/
+          echo "Data directory:"
+          ls -la docs/data/ || echo "No data directory"
           echo "Index.html content:"
           head -10 docs/index.html
           

@@ -32,9 +32,13 @@ function FlightDataContent() {
     setLoading(true)
     setStatus({ message: '正在載入資料...', type: 'loading' })
 
-    // 根據實際路徑調整（生產環境使用 /Brainless/，開發環境使用 /）
+    // 根據實際路徑調整
+    // 生產環境：/Brainless/data/ (GitHub Pages)
+    // 開發環境：/data/ (本地開發)
     const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
     const dataUrl = `${basePath}flight-data-${date}.json`
+    
+    console.log('Loading data from:', dataUrl) // 調試用
 
     try {
       const response = await fetch(dataUrl)
