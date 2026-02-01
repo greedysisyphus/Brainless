@@ -253,8 +253,13 @@ function FlightDataContent() {
             if (!data) return null
             const date = new Date(today)
             date.setDate(date.getDate() - index)
+            // 使用本地日期而不是 UTC
+            const year = date.getFullYear()
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const day = String(date.getDate()).padStart(2, '0')
+            const dateStr = `${year}-${month}-${day}`
             return {
-              date: date.toISOString().split('T')[0],
+              date: dateStr,
               dateLabel: date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }),
               totalFlights: data.summary?.total_flights || 0,
               flights: data.flights || []
