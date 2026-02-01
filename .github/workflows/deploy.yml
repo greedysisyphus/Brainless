@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'data/**'  # 忽略 data 目錄的變更，避免資料更新時觸發部署
 
 permissions:
   contents: write
