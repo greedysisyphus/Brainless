@@ -77,8 +77,11 @@ function FlightDataContent() {
     const abortSignal = signal || controller.signal
 
     // 先更新狀態訊息，但不立即清除舊資料（避免跳動）
+    // 只有在沒有現有資料時才設置 loading 狀態，避免閃爍
+    if (!flightData) {
+      setLoading(true)
+    }
     setStatus({ message: '正在載入資料...', type: 'loading' })
-    setLoading(true)
     setLoadingProgress(0)
 
     // 根據實際路徑調整
@@ -124,8 +127,17 @@ function FlightDataContent() {
       setLoadingProgress(100)
       
       // 一次性更新資料和狀態，減少重新渲染
-      setFlightData(data)
+      // 使用函數式更新確保狀態更新是原子的
+      setFlightData(prevData => {
+        // 如果資料相同，不更新以避免不必要的重新渲染
+        if (prevData && prevData.date === data.date) {
+          return prevData
+        }
+        return data
+      })
       setStatus({ message: `✅ 成功載入 ${formatDate(date)} 的資料`, type: 'success' })
+      setLoading(false)
+      setLoadingProgress(0)
     } catch (error) {
       if (error.name === 'AbortError') {
         setStatus({ message: '載入已取消', type: 'error' })
@@ -134,12 +146,18 @@ function FlightDataContent() {
       }
       // 只有在錯誤時才清除資料
       setFlightData(null)
-    } finally {
       setLoading(false)
+      setLoadingProgress(0)
+    } finally {
+      // 確保 loading 狀態被清除
+      if (loading) {
+        setLoading(false)
+      }
       setLoadingProgress(0)
       abortControllerRef.current = null
     }
     // formatDate 是純函數，不需要作為依賴項
+    // 注意：這裡不包含 flightData 和 loading，避免無限循環
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -224,9 +242,18 @@ function FlightDataContent() {
     }
   }, [activeTab, multiDayData.length, loadMultiDayData])
 
-  // 自動載入今天的資料
+  // 自動載入今天的資料（只在組件掛載時執行一次）
   useEffect(() => {
-    loadFlightData(selectedDate)
+    // 只在組件首次掛載時載入，避免重複載入
+    const initialDate = (() => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+    
+    loadFlightData(initialDate)
     
     // 清理函數
     return () => {
