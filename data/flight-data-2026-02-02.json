@@ -134,7 +134,7 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
@@ -775,5 +775,5 @@
     "16:50 : D18 : BR186 (長榮航空)",
     "19:00 : D14R : BR809 (長榮航空)"
   ],
-  "updated_at": "2026-02-01T22:59:41.654276"
+  "updated_at": "2026-02-01T23:29:14.488635"
 }
