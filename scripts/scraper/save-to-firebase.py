@@ -92,15 +92,22 @@ def save_single_date_to_firebase(date_key, data):
         return False
 
 def save_to_firebase(db, data_dir):
-    """將 JSON 檔案存儲到 Firebase"""
+    """將 JSON 檔案存儲到 Firebase（讀取所有現有的 JSON 文件）"""
     if not db:
         return
     
     collection_name = "flightData"
     saved_count = 0
+    skipped_count = 0
     
     # 讀取 data 目錄中的所有 JSON 檔案
     json_files = sorted(Path(data_dir).glob("flight-data-*.json"))
+    
+    if not json_files:
+        print("⚠️  沒有找到 JSON 檔案")
+        return
+    
+    print(f"📁 找到 {len(json_files)} 個 JSON 檔案")
     
     for json_file in json_files:
         try:
@@ -115,11 +122,17 @@ def save_to_firebase(db, data_dir):
             
             if save_single_date_to_firebase(date_key, data):
                 saved_count += 1
+            else:
+                skipped_count += 1
             
         except Exception as e:
             print(f"❌ 存儲 {json_file.name} 失敗: {e}")
+            skipped_count += 1
     
-    print(f"\n✅ Firebase 存儲完成！共存儲 {saved_count} 個日期資料")
+    print(f"\n✅ Firebase 存儲完成！")
+    print(f"   - 成功存儲: {saved_count} 個日期")
+    if skipped_count > 0:
+        print(f"   - 跳過/失敗: {skipped_count} 個日期")
 
 def main():
     """主函數"""

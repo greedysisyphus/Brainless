@@ -55,7 +55,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes detected (this should be rare since updated_at changes every time)"
           else
-            git commit -m "Update flight data [skip workflow]"
+            git commit -m "Update flight data [skip ci]"
             git push
           fi
         env:

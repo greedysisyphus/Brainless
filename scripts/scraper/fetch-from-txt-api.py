@@ -346,14 +346,8 @@ if __name__ == '__main__':
             print(f'   - 17:00 前: {output["summary"]["before_17:00"]} 班')
             print(f'   - 17:00 後: {output["summary"]["after_17:00"]} 班')
             
-            # 嘗試存儲到 Firebase（如果可用）
-            try:
-                from save_to_firebase import save_single_date_to_firebase
-                save_single_date_to_firebase(date_key, output)
-            except ImportError:
-                pass  # save_to_firebase 模組不存在，跳過
-            except Exception as e:
-                print(f'⚠️  Firebase 存儲失敗（不影響本地存儲）: {e}')
+            # 注意：Firebase 存儲將在 GitHub Actions 中單獨執行
+            # 這裡不直接存儲，避免重複存儲和依賴問題
         
         print(f'\n✅ 完成！共處理 {len(flights)} 筆航班資料，儲存到 {len(date_data)} 個日期檔案')
         

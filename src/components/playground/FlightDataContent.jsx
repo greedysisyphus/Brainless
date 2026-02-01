@@ -190,12 +190,12 @@ function FlightDataContent() {
     }
   }
 
-  // 載入多天數據
+  // 載入多天數據（從 Firebase 讀取歷史資料）
   const loadMultiDayData = useCallback(async (days = 7) => {
     setLoadingMultiDay(true)
     
     try {
-      // 優先從 Firebase 讀取歷史資料
+      // 從 Firebase 讀取歷史資料
       let validData = []
       
       try {
@@ -219,14 +219,14 @@ function FlightDataContent() {
         
         console.log(`✅ 從 Firebase 載入 ${validData.length} 天的資料`)
       } catch (firebaseError) {
-        console.warn('Firebase 讀取失敗，改用 GitHub Pages:', firebaseError)
+        console.warn('Firebase 讀取失敗，改用本地 JSON:', firebaseError)
         
-        // 如果 Firebase 失敗，回退到 GitHub Pages
+        // 如果 Firebase 失敗，回退到本地 JSON（僅限最近 2 天）
         const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
         const today = new Date()
         const dataPromises = []
         
-        for (let i = 0; i < days; i++) {
+        for (let i = 0; i < Math.min(days, 2); i++) {
           const date = new Date(today)
           date.setDate(date.getDate() - i)
           const dateStr = date.toISOString().split('T')[0]
