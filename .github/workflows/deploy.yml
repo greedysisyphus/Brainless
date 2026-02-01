@@ -54,6 +54,24 @@ jobs:
           ls -la docs/
           echo "Data directory:"
           ls -la docs/data/ || echo "No data directory"
+          
+          # 檢查關鍵文件是否存在
+          if [ ! -f docs/index.html ]; then
+            echo "ERROR: docs/index.html is missing!"
+            exit 1
+          fi
+          
+          if [ ! -d docs/assets ]; then
+            echo "ERROR: docs/assets directory is missing!"
+            exit 1
+          fi
+          
+          if [ -z "$(ls -A docs/assets 2>/dev/null)" ]; then
+            echo "ERROR: docs/assets directory is empty!"
+            exit 1
+          fi
+          
+          echo "✓ All critical files exist"
           echo "Index.html content:"
           head -10 docs/index.html
           
