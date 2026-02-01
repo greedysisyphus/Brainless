@@ -273,8 +273,8 @@ function FlightDataContent() {
 
   // 自動載入今天的資料（只在組件掛載時執行一次）
   useEffect(() => {
-    // 只在組件首次掛載時載入，避免重複載入
-    const initialDate = (() => {
+    // 確保 selectedDate 和實際載入的日期一致
+    const today = (() => {
       const now = new Date()
       const year = now.getFullYear()
       const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -282,7 +282,11 @@ function FlightDataContent() {
       return `${year}-${month}-${day}`
     })()
     
-    loadFlightData(initialDate)
+    // 更新 selectedDate 為今天
+    setSelectedDate(today)
+    
+    // 載入今天的資料
+    loadFlightData(today)
     
     // 清理函數
     return () => {
