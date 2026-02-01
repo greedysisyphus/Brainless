@@ -38,6 +38,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
+          NODE_ENV: production
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
       
       - name: Copy data files to build output
