@@ -34,5 +34,5 @@ Thumbs.db
 node_modules
 .env
 .env
-docs/assets/
-docs/index.html
+# 保留 docs/index.html 和 docs/assets/ 在 Git 中，因為 GitHub Pages 需要它們
+# 但構建文件會由 GitHub Actions 自動生成和更新
