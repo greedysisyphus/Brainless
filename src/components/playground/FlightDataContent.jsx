@@ -274,19 +274,31 @@ function FlightDataContent() {
   // 自動載入今天的資料（只在組件掛載時執行一次）
   useEffect(() => {
     // 確保 selectedDate 和實際載入的日期一致
-    const today = (() => {
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    })()
+    // 使用本地時區計算今天的日期，避免 UTC 時區問題
+    const now = new Date()
+    const localYear = now.getFullYear()
+    const localMonth = now.getMonth() + 1
+    const localDay = now.getDate()
+    const today = `${localYear}-${String(localMonth).padStart(2, '0')}-${String(localDay).padStart(2, '0')}`
     
-    // 更新 selectedDate 為今天
+    console.log('初始化日期:', {
+      now: now.toISOString(),
+      localDate: `${localYear}-${localMonth}-${localDay}`,
+      today: today,
+      selectedDate: selectedDate
+    })
+    
+    // 更新 selectedDate 為今天（強制更新，即使值相同）
     setSelectedDate(today)
     
-    // 載入今天的資料
-    loadFlightData(today)
+    // 如果當前 selectedDate 不是今天，強制載入今天的資料
+    if (selectedDate !== today) {
+      console.log('日期不一致，強制載入今天的資料:', today)
+      loadFlightData(today)
+    } else {
+      // 即使日期一致，也確保載入今天的資料（防止緩存問題）
+      loadFlightData(today)
+    }
     
     // 清理函數
     return () => {
