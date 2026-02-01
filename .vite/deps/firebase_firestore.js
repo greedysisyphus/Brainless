@@ -16,8 +16,8 @@ import {
   isIndexedDBAvailable,
   isSafari,
   registerVersion
-} from "./chunk-WSY7FJM5.js";
-import "./chunk-5WRI5ZAA.js";
+} from "./chunk-5CMO42JT.js";
+import "./chunk-DC5AMYBS.js";
 
 // node_modules/@firebase/webchannel-wrapper/dist/bloom-blob/esm/bloom_blob_es2018.js
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};

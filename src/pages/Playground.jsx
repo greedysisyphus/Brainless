@@ -4,15 +4,17 @@ import {
   MusicalNoteIcon, 
   CloudIcon,
   CalendarIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  PaperAirplaneIcon
 } from '@heroicons/react/24/outline'
 import { Suspense, lazy } from 'react'
 import LoadingPage from './LoadingPage'
 
-// 懶加載音樂、天氣和班表管理組件
+// 懶加載音樂、天氣、班表管理和航班資料組件
 const MusicContent = lazy(() => import('../components/playground/MusicContent'))
 const WeatherContent = lazy(() => import('../components/playground/WeatherContent'))
 const ScheduleManager = lazy(() => import('../components/playground/ScheduleManager'))
+const FlightDataContent = lazy(() => import('../components/playground/FlightDataContent'))
 
 function Playground() {
   const navigate = useNavigate()
@@ -28,6 +30,8 @@ function Playground() {
       setCurrentPage('weather')
     } else if (hash.includes('#schedule')) {
       setCurrentPage('schedule')
+    } else if (hash.includes('#flight')) {
+      setCurrentPage('flight')
     } else {
       setCurrentPage(null)
     }
@@ -93,6 +97,19 @@ function Playground() {
                 <h2 className="text-xl font-bold text-primary">班表匯出</h2>
               </div>
             </button>
+
+            {/* 航班資料 */}
+            <button
+              onClick={() => navigate('/playground#flight')}
+              className="group bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-blue-500/30 transition-all hover:scale-105"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-lg group-hover:scale-110 transition-transform">
+                  <PaperAirplaneIcon className="w-6 h-6 text-blue-400" />
+                </div>
+                <h2 className="text-xl font-bold text-primary">航班資料</h2>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -117,6 +134,7 @@ function Playground() {
           {currentPage === 'music' && <MusicContent />}
           {currentPage === 'weather' && <WeatherContent />}
           {currentPage === 'schedule' && <ScheduleManager />}
+          {currentPage === 'flight' && <FlightDataContent />}
         </Suspense>
       </div>
     </div>

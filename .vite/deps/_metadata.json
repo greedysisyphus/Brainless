@@ -1,82 +1,100 @@
 {
-  "hash": "f117189c",
+  "hash": "7747de0d",
   "configHash": "c3568e99",
-  "lockfileHash": "38f4eb11",
-  "browserHash": "15c6c98f",
+  "lockfileHash": "6f423f09",
+  "browserHash": "129be470",
   "optimized": {
     "react": {
       "src": "../../node_modules/react/index.js",
       "file": "react.js",
-      "fileHash": "9440ecfe",
+      "fileHash": "0a036db3",
       "needsInterop": true
     },
     "react-dom/client": {
       "src": "../../node_modules/react-dom/client.js",
       "file": "react-dom_client.js",
-      "fileHash": "1dac1fa2",
+      "fileHash": "e8f905c5",
       "needsInterop": true
     },
     "react-router-dom": {
       "src": "../../node_modules/react-router-dom/dist/index.js",
       "file": "react-router-dom.js",
-      "fileHash": "9880f20c",
+      "fileHash": "f5d5394f",
       "needsInterop": false
     },
     "firebase/app": {
       "src": "../../node_modules/firebase/app/dist/esm/index.esm.js",
       "file": "firebase_app.js",
-      "fileHash": "c3536729",
+      "fileHash": "f689fda8",
       "needsInterop": false
     },
     "firebase/firestore": {
       "src": "../../node_modules/firebase/firestore/dist/esm/index.esm.js",
       "file": "firebase_firestore.js",
-      "fileHash": "908bd3cf",
+      "fileHash": "642156fd",
+      "needsInterop": false
+    },
+    "firebase/auth": {
+      "src": "../../node_modules/firebase/auth/dist/esm/index.esm.js",
+      "file": "firebase_auth.js",
+      "fileHash": "7517cab0",
+      "needsInterop": false
+    },
+    "lenis": {
+      "src": "../../node_modules/lenis/dist/lenis.mjs",
+      "file": "lenis.js",
+      "fileHash": "7daffdb3",
+      "needsInterop": false
+    },
+    "framer-motion": {
+      "src": "../../node_modules/framer-motion/dist/es/index.mjs",
+      "file": "framer-motion.js",
+      "fileHash": "11259426",
       "needsInterop": false
     },
     "@heroicons/react/24/outline": {
       "src": "../../node_modules/@heroicons/react/24/outline/esm/index.js",
       "file": "@heroicons_react_24_outline.js",
-      "fileHash": "46d674e0",
+      "fileHash": "7fd0adca",
       "needsInterop": false
     },
-    "dayjs": {
-      "src": "../../node_modules/dayjs/dayjs.min.js",
-      "file": "dayjs.js",
-      "fileHash": "c81bf21e",
-      "needsInterop": true
-    },
-    "dayjs/plugin/utc": {
-      "src": "../../node_modules/dayjs/plugin/utc.js",
-      "file": "dayjs_plugin_utc.js",
-      "fileHash": "11d2813f",
-      "needsInterop": true
-    },
-    "dayjs/plugin/timezone": {
-      "src": "../../node_modules/dayjs/plugin/timezone.js",
-      "file": "dayjs_plugin_timezone.js",
-      "fileHash": "5a18a29a",
-      "needsInterop": true
-    },
-    "xlsx": {
-      "src": "../../node_modules/xlsx/xlsx.mjs",
-      "file": "xlsx.js",
-      "fileHash": "9296f41c",
+    "animejs/lib/anime.es.js": {
+      "src": "../../node_modules/animejs/lib/anime.es.js",
+      "file": "animejs_lib_anime__es__js.js",
+      "fileHash": "40fdf588",
       "needsInterop": false
+    },
+    "html2canvas": {
+      "src": "../../node_modules/html2canvas/dist/html2canvas.esm.js",
+      "file": "html2canvas.js",
+      "fileHash": "8c0f66a7",
+      "needsInterop": false
+    },
+    "recharts": {
+      "src": "../../node_modules/recharts/es6/index.js",
+      "file": "recharts.js",
+      "fileHash": "3e27ec37",
+      "needsInterop": false
+    },
+    "react-dom": {
+      "src": "../../node_modules/react-dom/index.js",
+      "file": "react-dom.js",
+      "fileHash": "d9d4a092",
+      "needsInterop": true
     }
   },
   "chunks": {
-    "chunk-HCGKX5ED": {
-      "file": "chunk-HCGKX5ED.js"
+    "chunk-BC63SET5": {
+      "file": "chunk-BC63SET5.js"
     },
-    "chunk-WSY7FJM5": {
-      "file": "chunk-WSY7FJM5.js"
+    "chunk-5CMO42JT": {
+      "file": "chunk-5CMO42JT.js"
     },
-    "chunk-WNPTCGAH": {
-      "file": "chunk-WNPTCGAH.js"
+    "chunk-TWJRYSII": {
+      "file": "chunk-TWJRYSII.js"
     },
-    "chunk-5WRI5ZAA": {
-      "file": "chunk-5WRI5ZAA.js"
+    "chunk-DC5AMYBS": {
+      "file": "chunk-DC5AMYBS.js"
     }
   }
 }
