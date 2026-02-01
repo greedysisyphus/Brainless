@@ -350,22 +350,22 @@ function FlightDataContent() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
         <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-4 sm:p-6 text-center text-white">
-          <h3 className="text-sm opacity-90 mb-2">總航班數</h3>
-          <div className="text-4xl font-bold mb-1">
+          <h3 className="text-xs sm:text-sm opacity-90 mb-2">總航班數</h3>
+          <div className="text-3xl sm:text-4xl font-bold mb-1">
             {flightData.summary.total_flights ?? 0}
           </div>
           <div className="text-xs opacity-80">班</div>
         </div>
         <div className="bg-gradient-to-br from-pink-500 to-red-500 rounded-xl p-4 sm:p-6 text-center text-white">
-          <h3 className="text-sm opacity-90 mb-2">17:00 前</h3>
-          <div className="text-4xl font-bold mb-1">
+          <h3 className="text-xs sm:text-sm opacity-90 mb-2">17:00 前</h3>
+          <div className="text-3xl sm:text-4xl font-bold mb-1">
             {flightData.summary['before_17:00'] ?? flightData.summary.before_17_00 ?? 0}
           </div>
           <div className="text-xs opacity-80">班</div>
         </div>
         <div className="bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl p-4 sm:p-6 text-center text-white">
-          <h3 className="text-sm opacity-90 mb-2">17:00 後</h3>
-          <div className="text-4xl font-bold mb-1">
+          <h3 className="text-xs sm:text-sm opacity-90 mb-2">17:00 後</h3>
+          <div className="text-3xl sm:text-4xl font-bold mb-1">
             {flightData.summary['after_17:00'] ?? flightData.summary.after_17_00 ?? 0}
           </div>
           <div className="text-xs opacity-80">班</div>
@@ -970,9 +970,9 @@ function FlightDataContent() {
               </div>
 
               {/* 時間分布圖表（每小時航班數） */}
-              <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 shadow-lg">
-                <h3 className="text-xl font-bold text-primary mb-4">時間分布（每小時航班數）（當天）</h3>
-                <ResponsiveContainer width="100%" height={300}>
+              <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+                <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">時間分布（每小時航班數）（當天）</h3>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={statistics.hourlyDistribution}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                     <XAxis 
@@ -1003,12 +1003,13 @@ function FlightDataContent() {
 
           {/* 控制選項 */}
           <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-text-secondary">載入天數：</span>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <span className="text-sm text-text-secondary whitespace-nowrap">載入天數：</span>
               <select
                 onChange={(e) => loadMultiDayData(parseInt(e.target.value))}
-                className="px-4 py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50"
+                className="px-4 py-3 sm:py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50 text-base sm:text-sm min-h-[44px] sm:min-h-0"
                 defaultValue="7"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <option value="3">最近 3 天</option>
                 <option value="7">最近 7 天</option>
@@ -1029,9 +1030,9 @@ function FlightDataContent() {
 
           {/* 每天的統計數據（總數量） */}
           {multiDayData.length > 0 && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-primary mb-4">每天航班總數統計</h3>
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每天航班總數統計</h3>
+              <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={multiDayData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis 
@@ -1059,9 +1060,9 @@ function FlightDataContent() {
 
           {/* 每天每小時航班數的 Trending */}
           {hourlyTrendingData && hourlyTrendingData.data && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-primary mb-4">每小時航班數趨勢（多天比較）</h3>
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每小時航班數趨勢（多天比較）</h3>
+              <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={hourlyTrendingData.data}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis 
