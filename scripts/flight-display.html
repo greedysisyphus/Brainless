@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桃園機場 D11-D18 登機門航班資訊</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .last-updated {
+      opacity: 0.9;
+      font-size: 0.9em;
+    }
+
+    .gate-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .gate-btn {
+      padding: 10px 20px;
+      background: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .gate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .gate-btn.active {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .gate-btn.all {
+      background: #2196F3;
+      color: white;
+    }
+
+    .loading {
+      text-align: center;
+      color: white;
+      font-size: 1.2em;
+      padding: 40px;
+    }
+
+    .error {
+      background: #f44336;
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .flight-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 1.5em;
+      margin-bottom: 15px;
+      color: #333;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .summary-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .summary-card h3 {
+      font-size: 0.9em;
+      opacity: 0.9;
+      margin-bottom: 10px;
+    }
+
+    .summary-card .number {
+      font-size: 2em;
+      font-weight: bold;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th {
+      background: #f5f5f5;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #ddd;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+
+    .status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+
+    .status-ontime {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .status-departed {
+      background: #2196F3;
+      color: white;
+    }
+
+    .status-arrived {
+      background: #FF9800;
+      color: white;
+    }
+
+    .flight-code {
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.8em;
+      }
+
+      table {
+        font-size: 0.9em;
+      }
+
+      th, td {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>✈️ 桃園機場 D11-D18 登機門航班資訊</h1>
+      <div class="last-updated" id="lastUpdated">載入中...</div>
+    </header>
+
+    <div class="gate-selector">
+      <button class="gate-btn all" onclick="loadAllGates()">全部登機門</button>
+      <button class="gate-btn" onclick="loadGate('D11')">D11</button>
+      <button class="gate-btn" onclick="loadGate('D12')">D12</button>
+      <button class="gate-btn" onclick="loadGate('D13')">D13</button>
+      <button class="gate-btn" onclick="loadGate('D14')">D14</button>
+      <button class="gate-btn" onclick="loadGate('D15')">D15</button>
+      <button class="gate-btn" onclick="loadGate('D16')">D16</button>
+      <button class="gate-btn" onclick="loadGate('D17')">D17</button>
+      <button class="gate-btn" onclick="loadGate('D18')">D18</button>
+    </div>
+
+    <div id="content">
+      <div class="loading">載入中...</div>
+    </div>
+  </div>
+
+  <script src="flight-data-reader.js"></script>
+  <script>
+    const reader = new FlightDataReader('./data');
+    let currentGate = null;
+
+    // 載入指定登機門
+    async function loadGate(gate) {
+      currentGate = gate;
+      updateActiveButton(gate);
+      
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">載入中...</div>';
+
+      try {
+        const data = await reader.getGateData(gate);
+        displayGateData(data);
+        updateLastUpdated(data.timestamp);
+      } catch (error) {
+        content.innerHTML = `<div class="error">❌ 載入失敗: ${error.message}</div>`;
+      }
+    }
+
+    // 載入所有登機門
+    async function loadAllGates() {
+      currentGate = 'all';
+      updateActiveButton('all');
+      
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">載入中...</div>';
+
+      try {
+        const allData = await reader.getAllGatesData();
+        displayAllGatesData(allData);
+        
+        // 更新最後更新時間
+        if (allData.length > 0 && allData[0].timestamp) {
+          updateLastUpdated(allData[0].timestamp);
+        }
+      } catch (error) {
+        content.innerHTML = `<div class="error">❌ 載入失敗: ${error.message}</div>`;
+      }
+    }
+
+    // 顯示單個登機門的資料
+    function displayGateData(data) {
+      const content = document.getElementById('content');
+      
+      let html = `
+        <div class="summary">
+          <div class="summary-card">
+            <h3>出發航班</h3>
+            <div class="number">${data.summary.departure_count}</div>
+          </div>
+          <div class="summary-card">
+            <h3>抵達航班</h3>
+            <div class="number">${data.summary.arrival_count}</div>
+          </div>
+          <div class="summary-card">
+            <h3>總計</h3>
+            <div class="number">${data.summary.total_count}</div>
+          </div>
+        </div>
+      `;
+
+      // 出發航班表格
+      if (data.departure.data.length > 0) {
+        html += `
+          <div class="flight-section">
+            <h2 class="section-title">🛫 出發航班</h2>
+            ${createTable(data.departure)}
+          </div>
+        `;
+      }
+
+      // 抵達航班表格
+      if (data.arrival.data.length > 0) {
+        html += `
+          <div class="flight-section">
+            <h2 class="section-title">🛬 抵達航班</h2>
+            ${createTable(data.arrival)}
+          </div>
+        `;
+      }
+
+      content.innerHTML = html;
+    }
+
+    // 顯示所有登機門的資料
+    function displayAllGatesData(allData) {
+      const content = document.getElementById('content');
+      
+      // 計算總計
+      const totalDepartures = allData.reduce((sum, d) => sum + (d.summary?.departure_count || 0), 0);
+      const totalArrivals = allData.reduce((sum, d) => sum + (d.summary?.arrival_count || 0), 0);
+      
+      let html = `
+        <div class="summary">
+          <div class="summary-card">
+            <h3>登機門數量</h3>
+            <div class="number">${allData.length}</div>
+          </div>
+          <div class="summary-card">
+            <h3>總出發航班</h3>
+            <div class="number">${totalDepartures}</div>
+          </div>
+          <div class="summary-card">
+            <h3>總抵達航班</h3>
+            <div class="number">${totalArrivals}</div>
+          </div>
+          <div class="summary-card">
+            <h3>總航班數</h3>
+            <div class="number">${totalDepartures + totalArrivals}</div>
+          </div>
+        </div>
+      `;
+
+      // 顯示每個登機門的資料
+      allData.forEach(gateData => {
+        if (gateData.error) {
+          html += `
+            <div class="flight-section">
+              <h2 class="section-title">登機門 ${gateData.gate}</h2>
+              <div class="error">❌ ${gateData.error}</div>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="flight-section">
+              <h2 class="section-title">登機門 ${gateData.gate} (${gateData.summary.total_count} 班)</h2>
+              ${gateData.departure.data.length > 0 ? `
+                <h3 style="margin: 15px 0 10px 0; color: #667eea;">🛫 出發航班 (${gateData.summary.departure_count})</h3>
+                ${createTable(gateData.departure, true)}
+              ` : ''}
+              ${gateData.arrival.data.length > 0 ? `
+                <h3 style="margin: 15px 0 10px 0; color: #667eea;">🛬 抵達航班 (${gateData.arrival_count})</h3>
+                ${createTable(gateData.arrival, true)}
+              ` : ''}
+            </div>
+          `;
+        }
+      });
+
+      content.innerHTML = html;
+    }
+
+    // 建立表格
+    function createTable(flightData, showGate = false) {
+      if (flightData.data.length === 0) {
+        return '<p>暫無資料</p>';
+      }
+
+      let html = '<table><thead><tr>';
+      
+      if (showGate) {
+        html += '<th>登機門</th>';
+      }
+      
+      flightData.headers.forEach(header => {
+        html += `<th>${header}</th>`;
+      });
+      
+      html += '</tr></thead><tbody>';
+
+      flightData.data.forEach(flight => {
+        html += '<tr>';
+        
+        if (showGate) {
+          html += `<td><strong>${flight.gate}</strong></td>`;
+        }
+        
+        html += `<td>${flight.time}</td>`;
+        html += `<td><span class="flight-code">${flight.flight_code}</span> ${flight.airline ? `(${flight.airline})` : ''}</td>`;
+        html += `<td>${flight.terminal}</td>`;
+        html += `<td><strong>${flight.gate}</strong></td>`;
+        html += `<td>${flight.city || ''} ${flight.airport_code ? `(${flight.airport_code})` : ''}</td>`;
+        
+        // 狀態樣式
+        const statusClass = getStatusClass(flight.status);
+        html += `<td><span class="status ${statusClass}">${flight.status}</span></td>`;
+        
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      return html;
+    }
+
+    // 取得狀態樣式類別
+    function getStatusClass(status) {
+      if (!status) return '';
+      const statusLower = status.toLowerCase();
+      if (statusLower.includes('準時') || statusLower.includes('ontime')) {
+        return 'status-ontime';
+      } else if (statusLower.includes('出發') || statusLower.includes('departed')) {
+        return 'status-departed';
+      } else if (statusLower.includes('已到') || statusLower.includes('arrived')) {
+        return 'status-arrived';
+      }
+      return '';
+    }
+
+    // 更新最後更新時間
+    function updateLastUpdated(timestamp) {
+      if (!timestamp) return;
+      const date = new Date(timestamp);
+      const lastUpdated = document.getElementById('lastUpdated');
+      lastUpdated.textContent = `最後更新: ${date.toLocaleString('zh-TW')}`;
+    }
+
+    // 更新按鈕狀態
+    function updateActiveButton(gate) {
+      document.querySelectorAll('.gate-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      if (gate === 'all') {
+        document.querySelector('.gate-btn.all').classList.add('active');
+      } else {
+        document.querySelectorAll('.gate-btn').forEach(btn => {
+          if (btn.textContent === gate) {
+            btn.classList.add('active');
+          }
+        });
+      }
+    }
+
+    // 頁面載入時自動載入所有登機門
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAllGates();
+    });
+  </script>
+</body>
+</html>

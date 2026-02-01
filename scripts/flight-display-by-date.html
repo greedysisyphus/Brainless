@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桃園機場 D11-D18 登機門航班資訊（按日期）</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .last-updated {
+      opacity: 0.9;
+      font-size: 0.9em;
+    }
+
+    .date-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .date-btn {
+      padding: 10px 20px;
+      background: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .date-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .date-btn.active {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .date-btn.all {
+      background: #2196F3;
+      color: white;
+    }
+
+    .loading {
+      text-align: center;
+      color: white;
+      font-size: 1.2em;
+      padding: 40px;
+    }
+
+    .error {
+      background: #f44336;
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .flight-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 1.5em;
+      margin-bottom: 15px;
+      color: #333;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .summary-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .summary-card h3 {
+      font-size: 0.9em;
+      opacity: 0.9;
+      margin-bottom: 10px;
+    }
+
+    .summary-card .number {
+      font-size: 2em;
+      font-weight: bold;
+    }
+
+    .flight-list {
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+
+    .flight-item {
+      padding: 10px;
+      margin: 5px 0;
+      background: white;
+      border-radius: 6px;
+      border-left: 4px solid #667eea;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 0.95em;
+    }
+
+    .flight-item.departure {
+      border-left-color: #4CAF50;
+    }
+
+    .flight-item.arrival {
+      border-left-color: #FF9800;
+    }
+
+    .time-badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .gate-badge {
+      display: inline-block;
+      background: #764ba2;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.8em;
+      }
+
+      .flight-item {
+        font-size: 0.85em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>✈️ 桃園機場 D11-D18 登機門航班資訊</h1>
+      <div class="last-updated" id="lastUpdated">載入中...</div>
+    </header>
+
+    <div class="date-selector" id="dateSelector">
+      <button class="date-btn all" onclick="loadAllDates()">所有日期</button>
+      <!-- 日期按鈕會動態生成 -->
+    </div>
+
+    <div id="content">
+      <div class="loading">載入中...</div>
+    </div>
+  </div>
+
+  <script src="flight-data-reader.js"></script>
+  <script>
+    const reader = new FlightDataReader('./data');
+    let availableDates = [];
+    let currentDate = null;
+
+    // 載入摘要資訊以獲取可用日期
+    async function loadSummary() {
+      try {
+        const summary = await reader.getSummary();
+        availableDates = summary.dates || [];
+        
+        // 更新最後更新時間
+        if (summary.last_updated) {
+          const date = new Date(summary.last_updated);
+          document.getElementById('lastUpdated').textContent = 
+            `最後更新: ${date.toLocaleString('zh-TW')}`;
+        }
+        
+        // 生成日期按鈕
+        generateDateButtons();
+        
+        return summary;
+      } catch (error) {
+        console.error('載入摘要失敗:', error);
+        return null;
+      }
+    }
+
+    // 生成日期按鈕
+    function generateDateButtons() {
+      const selector = document.getElementById('dateSelector');
+      const allBtn = selector.querySelector('.all');
+      
+      // 清除現有按鈕（除了「所有日期」）
+      selector.innerHTML = '';
+      selector.appendChild(allBtn);
+      
+      // 添加日期按鈕
+      availableDates.forEach(date => {
+        const btn = document.createElement('button');
+        btn.className = 'date-btn';
+        btn.textContent = formatDate(date);
+        btn.onclick = () => loadDate(date);
+        selector.appendChild(btn);
+      });
+    }
+
+    // 格式化日期顯示
+    function formatDate(dateStr) {
+      const date = new Date(dateStr + 'T00:00:00');
+      return date.toLocaleDateString('zh-TW', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
+
+    // 載入指定日期
+    async function loadDate(date) {
+      currentDate = date;
+      updateActiveButton(date);
+      
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">載入中...</div>';
+
+      try {
+        const data = await reader.getDateData(date);
+        displayDateData(data);
+      } catch (error) {
+        content.innerHTML = `<div class="error">❌ 載入失敗: ${error.message}</div>`;
+      }
+    }
+
+    // 載入所有日期
+    async function loadAllDates() {
+      currentDate = 'all';
+      updateActiveButton('all');
+      
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">載入中...</div>';
+
+      try {
+        const allData = await reader.getAllDatesData();
+        displayAllDatesData(allData);
+      } catch (error) {
+        content.innerHTML = `<div class="error">❌ 載入失敗: ${error.message}</div>`;
+      }
+    }
+
+    // 顯示單個日期的資料
+    function displayDateData(data) {
+      const content = document.getElementById('content');
+      
+      let html = `
+        <div class="summary">
+          <div class="summary-card">
+            <h3>總航班數</h3>
+            <div class="number">${data.summary.total_flights}</div>
+          </div>
+          <div class="summary-card">
+            <h3>17:00 前</h3>
+            <div class="number">${data.summary["before_17:00"]}</div>
+          </div>
+          <div class="summary-card">
+            <h3>17:00 後</h3>
+            <div class="number">${data.summary["after_17:00"]}</div>
+          </div>
+        </div>
+        
+        <div class="flight-section">
+          <h2 class="section-title">📅 ${formatDate(data.date)} 的所有航班</h2>
+          <div class="flight-list">
+      `;
+
+      data.flights.forEach(flight => {
+        const typeClass = flight.type === 'departure' ? 'departure' : 'arrival';
+        const typeIcon = flight.type === 'departure' ? '🛫' : '🛬';
+        html += `
+          <div class="flight-item ${typeClass}">
+            <span class="time-badge">${flight.time}</span>
+            <span class="gate-badge">${flight.gate}</span>
+            <strong>${flight.flight_code}</strong>
+            ${flight.airline ? `(${flight.airline})` : ''}
+            ${flight.destination ? `→ ${flight.destination}` : ''}
+            ${flight.status ? `<span style="color: #666; margin-left: 10px;">${flight.status}</span>` : ''}
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+
+      content.innerHTML = html;
+    }
+
+    // 顯示所有日期的資料
+    function displayAllDatesData(allData) {
+      const content = document.getElementById('content');
+      
+      // 計算總計
+      const totalFlights = allData.reduce((sum, d) => sum + (d.summary?.total_flights || 0), 0);
+      const totalBefore17 = allData.reduce((sum, d) => sum + (d.summary?.["before_17:00"] || 0), 0);
+      const totalAfter17 = allData.reduce((sum, d) => sum + (d.summary?.["after_17:00"] || 0), 0);
+      
+      let html = `
+        <div class="summary">
+          <div class="summary-card">
+            <h3>日期數</h3>
+            <div class="number">${allData.length}</div>
+          </div>
+          <div class="summary-card">
+            <h3>總航班數</h3>
+            <div class="number">${totalFlights}</div>
+          </div>
+          <div class="summary-card">
+            <h3>17:00 前總計</h3>
+            <div class="number">${totalBefore17}</div>
+          </div>
+          <div class="summary-card">
+            <h3>17:00 後總計</h3>
+            <div class="number">${totalAfter17}</div>
+          </div>
+        </div>
+      `;
+
+      // 顯示每個日期的資料
+      allData.forEach(dateData => {
+        if (dateData.error) {
+          html += `
+            <div class="flight-section">
+              <h2 class="section-title">📅 ${dateData.date}</h2>
+              <div class="error">❌ ${dateData.error}</div>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="flight-section">
+              <h2 class="section-title">📅 ${formatDate(dateData.date)} 
+                <span style="font-size: 0.7em; color: #666;">
+                  (${dateData.summary.total_flights} 班 | 
+                  17:00前: ${dateData.summary["before_17:00"]} | 
+                  17:00後: ${dateData.summary["after_17:00"]})
+                </span>
+              </h2>
+              <div class="flight-list">
+          `;
+
+          dateData.flights.forEach(flight => {
+            const typeClass = flight.type === 'departure' ? 'departure' : 'arrival';
+            html += `
+              <div class="flight-item ${typeClass}">
+                <span class="time-badge">${flight.time}</span>
+                <span class="gate-badge">${flight.gate}</span>
+                <strong>${flight.flight_code}</strong>
+                ${flight.airline ? `(${flight.airline})` : ''}
+                ${flight.destination ? `→ ${flight.destination}` : ''}
+              </div>
+            `;
+          });
+
+          html += `
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      content.innerHTML = html;
+    }
+
+    // 更新按鈕狀態
+    function updateActiveButton(date) {
+      document.querySelectorAll('.date-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      if (date === 'all') {
+        document.querySelector('.date-btn.all').classList.add('active');
+      } else {
+        document.querySelectorAll('.date-btn').forEach(btn => {
+          if (btn.textContent === formatDate(date)) {
+            btn.classList.add('active');
+          }
+        });
+      }
+    }
+
+    // 頁面載入時初始化
+    window.addEventListener('DOMContentLoaded', async () => {
+      const summary = await loadSummary();
+      if (summary && availableDates.length > 0) {
+        // 載入最新的日期
+        loadDate(availableDates[availableDates.length - 1]);
+      } else {
+        loadAllDates();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+name: Update Flight Data
+
+on:
+  schedule:
+    # 每 30 分鐘執行一次
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # 允許手動觸發
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/update-flight-data.yml'
+
+jobs:
+  update-flight-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd scripts/scraper
+          pip install -r requirements.txt
+      
+      - name: Run scraper
+        run: |
+          cd scripts/scraper
+          python3 fetch-from-txt-api.py
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/
+          git diff --staged --quiet || git commit -m "Update flight data [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

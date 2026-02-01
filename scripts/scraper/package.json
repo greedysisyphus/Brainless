@@ -1,0 +1,28 @@
+{
+  "name": "taoyuan-airport-flight-api",
+  "version": "1.0.0",
+  "description": "桃園機場 D11-D18 登機門航班資料 API 服務",
+  "main": "flight-api-server.js",
+  "scripts": {
+    "start": "node flight-api-server.js",
+    "dev": "nodemon flight-api-server.js"
+  },
+  "keywords": [
+    "flight",
+    "airport",
+    "taoyuan",
+    "scraper",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桃園機場 D11-D18 航班資料測試</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .date-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .date-selector label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .date-selector input {
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .date-selector input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #dc3545;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #28a745;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .flights-section {
+            margin-top: 30px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #495057;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .flights-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .flight-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .flight-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .flight-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .flight-time {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .flight-gate {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .flight-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .flight-info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flight-info-item strong {
+            color: #495057;
+        }
+
+        .codeshare-badge {
+            background: #ffc107;
+            color: #856404;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .codeshare-list {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .codeshare-list strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .codeshare-item {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 2px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .summary {
+                grid-template-columns: 1fr;
+            }
+
+            .flight-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✈️ 桃園機場 D11-D18 航班資料</h1>
+            <p>離境航班即時資訊測試頁面</p>
+        </div>
+
+        <div class="controls">
+            <div class="date-selector">
+                <label for="dateInput">選擇日期：</label>
+                <input type="date" id="dateInput" value="">
+                <button class="btn" onclick="loadFlightData()">載入資料</button>
+                <button class="btn" onclick="loadToday()">今天</button>
+                <button class="btn" onclick="loadYesterday()">昨天</button>
+            </div>
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+
+        <div class="content">
+            <div id="summary" class="summary" style="display: none;">
+                <div class="summary-card">
+                    <h3>總航班數</h3>
+                    <div class="value" id="totalFlights">0</div>
+                    <div class="label">班</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h3>17:00 前</h3>
+                    <div class="value" id="before17">0</div>
+                    <div class="label">班</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <h3>17:00 後</h3>
+                    <div class="value" id="after17">0</div>
+                    <div class="label">班</div>
+                </div>
+            </div>
+
+            <div id="flightsSection" class="flights-section" style="display: none;">
+                <h2 class="section-title">航班列表</h2>
+                <div id="flightsList" class="flights-list"></div>
+            </div>
+
+            <div id="emptyState" class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <h3>請選擇日期載入航班資料</h3>
+                <p>選擇上方日期並點擊「載入資料」按鈕</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 設定預設日期為今天
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dateInput').value = today;
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        function formatDate(dateStr) {
+            // 將 YYYY-MM-DD 轉換為顯示格式
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+        }
+
+        async function loadFlightData() {
+            const dateInput = document.getElementById('dateInput').value;
+            if (!dateInput) {
+                showStatus('請選擇日期', 'error');
+                return;
+            }
+
+            showStatus('正在載入資料...', 'loading');
+            
+            // 從 GitHub Pages 讀取資料
+            // 根據實際的 GitHub Pages URL 調整路徑
+            // 如果 playground 在根目錄，使用 ../data/
+            // 如果直接在根目錄，使用 data/
+            const basePath = window.location.pathname.includes('playground') ? '../data/' : 'data/';
+            const dataUrl = `${basePath}flight-data-${dateInput}.json`;
+            
+            try {
+                const response = await fetch(dataUrl);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(`找不到 ${dateInput} 的航班資料`);
+                    }
+                    throw new Error(`HTTP 錯誤: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                hideStatus();
+                displayFlightData(data);
+                showStatus(`✅ 成功載入 ${formatDate(dateInput)} 的資料`, 'success');
+                
+            } catch (error) {
+                showStatus(`❌ 錯誤: ${error.message}`, 'error');
+                document.getElementById('summary').style.display = 'none';
+                document.getElementById('flightsSection').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        }
+
+        function displayFlightData(data) {
+            // 顯示統計資訊
+            document.getElementById('totalFlights').textContent = data.summary.total_flights;
+            document.getElementById('before17').textContent = data.summary.before_17_00;
+            document.getElementById('after17').textContent = data.summary.after_17_00;
+            document.getElementById('summary').style.display = 'grid';
+
+            // 顯示航班列表
+            const flightsList = document.getElementById('flightsList');
+            flightsList.innerHTML = '';
+
+            if (data.flights.length === 0) {
+                flightsList.innerHTML = '<div class="empty-state"><p>當天沒有航班資料</p></div>';
+            } else {
+                data.flights.forEach(flight => {
+                    const flightItem = createFlightItem(flight);
+                    flightsList.appendChild(flightItem);
+                });
+            }
+
+            document.getElementById('flightsSection').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        function createFlightItem(flight) {
+            const item = document.createElement('div');
+            item.className = 'flight-item';
+
+            const codeshareCount = flight.codeshare_flights ? flight.codeshare_flights.length : 0;
+            const codeshareBadge = codeshareCount > 0 
+                ? `<span class="codeshare-badge">共同航班 ${codeshareCount} 個</span>` 
+                : '';
+
+            item.innerHTML = `
+                <div class="flight-header">
+                    <div>
+                        <span class="flight-time">${flight.time}</span>
+                        ${codeshareBadge}
+                    </div>
+                    <span class="flight-gate">${flight.gate}</span>
+                </div>
+                <div class="flight-info">
+                    <div class="flight-info-item">
+                        <strong>航班：</strong>
+                        <span>${flight.flight_code}</span>
+                    </div>
+                    <div class="flight-info-item">
+                        <strong>航空公司：</strong>
+                        <span>${flight.airline_name || flight.airline_code}</span>
+                    </div>
+                    <div class="flight-info-item">
+                        <strong>目的地：</strong>
+                        <span>${flight.destination}</span>
+                    </div>
+                    <div class="flight-info-item">
+                        <strong>狀態：</strong>
+                        <span>${flight.status}</span>
+                    </div>
+                    ${flight.aircraft ? `
+                    <div class="flight-info-item">
+                        <strong>機型：</strong>
+                        <span>${flight.aircraft}</span>
+                    </div>
+                    ` : ''}
+                </div>
+                ${codeshareCount > 0 ? `
+                <div class="codeshare-list">
+                    <strong>共同航班：</strong>
+                    ${flight.codeshare_flights.map(cf => 
+                        `<span class="codeshare-item">${cf.flight_code} (${cf.airline_name})</span>`
+                    ).join('')}
+                </div>
+                ` : ''}
+            `;
+
+            return item;
+        }
+
+        function loadToday() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+            loadFlightData();
+        }
+
+        function loadYesterday() {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const dateStr = yesterday.toISOString().split('T')[0];
+            document.getElementById('dateInput').value = dateStr;
+            loadFlightData();
+        }
+
+        // 頁面載入時自動載入今天的資料
+        window.addEventListener('DOMContentLoaded', () => {
+            // 延遲一下再載入，讓頁面先渲染
+            setTimeout(() => {
+                loadToday();
+            }, 100);
+        });
+    </script>
+</body>
+</html>
