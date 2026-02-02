@@ -36,9 +36,8 @@ node_modules
 .env
 # docs/ 目錄中的構建產物不應該在 Git 中追蹤
 # 這些文件由 Vite 構建過程自動生成，每次構建都會重新生成
+# 使用 GitHub Actions 部署時，這些文件會在部署時自動生成，不需要在 Git 中追蹤
 # 保留 docs/data/ 中的資料文件在 Git 中（如果需要）
-# 注意：docs/index.html 暫時保留在 Git 中，以確保 GitHub Pages 可以正常訪問
-# 如果使用 GitHub Actions 部署（新方式），可以移除這一行
 docs/assets/
 docs/assets/**
-# docs/index.html  # 暫時註解掉，確保 GitHub Pages 可以訪問
+docs/index.html
