@@ -307,14 +307,14 @@
           "airline_name": "澳洲航空"
         },
         {
-          "flight_code": "HA2504",
-          "airline_code": "HA",
-          "airline_name": "夏威夷航空"
-        },
-        {
           "flight_code": "JL5176",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "HA2504",
+          "airline_code": "HA",
+          "airline_name": "夏威夷航空"
         }
       ]
     },
@@ -553,5 +553,5 @@
     "17:10 : D11 : JX791 (星宇航空)",
     "18:10 : D15R : BR857 (長榮航空)"
   ],
-  "updated_at": "2026-02-02T12:36:33.760025"
+  "updated_at": "2026-02-02T13:47:23.777286"
 }
