@@ -33,7 +33,9 @@ jobs:
           # 方法1: 檢查提交訊息
           COMMIT_MSG=$(git log -1 --pretty=%B)
           echo "Commit message: $COMMIT_MSG"
-          if [[ "$COMMIT_MSG" == *"[skip ci]"* ]] || [[ "$COMMIT_MSG" == *"[skip workflow]"* ]] || [[ "$COMMIT_MSG" == *"Update flight data"* ]]; then
+          # 只跳過包含 [skip ci] 或 [skip workflow] 的提交
+          # 注意：不跳過 "Update flight data (實質變化)" 的提交，因為這應該觸發部署
+          if [[ "$COMMIT_MSG" == *"[skip ci]"* ]] || [[ "$COMMIT_MSG" == *"[skip workflow]"* ]]; then
             echo "should_skip=true" >> $GITHUB_OUTPUT
             echo "Skipping deployment: commit message contains skip marker"
             exit 0

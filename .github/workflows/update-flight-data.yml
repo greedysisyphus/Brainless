@@ -46,16 +46,66 @@ jobs:
           FIREBASE_CLIENT_X509_CERT_URL: ${{ secrets.FIREBASE_CLIENT_X509_CERT_URL }}
         continue-on-error: true  # 如果 Firebase 失敗，不影響主要流程
       
+      - name: Compare data to detect real changes
+        id: compare
+        run: |
+          cd scripts/scraper
+          # 設置默認值，以防腳本失敗
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+          echo "changed_count=0" >> $GITHUB_OUTPUT
+          
+          # 運行比較腳本
+          if python3 compare-data.py; then
+            # 腳本成功執行，輸出已經寫入 $GITHUB_OUTPUT
+            echo "✅ 資料比較完成"
+          else
+            EXIT_CODE=$?
+            echo "⚠️  資料比較腳本退出碼: $EXIT_CODE"
+            # 如果退出碼是 1（無變化），這是正常的
+            if [ $EXIT_CODE -eq 1 ]; then
+              echo "ℹ️  無實質變化（這是正常的）"
+            else
+              # 其他錯誤，視為有變化（安全起見，觸發部署）
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+              echo "changed_count=0" >> $GITHUB_OUTPUT
+              echo "⚠️  比較腳本出現錯誤，為安全起見視為有變化"
+            fi
+          fi
+        continue-on-error: true
+      
       - name: Commit and push changes
+        id: commit
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add data/
-          # updated_at 欄位每次都會更新，所以應該會有變更
+          
+          # 檢查是否有變更
           if git diff --staged --quiet; then
-            echo "No changes detected (this should be rare since updated_at changes every time)"
+            echo "No changes detected"
+            echo "should_trigger_deploy=false" >> $GITHUB_OUTPUT
           else
-            git commit -m "Update flight data [skip ci] [skip workflow]"
+            # 檢查是否有實質變化（從上一步的輸出）
+            HAS_REAL_CHANGES="${{ steps.compare.outputs.has_changes }}"
+            
+            # 如果輸出為空或未設置，默認視為無實質變化（使用 skip）
+            if [ -z "$HAS_REAL_CHANGES" ]; then
+              HAS_REAL_CHANGES="false"
+              echo "⚠️  無法確定是否有實質變化，默認使用 skip 標記"
+            fi
+            
+            if [ "$HAS_REAL_CHANGES" == "true" ]; then
+              # 有實質變化，不使用 skip 標記，觸發部署
+              git commit -m "Update flight data (實質變化)"
+              echo "✅ 提交資料變更（將觸發部署）"
+              echo "should_trigger_deploy=true" >> $GITHUB_OUTPUT
+            else
+              # 只有 updated_at 變化，使用 skip 標記
+              git commit -m "Update flight data [skip ci] [skip workflow]"
+              echo "⏭️  提交資料更新（僅時間戳變化，不觸發部署）"
+              echo "should_trigger_deploy=false" >> $GITHUB_OUTPUT
+            fi
+            
             git push
           fi
         env:
