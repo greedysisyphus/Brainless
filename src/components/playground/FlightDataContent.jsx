@@ -630,7 +630,7 @@ function FlightDataContent() {
       const statusColor = getStatusColor(status)
 
       return `
-        <tr style="background: ${flightData.flights.indexOf(flight) % 2 === 0 ? '#fafafa' : 'white'};">
+        <tr style="background: ${filteredFlights.indexOf(flight) % 2 === 0 ? '#fafafa' : 'white'};">
           <td style="padding: 16px 20px; text-align: left; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${flight.time}</td>
           <td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">
             <span style="background: #007aff; color: white; padding: 4px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; height: 28px; line-height: 1;">${flight.gate}</span>
