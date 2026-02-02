@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 檢查是否應該跳過部署（如果提交訊息包含 [skip ci] 或 [skip workflow]）
+  # 檢查是否應該跳過部署
   check-skip:
     runs-on: ubuntu-latest
     outputs:
@@ -26,18 +26,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
-      - name: Check commit message
+          fetch-depth: 2  # 需要前一個提交來比較變更
+      - name: Check if should skip deployment
         id: skip
         run: |
+          # 方法1: 檢查提交訊息
           COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ "$COMMIT_MSG" == *"[skip ci]"* ]] || [[ "$COMMIT_MSG" == *"[skip workflow]"* ]]; then
+          if [[ "$COMMIT_MSG" == *"[skip ci]"* ]] || [[ "$COMMIT_MSG" == *"[skip workflow]"* ]] || [[ "$COMMIT_MSG" == *"Update flight data"* ]]; then
             echo "should_skip=true" >> $GITHUB_OUTPUT
-            echo "Skipping deployment due to [skip ci] or [skip workflow] in commit message"
-          else
-            echo "should_skip=false" >> $GITHUB_OUTPUT
-            echo "Proceeding with deployment"
+            echo "Skipping deployment: commit message contains skip marker"
+            exit 0
           fi
+          
+          # 方法2: 檢查變更的文件（如果只有 data/ 目錄變更，跳過）
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # 檢查是否只有 data/ 目錄的變更
+          NON_DATA_FILES=$(echo "$CHANGED_FILES" | grep -v "^data/" | grep -v "^\.github/workflows/update-flight-data.yml" || true)
+          
+          if [ -z "$NON_DATA_FILES" ] && [ -n "$CHANGED_FILES" ]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping deployment: only data files changed"
+            exit 0
+          fi
+          
+          # 如果通過所有檢查，繼續部署
+          echo "should_skip=false" >> $GITHUB_OUTPUT
+          echo "Proceeding with deployment"
 
   build-and-deploy:
     needs: check-skip
