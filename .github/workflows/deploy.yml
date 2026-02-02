@@ -80,6 +80,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 確保拉取最新的提交，包括資料文件的更新
+          fetch-depth: 0
       
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -99,9 +102,29 @@ jobs:
       - name: Copy data files to build output
         run: |
           mkdir -p docs/data
-          cp -r data/*.json docs/data/ || echo "No JSON files to copy"
-          echo "Data files copied:"
-          ls -la docs/data/ || echo "No data directory"
+          # 確保複製所有資料文件，包括最新創建的
+          echo "Checking data directory:"
+          ls -la data/ | head -10 || echo "data/ directory not found"
+          
+          if [ -d "data" ] && [ "$(ls -A data/*.json 2>/dev/null)" ]; then
+            echo "Copying data files..."
+            cp -v data/*.json docs/data/
+            echo "✅ Data files copied successfully:"
+            ls -lh docs/data/*.json | tail -10
+            echo "Total files: $(ls -1 docs/data/*.json 2>/dev/null | wc -l)"
+            
+            # 特別檢查今天的文件是否存在
+            TODAY=$(date +%Y-%m-%d)
+            if [ -f "docs/data/flight-data-${TODAY}.json" ]; then
+              echo "✅ Today's data file exists: flight-data-${TODAY}.json"
+            else
+              echo "⚠️  Warning: Today's data file not found: flight-data-${TODAY}.json"
+            fi
+          else
+            echo "⚠️  Warning: No JSON files found in data/ directory"
+            echo "Data directory contents:"
+            ls -la data/ || echo "data/ directory does not exist"
+          fi
           
       - name: Check build output
         run: |
