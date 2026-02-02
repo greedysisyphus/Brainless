@@ -18,7 +18,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 檢查是否應該跳過部署（如果提交訊息包含 [skip ci] 或 [skip workflow]）
+  check-skip:
+    runs-on: ubuntu-latest
+    outputs:
+      should-skip: ${{ steps.skip.outputs.should_skip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Check commit message
+        id: skip
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [[ "$COMMIT_MSG" == *"[skip ci]"* ]] || [[ "$COMMIT_MSG" == *"[skip workflow]"* ]]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping deployment due to [skip ci] or [skip workflow] in commit message"
+          else
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+            echo "Proceeding with deployment"
+          fi
+
   build-and-deploy:
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip != 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
