@@ -19,7 +19,7 @@ function HeaderLinear() {
   const [showVideo, setShowVideo] = useState(false)
 
   return (
-    <header className={`sticky top-6 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/[0.06] transition-all duration-300 ${isHomepage ? 'bg-transparent border-transparent' : ''}`}>
+    <header className={`sticky top-0 sm:top-6 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/[0.06] transition-all duration-300 ${isHomepage ? 'bg-transparent border-transparent' : ''}`}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16 relative">
           {/* Logo 和標題 - 極簡設計 */}

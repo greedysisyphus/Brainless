@@ -1002,8 +1002,8 @@ function FlightDataContent() {
 
   return (
     <div className="space-y-6">
-      {/* 頁面標題 - 超現代設計 */}
-      <div className="text-center mb-6 sm:mb-8 md:mb-10 relative">
+      {/* 頁面標題 - 超現代設計 - 添加 padding-top 避免被導航欄遮擋（手機模式） */}
+      <div className="text-center mb-6 sm:mb-8 md:mb-10 relative pt-2 sm:pt-0">
         {/* 背景動態光暈 */}
         <div className="absolute inset-0 flex justify-center -z-10">
           <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-glow opacity-50"></div>
@@ -1032,7 +1032,7 @@ function FlightDataContent() {
         
         {/* 最後更新時間 */}
         {lastUpdated && (
-          <div className="text-sm text-text-secondary mt-2">
+          <div className="text-sm text-text-secondary mt-2 px-4">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface/40 backdrop-blur-sm border border-white/10 rounded-lg">
               <svg className="w-4 h-4 text-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -210,7 +210,7 @@ function Navigation() {
 
   return (
     <nav className="bg-surface/60 backdrop-blur-xl sticky top-0 z-50 shadow-xl border-b border-white/10 overflow-visible">
-      <div className="container-custom py-2 sm:py-3 md:py-4 overflow-visible">
+      <div className="container-custom py-1 sm:py-2 md:py-4 overflow-visible">
         {/* 錯誤提示 */}
         {error && (
           <div className="mb-3 sm:mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 sm:p-3 animate-slide-in">
@@ -222,7 +222,8 @@ function Navigation() {
         )}
 
         {/* 全部在同一排顯示，不換行 - 確保邊框完整顯示 */}
-        <div className="flex justify-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 flex-nowrap overflow-x-auto overflow-y-visible scrollbar-hide py-1">
+        {/* 手機版居中，電腦版從左開始排列以避免按鈕被擠出 */}
+        <div className="flex justify-center lg:justify-start gap-1 sm:gap-2 md:gap-3 lg:gap-2 xl:gap-3 flex-nowrap overflow-x-auto overflow-y-visible scrollbar-hide py-1">
           {allMenuItems.map(({ path, label, icon }, index) => (
             <NavLink
               key={path}
@@ -246,7 +247,7 @@ function Navigation() {
                 group relative
                 flex flex-col items-center justify-center
                 flex-shrink-0
-                w-[3.5rem] sm:w-[4rem] md:w-[4.5rem] lg:w-28
+                w-[3.5rem] sm:w-[4rem] md:w-[4.5rem] lg:w-24 xl:w-28
                 min-h-[3rem] sm:min-h-[3.5rem] md:min-h-[4rem] lg:min-h-20
                 p-1 sm:p-1.5 md:p-2 lg:p-3
                 rounded-lg sm:rounded-xl
