@@ -24,6 +24,9 @@ function FlightDataContent() {
   const [loadingMultiDay, setLoadingMultiDay] = useState(false)
   const [hideExpiredFlights, setHideExpiredFlights] = useState(false) // 隱藏已過期航班
   const [selectedFlight, setSelectedFlight] = useState(null) // 選中的航班（用於顯示詳細資料）
+  const [dataValidation, setDataValidation] = useState({ warnings: [], errors: [] }) // 資料驗證結果
+  const [dataDiff, setDataDiff] = useState(null) // 資料差異
+  const previousFlightDataRef = useRef(null) // 保存上次載入的資料
   const abortControllerRef = useRef(null)
   const exportTableRef = useRef(null)
 
@@ -35,6 +38,159 @@ function FlightDataContent() {
       day: 'numeric',
       weekday: 'long'
     })
+  }
+
+  // 資料驗證函數
+  const validateFlightData = (data, date) => {
+    const warnings = []
+    const errors = []
+
+    // 檢查基本結構
+    if (!data) {
+      errors.push('資料為空')
+      return { warnings, errors }
+    }
+
+    if (!data.flights || !Array.isArray(data.flights)) {
+      errors.push('缺少 flights 陣列')
+      return { warnings, errors }
+    }
+
+    if (!data.summary) {
+      warnings.push('缺少 summary 資訊')
+    }
+
+    // 檢查日期是否匹配
+    if (data.date && data.date !== date) {
+      warnings.push(`資料日期 (${data.date}) 與請求日期 (${date}) 不匹配`)
+    }
+
+    // 檢查航班資料完整性
+    const requiredFields = ['time', 'gate', 'flight']
+    const missingFields = []
+    const invalidFlights = []
+
+    data.flights.forEach((flight, index) => {
+      requiredFields.forEach(field => {
+        if (!flight[field] || flight[field].trim() === '') {
+          missingFields.push(`航班 ${index + 1} 缺少 ${field}`)
+        }
+      })
+
+      // 檢查時間格式
+      if (flight.time && !/^\d{2}:\d{2}$/.test(flight.time)) {
+        invalidFlights.push(`航班 ${index + 1} 時間格式錯誤: ${flight.time}`)
+      }
+
+      // 檢查登機門格式
+      if (flight.gate && !/^D1[1-8]R?$/.test(flight.gate)) {
+        warnings.push(`航班 ${index + 1} 登機門不在 D11-D18 範圍: ${flight.gate}`)
+      }
+    })
+
+    if (missingFields.length > 0) {
+      errors.push(...missingFields.slice(0, 5)) // 只顯示前 5 個錯誤
+      if (missingFields.length > 5) {
+        errors.push(`... 還有 ${missingFields.length - 5} 個錯誤`)
+      }
+    }
+
+    if (invalidFlights.length > 0) {
+      errors.push(...invalidFlights.slice(0, 3)) // 只顯示前 3 個錯誤
+    }
+
+    // 檢查 summary 數據一致性
+    if (data.summary) {
+      const actualTotal = data.flights.length
+      const reportedTotal = data.summary.total_flights || 0
+      
+      if (Math.abs(actualTotal - reportedTotal) > 0) {
+        warnings.push(`航班總數不一致：實際 ${actualTotal} 班，報告 ${reportedTotal} 班`)
+      }
+
+      const before17 = data.flights.filter(f => {
+        const hour = parseInt(f.time?.split(':')[0] || 0)
+        return hour < 17
+      }).length
+      const after17 = data.flights.length - before17
+
+      if (data.summary['before_17:00'] !== undefined) {
+        const reportedBefore = data.summary['before_17:00']
+        if (Math.abs(before17 - reportedBefore) > 0) {
+          warnings.push(`17:00 前航班數不一致：實際 ${before17} 班，報告 ${reportedBefore} 班`)
+        }
+      }
+
+      if (data.summary['after_17:00'] !== undefined) {
+        const reportedAfter = data.summary['after_17:00']
+        if (Math.abs(after17 - reportedAfter) > 0) {
+          warnings.push(`17:00 後航班數不一致：實際 ${after17} 班，報告 ${reportedAfter} 班`)
+        }
+      }
+    }
+
+    // 檢查是否有航班資料
+    if (data.flights.length === 0) {
+      warnings.push('當天沒有航班資料')
+    }
+
+    return { warnings, errors }
+  }
+
+  // 計算資料差異
+  const calculateDataDiff = (oldData, newData) => {
+    const changes = {
+      added: [],
+      removed: [],
+      modified: [],
+      totalChange: 0
+    }
+
+    if (!oldData || !newData || !oldData.flights || !newData.flights) {
+      return changes
+    }
+
+    // 創建航班索引（使用時間+登機門+航班號作為唯一標識）
+    const oldFlightsMap = new Map()
+    oldData.flights.forEach(flight => {
+      const key = `${flight.time}_${flight.gate}_${flight.flight}`
+      oldFlightsMap.set(key, flight)
+    })
+
+    const newFlightsMap = new Map()
+    newData.flights.forEach(flight => {
+      const key = `${flight.time}_${flight.gate}_${flight.flight}`
+      newFlightsMap.set(key, flight)
+    })
+
+    // 找出新增的航班
+    newFlightsMap.forEach((flight, key) => {
+      if (!oldFlightsMap.has(key)) {
+        changes.added.push(flight)
+      }
+    })
+
+    // 找出移除的航班
+    oldFlightsMap.forEach((flight, key) => {
+      if (!newFlightsMap.has(key)) {
+        changes.removed.push(flight)
+      }
+    })
+
+    // 找出修改的航班（狀態變化）
+    newFlightsMap.forEach((newFlight, key) => {
+      const oldFlight = oldFlightsMap.get(key)
+      if (oldFlight && oldFlight.status !== newFlight.status) {
+        changes.modified.push({
+          old: oldFlight,
+          new: newFlight
+        })
+      }
+    })
+
+    changes.totalChange = newData.flights.length - oldData.flights.length
+
+    return changes
   }
 
   const formatLastUpdated = (date) => {
@@ -111,6 +267,15 @@ function FlightDataContent() {
       const data = await response.json()
       setLoadingProgress(80)
       
+      // 資料驗證
+      const validation = validateFlightData(data, date)
+      setDataValidation(validation)
+      
+      // 如果有嚴重錯誤，不載入資料
+      if (validation.errors.length > 0) {
+        throw new Error(`資料驗證失敗：${validation.errors.join(', ')}`)
+      }
+      
       // 取得最後更新時間
       const lastModified = response.headers.get('last-modified')
       let updateTime = null
@@ -128,6 +293,17 @@ function FlightDataContent() {
       setLastUpdated(updateTime)
       setLoadingProgress(100)
       
+      // 計算資料差異
+      if (previousFlightDataRef.current && previousFlightDataRef.current.date === data.date) {
+        const diff = calculateDataDiff(previousFlightDataRef.current, data)
+        setDataDiff(diff)
+      } else {
+        setDataDiff(null)
+      }
+
+      // 保存當前資料作為下次比較的基準
+      previousFlightDataRef.current = { ...data }
+
       // 一次性更新資料和狀態，減少重新渲染
       // 使用函數式更新確保狀態更新是原子的
       setFlightData(prevData => {
@@ -381,6 +557,128 @@ function FlightDataContent() {
       dates: multiDayData.map(d => d.dateLabel)
     }
   }, [multiDayData])
+
+  // 計算多日最繁忙時段
+  const busiestHours = useMemo(() => {
+    if (!multiDayData || multiDayData.length === 0) return null
+
+    // 統計所有天數中每小時的總航班數
+    const hourlyTotal = Array.from({ length: 24 }, () => 0)
+    
+    multiDayData.forEach(day => {
+      day.flights.forEach(flight => {
+        const hour = parseInt(flight.time.split(':')[0])
+        hourlyTotal[hour]++
+      })
+    })
+
+    // 計算平均每小時航班數
+    const hourlyAverage = hourlyTotal.map(count => count / multiDayData.length)
+
+    // 找出最繁忙的時段（前 3 名）
+    const hoursWithCount = hourlyAverage.map((avg, hour) => ({
+      hour: `${hour.toString().padStart(2, '0')}:00`,
+      average: Math.round(avg * 10) / 10, // 保留一位小數
+      total: hourlyTotal[hour]
+    })).sort((a, b) => b.average - a.average).slice(0, 3)
+
+    return {
+      topHours: hoursWithCount,
+      hourlyData: hourlyAverage.map((avg, hour) => ({
+        hour: `${hour.toString().padStart(2, '0')}:00`,
+        average: Math.round(avg * 10) / 10,
+        total: hourlyTotal[hour]
+      }))
+    }
+  }, [multiDayData])
+
+  // 計算歷史趨勢對比（與上週/上月）
+  const historicalComparison = useMemo(() => {
+    if (!multiDayData || multiDayData.length === 0) return null
+
+    const today = new Date()
+    const currentPeriod = {
+      totalFlights: multiDayData.reduce((sum, day) => sum + day.totalFlights, 0),
+      averagePerDay: multiDayData.reduce((sum, day) => sum + day.totalFlights, 0) / multiDayData.length,
+      days: multiDayData.length
+    }
+
+    // 計算上週同期（7天前開始的相同天數）
+    const lastWeekStart = new Date(today)
+    lastWeekStart.setDate(today.getDate() - 7 - currentPeriod.days + 1)
+    
+    // 計算上月同期（30天前開始的相同天數）
+    const lastMonthStart = new Date(today)
+    lastMonthStart.setDate(today.getDate() - 30 - currentPeriod.days + 1)
+
+    // 注意：這裡只是計算結構，實際數據需要從歷史資料中讀取
+    // 目前先返回結構，未來可以擴展為實際讀取歷史資料
+    return {
+      current: currentPeriod,
+      lastWeek: {
+        // 這裡需要實際讀取上週的資料，暫時返回 null
+        totalFlights: null,
+        averagePerDay: null,
+        change: null
+      },
+      lastMonth: {
+        // 這裡需要實際讀取上月的資料，暫時返回 null
+        totalFlights: null,
+        averagePerDay: null,
+        change: null
+      }
+    }
+  }, [multiDayData])
+
+  // 計算登機門使用熱度（熱力圖數據）
+  const gateHeatmapData = useMemo(() => {
+    if (!multiDayData || multiDayData.length === 0) {
+      // 如果沒有多天數據，使用當天數據
+      if (!flightData || !flightData.flights) return null
+      
+      const gateCounts = {}
+      flightData.flights.forEach(flight => {
+        const gate = flight.gate
+        gateCounts[gate] = (gateCounts[gate] || 0) + 1
+      })
+      
+      const gates = ['D11', 'D11R', 'D12', 'D12R', 'D13', 'D13R', 'D14', 'D14R', 'D15', 'D15R', 'D16', 'D16R', 'D17', 'D17R', 'D18', 'D18R']
+      const maxCount = Math.max(...Object.values(gateCounts), 1)
+      
+      return {
+        data: gates.map(gate => ({
+          gate,
+          count: gateCounts[gate] || 0,
+          intensity: gateCounts[gate] ? (gateCounts[gate] / maxCount) : 0
+        })),
+        maxCount
+      }
+    }
+
+    // 多天數據：統計每個登機門的總使用次數
+    const gateCounts = {}
+    multiDayData.forEach(day => {
+      day.flights.forEach(flight => {
+        const gate = flight.gate
+        gateCounts[gate] = (gateCounts[gate] || 0) + 1
+      })
+    })
+
+    const gates = ['D11', 'D11R', 'D12', 'D12R', 'D13', 'D13R', 'D14', 'D14R', 'D15', 'D15R', 'D16', 'D16R', 'D17', 'D17R', 'D18', 'D18R']
+    const maxCount = Math.max(...Object.values(gateCounts), 1)
+    const averagePerDay = maxCount / multiDayData.length
+
+    return {
+      data: gates.map(gate => ({
+        gate,
+        count: gateCounts[gate] || 0,
+        average: gateCounts[gate] ? (gateCounts[gate] / multiDayData.length) : 0,
+        intensity: gateCounts[gate] ? (gateCounts[gate] / maxCount) : 0
+      })),
+      maxCount,
+      averagePerDay
+    }
+  }, [multiDayData, flightData])
 
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const summaryCards = useMemo(() => {
@@ -850,6 +1148,97 @@ function FlightDataContent() {
             {status.message}
           </div>
         )}
+
+        {/* 資料驗證警告和錯誤 */}
+        {dataValidation.warnings.length > 0 && (
+          <div className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30 rounded-lg p-3 text-sm">
+            <div className="font-semibold mb-2">⚠️ 資料驗證警告</div>
+            <ul className="list-disc list-inside space-y-1">
+              {dataValidation.warnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {dataValidation.errors.length > 0 && (
+          <div className="bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-lg p-3 text-sm">
+            <div className="font-semibold mb-2">❌ 資料驗證錯誤</div>
+            <ul className="list-disc list-inside space-y-1">
+              {dataValidation.errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 資料差異提示 */}
+        {dataDiff && (dataDiff.added.length > 0 || dataDiff.removed.length > 0 || dataDiff.modified.length > 0) && (
+          <div className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 rounded-lg p-3 text-sm animate-fade-in">
+            <div className="font-semibold mb-2 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              資料更新差異
+            </div>
+            <div className="space-y-2">
+              {dataDiff.totalChange !== 0 && (
+                <div className="font-medium">
+                  總航班數變化：<span className={dataDiff.totalChange > 0 ? 'text-green-400' : 'text-red-400'}>
+                    {dataDiff.totalChange > 0 ? '+' : ''}{dataDiff.totalChange} 班
+                  </span>
+                </div>
+              )}
+              {dataDiff.added.length > 0 && (
+                <div>
+                  <span className="text-green-400 font-medium">新增 {dataDiff.added.length} 班：</span>
+                  <div className="mt-1 space-y-1">
+                    {dataDiff.added.slice(0, 3).map((flight, index) => (
+                      <div key={index} className="text-xs pl-4">
+                        {flight.time} {flight.gate} {flight.flight}
+                      </div>
+                    ))}
+                    {dataDiff.added.length > 3 && (
+                      <div className="text-xs pl-4 text-text-secondary">... 還有 {dataDiff.added.length - 3} 班</div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {dataDiff.removed.length > 0 && (
+                <div>
+                  <span className="text-red-400 font-medium">移除 {dataDiff.removed.length} 班：</span>
+                  <div className="mt-1 space-y-1">
+                    {dataDiff.removed.slice(0, 3).map((flight, index) => (
+                      <div key={index} className="text-xs pl-4">
+                        {flight.time} {flight.gate} {flight.flight}
+                      </div>
+                    ))}
+                    {dataDiff.removed.length > 3 && (
+                      <div className="text-xs pl-4 text-text-secondary">... 還有 {dataDiff.removed.length - 3} 班</div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {dataDiff.modified.length > 0 && (
+                <div>
+                  <span className="text-yellow-400 font-medium">狀態變更 {dataDiff.modified.length} 班：</span>
+                  <div className="mt-1 space-y-1">
+                    {dataDiff.modified.slice(0, 3).map((change, index) => (
+                      <div key={index} className="text-xs pl-4">
+                        {change.new.time} {change.new.gate} {change.new.flight}: 
+                        <span className="text-text-secondary"> {change.old.status}</span> → 
+                        <span className="text-primary"> {change.new.status}</span>
+                      </div>
+                    ))}
+                    {dataDiff.modified.length > 3 && (
+                      <div className="text-xs pl-4 text-text-secondary">... 還有 {dataDiff.modified.length - 3} 班</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tab 切換 */}
@@ -881,14 +1270,16 @@ function FlightDataContent() {
       {/* 航班資料 Tab */}
       {activeTab === 'data' && (
         <>
-          {/* 統計卡片 */}
-          {summaryCards}
+          {/* 統計卡片 - 添加動畫效果 */}
+          <div className="animate-fade-in">
+            {summaryCards}
+          </div>
 
           {/* 航班列表 */}
       {loading && !flightData ? (
         <SkeletonScreen />
       ) : flightData && flightData.flights ? (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 border-b-2 border-purple-500/30 pb-3 sm:pb-2">
             <div className="flex flex-col">
               <h2 className="text-xl sm:text-2xl font-bold text-primary">
@@ -931,13 +1322,13 @@ function FlightDataContent() {
             </div>
           </div>
           {filteredFlights.length === 0 ? (
-            <div className="text-center py-12 text-text-secondary">
+            <div className="text-center py-12 text-text-secondary animate-fade-in">
               <p>當天沒有航班資料</p>
             </div>
           ) : viewMode === 'simple' ? (
             <div 
               ref={exportTableRef}
-              className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg"
+              className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg animate-scale-in"
             >
               <div className="overflow-x-auto -mx-2 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <table className="w-full border-collapse min-w-[600px] sm:min-w-0">
@@ -1055,7 +1446,7 @@ function FlightDataContent() {
 
       {/* 統計分析 Tab */}
       {activeTab === 'statistics' && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
           {/* 當天統計圖表 - 移到最上方 */}
           {statistics && flightData && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -1222,6 +1613,189 @@ function FlightDataContent() {
             </div>
           )}
 
+
+          {/* 多日最繁忙時段 */}
+          {busiestHours && busiestHours.topHours.length > 0 && (
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">最繁忙時段（多日平均）</h3>
+              <div className="space-y-3">
+                {busiestHours.topHours.map((item, index) => (
+                  <div key={item.hour} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        index === 0 ? 'bg-yellow-500 text-black' :
+                        index === 1 ? 'bg-gray-400 text-white' :
+                        'bg-amber-600 text-white'
+                      }`}>
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="text-primary font-semibold">{item.hour}</div>
+                        <div className="text-xs text-text-secondary">平均 {item.average} 班/天</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-primary">{item.total} 班</div>
+                      <div className="text-xs text-text-secondary">總計</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={busiestHours.hourlyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis 
+                      dataKey="hour" 
+                      stroke="rgba(255,255,255,0.6)"
+                      style={{ fontSize: '10px' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      stroke="rgba(255,255,255,0.6)"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(30, 30, 30, 0.95)', 
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value) => [`${value} 班/天`, '平均航班數']}
+                    />
+                    <Bar dataKey="average" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* 登機門使用熱度熱力圖 */}
+          {gateHeatmapData && (
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">
+                登機門使用熱度
+                {multiDayData.length > 0 && (
+                  <span className="text-sm font-normal text-text-secondary ml-2">
+                    （{multiDayData.length} 天平均）
+                  </span>
+                )}
+              </h3>
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3">
+                {gateHeatmapData.data.map((item) => {
+                  // 根據強度計算顏色
+                  const getColor = (intensity) => {
+                    if (intensity === 0) return 'bg-white/5'
+                    if (intensity < 0.25) return 'bg-blue-500/30'
+                    if (intensity < 0.5) return 'bg-green-500/50'
+                    if (intensity < 0.75) return 'bg-yellow-500/70'
+                    return 'bg-red-500/90'
+                  }
+                  
+                  return (
+                    <div
+                      key={item.gate}
+                      className={`${getColor(item.intensity)} rounded-lg p-3 sm:p-4 text-center transition-all duration-300 hover:scale-105 cursor-pointer border border-white/10`}
+                      title={`${item.gate}: ${item.count} 班${multiDayData.length > 0 ? ` (平均 ${item.average.toFixed(1)} 班/天)` : ''}`}
+                    >
+                      <div className="text-xs sm:text-sm font-bold text-primary mb-1">{item.gate}</div>
+                      <div className="text-lg sm:text-xl font-bold text-white">
+                        {multiDayData.length > 0 ? item.average.toFixed(1) : item.count}
+                      </div>
+                      {multiDayData.length > 0 && (
+                        <div className="text-xs text-white/70 mt-1">總 {item.count}</div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="flex items-center justify-between text-xs text-text-secondary">
+                  <span>使用強度</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-white/5"></div>
+                      <span>低</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-blue-500/30"></div>
+                      <span>中低</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-green-500/50"></div>
+                      <span>中</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-yellow-500/70"></div>
+                      <span>中高</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-red-500/90"></div>
+                      <span>高</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 歷史趨勢對比 */}
+          {historicalComparison && (
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">歷史趨勢對比</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 當前期間 */}
+                <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-4 border border-purple-500/30">
+                  <div className="text-sm text-text-secondary mb-2">當前期間</div>
+                  <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.current.averagePerDay)}</div>
+                  <div className="text-xs text-text-secondary">平均 {historicalComparison.current.days} 天</div>
+                  <div className="text-sm text-primary mt-2">總計 {historicalComparison.current.totalFlights} 班</div>
+                </div>
+                
+                {/* 上週同期 */}
+                <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg p-4 border border-blue-500/30">
+                  <div className="text-sm text-text-secondary mb-2">上週同期</div>
+                  {historicalComparison.lastWeek.totalFlights !== null ? (
+                    <>
+                      <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.lastWeek.averagePerDay)}</div>
+                      <div className="text-xs text-text-secondary">平均 {historicalComparison.current.days} 天</div>
+                      <div className={`text-sm mt-2 ${
+                        historicalComparison.lastWeek.change > 0 ? 'text-green-400' : 
+                        historicalComparison.lastWeek.change < 0 ? 'text-red-400' : 'text-text-secondary'
+                      }`}>
+                        {historicalComparison.lastWeek.change > 0 ? '↑' : historicalComparison.lastWeek.change < 0 ? '↓' : '='} 
+                        {Math.abs(historicalComparison.lastWeek.change)}%
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-text-secondary text-sm">資料不足</div>
+                  )}
+                </div>
+                
+                {/* 上月同期 */}
+                <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-4 border border-green-500/30">
+                  <div className="text-sm text-text-secondary mb-2">上月同期</div>
+                  {historicalComparison.lastMonth.totalFlights !== null ? (
+                    <>
+                      <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.lastMonth.averagePerDay)}</div>
+                      <div className="text-xs text-text-secondary">平均 {historicalComparison.current.days} 天</div>
+                      <div className={`text-sm mt-2 ${
+                        historicalComparison.lastMonth.change > 0 ? 'text-green-400' : 
+                        historicalComparison.lastMonth.change < 0 ? 'text-red-400' : 'text-text-secondary'
+                      }`}>
+                        {historicalComparison.lastMonth.change > 0 ? '↑' : historicalComparison.lastMonth.change < 0 ? '↓' : '='} 
+                        {Math.abs(historicalComparison.lastMonth.change)}%
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-text-secondary text-sm">資料不足</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 空狀態 */}
           {!loadingMultiDay && multiDayData.length === 0 && (

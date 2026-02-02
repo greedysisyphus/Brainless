@@ -102,6 +102,55 @@
     to { opacity: 1; }
   }
 
+  /* 資料更新過渡動畫 */
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* 資料更新時的閃爍效果 */
+  .data-update-highlight {
+    animation: highlightUpdate 0.6s ease-out;
+  }
+
+  @keyframes highlightUpdate {
+    0% {
+      background-color: rgba(139, 92, 246, 0.3);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
   /* 滑入動畫 */
   .animate-slide-in {
     animation: slideIn 0.5s ease-out;
