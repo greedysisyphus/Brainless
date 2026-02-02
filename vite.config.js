@@ -3,9 +3,13 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Brainless/',
+  base: process.env.NODE_ENV === 'production' ? '/Brainless/' : '/',
   server: {
-    port: 3001
+    port: 3001,
+    // 確保本地開發時可以正確提供靜態文件
+    fs: {
+      allow: ['..']
+    }
   },
   build: {
     outDir: 'docs',
@@ -17,5 +21,7 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[hash].[ext]'
       }
     }
-  }
+  },
+  // 確保 public 目錄的文件可以被正確提供
+  publicDir: 'public'
 }) 

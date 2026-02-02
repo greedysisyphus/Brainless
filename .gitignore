@@ -41,3 +41,8 @@ node_modules
 docs/assets/
 docs/assets/**
 docs/index.html
+
+# public/data/ 是本地開發時使用的資料副本，不需要追蹤
+# 實際資料在 data/ 目錄中
+public/data/
+public/data/**

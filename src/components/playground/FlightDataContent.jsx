@@ -1633,12 +1633,12 @@ function FlightDataContent() {
                       </div>
                       <div>
                         <div className="text-primary font-semibold">{item.hour}</div>
-                        <div className="text-xs text-text-secondary">平均 {item.average} 班/天</div>
+                        <div className="text-xs text-text-secondary">總計 {item.total} 班</div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-primary">{item.total} 班</div>
-                      <div className="text-xs text-text-secondary">總計</div>
+                      <div className="text-lg font-bold text-primary">{item.average} 班/天</div>
+                      <div className="text-xs text-text-secondary">平均</div>
                     </div>
                   </div>
                 ))}

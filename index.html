@@ -17,6 +17,11 @@
     <meta name="apple-mobile-web-app-title" content="航班資料" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     
+    <script>
+      // 在開發環境中設置 base path
+      window.__BASE_PATH__ = import.meta.env.PROD ? '/Brainless' : '';
+    </script>
+    
     <!-- YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
   </head>
@@ -28,10 +33,17 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // 根據當前路徑決定 Service Worker 路徑
-          const isProduction = window.location.pathname.startsWith('/Brainless')
+          // 根據環境決定 Service Worker 路徑
+          // 開發環境：使用 /sw.js
+          // 生產環境：使用 /Brainless/sw.js
+          const isProduction = window.location.pathname.startsWith('/Brainless') || 
+                               (typeof import.meta !== 'undefined' && import.meta.env.PROD)
           const swPath = isProduction ? '/Brainless/sw.js' : '/sw.js'
-          navigator.serviceWorker.register(swPath)
+          
+          // 在開發環境中，Service Worker 可能無法正常工作（需要 HTTPS）
+          // 所以只在生產環境或明確需要時註冊
+          if (isProduction || window.location.protocol === 'https:' || window.location.hostname === 'localhost') {
+            navigator.serviceWorker.register(swPath)
             .then((registration) => {
               console.log('[PWA] Service Worker 註冊成功:', registration.scope)
               

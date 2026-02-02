@@ -1,14 +1,24 @@
 // Service Worker for PWA
 const CACHE_NAME = 'brainless-flight-data-v1'
 const RUNTIME_CACHE = 'brainless-runtime-v1'
-const BASE_PATH = '/Brainless'
+
+// 動態判斷 base path
+const getBasePath = () => {
+  // 如果當前路徑包含 /Brainless，則使用 /Brainless
+  if (self.location.pathname.startsWith('/Brainless')) {
+    return '/Brainless'
+  }
+  return ''
+}
+
+const BASE_PATH = getBasePath()
 
 // 需要快取的資源
 const PRECACHE_URLS = [
-  `${BASE_PATH}/`,
+  `${BASE_PATH || '/'}`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/favicon.png`
-]
+].filter(url => url !== '//') // 過濾掉空路徑
 
 // 安裝 Service Worker
 self.addEventListener('install', (event) => {
