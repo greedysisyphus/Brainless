@@ -605,7 +605,7 @@ function FlightDataContent() {
 
   // 創建 Apple 極簡風格表格 HTML（用於匯出）
   const createMinimalistTableHTML = () => {
-    if (!flightData || !flightData.flights) return ''
+    if (!filteredFlights || filteredFlights.length === 0) return ''
 
     const dateStr = formatDate(selectedDate)
     const rows = filteredFlights.map(flight => {
