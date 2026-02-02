@@ -34,5 +34,8 @@ Thumbs.db
 node_modules
 .env
 .env
-# 保留 docs/index.html 和 docs/assets/ 在 Git 中，因為 GitHub Pages 需要它們
-# 但構建文件會由 GitHub Actions 自動生成和更新
+# docs/assets/ 目錄不應該在 Git 中追蹤
+# 這些文件由 Vite 構建過程自動生成，每次構建都會重新生成
+# 保留 docs/data/ 和 docs/index.html 在 Git 中（如果需要）
+docs/assets/
+docs/assets/**

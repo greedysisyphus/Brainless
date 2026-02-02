@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/FlightDataContent.9QI7B0l2.js","assets/index.CE3AVWnB.js","assets/index.DDtoVjVE.css"])))=>i.map(i=>d[i]);
-import{r as t,_ as s,j as a,L as e}from"./index.CE3AVWnB.js";const n=t.lazy(()=>s(()=>import("./FlightDataContent.9QI7B0l2.js"),__vite__mapDeps([0,1,2])));function i(){return a.jsx("div",{className:"container-custom py-8",children:a.jsx("div",{className:"max-w-6xl mx-auto",children:a.jsx(t.Suspense,{fallback:a.jsx(e,{}),children:a.jsx(n,{})})})})}export{i as default};
