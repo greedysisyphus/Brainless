@@ -28,7 +28,10 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          // 根據當前路徑決定 Service Worker 路徑
+          const isProduction = window.location.pathname.startsWith('/Brainless')
+          const swPath = isProduction ? '/Brainless/sw.js' : '/sw.js'
+          navigator.serviceWorker.register(swPath)
             .then((registration) => {
               console.log('[PWA] Service Worker 註冊成功:', registration.scope)
               

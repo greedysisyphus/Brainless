@@ -66,13 +66,15 @@ function FlightDataContent() {
     }
 
     // 檢查航班資料完整性
-    const requiredFields = ['time', 'gate', 'flight']
+    // 注意：實際資料使用 flight_code 而不是 flight
+    const requiredFields = ['time', 'gate', 'flight_code']
     const missingFields = []
     const invalidFlights = []
 
     data.flights.forEach((flight, index) => {
       requiredFields.forEach(field => {
-        if (!flight[field] || flight[field].trim() === '') {
+        const value = flight[field]
+        if (!value || (typeof value === 'string' && value.trim() === '')) {
           missingFields.push(`航班 ${index + 1} 缺少 ${field}`)
         }
       })
@@ -153,13 +155,13 @@ function FlightDataContent() {
     // 創建航班索引（使用時間+登機門+航班號作為唯一標識）
     const oldFlightsMap = new Map()
     oldData.flights.forEach(flight => {
-      const key = `${flight.time}_${flight.gate}_${flight.flight}`
+      const key = `${flight.time}_${flight.gate}_${flight.flight_code || flight.flight || ''}`
       oldFlightsMap.set(key, flight)
     })
 
     const newFlightsMap = new Map()
     newData.flights.forEach(flight => {
-      const key = `${flight.time}_${flight.gate}_${flight.flight}`
+      const key = `${flight.time}_${flight.gate}_${flight.flight_code || flight.flight || ''}`
       newFlightsMap.set(key, flight)
     })
 
@@ -1195,7 +1197,7 @@ function FlightDataContent() {
                   <div className="mt-1 space-y-1">
                     {dataDiff.added.slice(0, 3).map((flight, index) => (
                       <div key={index} className="text-xs pl-4">
-                        {flight.time} {flight.gate} {flight.flight}
+                        {flight.time} {flight.gate} {flight.flight_code || flight.flight || 'N/A'}
                       </div>
                     ))}
                     {dataDiff.added.length > 3 && (
@@ -1210,7 +1212,7 @@ function FlightDataContent() {
                   <div className="mt-1 space-y-1">
                     {dataDiff.removed.slice(0, 3).map((flight, index) => (
                       <div key={index} className="text-xs pl-4">
-                        {flight.time} {flight.gate} {flight.flight}
+                        {flight.time} {flight.gate} {flight.flight_code || flight.flight || 'N/A'}
                       </div>
                     ))}
                     {dataDiff.removed.length > 3 && (
@@ -1225,7 +1227,7 @@ function FlightDataContent() {
                   <div className="mt-1 space-y-1">
                     {dataDiff.modified.slice(0, 3).map((change, index) => (
                       <div key={index} className="text-xs pl-4">
-                        {change.new.time} {change.new.gate} {change.new.flight}: 
+                        {change.new.time} {change.new.gate} {change.new.flight_code || change.new.flight || 'N/A'}: 
                         <span className="text-text-secondary"> {change.old.status}</span> → 
                         <span className="text-primary"> {change.new.status}</span>
                       </div>

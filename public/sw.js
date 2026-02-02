@@ -1,12 +1,13 @@
 // Service Worker for PWA
 const CACHE_NAME = 'brainless-flight-data-v1'
 const RUNTIME_CACHE = 'brainless-runtime-v1'
+const BASE_PATH = '/Brainless'
 
 // 需要快取的資源
 const PRECACHE_URLS = [
-  '/Brainless/',
-  '/Brainless/index.html',
-  '/Brainless/favicon.png'
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/favicon.png`
 ]
 
 // 安裝 Service Worker
@@ -80,7 +81,7 @@ self.addEventListener('fetch', (event) => {
           .catch(() => {
             // 如果網路失敗，嘗試返回離線頁面
             if (event.request.destination === 'document') {
-              return caches.match('/Brainless/index.html')
+              return caches.match(`${BASE_PATH}/index.html`)
             }
           })
       })
@@ -101,8 +102,8 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : '新的航班資料更新',
-    icon: '/Brainless/favicon.png',
-    badge: '/Brainless/favicon.png',
+    icon: `${BASE_PATH}/favicon.png`,
+    badge: `${BASE_PATH}/favicon.png`,
     vibrate: [200, 100, 200],
     tag: 'flight-data-update'
   }
