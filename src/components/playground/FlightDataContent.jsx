@@ -23,6 +23,7 @@ function FlightDataContent() {
   const [multiDayData, setMultiDayData] = useState([]) // 多天數據
   const [loadingMultiDay, setLoadingMultiDay] = useState(false)
   const [hideExpiredFlights, setHideExpiredFlights] = useState(false) // 隱藏已過期航班
+  const [selectedFlight, setSelectedFlight] = useState(null) // 選中的航班（用於顯示詳細資料）
   const abortControllerRef = useRef(null)
   const exportTableRef = useRef(null)
 
@@ -334,6 +335,17 @@ function FlightDataContent() {
       }
     }
   }, [autoRefresh, selectedDate, loadFlightData])
+
+  // ESC 鍵關閉 Modal
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && selectedFlight) {
+        setSelectedFlight(null)
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [selectedFlight])
 
   // 計算統計資料
   const statistics = useMemo(() => {
@@ -989,7 +1001,8 @@ function FlightDataContent() {
                       return (
                         <tr
                           key={idx}
-                          className={`border-b border-white/10 transition-all duration-200 ${
+                          onClick={() => setSelectedFlight(flight)}
+                          className={`border-b border-white/10 transition-all duration-200 cursor-pointer hover:bg-purple-500/20 ${
                             isUpcoming
                               ? 'bg-yellow-500/20 active:bg-yellow-500/30'
                               : idx % 2 === 0 
@@ -1034,6 +1047,35 @@ function FlightDataContent() {
         </div>
       ) : null}
         </>
+      )}
+
+      {/* 航班詳細資料 Modal */}
+      {selectedFlight && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setSelectedFlight(null)}
+        >
+          <div 
+            className="bg-surface border border-white/20 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10 px-6 py-4 flex items-center justify-between backdrop-blur-md">
+              <h3 className="text-xl font-bold text-primary">航班詳細資料</h3>
+              <button
+                onClick={() => setSelectedFlight(null)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6 text-primary" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              <FlightItem flight={selectedFlight} />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 統計分析 Tab */}
