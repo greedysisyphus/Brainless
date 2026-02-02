@@ -178,16 +178,15 @@ jobs:
             HAS_DATA_UPDATE=true
           fi
           
-          # 使用 Python 處理 JSON（不依賴 jq）
-          python3 << EOF
+          # 使用 Python 處理 JSON（改用臨時文件避免 heredoc 問題）
+          python3 -c "
           import json
           import os
           from datetime import datetime
           
-          DEPLOYMENT_LOG_FILE = "docs/data/deployment-log.json"
-          COMMIT_MSG = """$COMMIT_MSG"""
-          HAS_DATA_UPDATE_STR = """$HAS_DATA_UPDATE"""
-          HAS_DATA_UPDATE = HAS_DATA_UPDATE_STR.lower() == "true"
+          DEPLOYMENT_LOG_FILE = 'docs/data/deployment-log.json'
+          COMMIT_MSG = '''$COMMIT_MSG'''
+          HAS_DATA_UPDATE = '''$HAS_DATA_UPDATE'''.lower() == 'true'
           
           # 讀取現有的部署記錄
           if os.path.exists(DEPLOYMENT_LOG_FILE):
@@ -199,9 +198,9 @@ jobs:
           
           # 添加新的部署記錄
           new_deployment = {
-              "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-              "hasDataUpdate": HAS_DATA_UPDATE,
-              "commitMessage": COMMIT_MSG
+              'timestamp': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+              'hasDataUpdate': HAS_DATA_UPDATE,
+              'commitMessage': COMMIT_MSG
           }
           
           # 合併並只保留最近 50 次部署
@@ -211,13 +210,13 @@ jobs:
           
           # 寫入文件
           with open(DEPLOYMENT_LOG_FILE, 'w', encoding='utf-8') as f:
-              json.dump({"deployments": deployments}, f, ensure_ascii=False, indent=2)
+              json.dump({'deployments': deployments}, f, ensure_ascii=False, indent=2)
           
-          print(f"✅ Deployment log created:")
-          print(f"   - Timestamp: {new_deployment['timestamp']}")
-          print(f"   - Has data update: {HAS_DATA_UPDATE}")
-          print(f"   - Total deployments logged: {len(deployments)}")
-          EOF
+          print(f'✅ Deployment log created:')
+          print(f'   - Timestamp: {new_deployment[\"timestamp\"]}')
+          print(f'   - Has data update: {HAS_DATA_UPDATE}')
+          print(f'   - Total deployments logged: {len(deployments)}')
+          "
         continue-on-error: true
       
       - name: Deploy to GitHub Pages

@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要完整歷史以便 compare-data.py 比較舊版本
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -49,13 +51,12 @@ jobs:
       - name: Compare data to detect real changes
         id: compare
         run: |
-          cd scripts/scraper
           # 設置默認值，以防腳本失敗
           echo "has_changes=false" >> $GITHUB_OUTPUT
           echo "changed_count=0" >> $GITHUB_OUTPUT
           
-          # 運行比較腳本
-          if python3 compare-data.py; then
+          # 運行比較腳本（從倉庫根目錄執行，因為腳本需要訪問 Git 和 data/ 目錄）
+          if python3 scripts/scraper/compare-data.py; then
             # 腳本成功執行，輸出已經寫入 $GITHUB_OUTPUT
             echo "✅ 資料比較完成"
           else
