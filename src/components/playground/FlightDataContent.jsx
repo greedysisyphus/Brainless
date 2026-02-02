@@ -31,6 +31,8 @@ function FlightDataContent() {
   const exportTableRef = useRef(null)
   const [updateLogs, setUpdateLogs] = useState([]) // 更新日誌
   const [showUpdateLog, setShowUpdateLog] = useState(false) // 顯示更新日誌 Modal
+  const [selectedLogDetail, setSelectedLogDetail] = useState(null) // 選中的日誌詳細資料
+  const [deploymentLogs, setDeploymentLogs] = useState([]) // 部署記錄
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr + 'T00:00:00')
@@ -310,40 +312,64 @@ function FlightDataContent() {
       }
       
       // 記錄更新日誌（在計算 dataDiff 之後）
+      // 只在以下情況記錄日誌：
+      // 1. 有實質變化（isSameDate && diff 有變化）
+      // 2. 用戶主動載入（不是自動刷新或初始化載入）
+      // 3. 首次載入該日期（但不在頁面初始化時記錄，避免刷新時重複記錄）
       try {
-        const logEntry = {
-          id: Date.now(),
-          timestamp: new Date().toISOString(), // 使用 ISO 字符串以便序列化
-          date: date,
-          flightCount: data.flights?.length || 0,
-          summary: data.summary || {},
-          hasChanges: isSameDate && diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.modified.length > 0),
-          changes: isSameDate ? diff : null,
-          isFirstLoad: !isSameDate // 標記是否為首次載入該日期
-        }
+        // 檢查是否應該記錄日誌
+        const shouldLog = 
+          (isSameDate && diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.modified.length > 0)) || // 有實質變化
+          (!isSameDate && previousFlightDataRef.current !== null) // 切換日期（但不是首次初始化）
         
-        // 從 localStorage 讀取現有日誌
-        let existingLogs = []
-        try {
-          const stored = localStorage.getItem('flightDataUpdateLogs')
-          if (stored) {
-            existingLogs = JSON.parse(stored)
+        if (shouldLog) {
+          const logEntry = {
+            id: Date.now(),
+            timestamp: new Date().toISOString(), // 使用 ISO 字符串以便序列化
+            date: date,
+            flightCount: data.flights?.length || 0,
+            summary: data.summary || {},
+            hasChanges: isSameDate && diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.modified.length > 0),
+            changes: isSameDate ? diff : null,
+            isFirstLoad: !isSameDate && previousFlightDataRef.current !== null // 標記是否為首次載入該日期（排除初始化）
           }
-        } catch (e) {
-          console.warn('無法讀取更新日誌:', e)
-          existingLogs = []
-        }
-        
-        // 只保留最近 100 條，避免 localStorage 過大
-        const newLogs = [logEntry, ...existingLogs].slice(0, 100)
-        
-        try {
-          localStorage.setItem('flightDataUpdateLogs', JSON.stringify(newLogs))
-          setUpdateLogs(newLogs)
-        } catch (e) {
-          console.warn('無法保存更新日誌（可能 localStorage 已滿）:', e)
-          // 如果存儲失敗，至少更新狀態（不包含新條目）
-          setUpdateLogs(existingLogs)
+          
+          // 從 localStorage 讀取現有日誌
+          let existingLogs = []
+          try {
+            const stored = localStorage.getItem('flightDataUpdateLogs')
+            if (stored) {
+              existingLogs = JSON.parse(stored)
+            }
+          } catch (e) {
+            console.warn('無法讀取更新日誌:', e)
+            existingLogs = []
+          }
+          
+          // 檢查是否已經有相同的記錄（避免重複記錄）
+          // 如果最近 1 分鐘內有相同日期的記錄，且沒有變化，則不記錄
+          const now = Date.now()
+          const oneMinuteAgo = now - 60 * 1000
+          const recentSameDateLog = existingLogs.find(log => 
+            log.date === date && 
+            new Date(log.timestamp).getTime() > oneMinuteAgo &&
+            !log.hasChanges
+          )
+          
+          // 如果有實質變化，或者沒有最近的相同記錄，則記錄
+          if (logEntry.hasChanges || !recentSameDateLog) {
+            // 只保留最近 100 條，避免 localStorage 過大
+            const newLogs = [logEntry, ...existingLogs].slice(0, 100)
+            
+            try {
+              localStorage.setItem('flightDataUpdateLogs', JSON.stringify(newLogs))
+              setUpdateLogs(newLogs)
+            } catch (e) {
+              console.warn('無法保存更新日誌（可能 localStorage 已滿）:', e)
+              // 如果存儲失敗，至少更新狀態（不包含新條目）
+              setUpdateLogs(existingLogs)
+            }
+          }
         }
       } catch (error) {
         console.error('記錄更新日誌時出錯:', error)
@@ -486,11 +512,32 @@ function FlightDataContent() {
     }
   }, [activeTab, multiDayData.length, loadMultiDayData])
 
-  // 初始化：從 localStorage 載入更新日誌
+  // 載入部署記錄的函數
+  const loadDeploymentLogs = useCallback(async () => {
+    try {
+      const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
+      const response = await fetch(`${basePath}deployment-log.json?t=${Date.now()}`) // 添加時間戳避免緩存
+      if (response.ok) {
+        const data = await response.json()
+        setDeploymentLogs(data.deployments || [])
+      } else {
+        console.warn('無法載入部署記錄:', response.status)
+        setDeploymentLogs([])
+      }
+    } catch (error) {
+      console.warn('載入部署記錄失敗:', error)
+      setDeploymentLogs([])
+    }
+  }, [])
+
+  // 初始化：從 localStorage 載入更新日誌，並從服務器載入部署記錄
   useEffect(() => {
     const logs = JSON.parse(localStorage.getItem('flightDataUpdateLogs') || '[]')
     setUpdateLogs(logs)
-  }, [])
+    
+    // 載入部署記錄
+    loadDeploymentLogs()
+  }, [loadDeploymentLogs])
 
   // 自動載入今天的資料（只在組件掛載時執行一次）
   useEffect(() => {
@@ -1092,16 +1139,13 @@ function FlightDataContent() {
             </span>
             <button
               onClick={() => {
-                // 從 localStorage 讀取日誌
-                const logs = JSON.parse(localStorage.getItem('flightDataUpdateLogs') || '[]')
-                setUpdateLogs(logs)
                 setShowUpdateLog(true)
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface/40 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-surface/60 transition-colors text-primary/80 hover:text-primary"
-              title="查看更新日誌"
+              title="查看部署記錄"
             >
               <DocumentTextIcon className="w-4 h-4" />
-              <span>更新日誌 ({updateLogs.length || JSON.parse(localStorage.getItem('flightDataUpdateLogs') || '[]').length})</span>
+              <span>更新日誌 ({deploymentLogs.length})</span>
             </button>
           </div>
         )}
@@ -1129,10 +1173,11 @@ function FlightDataContent() {
             <button
               onClick={handleLoadData}
               disabled={loading}
-              className="px-4 sm:px-6 py-3 sm:py-2 bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base min-h-[44px] sm:min-h-0 flex-1 sm:flex-none"
+              className="px-4 sm:px-6 py-3 sm:py-2 bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base min-h-[44px] sm:min-h-0 flex-1 sm:flex-none flex items-center justify-center gap-2"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              載入資料
+              <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>重新整理</span>
             </button>
             <button
               onClick={handleLoadToday}
@@ -1524,35 +1569,47 @@ function FlightDataContent() {
             <div className="sticky top-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10 px-6 py-4 flex items-center justify-between backdrop-blur-md">
               <div>
                 <h3 className="text-xl font-bold text-primary">更新日誌</h3>
-                <p className="text-sm text-text-secondary mt-1">共 {updateLogs.length} 次更新記錄</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  部署記錄: {deploymentLogs.length} 次
+                </p>
               </div>
-              <button
-                onClick={() => setShowUpdateLog(false)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <XMarkIcon className="w-6 h-6 text-primary" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadDeploymentLogs}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  title="重新整理部署記錄"
+                >
+                  <ArrowPathIcon className="w-5 h-5 text-primary" />
+                </button>
+                <button
+                  onClick={() => setShowUpdateLog(false)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6 text-primary" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}
             <div className="p-6">
-              {updateLogs.length === 0 ? (
+              {/* 部署記錄區塊 */}
+              {deploymentLogs.length === 0 ? (
                 <div className="text-center py-12 text-text-secondary">
                   <DocumentTextIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p>尚無更新記錄</p>
+                  <p>尚無部署記錄</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {updateLogs.map((log, index) => (
+                <div className="space-y-3">
+                  {deploymentLogs.map((deploy, index) => (
                     <div 
-                      key={log.id || index}
-                      className="bg-surface/40 backdrop-blur-sm border border-white/10 rounded-lg p-4 hover:border-purple-500/30 transition-colors"
+                      key={index}
+                      className="bg-purple-500/10 backdrop-blur-sm border border-purple-500/30 rounded-lg p-4 hover:border-purple-500/50 transition-colors"
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <ClockIcon className="w-4 h-4 text-primary/60" />
+                          <ClockIcon className="w-4 h-4 text-purple-400" />
                           <span className="text-primary font-semibold">
-                            {log.timestamp ? new Date(log.timestamp).toLocaleString('zh-TW', {
+                            {deploy.timestamp ? new Date(deploy.timestamp).toLocaleString('zh-TW', {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',
@@ -1562,39 +1619,178 @@ function FlightDataContent() {
                             }) : '未知時間'}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-text-secondary">
-                          <span>日期：{log.date}</span>
-                          <span>•</span>
-                          <span>{log.flightCount || 0} 班</span>
-                          {log.hasChanges && (
+                        <div className="flex items-center gap-2 text-sm">
+                          {deploy.hasDataUpdate ? (
                             <>
-                              <span>•</span>
-                              <span className="text-yellow-400">有變化</span>
+                              <span className="text-green-400 font-medium">✓ 有更新航班資料</span>
+                              <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">資料更新</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-text-secondary">僅代碼部署</span>
+                              <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs">代碼更新</span>
                             </>
                           )}
                         </div>
                       </div>
-                      {log.changes && (
-                        <div className="mt-2 pt-2 border-t border-white/10 text-xs text-text-secondary">
-                          {log.changes.added.length > 0 && (
-                            <div className="mb-1">
-                              <span className="text-green-400">+{log.changes.added.length} 新增</span>
-                            </div>
-                          )}
-                          {log.changes.removed.length > 0 && (
-                            <div className="mb-1">
-                              <span className="text-red-400">-{log.changes.removed.length} 移除</span>
-                            </div>
-                          )}
-                          {log.changes.modified.length > 0 && (
-                            <div>
-                              <span className="text-yellow-400">~{log.changes.modified.length} 修改</span>
-                            </div>
-                          )}
+                      {deploy.commitMessage && (
+                        <div className="mt-2 pt-2 border-t border-purple-500/20 text-xs text-text-secondary">
+                          <span className="font-medium">提交訊息：</span>
+                          <span className="ml-1">{deploy.commitMessage}</span>
                         </div>
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 變化詳細資料 Modal */}
+      {selectedLogDetail && selectedLogDetail.changes && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setSelectedLogDetail(null)}
+        >
+          <div 
+            className="bg-surface border border-white/20 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10 px-6 py-4 flex items-center justify-between backdrop-blur-md">
+              <div>
+                <h3 className="text-xl font-bold text-primary">變化詳細資料</h3>
+                <p className="text-sm text-text-secondary mt-1">
+                  {selectedLogDetail.date} - {selectedLogDetail.timestamp ? new Date(selectedLogDetail.timestamp).toLocaleString('zh-TW') : ''}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedLogDetail(null)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6 text-primary" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* 總覽 */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {selectedLogDetail.changes.added.length > 0 && (
+                  <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4">
+                    <div className="text-green-400 font-bold text-2xl mb-1">
+                      +{selectedLogDetail.changes.added.length}
+                    </div>
+                    <div className="text-sm text-text-secondary">新增航班</div>
+                  </div>
+                )}
+                {selectedLogDetail.changes.removed.length > 0 && (
+                  <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+                    <div className="text-red-400 font-bold text-2xl mb-1">
+                      -{selectedLogDetail.changes.removed.length}
+                    </div>
+                    <div className="text-sm text-text-secondary">移除航班</div>
+                  </div>
+                )}
+                {selectedLogDetail.changes.modified.length > 0 && (
+                  <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4">
+                    <div className="text-yellow-400 font-bold text-2xl mb-1">
+                      ~{selectedLogDetail.changes.modified.length}
+                    </div>
+                    <div className="text-sm text-text-secondary">狀態變更</div>
+                  </div>
+                )}
+                {selectedLogDetail.changes.totalChange !== 0 && (
+                  <div className="bg-purple-500/20 border border-purple-500/30 rounded-lg p-4">
+                    <div className={`font-bold text-2xl mb-1 ${
+                      selectedLogDetail.changes.totalChange > 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {selectedLogDetail.changes.totalChange > 0 ? '+' : ''}{selectedLogDetail.changes.totalChange}
+                    </div>
+                    <div className="text-sm text-text-secondary">總航班數變化</div>
+                  </div>
+                )}
+              </div>
+
+              {/* 新增的航班 */}
+              {selectedLogDetail.changes.added.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-bold text-green-400 mb-3 flex items-center gap-2">
+                    <span>新增航班 ({selectedLogDetail.changes.added.length} 班)</span>
+                  </h4>
+                  <div className="bg-surface/40 rounded-lg p-4 space-y-2 max-h-60 overflow-y-auto">
+                    {selectedLogDetail.changes.added.map((flight, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-2 bg-green-500/10 rounded border border-green-500/20">
+                        <span className="text-green-400 font-mono text-sm">{flight.time}</span>
+                        <span className="bg-green-500/30 text-white px-2 py-1 rounded text-sm font-semibold">
+                          {flight.gate}
+                        </span>
+                        <span className="text-primary font-semibold">{flight.flight_code || flight.flight || 'N/A'}</span>
+                        {flight.airline_name && (
+                          <span className="text-text-secondary text-sm">({flight.airline_name})</span>
+                        )}
+                        {flight.destination && (
+                          <span className="text-text-secondary text-sm ml-auto">→ {flight.destination}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 移除的航班 */}
+              {selectedLogDetail.changes.removed.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-bold text-red-400 mb-3 flex items-center gap-2">
+                    <span>移除航班 ({selectedLogDetail.changes.removed.length} 班)</span>
+                  </h4>
+                  <div className="bg-surface/40 rounded-lg p-4 space-y-2 max-h-60 overflow-y-auto">
+                    {selectedLogDetail.changes.removed.map((flight, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-2 bg-red-500/10 rounded border border-red-500/20">
+                        <span className="text-red-400 font-mono text-sm">{flight.time}</span>
+                        <span className="bg-red-500/30 text-white px-2 py-1 rounded text-sm font-semibold">
+                          {flight.gate}
+                        </span>
+                        <span className="text-primary font-semibold">{flight.flight_code || flight.flight || 'N/A'}</span>
+                        {flight.airline_name && (
+                          <span className="text-text-secondary text-sm">({flight.airline_name})</span>
+                        )}
+                        {flight.destination && (
+                          <span className="text-text-secondary text-sm ml-auto">→ {flight.destination}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 狀態變更的航班 */}
+              {selectedLogDetail.changes.modified.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-bold text-yellow-400 mb-3 flex items-center gap-2">
+                    <span>狀態變更 ({selectedLogDetail.changes.modified.length} 班)</span>
+                  </h4>
+                  <div className="bg-surface/40 rounded-lg p-4 space-y-2 max-h-60 overflow-y-auto">
+                    {selectedLogDetail.changes.modified.map((change, idx) => (
+                      <div key={idx} className="p-3 bg-yellow-500/10 rounded border border-yellow-500/20">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-yellow-400 font-mono text-sm">{change.new.time}</span>
+                          <span className="bg-yellow-500/30 text-white px-2 py-1 rounded text-sm font-semibold">
+                            {change.new.gate}
+                          </span>
+                          <span className="text-primary font-semibold">{change.new.flight_code || change.new.flight || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-text-secondary">狀態：</span>
+                          <span className="text-red-400 line-through">{change.old.status || '未知'}</span>
+                          <span className="text-primary">→</span>
+                          <span className="text-green-400">{change.new.status || '未知'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -1974,7 +2170,7 @@ function FlightDataContent() {
             </svg>
           </div>
           <h3 className="text-lg font-semibold mb-2">請選擇日期載入航班資料</h3>
-          <p>選擇上方日期並點擊「載入資料」按鈕</p>
+          <p>選擇上方日期並點擊「重新整理」按鈕</p>
         </div>
       )}
     </div>
