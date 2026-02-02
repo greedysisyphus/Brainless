@@ -22,6 +22,7 @@ function FlightDataContent() {
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(null)
   const [multiDayData, setMultiDayData] = useState([]) // 多天數據
   const [loadingMultiDay, setLoadingMultiDay] = useState(false)
+  const [hideExpiredFlights, setHideExpiredFlights] = useState(false) // 隱藏已過期航班
   const abortControllerRef = useRef(null)
   const exportTableRef = useRef(null)
 
@@ -434,6 +435,42 @@ function FlightDataContent() {
     return diff > 0 && diff <= 60 * 60 * 1000 && !flight.status.includes('DEPARTED')
   }, [])
 
+  // 檢查航班是否已過期（時間已超過當前時間）
+  const isExpiredFlight = useCallback((flight) => {
+    // 如果狀態顯示已出發，則視為已過期
+    if (flight.status && (flight.status.includes('DEPARTED') || flight.status.includes('已出發'))) {
+      return true
+    }
+    
+    // 如果有 datetime，使用它來判斷
+    if (flight.datetime) {
+      const flightTime = new Date(flight.datetime)
+      const now = new Date()
+      return flightTime < now
+    }
+    
+    // 如果沒有 datetime，嘗試從 selectedDate 和 time 構建
+    if (flight.time && selectedDate) {
+      try {
+        const [hours, minutes] = flight.time.split(':')
+        const flightDateTime = new Date(`${selectedDate}T${hours}:${minutes}:00`)
+        const now = new Date()
+        return flightDateTime < now
+      } catch (e) {
+        return false
+      }
+    }
+    
+    return false
+  }, [selectedDate])
+
+  // 過濾航班列表
+  const filteredFlights = useMemo(() => {
+    if (!flightData || !flightData.flights) return []
+    if (!hideExpiredFlights) return flightData.flights
+    return flightData.flights.filter(flight => !isExpiredFlight(flight))
+  }, [flightData, hideExpiredFlights, isExpiredFlight])
+
   // 匯出為 PNG
   const exportToPNG = async () => {
     try {
@@ -571,7 +608,7 @@ function FlightDataContent() {
     if (!flightData || !flightData.flights) return ''
 
     const dateStr = formatDate(selectedDate)
-    const rows = flightData.flights.map(flight => {
+    const rows = filteredFlights.map(flight => {
       const codeshareFlights = flight.codeshare_flights || []
       const allFlights = [flight.flight_code, ...codeshareFlights.map(cf => cf.flight_code)]
       const flightDisplay = allFlights.join(' / ')
@@ -773,16 +810,28 @@ function FlightDataContent() {
               </button>
             )}
           </div>
-          <label className="flex items-center gap-2 sm:ml-auto cursor-pointer touch-manipulation">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="w-5 h-5 sm:w-4 sm:h-4 text-purple-500 rounded focus:ring-purple-500 cursor-pointer"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            />
-            <span className="text-xs sm:text-sm text-text-secondary">自動刷新（每 5 分鐘）</span>
-          </label>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:ml-auto">
+            <label className="flex items-center gap-2 cursor-pointer touch-manipulation">
+              <input
+                type="checkbox"
+                checked={hideExpiredFlights}
+                onChange={(e) => setHideExpiredFlights(e.target.checked)}
+                className="w-5 h-5 sm:w-4 sm:h-4 text-purple-500 rounded focus:ring-purple-500 cursor-pointer"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              />
+              <span className="text-xs sm:text-sm text-text-secondary">隱藏已過期航班</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer touch-manipulation">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="w-5 h-5 sm:w-4 sm:h-4 text-purple-500 rounded focus:ring-purple-500 cursor-pointer"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              />
+              <span className="text-xs sm:text-sm text-text-secondary">自動刷新（每 5 分鐘）</span>
+            </label>
+          </div>
         </div>
         
         {/* 載入進度條 */}
@@ -894,7 +943,7 @@ function FlightDataContent() {
               </button>
             </div>
           </div>
-          {flightData.flights.length === 0 ? (
+          {filteredFlights.length === 0 ? (
             <div className="text-center py-12 text-text-secondary">
               <p>當天沒有航班資料</p>
             </div>
@@ -914,7 +963,7 @@ function FlightDataContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {flightData.flights.map((flight, idx) => {
+                    {filteredFlights.map((flight, idx) => {
                       const codeshareFlights = flight.codeshare_flights || []
                       const allFlights = [flight.flight_code, ...codeshareFlights.map(cf => cf.flight_code)]
                       const flightDisplay = allFlights.join(' / ')
@@ -977,7 +1026,7 @@ function FlightDataContent() {
             </div>
           ) : (
             <div className="space-y-3">
-              {flightData.flights.map((flight, idx) => (
+              {filteredFlights.map((flight, idx) => (
                 <FlightItem key={idx} flight={flight} />
               ))}
             </div>
