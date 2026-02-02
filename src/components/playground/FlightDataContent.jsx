@@ -196,84 +196,59 @@ function FlightDataContent() {
     }
   }
 
-  // 載入多天數據（從 Firebase 讀取歷史資料）
+  // 載入多天數據（從 GitHub data/ 資料夾讀取歷史資料）
   const loadMultiDayData = useCallback(async (days = 7) => {
     setLoadingMultiDay(true)
     
     try {
-      // 從 Firebase 讀取歷史資料
-      let validData = []
+      // 直接從 GitHub data/ 資料夾讀取 JSON 檔案
+      const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
+      const today = new Date()
+      const dataPromises = []
       
-      try {
-        const { db } = await import('../../utils/firebase')
-        const { collection, query, orderBy, limit, getDocs } = await import('firebase/firestore')
+      // 嘗試讀取最多 days 天的資料
+      for (let i = 0; i < days; i++) {
+        const date = new Date(today)
+        date.setDate(date.getDate() - i)
+        // 使用本地日期而不是 UTC
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        const dataUrl = `${basePath}flight-data-${dateStr}.json`
         
-        const flightDataRef = collection(db, 'flightData')
-        const q = query(flightDataRef, orderBy('date', 'desc'), limit(days))
-        const snapshot = await getDocs(q)
-        
-        validData = snapshot.docs.map(doc => {
-          const data = doc.data()
-          const date = new Date(data.date)
-          return {
-            date: data.date,
-            dateLabel: date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }),
-            totalFlights: data.summary?.total_flights || 0,
-            flights: data.flights || []
-          }
-        }).reverse() // 從舊到新排序
-        
-        console.log(`✅ 從 Firebase 載入 ${validData.length} 天的資料`)
-      } catch (firebaseError) {
-        console.warn('Firebase 讀取失敗，改用本地 JSON:', firebaseError)
-        
-        // 如果 Firebase 失敗，回退到本地 JSON（僅限最近 2 天）
-        const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-        const today = new Date()
-        const dataPromises = []
-        
-        for (let i = 0; i < Math.min(days, 2); i++) {
-          const date = new Date(today)
-          date.setDate(date.getDate() - i)
-          // 使用本地日期而不是 UTC
-          const year = date.getFullYear()
-          const month = String(date.getMonth() + 1).padStart(2, '0')
-          const day = String(date.getDate()).padStart(2, '0')
-          const dateStr = `${year}-${month}-${day}`
-          const dataUrl = `${basePath}flight-data-${dateStr}.json`
-          
-          dataPromises.push(
-            fetch(dataUrl)
-              .then(res => res.ok ? res.json() : null)
-              .catch(() => null)
-          )
-        }
-        
-        const results = await Promise.all(dataPromises)
-        validData = results
-          .map((data, index) => {
-            if (!data) return null
-            const date = new Date(today)
-            date.setDate(date.getDate() - index)
-            // 使用本地日期而不是 UTC
-            const year = date.getFullYear()
-            const month = String(date.getMonth() + 1).padStart(2, '0')
-            const day = String(date.getDate()).padStart(2, '0')
-            const dateStr = `${year}-${month}-${day}`
-            return {
-              date: dateStr,
-              dateLabel: date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }),
-              totalFlights: data.summary?.total_flights || 0,
-              flights: data.flights || []
-            }
-          })
-          .filter(Boolean)
-          .reverse() // 從舊到新排序
+        dataPromises.push(
+          fetch(dataUrl)
+            .then(res => {
+              if (res.ok) {
+                return res.json().then(data => ({ data, dateStr }))
+              }
+              return null
+            })
+            .catch(() => null)
+        )
       }
       
+      const results = await Promise.all(dataPromises)
+      const validData = results
+        .map((result) => {
+          if (!result || !result.data) return null
+          const date = new Date(result.dateStr)
+          return {
+            date: result.dateStr,
+            dateLabel: date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }),
+            totalFlights: result.data.summary?.total_flights || 0,
+            flights: result.data.flights || []
+          }
+        })
+        .filter(Boolean)
+        .reverse() // 從舊到新排序
+      
+      console.log(`✅ 從 GitHub data/ 資料夾載入 ${validData.length} 天的資料`)
       setMultiDayData(validData)
     } catch (error) {
       console.error('載入多天數據失敗:', error)
+      setMultiDayData([])
     } finally {
       setLoadingMultiDay(false)
     }
