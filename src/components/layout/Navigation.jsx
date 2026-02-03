@@ -185,7 +185,7 @@ function Navigation() {
   // 如果還在載入，顯示骨架屏
   if (isLoading) {
     return (
-      <nav className="bg-surface sticky top-0 z-50 shadow-lg">
+      <nav className="bg-surface sticky top-0 sm:top-[85px] md:top-[100px] z-50 shadow-lg">
         <div className="container-custom py-2 sm:py-4">
           <div className="flex justify-center gap-2 sm:gap-4">
             {MENU_ITEMS.map(({ path, label, icon }) => (
@@ -209,7 +209,7 @@ function Navigation() {
   }
 
   return (
-    <nav className="bg-surface/60 backdrop-blur-xl sticky top-0 z-50 shadow-xl border-b border-white/10 overflow-visible">
+    <nav className="bg-surface/60 backdrop-blur-xl sticky top-0 sm:top-[85px] md:top-[100px] z-50 shadow-xl border-b border-white/10 overflow-visible">
       <div className="container-custom py-1 sm:py-2 md:py-4 overflow-visible">
         {/* 錯誤提示 */}
         {error && (
