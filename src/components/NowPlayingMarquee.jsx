@@ -316,7 +316,7 @@ const NowPlayingMarquee = () => {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-purple-900/95 via-blue-900/95 to-purple-900/95 backdrop-blur-md border-b border-purple-500/30 shadow-lg">
+    <div className="fixed top-0 left-0 right-0 z-[70] bg-gradient-to-r from-purple-900/95 via-blue-900/95 to-purple-900/95 backdrop-blur-md border-b border-purple-500/30 shadow-lg">
       <div className="relative h-6 overflow-hidden">
         <div 
           ref={marqueeRef}

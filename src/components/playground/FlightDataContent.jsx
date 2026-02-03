@@ -1104,7 +1104,7 @@ function FlightDataContent() {
   return (
     <div className="space-y-6">
       {/* 頁面標題 - 超現代設計 - 添加 padding-top 避免被跑馬燈和導航欄遮擋（手機模式） */}
-      <div className="text-center mb-6 sm:mb-8 md:mb-10 relative pt-10 sm:pt-2 md:pt-0">
+      <div className="text-center mb-6 sm:mb-8 md:mb-10 relative pt-16 sm:pt-2 md:pt-0">
         {/* 背景動態光暈 */}
         <div className="absolute inset-0 flex justify-center -z-10">
           <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-glow opacity-50"></div>
