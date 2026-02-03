@@ -1,6 +1,6 @@
 // Service Worker for PWA
-const CACHE_NAME = 'brainless-flight-data-v1'
-const RUNTIME_CACHE = 'brainless-runtime-v1'
+const CACHE_NAME = 'brainless-flight-data-v2'
+const RUNTIME_CACHE = 'brainless-runtime-v2'
 
 // 動態判斷 base path
 const getBasePath = () => {

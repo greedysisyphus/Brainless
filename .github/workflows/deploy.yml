@@ -63,10 +63,17 @@ jobs:
           # 檢查是否只有 data/ 目錄的變更
           NON_DATA_FILES=$(echo "$CHANGED_FILES" | grep -v "^data/" | grep -v "^\.github/workflows/update-flight-data.yml" || true)
           
+          # 如果只有 data/ 目錄變更，但提交訊息包含 "實質變化"，則不跳過（需要部署）
           if [ -z "$NON_DATA_FILES" ] && [ -n "$CHANGED_FILES" ]; then
-            echo "should_skip=true" >> $GITHUB_OUTPUT
-            echo "Skipping deployment: only data files changed"
-            exit 0
+            if [[ "$COMMIT_MSG" == *"實質變化"* ]]; then
+              echo "should_skip=false" >> $GITHUB_OUTPUT
+              echo "Proceeding with deployment: data files changed with substantial updates"
+              exit 0
+            else
+              echo "should_skip=true" >> $GITHUB_OUTPUT
+              echo "Skipping deployment: only data files changed (no substantial updates)"
+              exit 0
+            fi
           fi
           
           # 如果通過所有檢查，繼續部署
