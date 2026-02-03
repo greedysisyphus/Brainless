@@ -3,8 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-    paths-ignore:
-      - 'data/**'  # 忽略 data 目錄的變更，避免資料更新時觸發部署
+    # 注意：不設定 paths-ignore，因為我們需要在 check-skip 中檢查提交訊息
+    # 如果提交訊息包含 "實質變化"，即使只有 data/ 變更也應該觸發部署
   workflow_dispatch:  # 允許手動觸發部署
 
 permissions:
