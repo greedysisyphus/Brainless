@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "CTS",
       "city": "Sapporo/CTS",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Sapporo/CTS (CTS)",
@@ -43,11 +43,16 @@
       "type": "departure",
       "airport_code": "KMQ",
       "city": "Komatsu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Komatsu (KMQ)",
       "codeshare_flights": [
+        {
+          "flight_code": "NZ4920",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
         {
           "flight_code": "TG6376",
           "airline_code": "TG",
@@ -57,11 +62,6 @@
           "flight_code": "NH5820",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "NZ4920",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -172,6 +172,11 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4906",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "NH5802",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -180,11 +185,6 @@
           "flight_code": "TG6362",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NZ4906",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -290,6 +290,11 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4908",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "TG6336",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -298,11 +303,6 @@
           "flight_code": "NH5816",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "NZ4908",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -511,14 +511,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "CZ7975",
-          "airline_code": "CZ",
-          "airline_name": "南方航空"
-        },
-        {
           "flight_code": "MU8903",
           "airline_code": "MU",
           "airline_name": "東方航空"
+        },
+        {
+          "flight_code": "CZ7975",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
         }
       ]
     },
@@ -609,5 +609,5 @@
     "16:35 : D17 : BR871 (長榮航空)",
     "20:45 : D16 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-02-03T21:42:26.347061"
+  "updated_at": "2026-02-03T22:37:56.532226"
 }
