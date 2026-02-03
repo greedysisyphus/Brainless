@@ -13,8 +13,8 @@ function Header() {
   const [showVideo, setShowVideo] = useState(false)
 
   return (
-    <header className={`${theme === 'linear' ? 'bg-[#0d0d0d]/80 backdrop-blur-xl border-b border-white/5' : 'bg-surface'} text-white sticky top-0 sm:top-6 z-50`}>
-      <div className="container-custom pt-2 sm:pt-4 md:pt-6 pb-1 sm:pb-2 md:pb-4">
+    <header className={`${theme === 'linear' ? 'bg-[#0d0d0d]/80 backdrop-blur-xl border-b border-white/5' : 'bg-surface'} text-white sticky top-0 sm:top-6 z-[60]`}>
+      <div className="container-custom pt-2 sm:pt-4 md:pt-6 pb-3 sm:pb-2 md:pb-4">
         <div className="flex flex-col items-center relative min-h-[70px] sm:min-h-[85px]">
           {/* 主題切換按鈕 - 固定在左上角，移動設備優化 */}
           <motion.button
