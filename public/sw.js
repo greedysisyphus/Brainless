@@ -1,6 +1,8 @@
 // Service Worker for PWA
-const CACHE_NAME = 'brainless-flight-data-v2'
-const RUNTIME_CACHE = 'brainless-runtime-v2'
+// 版本號會在部署時自動注入
+const APP_VERSION = '{{APP_VERSION}}'
+const CACHE_NAME = `brainless-flight-data-${APP_VERSION}`
+const RUNTIME_CACHE = `brainless-runtime-${APP_VERSION}`
 
 // 動態判斷 base path
 const getBasePath = () => {
@@ -36,16 +38,31 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      const oldCaches = cacheNames.filter((cacheName) => {
+        return cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE
+      })
+      
+      // 刪除舊快取
       return Promise.all(
-        cacheNames
-          .filter((cacheName) => {
-            return cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE
-          })
-          .map((cacheName) => {
-            console.log('[Service Worker] 刪除舊快取:', cacheName)
-            return caches.delete(cacheName)
-          })
+        oldCaches.map((cacheName) => {
+          console.log('[Service Worker] 刪除舊快取:', cacheName)
+          return caches.delete(cacheName)
+        })
       )
+    }).then(() => {
+      // 強制所有客戶端重新載入（確保 iOS Safari 更新）
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clients) => {
+          console.log(`[Service Worker] 檢測到新版本 ${APP_VERSION}，強制刷新 ${clients.length} 個客戶端`)
+          clients.forEach((client) => {
+            // 通知客戶端有新版本
+            client.postMessage({ type: 'SW_UPDATE', version: APP_VERSION })
+            // 強制導航到當前 URL（強制刷新）
+            if (client.url && 'navigate' in client) {
+              client.navigate(client.url)
+            }
+          })
+        })
     }).then(() => self.clients.claim())
   )
 })
@@ -62,38 +79,44 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // 對於 HTML 文件，始終從網路獲取（確保獲取最新版本）
+  const isHTMLRequest = event.request.destination === 'document' || 
+                        event.request.url.endsWith('.html') ||
+                        event.request.url.endsWith('/')
+
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        // 如果有快取，返回快取
-        if (cachedResponse) {
-          return cachedResponse
+    fetch(event.request, { cache: isHTMLRequest ? 'no-cache' : 'default' })
+      .then((response) => {
+        // 只快取成功的回應
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response
         }
 
-        // 否則從網路獲取
-        return fetch(event.request)
-          .then((response) => {
-            // 只快取成功的回應
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response
-            }
+        // 對於 HTML 文件，不進行快取，確保每次獲取最新版本
+        if (isHTMLRequest) {
+          return response
+        }
 
-            // 複製回應以進行快取
-            const responseToCache = response.clone()
+        // 複製回應以進行快取
+        const responseToCache = response.clone()
 
-            caches.open(RUNTIME_CACHE)
-              .then((cache) => {
-                cache.put(event.request, responseToCache)
-              })
-
-            return response
+        caches.open(RUNTIME_CACHE)
+          .then((cache) => {
+            cache.put(event.request, responseToCache)
           })
-          .catch(() => {
-            // 如果網路失敗，嘗試返回離線頁面
-            if (event.request.destination === 'document') {
-              return caches.match(`${BASE_PATH}/index.html`)
-            }
-          })
+
+        return response
+      })
+      .catch(() => {
+        // 如果網路失敗，嘗試從快取獲取（僅非 HTML 文件）
+        if (!isHTMLRequest) {
+          return caches.match(event.request)
+        }
+        // 對於 HTML 文件，如果網路失敗，嘗試返回離線頁面
+        if (event.request.destination === 'document') {
+          return caches.match(`${BASE_PATH}/index.html`)
+        }
+        throw new Error('Network error')
       })
   )
 })

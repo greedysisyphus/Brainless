@@ -143,11 +143,63 @@ jobs:
       - name: Install Dependencies
         run: npm ci
         
+      - name: Generate app version
+        id: version
+        run: |
+          # 使用 Git commit SHA 的前 8 位作為版本號
+          VERSION=$(git rev-parse --short=8 HEAD)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated app version: $VERSION"
+      
       - name: Build
         run: npm run build
         env:
           NODE_ENV: production
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+      
+      - name: Inject version into Service Worker and HTML
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Injecting version $VERSION into Service Worker and HTML..."
+          
+          # 替換 Service Worker 中的版本號
+          if [ -f "docs/sw.js" ]; then
+            sed -i "s/{{APP_VERSION}}/$VERSION/g" docs/sw.js
+            echo "✅ Service Worker version updated to $VERSION"
+          else
+            echo "⚠️  Warning: docs/sw.js not found (Vite should copy it from public/)"
+            # 如果 sw.js 不在 docs/，檢查是否在 public/ 並複製
+            if [ -f "public/sw.js" ]; then
+              cp public/sw.js docs/sw.js
+              sed -i "s/{{APP_VERSION}}/$VERSION/g" docs/sw.js
+              echo "✅ Service Worker copied and version updated to $VERSION"
+            else
+              echo "❌ Error: sw.js not found in public/ or docs/"
+              exit 1
+            fi
+          fi
+          
+          # 替換 HTML 中的版本號
+          if [ -f "docs/index.html" ]; then
+            sed -i "s/{{APP_VERSION}}/$VERSION/g" docs/index.html
+            echo "✅ HTML version updated to $VERSION"
+          else
+            echo "❌ Error: docs/index.html not found"
+            exit 1
+          fi
+          
+          # 驗證替換是否成功
+          if grep -q "{{APP_VERSION}}" docs/sw.js 2>/dev/null || grep -q "{{APP_VERSION}}" docs/index.html 2>/dev/null; then
+            echo "❌ Error: Some version placeholders were not replaced"
+            grep -n "{{APP_VERSION}}" docs/sw.js docs/index.html 2>/dev/null || true
+            exit 1
+          else
+            echo "✅ All version placeholders replaced successfully"
+          fi
+          
+          # 顯示版本號確認
+          echo "Current app version in files:"
+          grep -o "APP_VERSION[^;]*" docs/sw.js docs/index.html 2>/dev/null | head -2 || true
       
       - name: Copy data files to build output
         run: |
