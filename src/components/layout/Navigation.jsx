@@ -109,7 +109,9 @@ function Navigation() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [navTop, setNavTop] = useState(114); // 預設值，會被動態計算覆蓋
   const navItemsRef = useRef([]);
+  const navRef = useRef(null);
 
   // 完整的選單項目（包含管理員選項）- 必須在 hooks 之前定義
   const allMenuItems = [
@@ -161,6 +163,57 @@ function Navigation() {
     };
   }, []);
 
+  // 動態計算 Navigation 的 top 值（基於 Header 的實際高度）
+  useEffect(() => {
+    const calculateNavTop = () => {
+      // 獲取 Header 元素
+      const header = document.querySelector('header');
+      if (!header) return;
+
+      // 獲取 Header 的 bottom 位置（考慮 sticky top 偏移）
+      const headerRect = header.getBoundingClientRect();
+      const headerTop = headerRect.top; // Header 的 top 位置（已考慮 sticky top-6）
+      const headerHeight = headerRect.height;
+      const headerBottom = headerTop + headerHeight;
+
+      // Navigation 應該緊貼 Header 底部，加上 2px 間距
+      const newTop = headerBottom + 2;
+      setNavTop(newTop);
+    };
+
+    // 初始計算
+    calculateNavTop();
+
+    // 監聽窗口大小變化和滾動（因為 Header 是 sticky）
+    const handleResize = () => {
+      // 使用 requestAnimationFrame 確保在下一幀計算（Header 可能還在調整）
+      requestAnimationFrame(() => {
+        setTimeout(calculateNavTop, 50); // 稍微延遲以確保 Header 已穩定
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleResize, { passive: true });
+
+    // 使用 ResizeObserver 監聽 Header 大小變化
+    const header = document.querySelector('header');
+    let resizeObserver = null;
+    if (header && 'ResizeObserver' in window) {
+      resizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(calculateNavTop);
+      });
+      resizeObserver.observe(header);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleResize);
+      if (resizeObserver && header) {
+        resizeObserver.unobserve(header);
+      }
+    };
+  }, []);
+
   // 導航項目進入動畫 - 使用 Anime.js Timeline 和 Stagger（優化速度）
   useEffect(() => {
     if (isLoading || navItemsRef.current.length === 0) return
@@ -185,9 +238,13 @@ function Navigation() {
   // 如果還在載入，顯示骨架屏
   if (isLoading) {
     return (
-      <nav className="bg-surface sticky top-[138px] sm:top-[157px] md:top-[173px] z-50 shadow-lg">
+      <nav 
+        ref={navRef}
+        className="bg-surface sticky z-50 shadow-lg border-t border-l border-r border-b border-white/10"
+        style={{ top: `${navTop}px` }}
+      >
         <div className="container-custom py-2 sm:py-4">
-          <div className="flex justify-center gap-2 sm:gap-4">
+          <div className="flex justify-center gap-2 sm:gap-4 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8">
             {MENU_ITEMS.map(({ path, label, icon }) => (
               <div
                 key={path}
@@ -209,7 +266,11 @@ function Navigation() {
   }
 
   return (
-    <nav className="bg-surface/60 backdrop-blur-xl sticky top-[138px] sm:top-[157px] md:top-[173px] z-50 shadow-xl border-b border-white/10 overflow-visible">
+    <nav 
+      ref={navRef}
+      className="bg-surface/60 backdrop-blur-xl sticky z-50 shadow-xl border-t border-l border-r border-b border-white/10 overflow-visible"
+      style={{ top: `${navTop}px` }}
+    >
       <div className="container-custom py-1 sm:py-2 md:py-4 overflow-visible">
         {/* 錯誤提示 */}
         {error && (
@@ -223,7 +284,8 @@ function Navigation() {
 
         {/* 全部在同一排顯示，不換行 - 確保邊框完整顯示 */}
         {/* 手機版居中，電腦版從左開始排列以避免按鈕被擠出 */}
-        <div className="flex justify-center lg:justify-start gap-1 sm:gap-2 md:gap-3 lg:gap-2 xl:gap-3 flex-nowrap overflow-x-auto overflow-y-visible scrollbar-hide py-1">
+        {/* 使用 -mx 來抵消 container-custom 的 padding，確保邊框完整顯示 */}
+        <div className="flex justify-center lg:justify-start gap-1 sm:gap-2 md:gap-3 lg:gap-2 xl:gap-3 flex-nowrap overflow-x-auto overflow-y-visible scrollbar-hide py-1 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8">
           {allMenuItems.map(({ path, label, icon }, index) => (
             <NavLink
               key={path}

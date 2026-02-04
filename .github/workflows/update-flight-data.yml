@@ -69,10 +69,11 @@ jobs:
             if [ $EXIT_CODE -eq 1 ]; then
               echo "ℹ️  無實質變化（這是正常的）"
             else
-              # 其他錯誤，視為有變化（安全起見，觸發部署）
-              echo "has_changes=true" >> $GITHUB_OUTPUT
+              # 其他錯誤，視為無變化（避免不必要的部署）
+              # 只有在真正有實質變化時才觸發部署
+              echo "has_changes=false" >> $GITHUB_OUTPUT
               echo "changed_count=0" >> $GITHUB_OUTPUT
-              echo "⚠️  比較腳本出現錯誤，為安全起見視為有變化"
+              echo "⚠️  比較腳本出現錯誤，視為無變化（避免不必要的部署）"
             fi
           fi
         continue-on-error: true

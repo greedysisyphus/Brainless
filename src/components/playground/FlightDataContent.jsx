@@ -940,7 +940,7 @@ function FlightDataContent() {
             <span className="text-2xl font-bold text-purple-400">{flight.time}</span>
             {codeshareCount > 0 && (
               <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded-full text-xs font-semibold">
-                共同航班 {codeshareCount} 個
+                共掛班號 {codeshareCount} 個
               </span>
             )}
           </div>
@@ -974,7 +974,7 @@ function FlightDataContent() {
         </div>
         {codeshareCount > 0 && (
           <div className="mt-3 pt-3 border-t border-white/10">
-            <strong className="text-purple-400 text-sm block mb-2">共同航班：</strong>
+            <strong className="text-purple-400 text-sm block mb-2">共掛班號：</strong>
             <div className="flex flex-wrap gap-2">
               {flight.codeshare_flights.map((cf, idx) => (
                 <span

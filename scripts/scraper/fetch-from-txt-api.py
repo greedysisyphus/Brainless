@@ -184,7 +184,7 @@ def format_time_for_display(dt: datetime) -> str:
 def organize_by_date(flights: List[Dict]) -> Dict:
     """
     按日期組織航班資料，並計算 17:00 前後的班次數量
-    相同時間和登機門的航班視為同一班機（共同航班），只計算一次
+    相同時間和登機門的航班視為同一班機（共掛班號），只計算一次
     
     Args:
         flights: 航班資料列表
@@ -209,11 +209,11 @@ def organize_by_date(flights: List[Dict]) -> Dict:
         time_display = format_time_for_display(dt)
         gate = flight['gate']
         
-        # 使用時間和登機門作為唯一識別（共同航班會有相同的時間和登機門）
+        # 使用時間和登機門作為唯一識別（共掛班號會有相同的時間和登機門）
         flight_key = (date_key, time_display, gate)
         
         if flight_key not in processed_flights:
-            # 這是第一筆共同航班，建立航班條目
+            # 這是第一筆共掛班號，建立航班條目
             flight_entry = {
                 "time": time_display,
                 "datetime": dt.isoformat(),
@@ -232,8 +232,8 @@ def organize_by_date(flights: List[Dict]) -> Dict:
             # 只處理離境航班，所以只有 destination
             flight_entry["destination"] = f"{flight['city']} ({flight['airport_code']})".strip()
             
-            # 儲存共同航班的資訊（用於顯示）
-            flight_entry["codeshare_flights"] = []  # 其他共同航班的代碼
+            # 儲存共掛班號的資訊（用於顯示）
+            flight_entry["codeshare_flights"] = []  # 其他共掛班號的代碼
             
             processed_flights[flight_key] = flight_entry
             
@@ -243,7 +243,7 @@ def organize_by_date(flights: List[Dict]) -> Dict:
             else:
                 date_data[date_key]["summary"]["after_17:00"] += 1
         else:
-            # 這是共同航班，只記錄航班代碼
+            # 這是共掛班號，只記錄航班代碼
             existing_entry = processed_flights[flight_key]
             if flight['flight_code'] != existing_entry['flight_code']:
                 existing_entry["codeshare_flights"].append({

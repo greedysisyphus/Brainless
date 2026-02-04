@@ -12,17 +12,29 @@ from typing import Dict, List, Tuple
 def normalize_flight(flight: Dict) -> Dict:
     """
     標準化航班資料，移除會影響比較的欄位（如 updated_at）
-    只保留核心資料欄位
+    只保留核心資料欄位，確保比較的準確性
     """
+    # 處理 codeshare_flights，確保順序一致（按 flight_code 排序）
+    codeshare_flights = flight.get("codeshare_flights", [])
+    if isinstance(codeshare_flights, list):
+        # 排序共掛班號，確保順序不影響比較
+        codeshare_flights_sorted = sorted(
+            codeshare_flights,
+            key=lambda x: x.get("flight_code", "") if isinstance(x, dict) else str(x)
+        )
+    else:
+        codeshare_flights_sorted = []
+    
     return {
-        "time": flight.get("time", ""),
-        "gate": flight.get("gate", ""),
-        "flight_code": flight.get("flight_code", ""),
-        "airline_name": flight.get("airline_name", ""),
-        "airline_code": flight.get("airline_code", ""),
-        "destination": flight.get("destination", ""),
-        "status": flight.get("status", ""),
-        "aircraft_type": flight.get("aircraft_type", "")
+        "time": str(flight.get("time", "")).strip(),
+        "gate": str(flight.get("gate", "")).strip(),
+        "flight_code": str(flight.get("flight_code", "")).strip(),
+        "airline_name": str(flight.get("airline_name", "")).strip(),
+        "airline_code": str(flight.get("airline_code", "")).strip(),
+        "destination": str(flight.get("destination", "")).strip(),
+        "status": str(flight.get("status", "")).strip(),
+        "aircraft": str(flight.get("aircraft", flight.get("aircraft_type", ""))).strip(),  # 支援兩種欄位名稱
+        "codeshare_flights": codeshare_flights_sorted  # 包含共掛班號資訊
     }
 
 def compare_flights(old_flights: List[Dict], new_flights: List[Dict]) -> Tuple[bool, Dict]:
@@ -33,12 +45,18 @@ def compare_flights(old_flights: List[Dict], new_flights: List[Dict]) -> Tuple[b
         (has_changes: bool, changes: Dict)
     """
     # 標準化航班資料
-    # 處理可能的空值或缺失欄位
+    # 使用 time + gate 作為唯一識別（每個航班條目已包含所有共掛班號資訊）
     old_normalized = {}
     for f in old_flights:
         try:
-            key = f"{f.get('time', '')}_{f.get('gate', '')}_{f.get('flight_code', '')}"
-            old_normalized[key] = normalize_flight(f)
+            # 使用 time + gate 作為 key（每個航班條目已包含所有共掛班號）
+            key = f"{str(f.get('time', '')).strip()}_{str(f.get('gate', '')).strip()}"
+            # 如果已經存在（理論上不應該發生，因為每個航班條目已包含所有共掛班號）
+            # 但為了安全起見，如果發生重複，使用第一個（並記錄警告）
+            if key in old_normalized:
+                print(f"⚠️  警告: 發現重複的 time+gate 組合: {key}，使用第一個條目")
+            else:
+                old_normalized[key] = normalize_flight(f)
         except Exception as e:
             print(f"⚠️  處理舊航班資料時出錯: {e}")
             continue
@@ -46,8 +64,13 @@ def compare_flights(old_flights: List[Dict], new_flights: List[Dict]) -> Tuple[b
     new_normalized = {}
     for f in new_flights:
         try:
-            key = f"{f.get('time', '')}_{f.get('gate', '')}_{f.get('flight_code', '')}"
-            new_normalized[key] = normalize_flight(f)
+            # 使用 time + gate 作為 key
+            key = f"{str(f.get('time', '')).strip()}_{str(f.get('gate', '')).strip()}"
+            # 如果已經存在（理論上不應該發生）
+            if key in new_normalized:
+                print(f"⚠️  警告: 發現重複的 time+gate 組合: {key}，使用第一個條目")
+            else:
+                new_normalized[key] = normalize_flight(f)
         except Exception as e:
             print(f"⚠️  處理新航班資料時出錯: {e}")
             continue
@@ -211,18 +234,39 @@ def main():
                     has_changes = True  # 格式錯誤，視為有變化
                     changes_info = {"reason": "Git 中的舊版本格式錯誤"}
             else:
-                # Git 中沒有舊版本，視為有新資料
-                has_changes = True
-                changes_info = {"reason": "Git 中沒有舊版本"}
+                # Git 中沒有舊版本，可能是新文件
+                # 檢查文件是否真的存在且不為空
+                if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                    # 檢查文件是否有實際內容（不只是空結構）
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            test_data = json.load(f)
+                            # 如果有航班資料，視為新文件（需要部署）
+                            if test_data.get("flights") and len(test_data.get("flights", [])) > 0:
+                                print(f"✅ {json_file}: Git 中沒有舊版本，但文件有實際內容，視為新文件（需要部署）")
+                                has_changes = True
+                                changes_info = {"reason": "Git 中沒有舊版本，但文件有實際內容，視為新文件"}
+                            else:
+                                print(f"ℹ️  {json_file}: Git 中沒有舊版本，但文件為空，視為無變化")
+                                has_changes = False
+                                changes_info = {"reason": "Git 中沒有舊版本，但文件為空，視為無變化"}
+                    except Exception as e:
+                        print(f"⚠️  {json_file}: 無法讀取文件內容: {e}，視為無變化")
+                        has_changes = False
+                        changes_info = {"reason": f"無法讀取文件內容: {e}，視為無變化"}
+                else:
+                    print(f"ℹ️  {json_file}: Git 中沒有舊版本，且文件不存在或為空，視為無變化")
+                    has_changes = False
+                    changes_info = {"reason": "Git 中沒有舊版本，且文件不存在或為空，視為無變化"}
         except subprocess.TimeoutExpired:
-            print(f"⚠️  {json_file}: 從 Git 獲取舊版本超時")
-            has_changes = True
-            changes_info = {"reason": "從 Git 獲取舊版本超時"}
+            print(f"⚠️  {json_file}: 從 Git 獲取舊版本超時，視為無變化（避免不必要的部署）")
+            has_changes = False
+            changes_info = {"reason": "從 Git 獲取舊版本超時，視為無變化"}
         except Exception as e:
-            # 如果無法從 Git 獲取，視為有新資料（可能是新文件）
-            print(f"ℹ️  {json_file}: 無法從 Git 獲取舊版本: {e}")
-            has_changes = True
-            changes_info = {"reason": "無法從 Git 獲取舊版本，視為有新資料"}
+            # 如果無法從 Git 獲取，無法比較，視為無變化（避免不必要的部署）
+            print(f"ℹ️  {json_file}: 無法從 Git 獲取舊版本: {e}，視為無變化（避免不必要的部署）")
+            has_changes = False
+            changes_info = {"reason": "無法從 Git 獲取舊版本，無法比較，視為無變化"}
         
         if has_changes:
             total_changes += 1
