@@ -6,6 +6,11 @@ on:
     # 注意：不設定 paths-ignore，因為我們需要在 check-skip 中檢查提交訊息
     # 如果提交訊息包含 "實質變化"，即使只有 data/ 變更也應該觸發部署
   workflow_dispatch:  # 允許手動觸發部署
+  workflow_run:
+    workflows: ["Update Flight Data"]
+    types:
+      - completed
+    branches: [ main ]
 
 permissions:
   contents: write
@@ -26,11 +31,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # 需要前一個提交來比較變更
+          # 如果是 workflow_run 觸發，需要完整歷史來檢查觸發提交
+          # 如果是 push 觸發，只需要前一個提交來比較變更
+          fetch-depth: ${{ github.event_name == 'workflow_run' && 0 || 2 }}
       - name: Check if should skip deployment
         id: skip
         run: |
-          # 方法1: 檢查提交訊息
+          # 如果是 workflow_run 觸發，檢查觸發它的工作流程的提交
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            echo "Triggered by workflow_run: ${{ github.event.workflow_run.name }}"
+            # 獲取觸發工作流程的提交 SHA
+            TRIGGER_SHA="${{ github.event.workflow_run.head_sha }}"
+            echo "Trigger workflow commit SHA: $TRIGGER_SHA"
+            
+            # 檢查該提交的訊息
+            COMMIT_MSG=$(git log -1 --pretty=%B $TRIGGER_SHA 2>/dev/null || echo "")
+            echo "Trigger commit message: $COMMIT_MSG"
+            
+            # 如果提交訊息包含 [skip ci] 或 [skip workflow]，跳過部署
+            if [[ "$COMMIT_MSG" == *"[skip ci]"* ]] || [[ "$COMMIT_MSG" == *"[skip workflow]"* ]]; then
+              echo "should_skip=true" >> $GITHUB_OUTPUT
+              echo "Skipping deployment: trigger commit contains skip marker"
+              exit 0
+            fi
+            
+            # 如果提交訊息包含 "實質變化"，觸發部署
+            if [[ "$COMMIT_MSG" == *"實質變化"* ]]; then
+              echo "should_skip=false" >> $GITHUB_OUTPUT
+              echo "Proceeding with deployment: trigger commit has substantial changes"
+              exit 0
+            fi
+            
+            # 其他情況，檢查是否有 data/ 變更
+            CHANGED_FILES=$(git diff --name-only $TRIGGER_SHA~1 $TRIGGER_SHA 2>/dev/null || echo "")
+            if echo "$CHANGED_FILES" | grep -q "^data/"; then
+              echo "should_skip=true" >> $GITHUB_OUTPUT
+              echo "Skipping deployment: only data files changed (no substantial changes marker)"
+              exit 0
+            fi
+          fi
+          
+          # 方法1: 檢查提交訊息（對於 push 觸發）
           COMMIT_MSG=$(git log -1 --pretty=%B)
           echo "Commit message: $COMMIT_MSG"
           # 只跳過包含 [skip ci] 或 [skip workflow] 的提交

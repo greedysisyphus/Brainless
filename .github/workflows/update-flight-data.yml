@@ -11,6 +11,9 @@ on:
     paths:
       - '.github/workflows/update-flight-data.yml'
 
+permissions:
+  contents: write  # 允許提交更改
+
 jobs:
   update-flight-data:
     runs-on: ubuntu-latest
