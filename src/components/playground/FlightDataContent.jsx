@@ -722,7 +722,12 @@ function FlightDataContent() {
         }
       })
       .filter(item => item.days > 0) // 只顯示有資料的星期幾
-      .sort((a, b) => b.average - a.average) // 按平均航班數排序
+      .sort((a, b) => {
+        // 依星期順序：星期一(1) → 星期日(0)
+        const orderA = a.weekdayNum === 0 ? 7 : a.weekdayNum
+        const orderB = b.weekdayNum === 0 ? 7 : b.weekdayNum
+        return orderA - orderB
+      })
 
     return {
       topHours: hoursWithCount,
@@ -2350,32 +2355,29 @@ function FlightDataContent() {
               {/* 星期幾統計 */}
               {busiestHours.weekdayData && busiestHours.weekdayData.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-white/10">
-                  <h4 className="text-base sm:text-lg font-bold text-primary mb-3 sm:mb-4">一週各日平均航班量比較</h4>
-                  <div className="space-y-2 sm:space-y-3">
-                    {busiestHours.weekdayData.map((item, index) => (
-                      <div key={item.weekday} className="flex items-center justify-between p-2 sm:p-3 bg-white/5 rounded-lg">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm ${
-                            index === 0 ? 'bg-purple-500 text-white' :
-                            index === 1 ? 'bg-blue-500 text-white' :
-                            'bg-gray-500/50 text-white'
-                          }`}>
-                            {index + 1}
-                          </div>
-                          <div>
-                            <div className="text-primary font-semibold text-sm sm:text-base">{item.weekday}</div>
-                            <div className="text-xs text-text-secondary">總計 {item.total} 班（{item.days} 天）</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-base sm:text-lg font-bold text-primary">{item.average} 班/天</div>
-                          <div className="text-xs text-text-secondary">平均</div>
-                        </div>
-                      </div>
-                    ))}
+                  <h4 className="text-base sm:text-lg font-bold text-primary mb-2 sm:mb-3">一週各日平均航班量比較</h4>
+                  <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/5">
+                    <table className="w-full text-left text-sm min-w-[280px]">
+                      <thead>
+                        <tr className="border-b border-white/10 text-text-secondary">
+                          <th className="py-1.5 px-2 sm:px-3 font-medium">星期</th>
+                          <th className="py-1.5 px-2 sm:px-3 font-medium text-right">平均（班/天）</th>
+                          <th className="py-1.5 px-2 sm:px-3 font-medium text-right">總計（天數）</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {busiestHours.weekdayData.map((item) => (
+                          <tr key={item.weekday} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                            <td className="py-1 px-2 sm:px-3 text-primary font-medium">{item.weekday}</td>
+                            <td className="py-1 px-2 sm:px-3 text-primary font-semibold text-right">{item.average}</td>
+                            <td className="py-1 px-2 sm:px-3 text-text-secondary text-right">{item.total} 班（{item.days} 天）</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="mt-4">
-                    <ResponsiveContainer width="100%" height={200}>
+                  <div className="mt-3">
+                    <ResponsiveContainer width="100%" height={180}>
                       <BarChart 
                         data={busiestHours.weekdayData}
                         onClick={(data, index) => {
