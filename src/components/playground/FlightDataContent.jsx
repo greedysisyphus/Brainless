@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { PaperAirplaneIcon, ArrowPathIcon, XMarkIcon, ArrowDownTrayIcon, ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { isPublicHoliday2026, isPreHoliday2026 } from '../../utils/taiwanHolidays2026'
 // 觸發部署更新
 
 function FlightDataContent() {
@@ -738,6 +739,49 @@ function FlightDataContent() {
       })),
       weekdayData: weekdayData // 新增：星期幾統計
     }
+  }, [multiDayData])
+
+  // 不同日型（可重疊標籤）平均航班量：平日、週末、公眾假期、假期前
+  const dayTypeStats = useMemo(() => {
+    if (!multiDayData || multiDayData.length === 0) return null
+    const acc = {
+      平日: { total: 0, days: 0 },
+      週末: { total: 0, days: 0 },
+      公眾假期: { total: 0, days: 0 },
+      '假期前（連假起始日前 2 天）': { total: 0, days: 0 }
+    }
+    multiDayData.forEach(day => {
+      const dateStr = day.date
+      const date = new Date(dateStr + 'T00:00:00')
+      const dow = date.getDay() // 0=日, 1=一, ..., 5=五, 6=六
+      const totalFlights = day.totalFlights ?? 0
+      // 平日：星期一～五
+      if (dow >= 1 && dow <= 5) {
+        acc.平日.total += totalFlights
+        acc.平日.days += 1
+      }
+      // 週末：五、六、日（五同時算平日與週末）
+      if (dow === 0 || dow === 5 || dow === 6) {
+        acc.週末.total += totalFlights
+        acc.週末.days += 1
+      }
+      // 公眾假期
+      if (isPublicHoliday2026(dateStr)) {
+        acc.公眾假期.total += totalFlights
+        acc.公眾假期.days += 1
+      }
+      // 假期前（連假起始日前 1 天、前 2 天）
+      if (isPreHoliday2026(dateStr)) {
+        acc['假期前（連假起始日前 2 天）'].total += totalFlights
+        acc['假期前（連假起始日前 2 天）'].days += 1
+      }
+    })
+    const order = ['平日', '週末', '公眾假期', '假期前（連假起始日前 2 天）']
+    return order.map(type => {
+      const { total, days } = acc[type]
+      const average = days > 0 ? Math.round((total / days) * 10) / 10 : 0
+      return { type, total, days, average }
+    }).filter(row => row.days > 0)
   }, [multiDayData])
 
   // 計算歷史趨勢對比（與上週/上月）
@@ -2411,6 +2455,58 @@ function FlightDataContent() {
                         />
                         <Bar dataKey="average" fill="#8b5cf6" radius={[8, 8, 0, 0]}>
                           {busiestHours.weekdayData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* 平日／週末／假期 平均航班量（卡片 + 圖表） */}
+              {dayTypeStats && dayTypeStats.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-white/10">
+                  <h4 className="text-base sm:text-lg font-bold text-primary mb-3 sm:mb-4">平日／週末／假期 平均航班量</h4>
+                  <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-4">
+                    {dayTypeStats.map((row, index) => (
+                      <div
+                        key={row.type}
+                        className="rounded-xl border border-white/10 bg-white/5 p-3 sm:p-4 flex flex-col gap-1 min-w-[140px] sm:min-w-[160px]"
+                        style={{ borderLeftWidth: 4, borderLeftColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                      >
+                        <div className="text-xs sm:text-sm font-medium text-text-secondary truncate" title={row.type}>{row.type}</div>
+                        <div className="text-lg sm:text-xl font-bold text-primary">{row.average} <span className="text-sm font-normal text-text-secondary">班/天</span></div>
+                        <div className="text-xs text-text-secondary">共 {row.total} 班（{row.days} 天）</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3">
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={dayTypeStats}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis
+                          dataKey="type"
+                          stroke="rgba(255,255,255,0.6)"
+                          style={{ fontSize: '10px' }}
+                          angle={-20}
+                          textAnchor="end"
+                          height={60}
+                        />
+                        <YAxis stroke="rgba(255,255,255,0.6)" style={{ fontSize: '12px' }} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'rgba(30, 30, 30, 0.95)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '8px'
+                          }}
+                          formatter={(value, name, props) => [
+                            `${value} 班/天（總計 ${props.payload.total} 班，${props.payload.days} 天）`,
+                            '平均航班數'
+                          ]}
+                        />
+                        <Bar dataKey="average" fill="#8b5cf6" radius={[8, 8, 0, 0]}>
+                          {dayTypeStats.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                           ))}
                         </Bar>
