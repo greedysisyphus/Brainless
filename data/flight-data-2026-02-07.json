@@ -173,14 +173,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "NH5850",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6536",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NH5850",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "TG6364",
@@ -253,14 +253,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6543",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "TG6346",
@@ -566,5 +566,5 @@
     "16:45 : D12 : CI122 (中華航空)",
     "16:50 : D11 : BR186 (長榮航空)"
   ],
-  "updated_at": "2026-02-06T16:56:12.795763"
+  "updated_at": "2026-02-06T17:50:42.340119"
 }
