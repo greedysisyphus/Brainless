@@ -283,14 +283,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6543",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -401,6 +401,11 @@
           "airline_name": "泰國航空"
         },
         {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "OZ6872",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
@@ -409,11 +414,6 @@
           "flight_code": "NZ4922",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         }
       ]
     },
@@ -656,5 +656,5 @@
     "18:10 : D12 : BR857 (長榮航空)",
     "19:00 : D13 : BR809 (長榮航空)"
   ],
-  "updated_at": "2026-02-06T14:48:22.523158"
+  "updated_at": "2026-02-06T15:49:58.616517"
 }
