@@ -285,7 +285,7 @@ function Navigation() {
         {/* 全部在同一排顯示，不換行 - 確保邊框完整顯示 */}
         {/* 手機版居中，電腦版從左開始排列以避免按鈕被擠出 */}
         {/* 使用 -mx 來抵消 container-custom 的 padding，確保邊框完整顯示 */}
-        <div className="flex justify-center lg:justify-start gap-1 sm:gap-2 md:gap-3 lg:gap-2 xl:gap-3 flex-nowrap overflow-x-auto overflow-y-visible scrollbar-hide py-1 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="flex justify-center xl:justify-start gap-1 sm:gap-2 md:gap-3 lg:gap-2 xl:gap-3 flex-nowrap overflow-x-auto overflow-y-visible scrollbar-hide py-1 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8">
           {allMenuItems.map(({ path, label, icon }, index) => (
             <NavLink
               key={path}

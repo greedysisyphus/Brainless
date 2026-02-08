@@ -171,10 +171,11 @@ function CoffeeBeanManager() {
   // 滾動位置保存（用於彈窗關閉時恢復）
   const scrollPositionRef = useRef(0)
   
-  // 浮動區域指示器位置（可拖動）
+  // 浮動區域指示器位置（可拖動）；最小 top 避免壓到 navigation
+  const MIN_INDICATOR_TOP = 200
   const [indicatorPosition, setIndicatorPosition] = useLocalStorage('coffeeBeanIndicatorPosition', {
-    top: 128, // top-32 = 128px
-    right: 16, // right-4 = 16px
+    top: 200,
+    right: 16,
     left: null
   })
   const [isDragging, setIsDragging] = useState(false)
@@ -220,8 +221,8 @@ function CoffeeBeanManager() {
       let newLeft = dragStartRef.current.startX + deltaX
       let newTop = dragStartRef.current.startY + deltaY
       
-      // 限制在視窗範圍內
-      newTop = Math.max(0, Math.min(newTop, windowHeight - 60))
+      // 限制在視窗範圍內，且不壓到 navigation（min top）
+      newTop = Math.max(MIN_INDICATOR_TOP, Math.min(newTop, windowHeight - 60))
       newLeft = Math.max(0, Math.min(newLeft, windowWidth - elementWidth))
       
       // 判斷應該使用 left 還是 right（根據位置是否超過中線）
@@ -1205,9 +1206,9 @@ function CoffeeBeanManager() {
     return `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; background: #fafafa; color: #1d1d1f; min-height: 100vh;">
         <div style="background: white; border-radius: 20px; padding: 50px; box-shadow: 0 8px 32px rgba(0,0,0,0.08);">
-          <div style="text-align: center; margin-bottom: 50px; display: block; width: 100%;">
-            <h1 style="color: #1d1d1f; margin: 0 0 12px 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2; display: block; width: 100%;">咖啡豆盤點表</h1>
-            <p style="color: #86868b; margin: 0; font-size: 17px; font-weight: 400; display: block; width: 100%;">${storeName} | 盤點日期：${date}</p>
+          <div style="display: block; width: 100%; margin: 0 auto 50px auto; text-align: center; box-sizing: border-box;">
+            <h1 style="color: #1d1d1f; margin: 0 auto 12px auto; font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2; display: block; width: 100%; text-align: center;">咖啡豆盤點表</h1>
+            <p style="color: #86868b; margin: 0 auto; font-size: 17px; font-weight: 400; display: block; width: 100%; text-align: center;">${storeName} | 盤點日期：${date}</p>
           </div>
           
           ${Object.entries(groupedData).map(([category, rows]) => {
@@ -2381,7 +2382,7 @@ function CoffeeBeanManager() {
       <div 
         className={`fixed z-40 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
-          top: `${indicatorPosition.top}px`,
+          top: `${Math.max(MIN_INDICATOR_TOP, indicatorPosition.top)}px`,
           right: indicatorPosition.right !== null ? `${indicatorPosition.right}px` : 'auto',
           left: indicatorPosition.left !== null ? `${indicatorPosition.left}px` : 'auto',
           opacity: isDragging ? 0.8 : 1,

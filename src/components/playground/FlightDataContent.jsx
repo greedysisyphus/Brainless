@@ -264,7 +264,7 @@ function FlightDataContent() {
       // 模擬載入進度
       setLoadingProgress(30)
       
-      const response = await fetch(dataUrl, { signal: abortSignal })
+      const response = await fetch(dataUrl, { signal: abortSignal, cache: 'no-cache' })
       setLoadingProgress(60)
 
       if (!response.ok) {
@@ -473,7 +473,7 @@ function FlightDataContent() {
         const dataUrl = `${basePath}flight-data-${dateStr}.json`
         
         dataPromises.push(
-          fetch(dataUrl)
+          fetch(dataUrl, { cache: 'no-cache' })
             .then(res => {
               if (res.ok) {
                 return res.json().then(data => ({ data, dateStr }))
