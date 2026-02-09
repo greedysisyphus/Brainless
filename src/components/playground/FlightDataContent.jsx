@@ -399,15 +399,7 @@ function FlightDataContent() {
       if (error.name === 'AbortError') {
         setStatus({ message: '載入已取消', type: 'error' })
       } else {
-        // 若請求的是「明天」且無資料，顯示友善提示
-        const tom = new Date()
-        tom.setDate(tom.getDate() + 1)
-        const tomorrowStr = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`
-        if (date === tomorrowStr) {
-          setStatus({ message: '尚未更新', type: 'info' })
-        } else {
-          setStatus({ message: `❌ 錯誤: ${error.message}`, type: 'error' })
-        }
+        setStatus({ message: `❌ 錯誤: ${error.message}`, type: 'error' })
       }
       // 只有在錯誤時才清除資料
       setFlightData(null)
@@ -441,19 +433,16 @@ function FlightDataContent() {
     loadFlightData(today)
   }
 
-  const getTomorrowDateString = () => {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const year = tomorrow.getFullYear()
-    const month = String(tomorrow.getMonth() + 1).padStart(2, '0')
-    const day = String(tomorrow.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
-  const handleLoadTomorrow = () => {
-    const tomorrow = getTomorrowDateString()
-    setSelectedDate(tomorrow)
-    loadFlightData(tomorrow)
+  const handleLoadYesterday = () => {
+    // 使用本地日期而不是 UTC，確保獲取正確的昨天日期
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    const year = yesterday.getFullYear()
+    const month = String(yesterday.getMonth() + 1).padStart(2, '0')
+    const day = String(yesterday.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
+    setSelectedDate(dateStr)
+    loadFlightData(dateStr)
   }
 
   const handleCancelLoad = () => {
@@ -1519,12 +1508,12 @@ function FlightDataContent() {
               今天
             </button>
             <button
-              onClick={handleLoadTomorrow}
+              onClick={handleLoadYesterday}
               disabled={loading}
               className="px-4 sm:px-6 py-3 sm:py-2 bg-purple-500/50 hover:bg-purple-500/70 active:bg-purple-500/80 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 text-sm sm:text-base min-h-[44px] sm:min-h-0"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              明天
+              昨天
             </button>
             {activeTab === 'statistics' && (
               <div className="flex gap-2">
@@ -1599,15 +1588,13 @@ function FlightDataContent() {
           </div>
         )}
         
-        {status.message && !(status.type === 'info' && status.message === '尚未更新') && (
+        {status.message && (
           <div
             className={`p-3 rounded-lg text-sm ${
               status.type === 'loading'
                 ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30'
                 : status.type === 'error'
                 ? 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30'
-                : status.type === 'info'
-                ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30'
                 : 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30'
             }`}
           >
@@ -2669,24 +2656,14 @@ function FlightDataContent() {
       {/* 空狀態 - 只在沒有資料且不在載入時顯示 */}
       {!loading && !flightData && (
         <div className="text-center py-12 text-text-secondary">
-          {selectedDate === getTomorrowDateString() ? (
-            <>
-              <ClockIcon className="w-20 h-20 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">尚未更新</h3>
-              <p>明日航班資料將於稍後更新，請稍後再試或點擊「重新整理」</p>
-            </>
-          ) : (
-            <>
-              <div className="w-20 h-20 mx-auto mb-4 opacity-50">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">請選擇日期載入航班資料</h3>
-              <p>選擇上方日期並點擊「重新整理」按鈕</p>
-            </>
-          )}
+          <div className="w-20 h-20 mx-auto mb-4 opacity-50">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold mb-2">請選擇日期載入航班資料</h3>
+          <p>選擇上方日期並點擊「重新整理」按鈕</p>
         </div>
       )}
 
