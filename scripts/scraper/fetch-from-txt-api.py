@@ -303,6 +303,7 @@ if __name__ == '__main__':
         date_data = organize_by_date(flights)
         
         # 儲存每個日期的資料
+        written_dates = []
         for date_key, formatted_data in date_data.items():
             # 建立格式化顯示
             formatted_display = []
@@ -336,11 +337,17 @@ if __name__ == '__main__':
                 "updated_at": datetime.now().isoformat()
             }
             
+            # 寫檔前檢查：避免誤將明天資料寫入今天檔名
+            if output["date"] != date_key:
+                print(f'⚠️ 跳過寫入 flight-data-{date_key}.json：output["date"] ({output["date"]}) 與 date_key 不一致')
+                continue
+            
             # 儲存 JSON 檔案
             date_file = os.path.join(data_dir, f'flight-data-{date_key}.json')
             with open(date_file, 'w', encoding='utf-8') as f:
                 json.dump(output, f, ensure_ascii=False, indent=2)
             
+            written_dates.append(date_key)
             print(f'✅ 已儲存: flight-data-{date_key}.json')
             print(f'   - 總航班數: {output["summary"]["total_flights"]} 班')
             print(f'   - 17:00 前: {output["summary"]["before_17:00"]} 班')
@@ -349,7 +356,9 @@ if __name__ == '__main__':
             # 注意：Firebase 存儲將在 GitHub Actions 中單獨執行
             # 這裡不直接存儲，避免重複存儲和依賴問題
         
-        print(f'\n✅ 完成！共處理 {len(flights)} 筆航班資料，儲存到 {len(date_data)} 個日期檔案')
+        if written_dates:
+            print(f'\n本次寫入: {", ".join(written_dates)}')
+        print(f'\n✅ 完成！共處理 {len(flights)} 筆航班資料，儲存到 {len(written_dates)} 個日期檔案')
         
     except Exception as e:
         print(f'\n❌ 錯誤: {str(e)}')
