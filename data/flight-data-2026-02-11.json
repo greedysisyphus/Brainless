@@ -554,34 +554,12 @@
       "terminal": "2",
       "destination": "Los Angeles (LAX)",
       "codeshare_flights": []
-    },
-    {
-      "time": "23:45",
-      "datetime": "2026-02-11T23:45:00",
-      "gate": "D13",
-      "flight_code": "CI53",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "BNE",
-      "city": "Brisbane",
-      "status": "準時ON TIME",
-      "aircraft": "A350-900",
-      "terminal": "2",
-      "destination": "Brisbane (BNE)",
-      "codeshare_flights": [
-        {
-          "flight_code": "QF8726",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
-        }
-      ]
     }
   ],
   "summary": {
-    "total_flights": 26,
+    "total_flights": 25,
     "before_17:00": 22,
-    "after_17:00": 4
+    "after_17:00": 3
   },
   "formatted_display": [
     "06:30 : D14R : BR178 (長榮航空)",
@@ -608,8 +586,7 @@
     "16:35 : D13 : BR871 (長榮航空)",
     "20:30 : D11 : JX10 (星宇航空)",
     "20:45 : D13 : BR205 (長榮航空)",
-    "23:40 : D12 : JX2 (星宇航空)",
-    "23:45 : D13 : CI53 (中華航空)"
+    "23:40 : D12 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-10T17:11:38.348244"
+  "updated_at": "2026-02-10T19:16:34.835991"
 }
