@@ -258,14 +258,14 @@
       "destination": "Singapore (SIN)",
       "codeshare_flights": [
         {
-          "flight_code": "AI7059",
-          "airline_code": "AI",
-          "airline_name": "印度航空"
-        },
-        {
           "flight_code": "SQ5803",
           "airline_code": "SQ",
           "airline_name": "新加坡航空"
+        },
+        {
+          "flight_code": "AI7059",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
         }
       ]
     },
@@ -540,22 +540,6 @@
       ]
     },
     {
-      "time": "23:05",
-      "datetime": "2026-02-11T23:05:00",
-      "gate": "D14R",
-      "flight_code": "BR95",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "MXP",
-      "city": "Milan",
-      "status": "準時ON TIME",
-      "aircraft": "B787-9",
-      "terminal": "2",
-      "destination": "Milan (MXP)",
-      "codeshare_flights": []
-    },
-    {
       "time": "23:40",
       "datetime": "2026-02-11T23:40:00",
       "gate": "D12",
@@ -595,9 +579,9 @@
     }
   ],
   "summary": {
-    "total_flights": 27,
+    "total_flights": 26,
     "before_17:00": 22,
-    "after_17:00": 5
+    "after_17:00": 4
   },
   "formatted_display": [
     "06:30 : D14R : BR178 (長榮航空)",
@@ -624,9 +608,8 @@
     "16:35 : D13 : BR871 (長榮航空)",
     "20:30 : D11 : JX10 (星宇航空)",
     "20:45 : D13 : BR205 (長榮航空)",
-    "23:05 : D14R : BR95 (長榮航空)",
     "23:40 : D12 : JX2 (星宇航空)",
     "23:45 : D13 : CI53 (中華航空)"
   ],
-  "updated_at": "2026-02-10T15:07:01.737936"
+  "updated_at": "2026-02-10T17:11:38.348244"
 }
