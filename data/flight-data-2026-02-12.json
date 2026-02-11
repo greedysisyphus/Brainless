@@ -27,7 +27,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -59,7 +59,7 @@
       "type": "departure",
       "airport_code": "FUK",
       "city": "Fukuoka",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Fukuoka (FUK)",
@@ -86,7 +86,7 @@
       "type": "departure",
       "airport_code": "CRK",
       "city": "Clark",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Clark (CRK)",
@@ -587,5 +587,5 @@
     "16:35 : D13 : BR871 (長榮航空)",
     "20:45 : D11 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-02-11T22:37:33.967535"
+  "updated_at": "2026-02-11T23:40:09.199918"
 }
