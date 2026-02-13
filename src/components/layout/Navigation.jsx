@@ -5,7 +5,6 @@ import {
   BanknotesIcon, 
   CloudIcon,
   BeakerIcon,
-  ChartBarIcon,
   ClipboardDocumentListIcon,
   DocumentTextIcon,
   FunnelIcon,

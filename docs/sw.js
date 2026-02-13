@@ -1,0 +1,147 @@
+// Service Worker for PWA
+// 版本號會在部署時自動注入
+const APP_VERSION = '{{APP_VERSION}}'
+const CACHE_NAME = `brainless-flight-data-${APP_VERSION}`
+const RUNTIME_CACHE = `brainless-runtime-${APP_VERSION}`
+
+// 動態判斷 base path
+const getBasePath = () => {
+  // 如果當前路徑包含 /Brainless，則使用 /Brainless
+  if (self.location.pathname.startsWith('/Brainless')) {
+    return '/Brainless'
+  }
+  return ''
+}
+
+const BASE_PATH = getBasePath()
+
+// 需要快取的資源
+const PRECACHE_URLS = [
+  `${BASE_PATH || '/'}`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/favicon.png`
+].filter(url => url !== '//') // 過濾掉空路徑
+
+// 安裝 Service Worker
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('[Service Worker] 預快取資源')
+        return cache.addAll(PRECACHE_URLS)
+      })
+      .then(() => self.skipWaiting())
+  )
+})
+
+// 啟動 Service Worker
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      const oldCaches = cacheNames.filter((cacheName) => {
+        return cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE
+      })
+      
+      // 刪除舊快取
+      return Promise.all(
+        oldCaches.map((cacheName) => {
+          console.log('[Service Worker] 刪除舊快取:', cacheName)
+          return caches.delete(cacheName)
+        })
+      )
+    }).then(() => {
+      // 強制所有客戶端重新載入（確保 iOS Safari 更新）
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clients) => {
+          console.log(`[Service Worker] 檢測到新版本 ${APP_VERSION}，強制刷新 ${clients.length} 個客戶端`)
+          clients.forEach((client) => {
+            // 通知客戶端有新版本
+            client.postMessage({ type: 'SW_UPDATE', version: APP_VERSION })
+            // 強制導航到當前 URL（強制刷新）
+            if (client.url && 'navigate' in client) {
+              client.navigate(client.url)
+            }
+          })
+        })
+    }).then(() => self.clients.claim())
+  )
+})
+
+// 攔截網路請求
+self.addEventListener('fetch', (event) => {
+  // 只處理 GET 請求
+  if (event.request.method !== 'GET') {
+    return
+  }
+
+  // 跳過非同源請求
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return
+  }
+
+  // 對於 HTML 文件，始終從網路獲取（確保獲取最新版本）
+  const isHTMLRequest = event.request.destination === 'document' || 
+                        event.request.url.endsWith('.html') ||
+                        event.request.url.endsWith('/')
+
+  event.respondWith(
+    fetch(event.request, { cache: isHTMLRequest ? 'no-cache' : 'default' })
+      .then((response) => {
+        // 只快取成功的回應
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response
+        }
+
+        // 對於 HTML 文件，不進行快取，確保每次獲取最新版本
+        if (isHTMLRequest) {
+          return response
+        }
+
+        // 複製回應以進行快取
+        const responseToCache = response.clone()
+
+        caches.open(RUNTIME_CACHE)
+          .then((cache) => {
+            cache.put(event.request, responseToCache)
+          })
+
+        return response
+      })
+      .catch(() => {
+        // 如果網路失敗，嘗試從快取獲取（僅非 HTML 文件）
+        if (!isHTMLRequest) {
+          return caches.match(event.request)
+        }
+        // 對於 HTML 文件，如果網路失敗，嘗試返回離線頁面
+        if (event.request.destination === 'document') {
+          return caches.match(`${BASE_PATH}/index.html`)
+        }
+        throw new Error('Network error')
+      })
+  )
+})
+
+// 處理背景同步（如果需要）
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-flight-data') {
+    event.waitUntil(
+      // 這裡可以添加背景同步邏輯
+      console.log('[Service Worker] 背景同步航班資料')
+    )
+  }
+})
+
+// 處理推送通知（如果需要）
+self.addEventListener('push', (event) => {
+  const options = {
+    body: event.data ? event.data.text() : '新的航班資料更新',
+    icon: `${BASE_PATH}/favicon.png`,
+    badge: `${BASE_PATH}/favicon.png`,
+    vibrate: [200, 100, 200],
+    tag: 'flight-data-update'
+  }
+
+  event.waitUntil(
+    self.registration.showNotification('航班資料更新', options)
+  )
+})

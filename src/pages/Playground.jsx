@@ -5,14 +5,16 @@ import {
   CloudIcon,
   CalendarIcon,
   ArrowLeftIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { Suspense, lazy } from 'react'
 import LoadingPage from './LoadingPage'
 
-// 懶加載音樂、天氣、班表管理組件
+// 懶加載音樂、天氣、班表、圖表組件
 const MusicContent = lazy(() => import('../components/playground/MusicContent'))
 const WeatherContent = lazy(() => import('../components/playground/WeatherContent'))
 const ScheduleManager = lazy(() => import('../components/playground/ScheduleManager'))
+const EchartsDemo = lazy(() => import('./EchartsDemo'))
 
 function Playground() {
   const navigate = useNavigate()
@@ -28,6 +30,8 @@ function Playground() {
       setCurrentPage('weather')
     } else if (hash.includes('#schedule')) {
       setCurrentPage('schedule')
+    } else if (hash.includes('#charts')) {
+      setCurrentPage('charts')
     } else {
       setCurrentPage(null)
     }
@@ -93,6 +97,19 @@ function Playground() {
                 <h2 className="text-xl font-bold text-primary">班表匯出</h2>
               </div>
             </button>
+
+            {/* Charts Testing */}
+            <button
+              onClick={() => navigate('/playground#charts')}
+              className="group bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-amber-500/30 transition-all hover:scale-105"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-lg group-hover:scale-110 transition-transform">
+                  <ChartBarIcon className="w-6 h-6 text-amber-400" />
+                </div>
+                <h2 className="text-xl font-bold text-primary">Charts Testing</h2>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -117,6 +134,7 @@ function Playground() {
           {currentPage === 'music' && <MusicContent />}
           {currentPage === 'weather' && <WeatherContent />}
           {currentPage === 'schedule' && <ScheduleManager />}
+          {currentPage === 'charts' && <EchartsDemo />}
         </Suspense>
       </div>
     </div>

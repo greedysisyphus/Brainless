@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { PaperAirplaneIcon, ArrowPathIcon, XMarkIcon, ArrowDownTrayIcon, ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import * as echarts from 'echarts'
 import { isPublicHoliday2026, isPreHoliday2026 } from '../../utils/taiwanHolidays2026'
 // 觸發部署更新
 
@@ -32,6 +33,7 @@ function FlightDataContent() {
   const abortControllerRef = useRef(null)
   const exportTableRef = useRef(null)
   const exportStatisticsRef = useRef(null) // 統計分析匯出用
+  const heatmapRef = useRef(null) // 每小時航班數熱力圖（統計分析）
   const [updateLogs, setUpdateLogs] = useState([]) // 更新日誌
   const [selectedChartDetail, setSelectedChartDetail] = useState(null) // 選中的圖表詳細資訊
   const [showUpdateLog, setShowUpdateLog] = useState(false) // 顯示更新日誌 Modal
@@ -253,32 +255,53 @@ function FlightDataContent() {
     setLoadingProgress(0)
 
     // 根據實際路徑調整
-    // 生產環境：/Brainless/data/ (GitHub Pages)
-    // 開發環境：/data/ (本地開發)
     const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-    const dataUrl = `${basePath}flight-data-${date}.json`
-    
-    console.log('[FlightData] 載入資料:', { date, dataUrl, timestamp: new Date().toISOString() })
+
+    const tryLoadDate = async (tryDate) => {
+      const url = `${basePath}flight-data-${tryDate}.json`
+      const response = await fetch(url, { signal: abortSignal, cache: 'no-cache' })
+      if (!response.ok) return null
+      const text = await response.text()
+      if (typeof text === 'string' && text.trimStart().startsWith('<')) return null
+      try {
+        const data = JSON.parse(text)
+        return { data, response }
+      } catch {
+        return null
+      }
+    }
+
+    console.log('[FlightData] 載入資料:', { date, basePath, timestamp: new Date().toISOString() })
 
     try {
-      // 模擬載入進度
       setLoadingProgress(30)
-      
-      const response = await fetch(dataUrl, { signal: abortSignal, cache: 'no-cache' })
+      let result = await tryLoadDate(date)
       setLoadingProgress(60)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error(`找不到 ${date} 的航班資料`)
+      let loadedDate = date
+      if (!result) {
+        for (let i = 1; i <= 14; i++) {
+          const d = new Date(date + 'T12:00:00')
+          d.setDate(d.getDate() - i)
+          const fallbackDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          result = await tryLoadDate(fallbackDate)
+          if (result) {
+            loadedDate = fallbackDate
+            break
+          }
         }
-        throw new Error(`HTTP 錯誤: ${response.status}`)
+      }
+      setLoadingProgress(80)
+      if (!result) {
+        throw new Error('找不到航班資料（請執行 npm run pull-data 或確認 data/ 內有 JSON 檔案）')
+      }
+      const { data, response } = result
+      const effectiveDate = data.date || loadedDate
+      if (loadedDate !== date) {
+        setStatus({ message: `未找到 ${date} 的檔案，已顯示最近可用：${effectiveDate}`, type: 'info' })
       }
 
-      const data = await response.json()
-      setLoadingProgress(80)
-      
       // 資料驗證
-      const validation = validateFlightData(data, date)
+      const validation = validateFlightData(data, effectiveDate)
       setDataValidation(validation)
       
       // 如果有嚴重錯誤，不載入資料
@@ -330,7 +353,7 @@ function FlightDataContent() {
           const logEntry = {
             id: Date.now(),
             timestamp: new Date().toISOString(), // 使用 ISO 字符串以便序列化
-            date: date,
+            date: effectiveDate,
             flightCount: data.flights?.length || 0,
             summary: data.summary || {},
             hasChanges: isSameDate && diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.modified.length > 0),
@@ -392,7 +415,9 @@ function FlightDataContent() {
         }
         return data
       })
-      setStatus({ message: `✅ 成功載入 ${formatDate(date)} 的資料`, type: 'success' })
+      if (loadedDate === date) {
+        setStatus({ message: `✅ 成功載入 ${formatDate(effectiveDate)} 的資料`, type: 'success' })
+      }
       setLoading(false)
       setLoadingProgress(0)
     } catch (error) {
@@ -520,16 +545,19 @@ function FlightDataContent() {
   const loadDeploymentLogs = useCallback(async () => {
     try {
       const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-      const response = await fetch(`${basePath}deployment-log.json?t=${Date.now()}`) // 添加時間戳避免緩存
-      if (response.ok) {
-        const data = await response.json()
-        setDeploymentLogs(data.deployments || [])
-      } else {
-        console.warn('無法載入部署記錄:', response.status)
+      const response = await fetch(`${basePath}deployment-log.json?t=${Date.now()}`)
+      if (!response.ok) {
         setDeploymentLogs([])
+        return
       }
-    } catch (error) {
-      console.warn('載入部署記錄失敗:', error)
+      const text = await response.text()
+      if (typeof text === 'string' && text.trimStart().startsWith('<')) {
+        setDeploymentLogs([])
+        return
+      }
+      const data = JSON.parse(text)
+      setDeploymentLogs(data.deployments || [])
+    } catch {
       setDeploymentLogs([])
     }
   }, [])
@@ -618,8 +646,11 @@ function FlightDataContent() {
     // 時間分布（每小時航班數）
     const hourlyDistribution = {}
     flightData.flights.forEach(flight => {
-      const hour = parseInt(flight.time.split(':')[0])
-      hourlyDistribution[hour] = (hourlyDistribution[hour] || 0) + 1
+      const timeStr = flight.time != null ? String(flight.time) : ''
+      const hour = parseInt(timeStr.split(':')[0], 10)
+      if (!Number.isNaN(hour) && hour >= 0 && hour <= 23) {
+        hourlyDistribution[hour] = (hourlyDistribution[hour] || 0) + 1
+      }
     })
 
     // 轉換為圖表格式
@@ -663,6 +694,135 @@ function FlightDataContent() {
       dates: multiDayData.map(d => d.dateLabel)
     }
   }, [multiDayData])
+
+  // 熱力圖資料：(日期, 時段) 每小時班次，供統計分析熱力圖使用
+  const heatmapDataFromMultiDay = useMemo(() => {
+    if (!multiDayData || multiDayData.length === 0) return []
+    const countByDateHour = {}
+    multiDayData.forEach(day => {
+      const dateStr = day.date
+      day.flights.forEach(flight => {
+        const hour = parseInt(String(flight.time || '').split(':')[0], 10)
+        if (!Number.isNaN(hour) && hour >= 0 && hour <= 23) {
+          const key = `${dateStr}-${hour}`
+          countByDateHour[key] = (countByDateHour[key] || 0) + 1
+        }
+      })
+    })
+    const dates = [...new Set(multiDayData.map(d => d.date))].sort((a, b) => a.localeCompare(b))
+    const result = []
+    dates.forEach(dateStr => {
+      for (let h = 0; h < 24; h++) {
+        result.push([dateStr, h, countByDateHour[`${dateStr}-${h}`] ?? 0])
+      }
+    })
+    return result
+  }, [multiDayData])
+
+  // 每小時航班數熱力圖（ECharts），與統計分析其他圖表風格一致
+  const CHART_BG = 'transparent'
+  const AXIS_COLOR = 'rgba(255,255,255,0.6)'
+  const AXIS_LINE = 'rgba(255,255,255,0.15)'
+  const TOOLTIP_STYLE_HEATMAP = {
+    backgroundColor: 'rgba(30, 30, 30, 0.95)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderRadius: 8,
+    textStyle: { color: 'rgba(255,255,255,0.9)' }
+  }
+
+  useEffect(() => {
+    if (activeTab !== 'statistics' || !heatmapDataFromMultiDay.length) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!heatmapRef.current) return
+      const chart = echarts.init(heatmapRef.current, 'dark')
+      const dates = [...new Set(heatmapDataFromMultiDay.map(d => d[0]))]
+      const heatmapSeriesData = heatmapDataFromMultiDay.map(([dateStr, h, value]) => [h, dates.indexOf(dateStr), value])
+      const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+      const formatDateShort = (dateStr) => {
+        const [y, m, d] = dateStr.split('-')
+        const date = new Date(y, parseInt(m, 10) - 1, parseInt(d, 10))
+        return `${parseInt(m, 10)}/${parseInt(d, 10)}（週${weekdays[date.getDay()]}）`
+      }
+      const yAxisLabels = dates.map(d => {
+        const [, m, day] = d.split('-')
+        return `${parseInt(m, 10)}/${parseInt(day, 10)}`
+      })
+      const values = heatmapSeriesData.map(d => d[2])
+      const dataMax = Math.max(1, ...values)
+      const option = {
+        backgroundColor: CHART_BG,
+        tooltip: {
+          trigger: 'item',
+          position: 'top',
+          ...TOOLTIP_STYLE_HEATMAP,
+          formatter: (p) => {
+            const [hour, dateIdx, value] = p.data
+            const dateStr = dates[dateIdx]
+            return `<strong>${formatDateShort(dateStr)}</strong><br/>${String(hour).padStart(2, '0')}:00～${String(hour).padStart(2, '0')}:59 · <strong>${value} 班</strong>`
+          }
+        },
+        grid: { left: 56, right: 48, top: 24, bottom: 92 },
+        xAxis: {
+          type: 'category',
+          name: '時段',
+          nameLocation: 'middle',
+          nameGap: 28,
+          nameTextStyle: { color: AXIS_COLOR, fontSize: 11 },
+          data: Array.from({ length: 24 }, (_, i) => `${i}`),
+          axisLabel: { color: AXIS_COLOR, fontSize: 10, interval: 2 },
+          axisLine: { lineStyle: { color: AXIS_LINE } },
+          splitArea: { areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)'] } }
+        },
+        yAxis: {
+          type: 'category',
+          name: '日期',
+          nameLocation: 'middle',
+          nameGap: 42,
+          nameTextStyle: { color: AXIS_COLOR, fontSize: 11 },
+          data: yAxisLabels,
+          axisLabel: { color: AXIS_COLOR, fontSize: 10 },
+          axisLine: { lineStyle: { color: AXIS_LINE } },
+          splitArea: { areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)'] } }
+        },
+        visualMap: {
+          type: 'continuous',
+          min: 0,
+          max: dataMax,
+          range: [0, dataMax],
+          calculable: true,
+          orient: 'horizontal',
+          left: 'center',
+          bottom: 12,
+          itemWidth: 14,
+          itemHeight: 380,
+          text: ['多', '少'],
+          textStyle: { color: AXIS_COLOR, fontSize: 10 },
+          inRange: {
+            color: ['#0f172a', '#0e7490', '#06b6d4', '#10b981', '#eab308', '#f97316', '#ef4444']
+          }
+        },
+        series: [{
+          type: 'heatmap',
+          data: heatmapSeriesData,
+          itemStyle: { borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1 },
+          emphasis: { itemStyle: { borderColor: '#8b5cf6', borderWidth: 2 } }
+        }]
+      }
+      chart.setOption(option)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => {
+        window.removeEventListener('resize', onResize)
+        chart.dispose()
+      }
+    })
+    return () => {
+      cancelAnimationFrame(id)
+      if (cleanup) cleanup()
+    }
+  }, [heatmapDataFromMultiDay, activeTab])
 
   // 計算多日最繁忙時段
   const busiestHours = useMemo(() => {
@@ -2192,11 +2352,11 @@ function FlightDataContent() {
                 <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">時間分布（每小時航班數）（當天）</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart 
-                    data={statistics.hourlyDistribution}
+                    data={statistics.hourlyDistribution ?? []}
                     onClick={(data, index) => {
                       if (data && data.activePayload && data.activePayload[0]) {
                         const hour = data.activePayload[0].payload.hour
-                        const hourData = statistics.hourlyDistribution.find(d => d.hour === hour)
+                        const hourData = (statistics.hourlyDistribution ?? []).find(d => d.hour === hour)
                         handleChartClick('hour', hour, hourData)
                       }
                     }}
@@ -2284,6 +2444,14 @@ function FlightDataContent() {
                   <Bar dataKey="totalFlights" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* 每小時航班數熱力圖（日期 × 時段） */}
+          {heatmapDataFromMultiDay.length > 0 && (
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每小時航班數熱力圖（日期 × 時段）</h3>
+              <div ref={heatmapRef} className="w-full h-[340px]" />
             </div>
           )}
 
