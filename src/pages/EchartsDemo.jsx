@@ -33,6 +33,7 @@ function EchartsDemo() {
   const airlineBarRef = useRef(null)
   const gaugeRef = useRef(null)
   const compareLineRef = useRef(null)
+  const multiDayHourlyRef = useRef(null)
 
   const [realData, setRealData] = useState(null)
   const [loadingHeatmap, setLoadingHeatmap] = useState(true)
@@ -417,9 +418,54 @@ function EchartsDemo() {
     return { hours, todayCounts, yesterdayCounts, todayStr, yesterdayStr }
   }, [realData])
 
+  // 每小時航班數趨勢（多天比較）：近 7 日、每條線一日，可圖例切換、tooltip 彙總
+  const multiDayHourlyData = useMemo(() => {
+    const hours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
+    if (!realData?.countByDateHour || !realData?.totalByDate) {
+      const dates = []
+      const end = new Date()
+      for (let d = 6; d >= 0; d--) {
+        const date = new Date(end.getFullYear(), end.getMonth(), end.getDate() - d)
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        dates.push({ dateStr, label: `${date.getMonth() + 1}/${date.getDate()}` })
+      }
+      const series = dates.map(({ dateStr }) =>
+        Array.from({ length: 24 }, (_, h) => Math.floor(Math.random() * 5) + (h >= 6 && h <= 10 ? 3 : 0) + (h >= 17 && h <= 21 ? 2 : 0))
+      )
+      return { hours, dates, series }
+    }
+    const dateStrs = Object.keys(realData.totalByDate).sort()
+    const last7 = dateStrs.slice(-7)
+    if (last7.length === 0) {
+      const dates = []
+      const end = new Date()
+      for (let d = 6; d >= 0; d--) {
+        const date = new Date(end.getFullYear(), end.getMonth(), end.getDate() - d)
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        dates.push({ dateStr, label: `${date.getMonth() + 1}/${date.getDate()}` })
+      }
+      const series = dates.map(() =>
+        Array.from({ length: 24 }, (_, h) => Math.floor(Math.random() * 5) + (h >= 6 && h <= 10 ? 3 : 0) + (h >= 17 && h <= 21 ? 2 : 0))
+      )
+      return { hours, dates, series }
+    }
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+    const dates = last7.map((dateStr) => {
+      const [y, m, d] = dateStr.split('-').map(Number)
+      const date = new Date(y, m - 1, d)
+      return { dateStr, label: `${m}/${d}（週${weekdays[date.getDay()]}）` }
+    })
+    const series = last7.map((dateStr) =>
+      Array.from({ length: 24 }, (_, h) => realData.countByDateHour[`${dateStr}-${h}`] ?? 0)
+    )
+    return { hours, dates, series }
+  }, [realData])
+
   useEffect(() => {
     if (!heatmapRef.current) return
     const chart = echarts.init(heatmapRef.current, 'dark')
+    const containerWidth = heatmapRef.current.getBoundingClientRect().width || 400
+    const isNarrow = containerWidth < 480
     const dates = [...new Set(heatmapData.map((d) => d[0]))]
     const heatmapSeriesData = heatmapData.map(([dateStr, h, value]) => [h, dates.indexOf(dateStr), value])
     const weekdays = ['日', '一', '二', '三', '四', '五', '六']
@@ -477,10 +523,11 @@ function EchartsDemo() {
         range: [0, dataMax],
         calculable: true,
         orient: 'horizontal',
-        left: 'center',
+        left: isNarrow ? '15%' : 'center',
+        right: isNarrow ? '15%' : undefined,
         bottom: 12,
-        itemWidth: 14,
-        itemHeight: 380,
+        itemWidth: isNarrow ? 20 : 14,
+        itemHeight: isNarrow ? Math.min(160, Math.max(100, containerWidth - 80)) : 380,
         text: ['多', '少'],
         textStyle: { color: AXIS_COLOR, fontSize: 10 },
         inRange: {
@@ -503,7 +550,21 @@ function EchartsDemo() {
       }]
     }
     chart.setOption(option)
-    const onResize = () => chart.resize()
+    const onResize = () => {
+      if (heatmapRef.current) {
+        const w = heatmapRef.current.getBoundingClientRect().width || 400
+        const narrow = w < 480
+        chart.setOption({
+          visualMap: {
+            left: narrow ? '15%' : 'center',
+            right: narrow ? '15%' : undefined,
+            itemWidth: narrow ? 20 : 14,
+            itemHeight: narrow ? Math.min(160, Math.max(100, w - 80)) : 380
+          }
+        })
+      }
+      chart.resize()
+    }
     window.addEventListener('resize', onResize)
     return () => {
       window.removeEventListener('resize', onResize)
@@ -1028,6 +1089,74 @@ function EchartsDemo() {
     }
   }, [compareLineData])
 
+  useEffect(() => {
+    if (!multiDayHourlyRef.current || !multiDayHourlyData.dates.length) return
+    const chart = echarts.init(multiDayHourlyRef.current, 'dark')
+    const { hours, dates, series } = multiDayHourlyData
+    const option = {
+      backgroundColor: CHART_BG,
+      title: { text: '每小時航班數趨勢（多天比較）', left: 'center', textStyle: { color: TITLE_COLOR } },
+      tooltip: {
+        trigger: 'axis',
+        ...TOOLTIP_STYLE,
+        formatter: (params) => {
+          if (!params?.length) return ''
+          const h = params[0].dataIndex
+          let s = `<strong>${hours[h]}</strong><br/>`
+          params.forEach((p, i) => {
+            s += `${p.marker} ${dates[i].label}: ${p.value} 班<br/>`
+          })
+          return s
+        }
+      },
+      legend: {
+        type: 'scroll',
+        data: dates.map((d) => d.label),
+        bottom: 28,
+        textStyle: { color: AXIS_COLOR },
+        pageButtonItemGap: 8,
+        pageTextStyle: { color: AXIS_COLOR }
+      },
+      grid: { left: 50, right: 30, top: 50, bottom: 72 },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: hours,
+        axisLabel: { color: AXIS_COLOR, fontSize: 10, interval: 2 },
+        axisLine: { lineStyle: { color: AXIS_LINE } }
+      },
+      yAxis: {
+        type: 'value',
+        name: '航班數',
+        nameTextStyle: { color: AXIS_COLOR },
+        axisLabel: { color: AXIS_COLOR },
+        splitLine: { lineStyle: { color: SPLIT_LINE } }
+      },
+      dataZoom: [
+        { type: 'inside', xAxisIndex: 0, start: 0, end: 100 },
+        { type: 'slider', xAxisIndex: 0, bottom: 4, height: 18, start: 0, end: 100, textStyle: { color: AXIS_COLOR } }
+      ],
+      series: dates.map((d, i) => ({
+        type: 'line',
+        name: d.label,
+        data: series[i],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 2, color: CHART_COLORS[i % CHART_COLORS.length] },
+        itemStyle: { color: CHART_COLORS[i % CHART_COLORS.length] },
+        areaStyle: { opacity: 0.08, color: CHART_COLORS[i % CHART_COLORS.length] }
+      }))
+    }
+    chart.setOption(option)
+    const onResize = () => chart.resize()
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      chart.dispose()
+    }
+  }, [multiDayHourlyData])
+
   return (
     <div className="min-h-screen bg-background text-primary p-4 sm:p-6 md:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -1118,6 +1247,10 @@ function EchartsDemo() {
           <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-lg lg:col-span-2">
             <p className="text-xs text-text-secondary mb-1">今日 vs 昨日 每小時班次</p>
             <div ref={compareLineRef} className="w-full h-[280px]" />
+          </div>
+          <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-lg lg:col-span-2">
+            <p className="text-xs text-text-secondary mb-1">近 7 日每小時航班數比較，可縮放時段、圖例切換</p>
+            <div ref={multiDayHourlyRef} className="w-full h-[320px]" />
           </div>
           <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-lg lg:col-span-2">
             <div ref={sankeyRef} className="w-full h-[340px]" />

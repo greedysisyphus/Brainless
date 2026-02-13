@@ -737,6 +737,8 @@ function FlightDataContent() {
     const id = requestAnimationFrame(() => {
       if (!heatmapRef.current) return
       const chart = echarts.init(heatmapRef.current, 'dark')
+      const containerWidth = heatmapRef.current.getBoundingClientRect().width || 400
+      const isNarrow = containerWidth < 480
       const dates = [...new Set(heatmapDataFromMultiDay.map(d => d[0]))]
       const heatmapSeriesData = heatmapDataFromMultiDay.map(([dateStr, h, value]) => [h, dates.indexOf(dateStr), value])
       const weekdays = ['日', '一', '二', '三', '四', '五', '六']
@@ -793,10 +795,11 @@ function FlightDataContent() {
           range: [0, dataMax],
           calculable: true,
           orient: 'horizontal',
-          left: 'center',
+          left: isNarrow ? '15%' : 'center',
+          right: isNarrow ? '15%' : undefined,
           bottom: 12,
-          itemWidth: 14,
-          itemHeight: 380,
+          itemWidth: isNarrow ? 20 : 14,
+          itemHeight: isNarrow ? Math.min(160, Math.max(100, containerWidth - 80)) : 380,
           text: ['多', '少'],
           textStyle: { color: AXIS_COLOR, fontSize: 10 },
           inRange: {
@@ -811,7 +814,21 @@ function FlightDataContent() {
         }]
       }
       chart.setOption(option)
-      const onResize = () => chart.resize()
+      const onResize = () => {
+        if (heatmapRef.current) {
+          const w = heatmapRef.current.getBoundingClientRect().width || 400
+          const narrow = w < 480
+          chart.setOption({
+            visualMap: {
+              left: narrow ? '15%' : 'center',
+              right: narrow ? '15%' : undefined,
+              itemWidth: narrow ? 20 : 14,
+              itemHeight: narrow ? Math.min(160, Math.max(100, w - 80)) : 380
+            }
+          })
+        }
+        chart.resize()
+      }
       window.addEventListener('resize', onResize)
       cleanup = () => {
         window.removeEventListener('resize', onResize)
