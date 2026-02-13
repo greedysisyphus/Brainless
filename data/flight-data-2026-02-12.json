@@ -151,14 +151,14 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "TG6364",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4944",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TG6364",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "AC6536",
@@ -302,14 +302,14 @@
       "destination": "Aomori (AOJ)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4946",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "NH5830",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "NZ4946",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "TG6296",
@@ -350,9 +350,9 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8738",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
+          "flight_code": "JL5176",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         },
         {
           "flight_code": "HA2504",
@@ -360,9 +360,9 @@
           "airline_name": "夏威夷航空"
         },
         {
-          "flight_code": "JL5176",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
+          "flight_code": "QF8738",
+          "airline_code": "QF",
+          "airline_name": "澳洲航空"
         }
       ]
     },
@@ -587,5 +587,5 @@
     "16:35 : D13 : BR871 (長榮航空)",
     "20:45 : D11 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-02-13T02:52:53.079731"
+  "updated_at": "2026-02-13T04:59:35.392622"
 }
