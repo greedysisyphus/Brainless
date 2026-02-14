@@ -433,7 +433,7 @@
       "type": "departure",
       "airport_code": "PVG",
       "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Shanghai/Pudong (PVG)",
@@ -523,20 +523,20 @@
     {
       "time": "23:45",
       "datetime": "2026-02-14T23:45:00",
-      "gate": "D12",
-      "flight_code": "CI53",
+      "gate": "D13",
+      "flight_code": "CI57",
       "airline_code": "CI",
       "airline_name": "中華航空",
       "type": "departure",
-      "airport_code": "BNE",
-      "city": "Brisbane",
+      "airport_code": "MEL",
+      "city": "Melbourne",
       "status": "準時ON TIME",
-      "aircraft": "A350-900",
+      "aircraft": "B777-300",
       "terminal": "2",
-      "destination": "Brisbane (BNE)",
+      "destination": "Melbourne (MEL)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8726",
+          "flight_code": "QF8728",
           "airline_code": "QF",
           "airline_name": "澳洲航空"
         }
@@ -597,8 +597,8 @@
     "18:10 : D14R : BR857 (長榮航空)",
     "20:30 : D11 : JX10 (星宇航空)",
     "20:45 : D13 : BR205 (長榮航空)",
-    "23:45 : D12 : CI53 (中華航空)",
+    "23:45 : D13 : CI57 (中華航空)",
     "23:50 : D11 : CI51 (中華航空)"
   ],
-  "updated_at": "2026-02-14T08:42:05.656670"
+  "updated_at": "2026-02-14T09:39:02.970562"
 }
