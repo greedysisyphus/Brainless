@@ -110,6 +110,22 @@
     {
       "time": "08:00",
       "datetime": "2026-02-15T08:00:00",
+      "gate": "D13",
+      "flight_code": "CI551",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "TFU",
+      "city": "Chengdu Tianfu",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Chengdu Tianfu (TFU)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "08:00",
+      "datetime": "2026-02-15T08:00:00",
       "gate": "D16",
       "flight_code": "BR106",
       "airline_code": "BR",
@@ -206,28 +222,6 @@
           "flight_code": "NH5812",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        }
-      ]
-    },
-    {
-      "time": "08:40",
-      "datetime": "2026-02-15T08:40:00",
-      "gate": "D13",
-      "flight_code": "AE991",
-      "airline_code": "AE",
-      "airline_name": "華信航空",
-      "type": "departure",
-      "airport_code": "XMN",
-      "city": "Xiamen",
-      "status": "準時ON TIME",
-      "aircraft": "A321-271",
-      "terminal": "2",
-      "destination": "Xiamen (XMN)",
-      "codeshare_flights": [
-        {
-          "flight_code": "MF9024",
-          "airline_code": "MF",
-          "airline_name": "廈門航空"
         }
       ]
     },
@@ -494,14 +488,14 @@
       "destination": "Sydney (SYD)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8730",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
-        },
-        {
           "flight_code": "KL4991",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "QF8730",
+          "airline_code": "QF",
+          "airline_name": "澳洲航空"
         }
       ]
     }
@@ -517,11 +511,11 @@
     "07:00 : D15R : BR217 (長榮航空)",
     "07:05 : D17 : BR170 (長榮航空)",
     "07:40 : D12 : JX711 (星宇航空)",
+    "08:00 : D13 : CI551 (中華航空)",
     "08:00 : D16 : BR106 (長榮航空)",
     "08:10 : D18 : BR851 (長榮航空)",
     "08:25 : D15R : JX785 (星宇航空)",
     "08:30 : D17 : BR132 (長榮航空)",
-    "08:40 : D13 : AE991 (華信航空)",
     "08:40 : D11 : JX771 (星宇航空)",
     "09:25 : D12 : JX741 (星宇航空)",
     "09:50 : D14R : BR867 (長榮航空)",
@@ -536,5 +530,5 @@
     "20:45 : D12 : JX26 (星宇航空)",
     "23:50 : D11 : CI51 (中華航空)"
   ],
-  "updated_at": "2026-02-14T16:39:43.417330"
+  "updated_at": "2026-02-14T17:31:57.949106"
 }
