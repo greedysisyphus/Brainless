@@ -365,7 +365,7 @@
       "type": "departure",
       "airport_code": "PEK",
       "city": "Beijing",
-      "status": "時間更改SCHEDULE CHANGE",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Beijing (PEK)",
@@ -553,5 +553,5 @@
     "20:45 : D12 : JX26 (星宇航空)",
     "23:50 : D11 : CI51 (中華航空)"
   ],
-  "updated_at": "2026-02-15T07:45:04.919916"
+  "updated_at": "2026-02-15T08:41:40.780933"
 }
