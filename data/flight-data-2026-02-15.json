@@ -312,6 +312,28 @@
       "codeshare_flights": []
     },
     {
+      "time": "14:30",
+      "datetime": "2026-02-15T14:30:00",
+      "gate": "D17",
+      "flight_code": "CI194",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "KMJ",
+      "city": "Kumamoto",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Kumamoto (KMJ)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5172",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        }
+      ]
+    },
+    {
       "time": "15:00",
       "datetime": "2026-02-15T15:00:00",
       "gate": "D14R",
@@ -343,7 +365,7 @@
       "type": "departure",
       "airport_code": "PEK",
       "city": "Beijing",
-      "status": "準時ON TIME",
+      "status": "時間更改SCHEDULE CHANGE",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Beijing (PEK)",
@@ -391,14 +413,14 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "TG6282",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4902",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TG6282",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -488,21 +510,21 @@
       "destination": "Sydney (SYD)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8730",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
-        },
-        {
           "flight_code": "KL4991",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "QF8730",
+          "airline_code": "QF",
+          "airline_name": "澳洲航空"
         }
       ]
     }
   ],
   "summary": {
-    "total_flights": 23,
-    "before_17:00": 21,
+    "total_flights": 24,
+    "before_17:00": 22,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -521,6 +543,7 @@
     "09:50 : D14R : BR867 (長榮航空)",
     "10:00 : D17 : BR255 (長榮航空)",
     "14:00 : D11 : JX713 (星宇航空)",
+    "14:30 : D17 : CI194 (中華航空)",
     "15:00 : D14R : BR716 (長榮航空)",
     "15:35 : D11 : CI517 (中華航空)",
     "15:40 : D12 : JX783 (星宇航空)",
@@ -530,5 +553,5 @@
     "20:45 : D12 : JX26 (星宇航空)",
     "23:50 : D11 : CI51 (中華航空)"
   ],
-  "updated_at": "2026-02-15T02:53:45.970846"
+  "updated_at": "2026-02-15T05:00:23.352789"
 }
