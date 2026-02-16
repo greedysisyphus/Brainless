@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "CTS",
       "city": "Sapporo/CTS",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Sapporo/CTS (CTS)",
@@ -49,11 +49,6 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5834",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "NZ4928",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -62,6 +57,11 @@
           "flight_code": "TG6354",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NH5834",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -81,14 +81,14 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
-          "flight_code": "HA2540",
-          "airline_code": "HA",
-          "airline_name": "夏威夷航空"
-        },
-        {
           "flight_code": "JL5126",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "HA2540",
+          "airline_code": "HA",
+          "airline_name": "夏威夷航空"
         }
       ]
     },
@@ -124,11 +124,6 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
-          "flight_code": "TK9454",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "NH5836",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -142,13 +137,18 @@
           "flight_code": "NZ4907",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TK9454",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         }
       ]
     },
     {
       "time": "07:35",
       "datetime": "2026-02-17T07:35:00",
-      "gate": "D11",
+      "gate": "D14R",
       "flight_code": "CI154",
       "airline_code": "CI",
       "airline_name": "中華航空",
@@ -215,11 +215,6 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5812",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "TG6356",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -228,6 +223,11 @@
           "flight_code": "NZ4914",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "NH5812",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -266,7 +266,7 @@
     {
       "time": "08:45",
       "datetime": "2026-02-17T08:45:00",
-      "gate": "D14R",
+      "gate": "D11",
       "flight_code": "BR265",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -320,7 +320,7 @@
     {
       "time": "09:25",
       "datetime": "2026-02-17T09:25:00",
-      "gate": "D11",
+      "gate": "D14R",
       "flight_code": "JX741",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -441,14 +441,14 @@
       "destination": "Takamatsu (TAK)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5124",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4985",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5124",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -610,16 +610,16 @@
     "06:50 : D18 : CI110 (中華航空)",
     "06:50 : D16 : JX761 (星宇航空)",
     "06:55 : D17 : BR112 (長榮航空)",
-    "07:35 : D11 : CI154 (中華航空)",
+    "07:35 : D14R : CI154 (中華航空)",
     "07:40 : D12 : JX711 (星宇航空)",
     "08:20 : D13 : BR281 (長榮航空)",
     "08:30 : D16 : BR132 (長榮航空)",
     "08:30 : D17 : JX785 (星宇航空)",
     "08:40 : D18 : JX771 (星宇航空)",
-    "08:45 : D14R : BR265 (長榮航空)",
+    "08:45 : D11 : BR265 (長榮航空)",
     "09:00 : D15R : BR237 (長榮航空)",
     "09:05 : D12 : BR716 (長榮航空)",
-    "09:25 : D11 : JX741 (星宇航空)",
+    "09:25 : D14R : JX741 (星宇航空)",
     "10:00 : D13 : BR255 (長榮航空)",
     "10:00 : D16 : BR801 (長榮航空)",
     "12:55 : D11 : JX751 (星宇航空)",
@@ -634,5 +634,5 @@
     "19:30 : D13 : BR381 (長榮航空)",
     "20:30 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-02-16T21:36:36.206077"
+  "updated_at": "2026-02-16T22:36:57.100050"
 }
