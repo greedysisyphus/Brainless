@@ -629,7 +629,7 @@
       "type": "departure",
       "airport_code": "NGO",
       "city": "Nagoya",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Nagoya (NGO)",
@@ -727,5 +727,5 @@
     "20:30 : D12 : JX10 (星宇航空)",
     "23:50 : D11 : CI51 (中華航空)"
   ],
-  "updated_at": "2026-02-16T08:59:09.879797"
+  "updated_at": "2026-02-16T10:06:13.900923"
 }
