@@ -548,7 +548,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -570,7 +570,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -592,7 +592,7 @@
       "type": "departure",
       "airport_code": "SEA",
       "city": "Seattle",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Seattle (SEA)",
@@ -634,5 +634,5 @@
     "19:30 : D13 : BR381 (長榮航空)",
     "20:30 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-02-17T11:00:39.764579"
+  "updated_at": "2026-02-17T13:20:33.004110"
 }
