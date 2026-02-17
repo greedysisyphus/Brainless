@@ -34,6 +34,28 @@
       "codeshare_flights": []
     },
     {
+      "time": "07:00",
+      "datetime": "2026-02-18T07:00:00",
+      "gate": "D18",
+      "flight_code": "BR891",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "HKG",
+      "city": "Hong Kong",
+      "status": "準時ON TIME",
+      "aircraft": "B787-10",
+      "terminal": "2",
+      "destination": "Hong Kong (HKG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HX1819",
+          "airline_code": "HX",
+          "airline_name": "香港航空"
+        }
+      ]
+    },
+    {
       "time": "07:20",
       "datetime": "2026-02-18T07:20:00",
       "gate": "D14R",
@@ -49,14 +71,14 @@
       "destination": "Chiang Mai (CNX)",
       "codeshare_flights": [
         {
-          "flight_code": "TK9457",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "TG6323",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "TK9457",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         }
       ]
     },
@@ -75,38 +97,6 @@
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
       "codeshare_flights": []
-    },
-    {
-      "time": "08:00",
-      "datetime": "2026-02-18T08:00:00",
-      "gate": "D18",
-      "flight_code": "BR106",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "FUK",
-      "city": "Fukuoka",
-      "status": "準時ON TIME",
-      "aircraft": "B787-10",
-      "terminal": "2",
-      "destination": "Fukuoka (FUK)",
-      "codeshare_flights": [
-        {
-          "flight_code": "NZ4906",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TG6362",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NH5802",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        }
-      ]
     },
     {
       "time": "08:10",
@@ -144,6 +134,22 @@
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Manila (MNL)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "08:20",
+      "datetime": "2026-02-18T08:20:00",
+      "gate": "D18",
+      "flight_code": "BR281",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "CEB",
+      "city": "Cebu",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Cebu (CEB)",
       "codeshare_flights": []
     },
     {
@@ -496,18 +502,19 @@
     }
   ],
   "summary": {
-    "total_flights": 20,
-    "before_17:00": 18,
+    "total_flights": 21,
+    "before_17:00": 19,
     "after_17:00": 2
   },
   "formatted_display": [
     "06:55 : D12 : JX781 (星宇航空)",
     "07:00 : D15R : BR217 (長榮航空)",
+    "07:00 : D18 : BR891 (長榮航空)",
     "07:20 : D14R : BR257 (長榮航空)",
     "07:40 : D11 : JX711 (星宇航空)",
-    "08:00 : D18 : BR106 (長榮航空)",
     "08:10 : D17 : BR851 (長榮航空)",
     "08:15 : D13 : JX785 (星宇航空)",
+    "08:20 : D18 : BR281 (長榮航空)",
     "08:25 : D12 : JX771 (星宇航空)",
     "08:30 : D15R : BR132 (長榮航空)",
     "08:50 : D14R : BR198 (長榮航空)",
@@ -522,5 +529,5 @@
     "18:10 : D13 : BR857 (長榮航空)",
     "20:45 : D14R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-02-17T16:00:00.268983"
+  "updated_at": "2026-02-17T17:12:10.342105"
 }
