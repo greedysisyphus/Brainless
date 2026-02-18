@@ -1,0 +1,752 @@
+{
+  "date": "2026-02-19",
+  "flights": [
+    {
+      "time": "06:35",
+      "datetime": "2026-02-19T06:35:00",
+      "gate": "D11",
+      "flight_code": "BR158",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "KMQ",
+      "city": "Komatsu",
+      "status": "準時ON TIME",
+      "aircraft": "A321-200",
+      "terminal": "2",
+      "destination": "Komatsu (KMQ)",
+      "codeshare_flights": [
+        {
+          "flight_code": "NH5820",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6376",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4920",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        }
+      ]
+    },
+    {
+      "time": "06:55",
+      "datetime": "2026-02-19T06:55:00",
+      "gate": "D17",
+      "flight_code": "JX781",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "CEB",
+      "city": "Cebu",
+      "status": "準時ON TIME",
+      "aircraft": "A321-252",
+      "terminal": "2",
+      "destination": "Cebu (CEB)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "06:55",
+      "datetime": "2026-02-19T06:55:00",
+      "gate": "D18",
+      "flight_code": "JX789",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "CRK",
+      "city": "Clark",
+      "status": "準時ON TIME",
+      "aircraft": "A321-252",
+      "terminal": "2",
+      "destination": "Clark (CRK)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "07:00",
+      "datetime": "2026-02-19T07:00:00",
+      "gate": "D16",
+      "flight_code": "CI112",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "HIJ",
+      "city": "Hiroshima",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Hiroshima (HIJ)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5110",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4976",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
+        }
+      ]
+    },
+    {
+      "time": "07:35",
+      "datetime": "2026-02-19T07:35:00",
+      "gate": "D11",
+      "flight_code": "CI154",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "NGO",
+      "city": "Nagoya",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Nagoya (NGO)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5112",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        }
+      ]
+    },
+    {
+      "time": "07:50",
+      "datetime": "2026-02-19T07:50:00",
+      "gate": "D12",
+      "flight_code": "JX711",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "SGN",
+      "city": "Ho Chi Minh",
+      "status": "準時ON TIME",
+      "aircraft": "A350-900",
+      "terminal": "2",
+      "destination": "Ho Chi Minh (SGN)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "08:10",
+      "datetime": "2026-02-19T08:10:00",
+      "gate": "D14R",
+      "flight_code": "BR851",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "HKG",
+      "city": "Hong Kong",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Hong Kong (HKG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HX1821",
+          "airline_code": "HX",
+          "airline_name": "香港航空"
+        }
+      ]
+    },
+    {
+      "time": "08:15",
+      "datetime": "2026-02-19T08:15:00",
+      "gate": "D16",
+      "flight_code": "CI120",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "OKA",
+      "city": "Okinawa",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Okinawa (OKA)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5134",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4997",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "MH5604",
+          "airline_code": "MH",
+          "airline_name": "馬來西亞"
+        }
+      ]
+    },
+    {
+      "time": "08:30",
+      "datetime": "2026-02-19T08:30:00",
+      "gate": "D18",
+      "flight_code": "JX771",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "SIN",
+      "city": "Singapore",
+      "status": "準時ON TIME",
+      "aircraft": "A330-900",
+      "terminal": "2",
+      "destination": "Singapore (SIN)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "08:30",
+      "datetime": "2026-02-19T08:30:00",
+      "gate": "D17",
+      "flight_code": "JX785",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "MNL",
+      "city": "Manila",
+      "status": "準時ON TIME",
+      "aircraft": "A321-252",
+      "terminal": "2",
+      "destination": "Manila (MNL)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "08:50",
+      "datetime": "2026-02-19T08:50:00",
+      "gate": "D11",
+      "flight_code": "BR198",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "NRT",
+      "city": "Tokyo",
+      "status": "準時ON TIME",
+      "aircraft": "B787-10",
+      "terminal": "2",
+      "destination": "Tokyo (NRT)",
+      "codeshare_flights": [
+        {
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "TG6346",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4934",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        }
+      ]
+    },
+    {
+      "time": "09:05",
+      "datetime": "2026-02-19T09:05:00",
+      "gate": "D13",
+      "flight_code": "BR716",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "PEK",
+      "city": "Beijing",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Beijing (PEK)",
+      "codeshare_flights": [
+        {
+          "flight_code": "CA5516",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
+        }
+      ]
+    },
+    {
+      "time": "09:20",
+      "datetime": "2026-02-19T09:20:00",
+      "gate": "D12",
+      "flight_code": "BR227",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "KUL",
+      "city": "Kuala Lumpur",
+      "status": "準時ON TIME",
+      "aircraft": "B777-300",
+      "terminal": "2",
+      "destination": "Kuala Lumpur (KUL)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "09:30",
+      "datetime": "2026-02-19T09:30:00",
+      "gate": "D14R",
+      "flight_code": "BR116",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "CTS",
+      "city": "Sapporo/CTS",
+      "status": "準時ON TIME",
+      "aircraft": "B787-10",
+      "terminal": "2",
+      "destination": "Sapporo/CTS (CTS)",
+      "codeshare_flights": [
+        {
+          "flight_code": "NH5816",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6336",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4908",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        }
+      ]
+    },
+    {
+      "time": "09:35",
+      "datetime": "2026-02-19T09:35:00",
+      "gate": "D15R",
+      "flight_code": "BR215",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "SIN",
+      "city": "Singapore",
+      "status": "準時ON TIME",
+      "aircraft": "B777-300",
+      "terminal": "2",
+      "destination": "Singapore (SIN)",
+      "codeshare_flights": [
+        {
+          "flight_code": "SQ5803",
+          "airline_code": "SQ",
+          "airline_name": "新加坡航空"
+        },
+        {
+          "flight_code": "AI7059",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
+        }
+      ]
+    },
+    {
+      "time": "09:50",
+      "datetime": "2026-02-19T09:50:00",
+      "gate": "D16",
+      "flight_code": "BR712",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "PVG",
+      "city": "Shanghai/Pudong",
+      "status": "準時ON TIME",
+      "aircraft": "B777-300",
+      "terminal": "2",
+      "destination": "Shanghai/Pudong (PVG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HO3182",
+          "airline_code": "HO",
+          "airline_name": "吉祥航空"
+        },
+        {
+          "flight_code": "CA5512",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "B77016",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        }
+      ]
+    },
+    {
+      "time": "10:15",
+      "datetime": "2026-02-19T10:15:00",
+      "gate": "D17",
+      "flight_code": "JX8072",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "GUM",
+      "city": "Guam",
+      "status": "準時ON TIME",
+      "aircraft": "A321-252",
+      "terminal": "2",
+      "destination": "Guam (GUM)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "13:25",
+      "datetime": "2026-02-19T13:25:00",
+      "gate": "D12",
+      "flight_code": "JX745",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "BKK",
+      "city": "Bangkok",
+      "status": "準時ON TIME",
+      "aircraft": "A350-900",
+      "terminal": "2",
+      "destination": "Bangkok (BKK)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "14:50",
+      "datetime": "2026-02-19T14:50:00",
+      "gate": "D16",
+      "flight_code": "BR385",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "HAN",
+      "city": "Hanoi",
+      "status": "準時ON TIME",
+      "aircraft": "A321-200",
+      "terminal": "2",
+      "destination": "Hanoi (HAN)",
+      "codeshare_flights": [
+        {
+          "flight_code": "TK9474",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        }
+      ]
+    },
+    {
+      "time": "15:15",
+      "datetime": "2026-02-19T15:15:00",
+      "gate": "D15R",
+      "flight_code": "BR160",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "ICN",
+      "city": "Incheon",
+      "status": "準時ON TIME",
+      "aircraft": "B787-9",
+      "terminal": "2",
+      "destination": "Incheon (ICN)",
+      "codeshare_flights": [
+        {
+          "flight_code": "NZ4922",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "OZ6872",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
+        },
+        {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "TG6392",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        }
+      ]
+    },
+    {
+      "time": "15:20",
+      "datetime": "2026-02-19T15:20:00",
+      "gate": "D17",
+      "flight_code": "JX703",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "DAD",
+      "city": "Da Nang",
+      "status": "準時ON TIME",
+      "aircraft": "A321-252",
+      "terminal": "2",
+      "destination": "Da Nang (DAD)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "16:25",
+      "datetime": "2026-02-19T16:25:00",
+      "gate": "D13",
+      "flight_code": "CI106",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "NRT",
+      "city": "Tokyo",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Tokyo (NRT)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HA2506",
+          "airline_code": "HA",
+          "airline_name": "夏威夷航空"
+        },
+        {
+          "flight_code": "JL5040",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        }
+      ]
+    },
+    {
+      "time": "16:30",
+      "datetime": "2026-02-19T16:30:00",
+      "gate": "D16",
+      "flight_code": "BR722",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "PVG",
+      "city": "Shanghai/Pudong",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Shanghai/Pudong (PVG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "B77018",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "CA5522",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "HO3188",
+          "airline_code": "HO",
+          "airline_name": "吉祥航空"
+        }
+      ]
+    },
+    {
+      "time": "16:30",
+      "datetime": "2026-02-19T16:30:00",
+      "gate": "D14R",
+      "flight_code": "BR805",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "MFM",
+      "city": "Macau",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Macau (MFM)",
+      "codeshare_flights": [
+        {
+          "flight_code": "NX3005",
+          "airline_code": "NX",
+          "airline_name": "澳門航空"
+        }
+      ]
+    },
+    {
+      "time": "16:50",
+      "datetime": "2026-02-19T16:50:00",
+      "gate": "D18",
+      "flight_code": "BR186",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "OKA",
+      "city": "Okinawa",
+      "status": "準時ON TIME",
+      "aircraft": "A321-200",
+      "terminal": "2",
+      "destination": "Okinawa (OKA)",
+      "codeshare_flights": [
+        {
+          "flight_code": "NH5810",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "NZ4904",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TG6334",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        }
+      ]
+    },
+    {
+      "time": "19:00",
+      "datetime": "2026-02-19T19:00:00",
+      "gate": "D17",
+      "flight_code": "BR809",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "HKG",
+      "city": "Hong Kong",
+      "status": "準時ON TIME",
+      "aircraft": "A321-200",
+      "terminal": "2",
+      "destination": "Hong Kong (HKG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HX1835",
+          "airline_code": "HX",
+          "airline_name": "香港航空"
+        }
+      ]
+    },
+    {
+      "time": "19:30",
+      "datetime": "2026-02-19T19:30:00",
+      "gate": "D13",
+      "flight_code": "BR381",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "SGN",
+      "city": "Ho Chi Minh",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Ho Chi Minh (SGN)",
+      "codeshare_flights": [
+        {
+          "flight_code": "TK9469",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        }
+      ]
+    },
+    {
+      "time": "20:45",
+      "datetime": "2026-02-19T20:45:00",
+      "gate": "D15R",
+      "flight_code": "BR205",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "BKK",
+      "city": "Bangkok",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Bangkok (BKK)",
+      "codeshare_flights": [
+        {
+          "flight_code": "AI7063",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
+        },
+        {
+          "flight_code": "TK9458",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "TG6307",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        }
+      ]
+    },
+    {
+      "time": "20:45",
+      "datetime": "2026-02-19T20:45:00",
+      "gate": "D12",
+      "flight_code": "JX26",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "PHX",
+      "city": "Phoenix",
+      "status": "準時ON TIME",
+      "aircraft": "A350-900",
+      "terminal": "2",
+      "destination": "Phoenix (PHX)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "23:35",
+      "datetime": "2026-02-19T23:35:00",
+      "gate": "D11",
+      "flight_code": "JX2",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "LAX",
+      "city": "Los Angeles",
+      "status": "準時ON TIME",
+      "aircraft": "A350-900",
+      "terminal": "2",
+      "destination": "Los Angeles (LAX)",
+      "codeshare_flights": []
+    }
+  ],
+  "summary": {
+    "total_flights": 30,
+    "before_17:00": 25,
+    "after_17:00": 5
+  },
+  "formatted_display": [
+    "06:35 : D11 : BR158 (長榮航空)",
+    "06:55 : D17 : JX781 (星宇航空)",
+    "06:55 : D18 : JX789 (星宇航空)",
+    "07:00 : D16 : CI112 (中華航空)",
+    "07:35 : D11 : CI154 (中華航空)",
+    "07:50 : D12 : JX711 (星宇航空)",
+    "08:10 : D14R : BR851 (長榮航空)",
+    "08:15 : D16 : CI120 (中華航空)",
+    "08:30 : D18 : JX771 (星宇航空)",
+    "08:30 : D17 : JX785 (星宇航空)",
+    "08:50 : D11 : BR198 (長榮航空)",
+    "09:05 : D13 : BR716 (長榮航空)",
+    "09:20 : D12 : BR227 (長榮航空)",
+    "09:30 : D14R : BR116 (長榮航空)",
+    "09:35 : D15R : BR215 (長榮航空)",
+    "09:50 : D16 : BR712 (長榮航空)",
+    "10:15 : D17 : JX8072 (星宇航空)",
+    "13:25 : D12 : JX745 (星宇航空)",
+    "14:50 : D16 : BR385 (長榮航空)",
+    "15:15 : D15R : BR160 (長榮航空)",
+    "15:20 : D17 : JX703 (星宇航空)",
+    "16:25 : D13 : CI106 (中華航空)",
+    "16:30 : D16 : BR722 (長榮航空)",
+    "16:30 : D14R : BR805 (長榮航空)",
+    "16:50 : D18 : BR186 (長榮航空)",
+    "19:00 : D17 : BR809 (長榮航空)",
+    "19:30 : D13 : BR381 (長榮航空)",
+    "20:45 : D15R : BR205 (長榮航空)",
+    "20:45 : D12 : JX26 (星宇航空)",
+    "23:35 : D11 : JX2 (星宇航空)"
+  ],
+  "updated_at": "2026-02-18T15:59:27.648023"
+}
