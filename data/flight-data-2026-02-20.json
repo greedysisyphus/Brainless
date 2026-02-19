@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "SFO",
       "city": "San Francisco",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "San Francisco (SFO)",
@@ -36,7 +36,7 @@
     {
       "time": "06:55",
       "datetime": "2026-02-20T06:55:00",
-      "gate": "D14R",
+      "gate": "D11",
       "flight_code": "JX789",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -65,14 +65,14 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "AC6535",
@@ -119,6 +119,33 @@
       ]
     },
     {
+      "time": "08:10",
+      "datetime": "2026-02-20T08:10:00",
+      "gate": "D11",
+      "flight_code": "CI156",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "KIX",
+      "city": "Osaka Kansai",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Osaka Kansai (KIX)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5102",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "HA2526",
+          "airline_code": "HA",
+          "airline_name": "夏威夷航空"
+        }
+      ]
+    },
+    {
       "time": "08:20",
       "datetime": "2026-02-20T08:20:00",
       "gate": "D17",
@@ -151,25 +178,9 @@
       ]
     },
     {
-      "time": "08:20",
-      "datetime": "2026-02-20T08:20:00",
-      "gate": "D14R",
-      "flight_code": "BR281",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "CEB",
-      "city": "Cebu",
-      "status": "準時ON TIME",
-      "aircraft": "A330-300",
-      "terminal": "2",
-      "destination": "Cebu (CEB)",
-      "codeshare_flights": []
-    },
-    {
       "time": "08:30",
       "datetime": "2026-02-20T08:30:00",
-      "gate": "D11",
+      "gate": "D14R",
       "flight_code": "JX771",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -476,12 +487,12 @@
   "formatted_display": [
     "00:05 : D12 : JX12 (星宇航空)",
     "05:45 : D12 : CI2130 (中華航空)",
-    "06:55 : D14R : JX789 (星宇航空)",
+    "06:55 : D11 : JX789 (星宇航空)",
     "07:05 : D17 : BR170 (長榮航空)",
     "07:25 : D18 : BR225 (長榮航空)",
+    "08:10 : D11 : CI156 (中華航空)",
     "08:20 : D17 : BR132 (長榮航空)",
-    "08:20 : D14R : BR281 (長榮航空)",
-    "08:30 : D11 : JX771 (星宇航空)",
+    "08:30 : D14R : JX771 (星宇航空)",
     "09:25 : D13 : JX741 (星宇航空)",
     "09:50 : D16 : BR712 (長榮航空)",
     "09:50 : D15R : BR867 (長榮航空)",
@@ -495,5 +506,5 @@
     "20:45 : D11 : BR205 (長榮航空)",
     "23:40 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-19T15:57:14.837985"
+  "updated_at": "2026-02-19T17:05:18.835569"
 }
