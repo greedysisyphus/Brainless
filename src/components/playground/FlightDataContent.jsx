@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { PaperAirplaneIcon, ArrowPathIcon, XMarkIcon, ArrowDownTrayIcon, ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import * as echarts from 'echarts'
 import { isPublicHoliday2026, isPreHoliday2026 } from '../../utils/taiwanHolidays2026'
 // 觸發部署更新
@@ -24,7 +24,11 @@ function FlightDataContent() {
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(null)
   const [multiDayData, setMultiDayData] = useState([]) // 多天數據
+  const [lastWeekData, setLastWeekData] = useState([]) // 上週同期（供歷史趨勢對比）
+  const [lastMonthData, setLastMonthData] = useState([]) // 上月同期（供歷史趨勢對比）
+  const [lastYearData, setLastYearData] = useState([]) // 去年同期（供歷史趨勢對比）
   const [loadingMultiDay, setLoadingMultiDay] = useState(false)
+  const [loadingHistorical, setLoadingHistorical] = useState(false)
   const [hideExpiredFlights, setHideExpiredFlights] = useState(false) // 隱藏已過期航班
   const [selectedFlight, setSelectedFlight] = useState(null) // 選中的航班（用於顯示詳細資料）
   const [dataValidation, setDataValidation] = useState({ warnings: [], errors: [] }) // 資料驗證結果
@@ -34,11 +38,19 @@ function FlightDataContent() {
   const exportTableRef = useRef(null)
   const exportStatisticsRef = useRef(null) // 統計分析匯出用
   const heatmapRef = useRef(null) // 每小時航班數熱力圖（統計分析）
+  const dailyTotalChartRef = useRef(null)
+  const destTop10Ref = useRef(null)
+  const airlineTop10Ref = useRef(null)
+  const hourlyDistRef = useRef(null) // 當天每小時航班數（ECharts）
+  const multiDayHourlyTrendRef = useRef(null) // 每小時航班數趨勢（多天比較）ECharts
+  const historicalLoadMountedRef = useRef(true)
   const [updateLogs, setUpdateLogs] = useState([]) // 更新日誌
   const [selectedChartDetail, setSelectedChartDetail] = useState(null) // 選中的圖表詳細資訊
   const [showUpdateLog, setShowUpdateLog] = useState(false) // 顯示更新日誌 Modal
   const [selectedLogDetail, setSelectedLogDetail] = useState(null) // 選中的日誌詳細資料
   const [deploymentLogs, setDeploymentLogs] = useState([]) // 部署記錄
+  const [destChartMode, setDestChartMode] = useState('bar') // 'bar' | 'race'（統計分析 目的地）
+  const [hourlyChartMode, setHourlyChartMode] = useState('area') // 'area' | 'bar'（統計分析 當天每小時）
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr + 'T00:00:00')
@@ -534,6 +546,93 @@ function FlightDataContent() {
     }
   }, [])
 
+  // 載入上週同期、上月同期、去年同期（與當前期間相同天數與結構，供歷史趨勢對比）
+  const loadHistoricalComparisonData = useCallback(async () => {
+    if (!multiDayData || multiDayData.length === 0) {
+      setLastWeekData([])
+      setLastMonthData([])
+      setLastYearData([])
+      return
+    }
+    setLoadingHistorical(true)
+    const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
+    const toDateStr = (d) => {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    }
+    const parseDate = (dateStr) => {
+      const [y, m, d] = dateStr.split('-').map(Number)
+      return new Date(y, m - 1, d)
+    }
+    const weekAgoDates = multiDayData.map((day) => {
+      const d = parseDate(day.date)
+      d.setDate(d.getDate() - 7)
+      return toDateStr(d)
+    })
+    const monthAgoDates = multiDayData.map((day) => {
+      const d = parseDate(day.date)
+      d.setDate(d.getDate() - 30)
+      return toDateStr(d)
+    })
+    const yearAgoDates = multiDayData.map((day) => {
+      const d = parseDate(day.date)
+      d.setDate(d.getDate() - 365)
+      return toDateStr(d)
+    })
+    const fetchOne = async (dateStr) => {
+      try {
+        const res = await fetch(`${basePath}flight-data-${dateStr}.json`, { cache: 'no-cache' })
+        if (!res.ok) return null
+        const text = await res.text()
+        if (typeof text === 'string' && text.trimStart().startsWith('<')) return null
+        const data = JSON.parse(text)
+        return { data, dateStr }
+      } catch {
+        return null
+      }
+    }
+    const [weekResults, monthResults, yearResults] = await Promise.all([
+      Promise.all(weekAgoDates.map(fetchOne)),
+      Promise.all(monthAgoDates.map(fetchOne)),
+      Promise.all(yearAgoDates.map(fetchOne))
+    ])
+    if (!historicalLoadMountedRef.current) return
+    const buildList = (results) =>
+      results
+        .map((r) => {
+          if (!r || !r.data) return null
+          const date = new Date(r.dateStr)
+          const flights = r.data.flights || []
+          const totalFlights = r.data.summary?.total_flights ?? flights.length
+          return {
+            date: r.dateStr,
+            dateLabel: date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }),
+            totalFlights,
+            flights
+          }
+        })
+        .filter(Boolean)
+    setLastWeekData(buildList(weekResults))
+    setLastMonthData(buildList(monthResults))
+    setLastYearData(buildList(yearResults))
+    if (historicalLoadMountedRef.current) setLoadingHistorical(false)
+  }, [multiDayData])
+
+  // 當多天數據載入後，自動載入上週/上月/去年同期（用於歷史趨勢對比）
+  useEffect(() => {
+    historicalLoadMountedRef.current = true
+    if (multiDayData.length > 0) {
+      loadHistoricalComparisonData()
+    } else {
+      setLastWeekData([])
+      setLastMonthData([])
+      setLastYearData([])
+    }
+    return () => { historicalLoadMountedRef.current = false }
+  }, [multiDayData, loadHistoricalComparisonData])
+
   // 當切換到統計 Tab 時自動載入多天數據
   useEffect(() => {
     if (activeTab === 'statistics' && multiDayData.length === 0) {
@@ -719,10 +818,74 @@ function FlightDataContent() {
     return result
   }, [multiDayData])
 
+  // 統計分析用：多日彙總 目的地 / 航空公司 Top 10
+  const statsByDestination = useMemo(() => {
+    if (!multiDayData || multiDayData.length === 0) return []
+    const byDest = {}
+    multiDayData.forEach(day => {
+      day.flights.forEach(flight => {
+        const d = (flight.destination || '').trim() || '其他'
+        byDest[d] = (byDest[d] || 0) + 1
+      })
+    })
+    return Object.entries(byDest)
+      .filter(([name]) => name !== '其他')
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, value]) => ({ name, value }))
+  }, [multiDayData])
+
+  const statsByAirline = useMemo(() => {
+    if (!multiDayData || multiDayData.length === 0) return []
+    const byAirline = {}
+    multiDayData.forEach(day => {
+      day.flights.forEach(flight => {
+        const a = (flight.airline_name || flight.airline_code || '').trim() || '其他'
+        byAirline[a] = (byAirline[a] || 0) + 1
+      })
+    })
+    return Object.entries(byAirline)
+      .filter(([name]) => name !== '其他')
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, value]) => ({ name, value }))
+  }, [multiDayData])
+
+  // Bar Race：依多日日期累加目的地班次，每幀為該日止的 Top 10（累計）
+  const statsDestRaceFrames = useMemo(() => {
+    if (!multiDayData || multiDayData.length === 0) return []
+    const dates = [...multiDayData].map((d) => d.date).sort((a, b) => a.localeCompare(b))
+    if (dates.length === 0) return []
+    const destinationByDate = {}
+    multiDayData.forEach(day => {
+      destinationByDate[day.date] = {}
+      day.flights.forEach(flight => {
+        const dest = (flight.destination || '').trim() || '其他'
+        if (dest === '其他') return
+        destinationByDate[day.date][dest] = (destinationByDate[day.date][dest] || 0) + 1
+      })
+    })
+    return dates.map((dateStr, i) => {
+      const cumulative = {}
+      for (let j = 0; j <= i; j++) {
+        const day = destinationByDate[dates[j]] || {}
+        Object.entries(day).forEach(([dest, count]) => {
+          cumulative[dest] = (cumulative[dest] || 0) + count
+        })
+      }
+      const top10 = Object.entries(cumulative)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+      return { date: dateStr, names: top10.map((d) => d[0]), values: top10.map((d) => d[1]) }
+    })
+  }, [multiDayData])
+
   // 每小時航班數熱力圖（ECharts），與統計分析其他圖表風格一致
   const CHART_BG = 'transparent'
   const AXIS_COLOR = 'rgba(255,255,255,0.6)'
   const AXIS_LINE = 'rgba(255,255,255,0.15)'
+  const SPLIT_LINE = 'rgba(255,255,255,0.08)'
+  const TITLE_COLOR = 'rgba(255,255,255,0.9)'
   const TOOLTIP_STYLE_HEATMAP = {
     backgroundColor: 'rgba(30, 30, 30, 0.95)',
     borderColor: 'rgba(255,255,255,0.2)',
@@ -730,6 +893,7 @@ function FlightDataContent() {
     borderRadius: 8,
     textStyle: { color: 'rgba(255,255,255,0.9)' }
   }
+  const TOOLTIP_STYLE_AXIS = { ...TOOLTIP_STYLE_HEATMAP }
 
   useEffect(() => {
     if (activeTab !== 'statistics' || !heatmapDataFromMultiDay.length) return
@@ -840,6 +1004,413 @@ function FlightDataContent() {
       if (cleanup) cleanup()
     }
   }, [heatmapDataFromMultiDay, activeTab])
+
+  // 每日總航班數（柱狀圖 + 趨勢線）
+  useEffect(() => {
+    if (activeTab !== 'statistics' || !multiDayData.length) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!dailyTotalChartRef.current) return
+      const chart = echarts.init(dailyTotalChartRef.current, 'dark')
+      const labels = multiDayData.map((d) => d.dateLabel)
+      const values = multiDayData.map((d) => d.totalFlights)
+      const option = {
+        backgroundColor: CHART_BG,
+        tooltip: {
+          trigger: 'axis',
+          formatter: (params) => {
+            if (!params?.length) return ''
+            const i = params[0].dataIndex
+            const p = params[0]
+            return `<strong>${labels[i] ?? ''}</strong><br/>${p.marker} ${p.value} 班`
+          },
+          ...TOOLTIP_STYLE_AXIS
+        },
+        legend: { data: ['每日航班數', '趨勢線'], bottom: 0, textStyle: { color: AXIS_COLOR } },
+        grid: { left: 50, right: 30, top: 24, bottom: 56 },
+        xAxis: {
+          type: 'category',
+          data: labels,
+          axisLabel: { color: AXIS_COLOR, fontSize: 10, rotate: 45 },
+          axisLine: { lineStyle: { color: AXIS_LINE } }
+        },
+        yAxis: {
+          type: 'value',
+          name: '航班數',
+          nameTextStyle: { color: AXIS_COLOR },
+          axisLabel: { color: AXIS_COLOR },
+          splitLine: { lineStyle: { color: SPLIT_LINE } }
+        },
+        series: [
+          {
+            type: 'bar',
+            name: '每日航班數',
+            data: values,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: CHART_COLORS[0] },
+                { offset: 1, color: CHART_COLORS[2] }
+              ])
+            },
+            emphasis: { itemStyle: { color: CHART_COLORS[1] } }
+          },
+          {
+            type: 'line',
+            name: '趨勢線',
+            data: values,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: { width: 2, color: CHART_COLORS[3] },
+            itemStyle: { color: CHART_COLORS[3] }
+          }
+        ]
+      }
+      chart.setOption(option)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => { window.removeEventListener('resize', onResize); chart.dispose() }
+    })
+    return () => { cancelAnimationFrame(id); if (cleanup) cleanup() }
+  }, [activeTab, multiDayData])
+
+  // 當天每小時航班數（ECharts 面積圖 或 柱狀圖）
+  useEffect(() => {
+    if (activeTab !== 'statistics' || !statistics?.hourlyDistribution?.length) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!hourlyDistRef.current) return
+      const chart = echarts.init(hourlyDistRef.current, 'dark')
+      const hours = statistics.hourlyDistribution.map((d) => d.hour)
+      const counts = statistics.hourlyDistribution.map((d) => d.count)
+      const isArea = hourlyChartMode === 'area'
+      const option = {
+        backgroundColor: CHART_BG,
+        tooltip: {
+          trigger: 'axis',
+          formatter: (params) => {
+            if (!params?.length) return ''
+            const i = params[0].dataIndex
+            return `<strong>${hours[i]}</strong><br/>${params[0].marker} ${params[0].value} 班`
+          },
+          ...TOOLTIP_STYLE_AXIS
+        },
+        grid: { left: 50, right: 30, top: 24, bottom: 50 },
+        xAxis: {
+          type: 'category',
+          boundaryGap: !isArea,
+          data: hours,
+          axisLabel: { color: AXIS_COLOR, fontSize: 10, interval: 2 },
+          axisLine: { lineStyle: { color: AXIS_LINE } }
+        },
+        yAxis: {
+          type: 'value',
+          name: '航班數',
+          nameTextStyle: { color: AXIS_COLOR },
+          axisLabel: { color: AXIS_COLOR },
+          splitLine: { lineStyle: { color: SPLIT_LINE } }
+        },
+        series: [isArea
+          ? {
+              type: 'line',
+              name: '航班數',
+              data: counts,
+              smooth: true,
+              areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: 'rgba(6, 182, 212, 0.5)' },
+                  { offset: 1, color: 'rgba(6, 182, 212, 0.03)' }
+                ])
+              },
+              lineStyle: { color: CHART_COLORS[2] },
+              itemStyle: { color: CHART_COLORS[2] }
+            }
+          : {
+              type: 'bar',
+              data: counts,
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: '#ec4899' },
+                  { offset: 1, color: CHART_COLORS[0] }
+                ])
+              },
+              emphasis: { itemStyle: { color: CHART_COLORS[1] } }
+            }
+        ]
+      }
+      chart.setOption(option)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => { window.removeEventListener('resize', onResize); chart.dispose() }
+    })
+    return () => { cancelAnimationFrame(id); if (cleanup) cleanup() }
+  }, [activeTab, statistics, hourlyChartMode])
+
+  // 目的地 Top 10（ECharts 橫向柱狀圖 或 Bar Race）
+  useEffect(() => {
+    if (activeTab !== 'statistics') return
+    const hasBar = statsByDestination.length > 0
+    const hasRace = destChartMode === 'race' && statsDestRaceFrames.length > 0
+    if (!hasBar && !hasRace) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!destTop10Ref.current) return
+      const chart = echarts.init(destTop10Ref.current, 'dark')
+      const formatDateLabel = (dateStr) => {
+        const [y, m, d] = dateStr.split('-')
+        return `${Number(m)}/${Number(d)}`
+      }
+      if (destChartMode === 'race' && statsDestRaceFrames.length > 0) {
+        const baseOption = {
+          backgroundColor: CHART_BG,
+          tooltip: {
+            trigger: 'axis',
+            ...TOOLTIP_STYLE_AXIS,
+            formatter: (params) => {
+              if (!params?.length) return ''
+              const p = params[0]
+              return `${p.name}<br/>${p.marker} ${p.value} 班（累計）`
+            }
+          },
+          grid: { left: 120, right: 50, top: 24, bottom: 60 },
+          animationDuration: 0,
+          animationDurationUpdate: 2000,
+          animationEasing: 'linear',
+          animationEasingUpdate: 'linear',
+          xAxis: { type: 'value', name: '航班數', nameTextStyle: { color: AXIS_COLOR }, axisLabel: { color: AXIS_COLOR }, splitLine: { lineStyle: { color: SPLIT_LINE } } },
+          yAxis: {
+            type: 'category',
+            inverse: true,
+            axisLabel: { color: AXIS_COLOR, fontSize: 10 },
+            axisLine: { lineStyle: { color: AXIS_LINE } },
+            animationDuration: 300,
+            animationDurationUpdate: 300
+          },
+          series: [{
+            type: 'bar',
+            realtimeSort: true,
+            animationDurationUpdate: 2000,
+            animationEasingUpdate: 'linear',
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: CHART_COLORS[3] },
+                { offset: 1, color: CHART_COLORS[0] }
+              ])
+            },
+            emphasis: { itemStyle: { color: CHART_COLORS[1] } },
+            label: {
+              show: true,
+              position: 'right',
+              color: AXIS_COLOR,
+              formatter: '{c} 班',
+              valueAnimation: true
+            }
+          }]
+        }
+        const option = {
+          ...baseOption,
+          timeline: {
+            data: statsDestRaceFrames.map((f) => formatDateLabel(f.date)),
+            left: 'center',
+            bottom: 8,
+            width: '80%',
+            axisType: 'category',
+            currentIndex: 0,
+            realtime: false,
+            playReverse: false,
+            rewind: false,
+            loop: false,
+            label: { color: AXIS_COLOR, fontSize: 10 },
+            checkpointStyle: { color: CHART_COLORS[0] },
+            controlStyle: { show: true, itemSize: 14, itemGap: 12, color: AXIS_COLOR },
+            playInterval: 500,
+            autoPlay: true
+          },
+          options: statsDestRaceFrames.map((frame) => ({
+            yAxis: { data: frame.names },
+            series: [{ data: frame.values }]
+          }))
+        }
+        chart.setOption(option, { notMerge: true })
+        setTimeout(() => { chart.dispatchAction({ type: 'timelineChange', currentIndex: 0 }) }, 0)
+      } else {
+        const option = {
+          backgroundColor: CHART_BG,
+          tooltip: {
+            trigger: 'axis',
+            formatter: (params) => {
+              const p = params?.[0]
+              if (!p) return ''
+              const i = p.dataIndex
+              const d = statsByDestination[i]
+              return `${d?.name ?? ''}<br/>${p.marker} ${p.value} 班`
+            },
+            ...TOOLTIP_STYLE_AXIS
+          },
+          grid: { left: 120, right: 40, top: 24, bottom: 40 },
+          xAxis: {
+            type: 'value',
+            name: '航班數',
+            nameTextStyle: { color: AXIS_COLOR },
+            axisLabel: { color: AXIS_COLOR },
+            splitLine: { lineStyle: { color: SPLIT_LINE } }
+          },
+          yAxis: {
+            type: 'category',
+            inverse: true,
+            data: statsByDestination.map((d) => d.name),
+            axisLabel: { color: AXIS_COLOR, fontSize: 10 },
+            axisLine: { lineStyle: { color: AXIS_LINE } }
+          },
+          series: [{
+            type: 'bar',
+            data: statsByDestination.map((d) => d.value),
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: CHART_COLORS[3] },
+                { offset: 1, color: CHART_COLORS[0] }
+              ])
+            },
+            emphasis: { itemStyle: { color: CHART_COLORS[1] } }
+          }]
+        }
+        chart.setOption(option)
+      }
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => { window.removeEventListener('resize', onResize); chart.dispose() }
+    })
+    return () => { cancelAnimationFrame(id); if (cleanup) cleanup() }
+  }, [activeTab, statsByDestination, destChartMode, statsDestRaceFrames])
+
+  // 航空公司 Top 10（ECharts 橫向柱狀圖）
+  useEffect(() => {
+    if (activeTab !== 'statistics' || !statsByAirline.length) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!airlineTop10Ref.current) return
+      const chart = echarts.init(airlineTop10Ref.current, 'dark')
+      const option = {
+        backgroundColor: CHART_BG,
+        tooltip: {
+          trigger: 'axis',
+          formatter: (params) => {
+            const p = params?.[0]
+            if (!p) return ''
+            const i = p.dataIndex
+            const d = statsByAirline[i]
+            return `${d?.name ?? ''}<br/>${p.marker} ${p.value} 班`
+          },
+          ...TOOLTIP_STYLE_AXIS
+        },
+        grid: { left: 100, right: 40, top: 24, bottom: 40 },
+        xAxis: {
+          type: 'value',
+          name: '航班數',
+          nameTextStyle: { color: AXIS_COLOR },
+          axisLabel: { color: AXIS_COLOR },
+          splitLine: { lineStyle: { color: SPLIT_LINE } }
+        },
+        yAxis: {
+          type: 'category',
+          inverse: true,
+          data: statsByAirline.map((d) => d.name),
+          axisLabel: { color: AXIS_COLOR, fontSize: 10 },
+          axisLine: { lineStyle: { color: AXIS_LINE } }
+        },
+        series: [{
+          type: 'bar',
+          data: statsByAirline.map((d) => d.value),
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: CHART_COLORS[4] },
+              { offset: 1, color: CHART_COLORS[5] }
+            ])
+          },
+          emphasis: { itemStyle: { color: CHART_COLORS[1] } }
+        }]
+      }
+      chart.setOption(option)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => { window.removeEventListener('resize', onResize); chart.dispose() }
+    })
+    return () => { cancelAnimationFrame(id); if (cleanup) cleanup() }
+  }, [activeTab, statsByAirline])
+
+  // 每小時航班數趨勢（多天比較）— ECharts（與 Demo 同款：多線+面積、dataZoom、圖例）
+  useEffect(() => {
+    if (activeTab !== 'statistics' || !hourlyTrendingData?.data?.length || !hourlyTrendingData?.dates?.length) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!multiDayHourlyTrendRef.current) return
+      const chart = echarts.init(multiDayHourlyTrendRef.current, 'dark')
+      const hours = hourlyTrendingData.data.map((d) => d.hour)
+      const dates = hourlyTrendingData.dates.map((label) => ({ dateStr: label, label }))
+      const series = dates.map((_, i) =>
+        hourlyTrendingData.data.map((point) => point[hourlyTrendingData.dates[i]] ?? 0)
+      )
+      const option = {
+        backgroundColor: CHART_BG,
+        tooltip: {
+          trigger: 'axis',
+          ...TOOLTIP_STYLE_AXIS,
+          formatter: (params) => {
+            if (!params?.length) return ''
+            const h = params[0].dataIndex
+            let s = `<strong>${hours[h]}</strong><br/>`
+            params.forEach((p, i) => {
+              s += `${p.marker} ${dates[i].label}: ${p.value} 班<br/>`
+            })
+            return s
+          }
+        },
+        legend: {
+          type: 'scroll',
+          data: dates.map((d) => d.label),
+          bottom: 28,
+          textStyle: { color: AXIS_COLOR },
+          pageButtonItemGap: 8,
+          pageTextStyle: { color: AXIS_COLOR }
+        },
+        grid: { left: 50, right: 30, top: 24, bottom: 72 },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: hours,
+          axisLabel: { color: AXIS_COLOR, fontSize: 10, interval: 2 },
+          axisLine: { lineStyle: { color: AXIS_LINE } }
+        },
+        yAxis: {
+          type: 'value',
+          name: '航班數',
+          nameTextStyle: { color: AXIS_COLOR },
+          axisLabel: { color: AXIS_COLOR },
+          splitLine: { lineStyle: { color: SPLIT_LINE } }
+        },
+        dataZoom: [
+          { type: 'inside', xAxisIndex: 0, start: 0, end: 100 },
+          { type: 'slider', xAxisIndex: 0, bottom: 4, height: 18, start: 0, end: 100, textStyle: { color: AXIS_COLOR } }
+        ],
+        series: dates.map((d, i) => ({
+          type: 'line',
+          name: d.label,
+          data: series[i],
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2, color: CHART_COLORS[i % CHART_COLORS.length] },
+          itemStyle: { color: CHART_COLORS[i % CHART_COLORS.length] },
+          areaStyle: { opacity: 0.08, color: CHART_COLORS[i % CHART_COLORS.length] }
+        }))
+      }
+      chart.setOption(option)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => { window.removeEventListener('resize', onResize); chart.dispose() }
+    })
+    return () => { cancelAnimationFrame(id); if (cleanup) cleanup() }
+  }, [activeTab, hourlyTrendingData])
 
   // 計算多日最繁忙時段
   const busiestHours = useMemo(() => {
@@ -961,43 +1532,53 @@ function FlightDataContent() {
     }).filter(row => row.days > 0)
   }, [multiDayData])
 
-  // 計算歷史趨勢對比（與上週/上月）
+  // 歷史趨勢對比：有至少 7 天歷史資料即顯示比較；或歷史天數 ≥ 當期 80% 亦可
+  const HISTORICAL_MIN_DAYS = 7
+  const HISTORICAL_MIN_RATIO = 0.8
+
+  // 計算歷史趨勢對比（與上週/上月/去年同期）
   const historicalComparison = useMemo(() => {
     if (!multiDayData || multiDayData.length === 0) return null
 
-    const today = new Date()
+    const currentTotal = multiDayData.reduce((sum, day) => sum + day.totalFlights, 0)
+    const currentDays = multiDayData.length
     const currentPeriod = {
-      totalFlights: multiDayData.reduce((sum, day) => sum + day.totalFlights, 0),
-      averagePerDay: multiDayData.reduce((sum, day) => sum + day.totalFlights, 0) / multiDayData.length,
-      days: multiDayData.length
+      totalFlights: currentTotal,
+      averagePerDay: currentTotal / currentDays,
+      days: currentDays,
+      dateRange: multiDayData.length > 0
+        ? `${multiDayData[0].dateLabel}–${multiDayData[multiDayData.length - 1].dateLabel}`
+        : ''
     }
 
-    // 計算上週同期（7天前開始的相同天數）
-    const lastWeekStart = new Date(today)
-    lastWeekStart.setDate(today.getDate() - 7 - currentPeriod.days + 1)
-    
-    // 計算上月同期（30天前開始的相同天數）
-    const lastMonthStart = new Date(today)
-    lastMonthStart.setDate(today.getDate() - 30 - currentPeriod.days + 1)
-
-    // 注意：這裡只是計算結構，實際數據需要從歷史資料中讀取
-    // 目前先返回結構，未來可以擴展為實際讀取歷史資料
-    return {
-      current: currentPeriod,
-      lastWeek: {
-        // 這裡需要實際讀取上週的資料，暫時返回 null
-        totalFlights: null,
-        averagePerDay: null,
-        change: null
-      },
-      lastMonth: {
-        // 這裡需要實際讀取上月的資料，暫時返回 null
-        totalFlights: null,
-        averagePerDay: null,
-        change: null
+    const toPeriod = (list) => {
+      if (!list || list.length === 0)
+        return { totalFlights: null, averagePerDay: null, days: 0, change: null, dateRange: '', sampleSufficient: false }
+      const total = list.reduce((sum, day) => sum + day.totalFlights, 0)
+      const avg = total / list.length
+      const sampleSufficient =
+        list.length >= HISTORICAL_MIN_DAYS || list.length >= currentDays * HISTORICAL_MIN_RATIO
+      const change = sampleSufficient && currentPeriod.averagePerDay > 0
+        ? Math.round(((avg - currentPeriod.averagePerDay) / currentPeriod.averagePerDay) * 100)
+        : null
+      const dateRange = list.length > 0 ? `${list[0].dateLabel}–${list[list.length - 1].dateLabel}` : ''
+      return {
+        totalFlights: total,
+        averagePerDay: avg,
+        days: list.length,
+        change,
+        dateRange,
+        sampleSufficient
       }
     }
-  }, [multiDayData])
+
+    return {
+      current: currentPeriod,
+      lastWeek: toPeriod(lastWeekData),
+      lastMonth: toPeriod(lastMonthData),
+      lastYear: toPeriod(lastYearData)
+    }
+  }, [multiDayData, lastWeekData, lastMonthData, lastYearData])
 
   // 計算登機門使用熱度（熱力圖數據）
   const gateHeatmapData = useMemo(() => {
@@ -2364,44 +2945,26 @@ function FlightDataContent() {
                 </ResponsiveContainer>
               </div>
 
-              {/* 時間分布圖表（每小時航班數） */}
+              {/* 時間分布圖表（每小時航班數）（當天）— ECharts 面積圖 / 柱狀圖 */}
               <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
                 <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">時間分布（每小時航班數）（當天）</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart 
-                    data={statistics.hourlyDistribution ?? []}
-                    onClick={(data, index) => {
-                      if (data && data.activePayload && data.activePayload[0]) {
-                        const hour = data.activePayload[0].payload.hour
-                        const hourData = (statistics.hourlyDistribution ?? []).find(d => d.hour === hour)
-                        handleChartClick('hour', hour, hourData)
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setHourlyChartMode('area')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${hourlyChartMode === 'area' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                    <XAxis 
-                      dataKey="hour" 
-                      stroke="rgba(255,255,255,0.6)"
-                      style={{ fontSize: '11px' }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis 
-                      stroke="rgba(255,255,255,0.6)"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(30, 30, 30, 0.95)', 
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Bar dataKey="count" fill="#ec4899" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                    面積圖
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHourlyChartMode('bar')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${hourlyChartMode === 'bar' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  >
+                    柱狀圖
+                  </button>
+                </div>
+                <div ref={hourlyDistRef} className="w-full h-[250px]" />
               </div>
             </div>
           )}
@@ -2434,33 +2997,11 @@ function FlightDataContent() {
             </div>
           </div>
 
-          {/* 每天的統計數據（總數量） */}
+          {/* 每日總航班數（柱狀圖 + 趨勢線）— ECharts */}
           {multiDayData.length > 0 && (
             <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
-              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每天航班總數統計</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={multiDayData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis 
-                    dataKey="dateLabel" 
-                    stroke="rgba(255,255,255,0.6)"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis 
-                    stroke="rgba(255,255,255,0.6)"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(30, 30, 30, 0.95)', 
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '8px'
-                    }}
-                    formatter={(value) => [`${value} 班`, '總航班數']}
-                  />
-                  <Bar dataKey="totalFlights" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每日總航班數</h3>
+              <div ref={dailyTotalChartRef} className="w-full h-[280px]" />
             </div>
           )}
 
@@ -2472,46 +3013,44 @@ function FlightDataContent() {
             </div>
           )}
 
-          {/* 每天每小時航班數的 Trending */}
-          {hourlyTrendingData && hourlyTrendingData.data && (
+          {/* 目的地航班數 Top 10 — ECharts 柱狀圖 / Bar Race */}
+          {(statsByDestination.length > 0 || statsDestRaceFrames.length > 0) && (
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">目的地航班數 Top 10</h3>
+              <div className="flex gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setDestChartMode('bar')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'bar' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  柱狀圖
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDestChartMode('race')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'race' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  Bar Race
+                </button>
+              </div>
+              <div ref={destTop10Ref} className="w-full h-[320px]" />
+            </div>
+          )}
+
+          {/* 航空公司航班數 Top 10 — ECharts */}
+          {statsByAirline.length > 0 && (
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">航空公司航班數 Top 10</h3>
+              <div ref={airlineTop10Ref} className="w-full h-[320px]" />
+            </div>
+          )}
+
+          {/* 每小時航班數趨勢（多天比較）— ECharts（與 Demo 同款） */}
+          {hourlyTrendingData && hourlyTrendingData.data && hourlyTrendingData.dates?.length > 0 && (
             <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
               <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每小時航班數趨勢（多天比較）</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={hourlyTrendingData.data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis 
-                    dataKey="hour" 
-                    stroke="rgba(255,255,255,0.6)"
-                    style={{ fontSize: '11px' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis 
-                    stroke="rgba(255,255,255,0.6)"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(30, 30, 30, 0.95)', 
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Legend />
-                  {hourlyTrendingData.dates.map((date, index) => (
-                    <Line 
-                      key={date}
-                      type="monotone" 
-                      dataKey={date} 
-                      stroke={CHART_COLORS[index % CHART_COLORS.length]}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      activeDot={{ r: 5 }}
-                    />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
+              <p className="text-xs text-text-secondary mb-2">可縮放時段、圖例切換</p>
+              <div ref={multiDayHourlyTrendRef} className="w-full h-[320px]" />
             </div>
           )}
 
@@ -2776,53 +3315,140 @@ function FlightDataContent() {
           {/* 歷史趨勢對比 */}
           {historicalComparison && (
             <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
-              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">歷史趨勢對比</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-primary">歷史趨勢對比</h3>
+                <button
+                  type="button"
+                  onClick={() => loadHistoricalComparisonData()}
+                  disabled={loadingHistorical}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/10 text-primary hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingHistorical ? '載入中…' : '重新載入對比'}
+                </button>
+              </div>
+              <p className="text-xs text-text-secondary mb-3">
+                上週／上月／去年同期 = 與當前期間相同天數，整體往前移 7／30／365 天
+              </p>
+              {loadingHistorical && (
+                <p className="text-xs text-text-secondary mb-3">正在載入上週／上月／去年同期…</p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* 當前期間 */}
-                <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-4 border border-purple-500/30">
+                <div className="bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4 border-l-violet-400">
                   <div className="text-sm text-text-secondary mb-2">當前期間</div>
                   <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.current.averagePerDay)}</div>
                   <div className="text-xs text-text-secondary">平均 {historicalComparison.current.days} 天</div>
+                  {historicalComparison.current.dateRange && (
+                    <div className="text-xs text-text-secondary/80 mt-0.5">{historicalComparison.current.dateRange}</div>
+                  )}
                   <div className="text-sm text-primary mt-2">總計 {historicalComparison.current.totalFlights} 班</div>
                 </div>
-                
+
                 {/* 上週同期 */}
-                <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg p-4 border border-blue-500/30">
+                <div className="bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4 border-l-sky-400">
                   <div className="text-sm text-text-secondary mb-2">上週同期</div>
-                  {historicalComparison.lastWeek.totalFlights !== null ? (
+                  {historicalComparison.lastWeek.totalFlights !== null && historicalComparison.lastWeek.days > 0 ? (
                     <>
                       <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.lastWeek.averagePerDay)}</div>
-                      <div className="text-xs text-text-secondary">平均 {historicalComparison.current.days} 天</div>
-                      <div className={`text-sm mt-2 ${
-                        historicalComparison.lastWeek.change > 0 ? 'text-green-400' : 
-                        historicalComparison.lastWeek.change < 0 ? 'text-red-400' : 'text-text-secondary'
-                      }`}>
-                        {historicalComparison.lastWeek.change > 0 ? '↑' : historicalComparison.lastWeek.change < 0 ? '↓' : '='} 
-                        {Math.abs(historicalComparison.lastWeek.change)}%
+                      <div className="text-xs text-text-secondary">
+                        平均 {historicalComparison.lastWeek.days} 天
+                        {historicalComparison.lastWeek.days < historicalComparison.current.days && (
+                          <span className="text-amber-400/90">（共 {historicalComparison.lastWeek.days} 天有資料）</span>
+                        )}
                       </div>
+                      {historicalComparison.lastWeek.dateRange && (
+                        <div className="text-xs text-text-secondary/80 mt-0.5">{historicalComparison.lastWeek.dateRange}</div>
+                      )}
+                      <div className="text-sm text-primary mt-1">總計 {historicalComparison.lastWeek.totalFlights} 班</div>
+                      {historicalComparison.lastWeek.sampleSufficient && historicalComparison.lastWeek.change !== null ? (
+                        <div className={`text-sm mt-2 ${
+                          historicalComparison.lastWeek.change > 0 ? 'text-green-400' :
+                          historicalComparison.lastWeek.change < 0 ? 'text-red-400' : 'text-text-secondary'
+                        }`}>
+                          {historicalComparison.lastWeek.change > 0 ? '↑' : historicalComparison.lastWeek.change < 0 ? '↓' : '='}
+                          {Math.abs(historicalComparison.lastWeek.change)}% 較當期
+                        </div>
+                      ) : historicalComparison.lastWeek.days > 0 && !historicalComparison.lastWeek.sampleSufficient && (
+                        <div className="text-amber-400/90 text-sm mt-2">樣本不足，不比較</div>
+                      )}
                     </>
                   ) : (
-                    <div className="text-text-secondary text-sm">資料不足</div>
+                    <>
+                      <div className="text-text-secondary text-sm">資料不足</div>
+                      <div className="text-xs text-text-secondary/80 mt-1">請確認 data/ 內有該時段 flight-data-YYYY-MM-DD.json</div>
+                    </>
                   )}
                 </div>
-                
+
                 {/* 上月同期 */}
-                <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-4 border border-green-500/30">
+                <div className="bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4 border-l-emerald-400">
                   <div className="text-sm text-text-secondary mb-2">上月同期</div>
-                  {historicalComparison.lastMonth.totalFlights !== null ? (
+                  {historicalComparison.lastMonth.totalFlights !== null && historicalComparison.lastMonth.days > 0 ? (
                     <>
                       <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.lastMonth.averagePerDay)}</div>
-                      <div className="text-xs text-text-secondary">平均 {historicalComparison.current.days} 天</div>
-                      <div className={`text-sm mt-2 ${
-                        historicalComparison.lastMonth.change > 0 ? 'text-green-400' : 
-                        historicalComparison.lastMonth.change < 0 ? 'text-red-400' : 'text-text-secondary'
-                      }`}>
-                        {historicalComparison.lastMonth.change > 0 ? '↑' : historicalComparison.lastMonth.change < 0 ? '↓' : '='} 
-                        {Math.abs(historicalComparison.lastMonth.change)}%
+                      <div className="text-xs text-text-secondary">
+                        平均 {historicalComparison.lastMonth.days} 天
+                        {historicalComparison.lastMonth.days < historicalComparison.current.days && (
+                          <span className="text-amber-400/90">（共 {historicalComparison.lastMonth.days} 天有資料）</span>
+                        )}
                       </div>
+                      {historicalComparison.lastMonth.dateRange && (
+                        <div className="text-xs text-text-secondary/80 mt-0.5">{historicalComparison.lastMonth.dateRange}</div>
+                      )}
+                      <div className="text-sm text-primary mt-1">總計 {historicalComparison.lastMonth.totalFlights} 班</div>
+                      {historicalComparison.lastMonth.sampleSufficient && historicalComparison.lastMonth.change !== null ? (
+                        <div className={`text-sm mt-2 ${
+                          historicalComparison.lastMonth.change > 0 ? 'text-green-400' :
+                          historicalComparison.lastMonth.change < 0 ? 'text-red-400' : 'text-text-secondary'
+                        }`}>
+                          {historicalComparison.lastMonth.change > 0 ? '↑' : historicalComparison.lastMonth.change < 0 ? '↓' : '='}
+                          {Math.abs(historicalComparison.lastMonth.change)}% 較當期
+                        </div>
+                      ) : historicalComparison.lastMonth.days > 0 && !historicalComparison.lastMonth.sampleSufficient && (
+                        <div className="text-amber-400/90 text-sm mt-2">樣本不足，不比較</div>
+                      )}
                     </>
                   ) : (
-                    <div className="text-text-secondary text-sm">資料不足</div>
+                    <>
+                      <div className="text-text-secondary text-sm">資料不足</div>
+                      <div className="text-xs text-text-secondary/80 mt-1">請確認 data/ 內有該時段 flight-data-YYYY-MM-DD.json</div>
+                    </>
+                  )}
+                </div>
+
+                {/* 去年同期 */}
+                <div className="bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4 border-l-amber-400">
+                  <div className="text-sm text-text-secondary mb-2">去年同期</div>
+                  {historicalComparison.lastYear.totalFlights !== null && historicalComparison.lastYear.days > 0 ? (
+                    <>
+                      <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.lastYear.averagePerDay)}</div>
+                      <div className="text-xs text-text-secondary">
+                        平均 {historicalComparison.lastYear.days} 天
+                        {historicalComparison.lastYear.days < historicalComparison.current.days && (
+                          <span className="text-amber-400/90">（共 {historicalComparison.lastYear.days} 天有資料）</span>
+                        )}
+                      </div>
+                      {historicalComparison.lastYear.dateRange && (
+                        <div className="text-xs text-text-secondary/80 mt-0.5">{historicalComparison.lastYear.dateRange}</div>
+                      )}
+                      <div className="text-sm text-primary mt-1">總計 {historicalComparison.lastYear.totalFlights} 班</div>
+                      {historicalComparison.lastYear.sampleSufficient && historicalComparison.lastYear.change !== null ? (
+                        <div className={`text-sm mt-2 ${
+                          historicalComparison.lastYear.change > 0 ? 'text-green-400' :
+                          historicalComparison.lastYear.change < 0 ? 'text-red-400' : 'text-text-secondary'
+                        }`}>
+                          {historicalComparison.lastYear.change > 0 ? '↑' : historicalComparison.lastYear.change < 0 ? '↓' : '='}
+                          {Math.abs(historicalComparison.lastYear.change)}% 較當期
+                        </div>
+                      ) : historicalComparison.lastYear.days > 0 && !historicalComparison.lastYear.sampleSufficient && (
+                        <div className="text-amber-400/90 text-sm mt-2">樣本不足，不比較</div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-text-secondary text-sm">資料不足</div>
+                      <div className="text-xs text-text-secondary/80 mt-1">請確認 data/ 內有該時段 flight-data-YYYY-MM-DD.json</div>
+                    </>
                   )}
                 </div>
               </div>

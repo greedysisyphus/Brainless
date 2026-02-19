@@ -575,21 +575,27 @@ function EchartsDemo() {
   useEffect(() => {
     if (!barRef.current) return
     const chart = echarts.init(barRef.current, 'dark')
+    const values = barChartData.map((d) => d.value)
     const option = {
       backgroundColor: CHART_BG,
       title: { text: '每日總航班數（柱狀圖）', left: 'center', textStyle: { color: TITLE_COLOR } },
       tooltip: {
         trigger: 'axis',
         formatter: (params) => {
-          const p = params?.[0]
-          if (!p) return ''
-          const i = p.dataIndex
+          if (!params?.length) return ''
+          const i = params[0].dataIndex
           const d = barChartData[i]
-          return `${d?.date ?? ''}<br/>${p.marker} ${p.value} 班`
+          const p = params[0]
+          return `<strong>${d?.label ?? ''}</strong><br/>${p.marker} ${p.value} 班`
         },
         ...TOOLTIP_STYLE
       },
-      grid: { left: 50, right: 30, top: 50, bottom: 60 },
+      legend: {
+        data: ['每日航班數', '趨勢線'],
+        bottom: 0,
+        textStyle: { color: AXIS_COLOR }
+      },
+      grid: { left: 50, right: 30, top: 50, bottom: 56 },
       xAxis: {
         type: 'category',
         data: barChartData.map((d) => d.label),
@@ -603,17 +609,30 @@ function EchartsDemo() {
         axisLabel: { color: AXIS_COLOR },
         splitLine: { lineStyle: { color: SPLIT_LINE } }
       },
-      series: [{
-        type: 'bar',
-        data: barChartData.map((d) => d.value),
-        itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: CHART_COLORS[0] },
-            { offset: 1, color: CHART_COLORS[2] }
-          ])
+      series: [
+        {
+          type: 'bar',
+          name: '每日航班數',
+          data: values,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: CHART_COLORS[0] },
+              { offset: 1, color: CHART_COLORS[2] }
+            ])
+          },
+          emphasis: { itemStyle: { color: CHART_COLORS[1] } }
         },
-        emphasis: { itemStyle: { color: CHART_COLORS[1] } }
-      }]
+        {
+          type: 'line',
+          name: '趨勢線',
+          data: values,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2, color: CHART_COLORS[3] },
+          itemStyle: { color: CHART_COLORS[3] }
+        }
+      ]
     }
     chart.setOption(option)
     const onResize = () => chart.resize()
@@ -883,7 +902,7 @@ function EchartsDemo() {
           realtime: false,
           playReverse: false,
           rewind: false,
-          loop: true,
+          loop: false,
           label: { color: AXIS_COLOR, fontSize: 10 },
           checkpointStyle: { color: CHART_COLORS[0] },
           controlStyle: { show: true, itemSize: 14, itemGap: 12, color: AXIS_COLOR },
