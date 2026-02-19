@@ -1,0 +1,30 @@
+{
+  "date": "2026-02-20",
+  "flights": [
+    {
+      "time": "00:05",
+      "datetime": "2026-02-20T00:05:00",
+      "gate": "D12",
+      "flight_code": "JX12",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "SFO",
+      "city": "San Francisco",
+      "status": "準時ON TIME",
+      "aircraft": "-",
+      "terminal": "2",
+      "destination": "San Francisco (SFO)",
+      "codeshare_flights": []
+    }
+  ],
+  "summary": {
+    "total_flights": 1,
+    "before_17:00": 1,
+    "after_17:00": 0
+  },
+  "formatted_display": [
+    "00:05 : D12 : JX12 (星宇航空)"
+  ],
+  "updated_at": "2026-02-19T14:55:31.469811"
+}
