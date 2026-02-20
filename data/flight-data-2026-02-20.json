@@ -65,6 +65,16 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "AC6535",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
@@ -78,16 +88,6 @@
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         }
       ]
     },
@@ -225,6 +225,11 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
+          "flight_code": "B77016",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "CA5512",
           "airline_code": "CA",
           "airline_name": "中國國際"
@@ -233,11 +238,6 @@
           "flight_code": "HO3182",
           "airline_code": "HO",
           "airline_name": "吉祥航空"
-        },
-        {
-          "flight_code": "B77016",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         }
       ]
     },
@@ -295,7 +295,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-900",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -311,7 +311,7 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
@@ -343,7 +343,7 @@
       "type": "departure",
       "airport_code": "PQC",
       "city": "Phu Quoc",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Phu Quoc (PQC)",
@@ -365,6 +365,11 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
+          "flight_code": "KL4988",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
+        },
+        {
           "flight_code": "HA2516",
           "airline_code": "HA",
           "airline_name": "夏威夷航空"
@@ -373,11 +378,6 @@
           "flight_code": "JL5128",
           "airline_code": "JL",
           "airline_name": "日本航空"
-        },
-        {
-          "flight_code": "KL4988",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -446,9 +446,9 @@
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
         {
-          "flight_code": "AI7063",
-          "airline_code": "AI",
-          "airline_name": "印度航空"
+          "flight_code": "TG6307",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "TK9458",
@@ -456,9 +456,9 @@
           "airline_name": "土耳其航空"
         },
         {
-          "flight_code": "TG6307",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
+          "flight_code": "AI7063",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
         }
       ]
     },
@@ -506,5 +506,5 @@
     "20:45 : D11 : BR205 (長榮航空)",
     "23:40 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-20T05:59:19.788814"
+  "updated_at": "2026-02-20T07:10:29.306179"
 }
