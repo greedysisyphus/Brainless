@@ -69,14 +69,14 @@
           "airline_name": "加拿大航空"
         },
         {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -629,5 +629,5 @@
     "20:45 : D13 : BR205 (長榮航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-21T05:49:00.638867"
+  "updated_at": "2026-02-21T06:53:46.422883"
 }
