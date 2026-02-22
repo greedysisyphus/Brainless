@@ -172,11 +172,6 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "AC6535",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -195,6 +190,11 @@
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "AC6535",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         }
       ]
     },
@@ -214,14 +214,14 @@
       "destination": "Singapore (SIN)",
       "codeshare_flights": [
         {
-          "flight_code": "SQ5805",
-          "airline_code": "SQ",
-          "airline_name": "新加坡航空"
-        },
-        {
           "flight_code": "AI7057",
           "airline_code": "AI",
           "airline_name": "印度航空"
+        },
+        {
+          "flight_code": "SQ5805",
+          "airline_code": "SQ",
+          "airline_name": "新加坡航空"
         }
       ]
     },
@@ -444,7 +444,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -499,6 +499,28 @@
       ]
     },
     {
+      "time": "15:30",
+      "datetime": "2026-02-22T15:30:00",
+      "gate": "D12",
+      "flight_code": "CI527",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "SZX",
+      "city": "Shenzhen",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Shenzhen (SZX)",
+      "codeshare_flights": [
+        {
+          "flight_code": "CZ7977",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
+        }
+      ]
+    },
+    {
       "time": "15:40",
       "datetime": "2026-02-22T15:40:00",
       "gate": "D11",
@@ -548,33 +570,6 @@
           "flight_code": "TK9452",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
-        }
-      ]
-    },
-    {
-      "time": "16:35",
-      "datetime": "2026-02-22T16:35:00",
-      "gate": "D12",
-      "flight_code": "CI503",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "PVG",
-      "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
-      "aircraft": "B777-300",
-      "terminal": "2",
-      "destination": "Shanghai/Pudong (PVG)",
-      "codeshare_flights": [
-        {
-          "flight_code": "CZ7975",
-          "airline_code": "CZ",
-          "airline_name": "南方航空"
-        },
-        {
-          "flight_code": "MU8903",
-          "airline_code": "MU",
-          "airline_name": "東方航空"
         }
       ]
     },
@@ -670,12 +665,12 @@
     "13:25 : D13 : JX745 (星宇航空)",
     "14:00 : D12 : JX713 (星宇航空)",
     "14:25 : D14R : CI108 (中華航空)",
+    "15:30 : D12 : CI527 (中華航空)",
     "15:40 : D11 : JX783 (星宇航空)",
     "16:25 : D15R : BR102 (長榮航空)",
-    "16:35 : D12 : CI503 (中華航空)",
     "16:50 : D13 : BR186 (長榮航空)",
     "20:30 : D12 : JX32 (星宇航空)",
     "20:45 : D11 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-02-22T04:55:40.570305"
+  "updated_at": "2026-02-22T05:57:52.704058"
 }
