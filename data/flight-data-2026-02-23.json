@@ -254,6 +254,16 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "LO5344",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
+        },
+        {
           "flight_code": "NZ4934",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -267,16 +277,6 @@
           "flight_code": "TG6346",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "AC6543",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
-          "flight_code": "LO5344",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
         }
       ]
     },
@@ -334,21 +334,21 @@
       "destination": "Singapore (SIN)",
       "codeshare_flights": [
         {
-          "flight_code": "AI7059",
-          "airline_code": "AI",
-          "airline_name": "印度航空"
-        },
-        {
           "flight_code": "SQ5803",
           "airline_code": "SQ",
           "airline_name": "新加坡航空"
+        },
+        {
+          "flight_code": "AI7059",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
         }
       ]
     },
     {
       "time": "09:45",
       "datetime": "2026-02-23T09:45:00",
-      "gate": "D15R",
+      "gate": "D11",
       "flight_code": "BR383",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -380,7 +380,7 @@
     {
       "time": "10:00",
       "datetime": "2026-02-23T10:00:00",
-      "gate": "D11",
+      "gate": "D15R",
       "flight_code": "BR255",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -416,29 +416,24 @@
       ]
     },
     {
-      "time": "14:20",
-      "datetime": "2026-02-23T14:20:00",
+      "time": "14:05",
+      "datetime": "2026-02-23T14:05:00",
       "gate": "D11",
-      "flight_code": "CI172",
+      "flight_code": "CI521",
       "airline_code": "CI",
       "airline_name": "中華航空",
       "type": "departure",
-      "airport_code": "KIX",
-      "city": "Osaka Kansai",
+      "airport_code": "CAN",
+      "city": "Guangzhou",
       "status": "準時ON TIME",
-      "aircraft": "A330-300",
+      "aircraft": "A321-271",
       "terminal": "2",
-      "destination": "Osaka Kansai (KIX)",
+      "destination": "Guangzhou (CAN)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5106",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
-          "flight_code": "HA2582",
-          "airline_code": "HA",
-          "airline_name": "夏威夷航空"
+          "flight_code": "CZ7971",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
         }
       ]
     },
@@ -528,14 +523,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "NH5848",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "TK9452",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "NH5848",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -662,11 +657,11 @@
     "09:00 : D17 : BR237 (長榮航空)",
     "09:30 : D16 : BR315 (長榮航空)",
     "09:35 : D18 : BR215 (長榮航空)",
-    "09:45 : D15R : BR383 (長榮航空)",
+    "09:45 : D11 : BR383 (長榮航空)",
     "10:00 : D14R : BR154 (長榮航空)",
-    "10:00 : D11 : BR255 (長榮航空)",
+    "10:00 : D15R : BR255 (長榮航空)",
     "10:00 : D13 : BR801 (長榮航空)",
-    "14:20 : D11 : CI172 (中華航空)",
+    "14:05 : D11 : CI521 (中華航空)",
     "14:40 : D15R : JX705 (星宇航空)",
     "14:50 : D13 : BR385 (長榮航空)",
     "15:30 : D12 : CI527 (中華航空)",
@@ -676,5 +671,5 @@
     "20:45 : D12 : BR205 (長榮航空)",
     "23:35 : D13 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-22T16:39:28.119461"
+  "updated_at": "2026-02-22T17:31:53.270219"
 }
