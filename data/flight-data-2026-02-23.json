@@ -509,6 +509,33 @@
       ]
     },
     {
+      "time": "16:35",
+      "datetime": "2026-02-23T16:35:00",
+      "gate": "D11",
+      "flight_code": "CI503",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "PVG",
+      "city": "Shanghai/Pudong",
+      "status": "準時ON TIME",
+      "aircraft": "B777-300",
+      "terminal": "2",
+      "destination": "Shanghai/Pudong (PVG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "CZ7975",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
+        },
+        {
+          "flight_code": "MU8903",
+          "airline_code": "MU",
+          "airline_name": "東方航空"
+        }
+      ]
+    },
+    {
       "time": "16:50",
       "datetime": "2026-02-23T16:50:00",
       "gate": "D13",
@@ -612,8 +639,8 @@
     }
   ],
   "summary": {
-    "total_flights": 27,
-    "before_17:00": 24,
+    "total_flights": 28,
+    "before_17:00": 25,
     "after_17:00": 3
   },
   "formatted_display": [
@@ -640,10 +667,11 @@
     "14:50 : D13 : BR385 (長榮航空)",
     "15:30 : D12 : CI527 (中華航空)",
     "16:25 : D14R : BR102 (長榮航空)",
+    "16:35 : D11 : CI503 (中華航空)",
     "16:50 : D13 : BR186 (長榮航空)",
     "19:00 : D13 : BR809 (長榮航空)",
     "20:45 : D12 : BR205 (長榮航空)",
     "23:35 : D13 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-23T02:49:14.892175"
+  "updated_at": "2026-02-23T05:04:46.822392"
 }
