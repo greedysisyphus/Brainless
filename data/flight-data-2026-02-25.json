@@ -182,14 +182,14 @@
       "destination": "Singapore (SIN)",
       "codeshare_flights": [
         {
-          "flight_code": "AI7057",
-          "airline_code": "AI",
-          "airline_name": "印度航空"
-        },
-        {
           "flight_code": "SQ5805",
           "airline_code": "SQ",
           "airline_name": "新加坡航空"
+        },
+        {
+          "flight_code": "AI7057",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
         }
       ]
     },
@@ -598,5 +598,5 @@
     "20:30 : D11 : JX32 (星宇航空)",
     "23:40 : D13 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-24T18:01:34.793338"
+  "updated_at": "2026-02-24T19:50:51.869958"
 }
