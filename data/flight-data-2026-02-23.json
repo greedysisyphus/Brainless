@@ -487,6 +487,11 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5848",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TK9452",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
@@ -495,11 +500,6 @@
           "flight_code": "TG6282",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NH5848",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "NZ4902",
@@ -551,14 +551,14 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6334",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5810",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6334",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "NZ4904",
@@ -605,14 +605,14 @@
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6307",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "TK9458",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "TG6307",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "AI7063",
@@ -673,5 +673,5 @@
     "20:45 : D11 : BR205 (長榮航空)",
     "23:35 : D13 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-24T11:45:47.334312"
+  "updated_at": "2026-02-24T13:23:20.669651"
 }
