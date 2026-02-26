@@ -6,13 +6,17 @@ import { isPublicHoliday2026, isPreHoliday2026 } from '../../utils/taiwanHoliday
 // 觸發部署更新
 
 function FlightDataContent() {
+  const getLocalDateString = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const [selectedDate, setSelectedDate] = useState(() => {
     // 使用本地日期而不是 UTC，確保獲取正確的今天日期
     const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    return getLocalDateString(now)
   })
   const [flightData, setFlightData] = useState(null)
   const [status, setStatus] = useState({ message: '', type: '' })
@@ -43,6 +47,10 @@ function FlightDataContent() {
   const airlineTop10Ref = useRef(null)
   const hourlyDistRef = useRef(null) // 當天每小時航班數（ECharts）
   const multiDayHourlyTrendRef = useRef(null) // 每小時航班數趨勢（多天比較）ECharts
+  const busiestHoursRef = useRef(null) // 最繁忙時段主圖（ECharts）
+  const gateDateHeatmapRef = useRef(null) // Gate × 日期 熱力圖（ECharts）
+  const weekdayChartRef = useRef(null) // 一週各日平均航班量（ECharts）
+  const dayTypeChartRef = useRef(null) // 平日／週末／假期 平均航班量（ECharts）
   const historicalLoadMountedRef = useRef(true)
   const [updateLogs, setUpdateLogs] = useState([]) // 更新日誌
   const [selectedChartDetail, setSelectedChartDetail] = useState(null) // 選中的圖表詳細資訊
@@ -51,6 +59,17 @@ function FlightDataContent() {
   const [deploymentLogs, setDeploymentLogs] = useState([]) // 部署記錄
   const [destChartMode, setDestChartMode] = useState('bar') // 'bar' | 'race'（統計分析 目的地）
   const [hourlyChartMode, setHourlyChartMode] = useState('area') // 'area' | 'bar'（統計分析 當天每小時）
+  const [gateHeatmapViewMode, setGateHeatmapViewMode] = useState('cards') // 'cards' | 'matrix'
+  const [gateHeatmapSortMode, setGateHeatmapSortMode] = useState('fixed') // 'fixed' | 'value'
+  const [gateHeatmapValueMode, setGateHeatmapValueMode] = useState('average') // 'average' | 'total'
+  const [weekdaySortMode, setWeekdaySortMode] = useState('fixed') // 'fixed' | 'value'
+  const [dayTypeSortMode, setDayTypeSortMode] = useState('fixed') // 'fixed' | 'value'
+  const [rangeStartDate, setRangeStartDate] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 29)
+    return getLocalDateString(d)
+  })
+  const [rangeEndDate, setRangeEndDate] = useState(() => getLocalDateString(new Date()))
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr + 'T00:00:00')
@@ -488,39 +507,21 @@ function FlightDataContent() {
     }
   }
 
-  // 載入多天數據（從 GitHub data/ 資料夾讀取歷史資料）
-  const loadMultiDayData = useCallback(async (days = 7) => {
+  // 載入多天數據（共用：可依最近 N 天或自訂日期區間）
+  const loadMultiDayDataByDateList = useCallback(async (dateList) => {
     setLoadingMultiDay(true)
-    
     try {
-      // 直接從 GitHub data/ 資料夾讀取 JSON 檔案
       const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-      const today = new Date()
-      const dataPromises = []
-      
-      // 嘗試讀取最多 days 天的資料
-      for (let i = 0; i < days; i++) {
-        const date = new Date(today)
-        date.setDate(date.getDate() - i)
-        // 使用本地日期而不是 UTC
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        const dateStr = `${year}-${month}-${day}`
+      const dataPromises = dateList.map((dateStr) => {
         const dataUrl = `${basePath}flight-data-${dateStr}.json`
-        
-        dataPromises.push(
-          fetch(dataUrl, { cache: 'no-cache' })
-            .then(res => {
-              if (res.ok) {
-                return res.json().then(data => ({ data, dateStr }))
-              }
-              return null
-            })
-            .catch(() => null)
-        )
-      }
-      
+        return fetch(dataUrl, { cache: 'no-cache' })
+          .then(res => {
+            if (res.ok) return res.json().then(data => ({ data, dateStr }))
+            return null
+          })
+          .catch(() => null)
+      })
+
       const results = await Promise.all(dataPromises)
       const validData = results
         .map((result) => {
@@ -529,22 +530,66 @@ function FlightDataContent() {
           return {
             date: result.dateStr,
             dateLabel: date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }),
-            totalFlights: result.data.summary?.total_flights || 0,
+            totalFlights: result.data.summary?.total_flights ?? (result.data.flights?.length || 0),
             flights: result.data.flights || []
           }
         })
         .filter(Boolean)
-        .reverse() // 從舊到新排序
-      
-      console.log(`✅ 從 GitHub data/ 資料夾載入 ${validData.length} 天的資料`)
+        .sort((a, b) => a.date.localeCompare(b.date)) // 從舊到新排序
+
+      const missingCount = Math.max(0, dateList.length - validData.length)
+      if (missingCount > 0) {
+        setStatus({ message: `已載入 ${validData.length}/${dateList.length} 天（${missingCount} 天無檔案）`, type: 'info' })
+      } else {
+        setStatus({ message: `✅ 成功載入 ${validData.length} 天資料`, type: 'success' })
+      }
       setMultiDayData(validData)
     } catch (error) {
       console.error('載入多天數據失敗:', error)
+      setStatus({ message: `載入失敗：${error.message}`, type: 'error' })
       setMultiDayData([])
     } finally {
       setLoadingMultiDay(false)
     }
   }, [])
+
+  // 載入最近 N 天
+  const loadMultiDayData = useCallback(async (days = 7) => {
+    const today = new Date()
+    const dateList = []
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today)
+      d.setDate(d.getDate() - i)
+      dateList.push(getLocalDateString(d))
+    }
+    await loadMultiDayDataByDateList(dateList)
+  }, [loadMultiDayDataByDateList])
+
+  // 載入自訂日期區間（含起訖）
+  const loadMultiDayDataByRange = useCallback(async (startDate, endDate) => {
+    if (!startDate || !endDate) {
+      setStatus({ message: '請選擇開始與結束日期', type: 'error' })
+      return
+    }
+    if (startDate > endDate) {
+      setStatus({ message: '開始日期不能晚於結束日期', type: 'error' })
+      return
+    }
+
+    const start = new Date(`${startDate}T12:00:00`)
+    const end = new Date(`${endDate}T12:00:00`)
+    const diffDays = Math.floor((end - start) / 86400000) + 1
+    if (diffDays > 120) {
+      setStatus({ message: '自訂區間最多 120 天，請縮小範圍', type: 'error' })
+      return
+    }
+
+    const dateList = []
+    for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
+      dateList.push(getLocalDateString(new Date(t)))
+    }
+    await loadMultiDayDataByDateList(dateList)
+  }, [loadMultiDayDataByDateList])
 
   // 載入上週同期、上月同期、去年同期（與當前期間相同天數與結構，供歷史趨勢對比）
   const loadHistoricalComparisonData = useCallback(async () => {
@@ -894,6 +939,70 @@ function FlightDataContent() {
     textStyle: { color: 'rgba(255,255,255,0.9)' }
   }
   const TOOLTIP_STYLE_AXIS = { ...TOOLTIP_STYLE_HEATMAP }
+
+  // 處理圖表點擊事件（置於此處避免 TDZ：下方多個 useEffect 會依賴此 callback）
+  const handleChartClick = useCallback((type, key, data) => {
+    if (!data) return
+    let detail = null
+    const normalizeGateForHeatmap = (gate) => {
+      if (!gate) return ''
+      if (gate === 'D14') return 'D14L'
+      if (gate === 'D15') return 'D15L'
+      return gate
+    }
+    if (type === 'hour') {
+      const flights = []
+      if (multiDayData && multiDayData.length > 0) {
+        multiDayData.forEach(day => {
+          day.flights.forEach(flight => {
+            const hour = parseInt(flight.time.split(':')[0])
+            const targetHour = parseInt(key.split(':')[0])
+            if (hour === targetHour) {
+              flights.push({ ...flight, date: day.date, dateLabel: day.dateLabel })
+            }
+          })
+        })
+      } else if (flightData && flightData.flights) {
+        flightData.flights.forEach(flight => {
+          const hour = parseInt(flight.time.split(':')[0])
+          const targetHour = parseInt(key.split(':')[0])
+          if (hour === targetHour) flights.push(flight)
+        })
+      }
+      detail = { type: 'hour', title: `${key} 時段航班詳情`, data: data, flights: flights }
+    } else if (type === 'weekday') {
+      const flights = []
+      const weekdayNum = data.weekdayNum
+      if (multiDayData && multiDayData.length > 0) {
+        multiDayData.forEach(day => {
+          const date = new Date(day.date + 'T00:00:00')
+          if (date.getDay() === weekdayNum) {
+            day.flights.forEach(flight => {
+              flights.push({ ...flight, date: day.date, dateLabel: day.dateLabel })
+            })
+          }
+        })
+      }
+      detail = { type: 'weekday', title: `${key} 航班詳情`, data: data, flights: flights }
+    } else if (type === 'gate') {
+      const flights = []
+      if (multiDayData && multiDayData.length > 0) {
+        multiDayData.forEach(day => {
+          day.flights.forEach(flight => {
+            if (normalizeGateForHeatmap(flight.gate) === key) {
+              flights.push({ ...flight, date: day.date, dateLabel: day.dateLabel })
+            }
+          })
+        })
+      } else if (flightData && flightData.flights) {
+        flightData.flights.forEach(flight => {
+          if (normalizeGateForHeatmap(flight.gate) === key) flights.push(flight)
+        })
+      }
+      detail = { type: 'gate', title: `登機門 ${key} 航班詳情`, data: data, flights: flights }
+    }
+    if (detail) setSelectedChartDetail(detail)
+  }, [multiDayData, flightData])
 
   useEffect(() => {
     if (activeTab !== 'statistics' || !heatmapDataFromMultiDay.length) return
@@ -1431,8 +1540,8 @@ function FlightDataContent() {
     }
     
     multiDayData.forEach(day => {
-      // 計算星期幾
-      const date = new Date(day.date)
+      // 計算星期幾（使用 T00:00:00 避免 iOS Safari 將 YYYY-MM-DD 當 UTC 解析）
+      const date = new Date(day.date + 'T00:00:00')
       const weekday = date.getDay() // 0 = 星期日, 1 = 星期一, ...
       weekdayCounts[weekday] += day.totalFlights
       
@@ -1458,7 +1567,7 @@ function FlightDataContent() {
       .map(([day, count]) => {
         const dayNum = parseInt(day)
         const dayData = multiDayData.filter(d => {
-          const date = new Date(d.date)
+          const date = new Date(d.date + 'T00:00:00')
           return date.getDay() === dayNum
         })
         const dayCount = dayData.length || 1 // 避免除以零
@@ -1480,6 +1589,7 @@ function FlightDataContent() {
 
     return {
       topHours: hoursWithCount,
+      topHourMap: Object.fromEntries(hoursWithCount.map((d) => [d.hour, true])),
       hourlyData: hourlyAverage.map((avg, hour) => ({
         hour: `${hour.toString().padStart(2, '0')}:00`,
         average: Math.round(avg * 10) / 10,
@@ -1488,6 +1598,73 @@ function FlightDataContent() {
       weekdayData: weekdayData // 新增：星期幾統計
     }
   }, [multiDayData])
+
+  // 最繁忙時段（多日平均）主圖改為 ECharts
+  useEffect(() => {
+    if (activeTab !== 'statistics' || !busiestHours?.hourlyData?.length || !busiestHoursRef.current) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!busiestHoursRef.current) return
+      const chart = echarts.init(busiestHoursRef.current, 'dark')
+      const topSet = new Set((busiestHours.topHours || []).map((d) => d.hour))
+      const option = {
+        backgroundColor: CHART_BG,
+        grid: { left: 48, right: 24, top: 20, bottom: 64 },
+        tooltip: {
+          trigger: 'axis',
+          ...TOOLTIP_STYLE_AXIS,
+          formatter: (params) => {
+            const p = params?.[0]
+            if (!p) return ''
+            const row = busiestHours.hourlyData[p.dataIndex]
+            return `${row.hour}<br/>${p.marker} 平均 ${row.average} 班/天<br/>總計 ${row.total} 班`
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: busiestHours.hourlyData.map((d) => d.hour),
+          axisLabel: { color: AXIS_COLOR, fontSize: 10, rotate: 45, interval: 1 },
+          axisLine: { lineStyle: { color: AXIS_LINE } }
+        },
+        yAxis: {
+          type: 'value',
+          name: '班/天',
+          nameTextStyle: { color: AXIS_COLOR, fontSize: 10 },
+          axisLabel: { color: AXIS_COLOR, fontSize: 11 },
+          splitLine: { lineStyle: { color: SPLIT_LINE } }
+        },
+        series: [{
+          type: 'bar',
+          barMaxWidth: 26,
+          data: busiestHours.hourlyData.map((d) => ({
+            value: d.average,
+            itemStyle: {
+              color: topSet.has(d.hour) ? '#f59e0b' : '#8b5cf6',
+              borderRadius: [8, 8, 0, 0]
+            }
+          }))
+        }]
+      }
+      chart.setOption(option)
+      const onClick = (params) => {
+        if (!params?.name) return
+        const row = busiestHours.hourlyData.find((d) => d.hour === params.name)
+        handleChartClick('hour', params.name, row)
+      }
+      chart.on('click', onClick)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => {
+        window.removeEventListener('resize', onResize)
+        chart.off('click', onClick)
+        chart.dispose()
+      }
+    })
+    return () => {
+      cancelAnimationFrame(id)
+      if (cleanup) cleanup()
+    }
+  }, [activeTab, busiestHours, handleChartClick])
 
   // 不同日型（可重疊標籤）平均航班量：平日、週末、公眾假期、假期前
   const dayTypeStats = useMemo(() => {
@@ -1531,6 +1708,151 @@ function FlightDataContent() {
       return { type, total, days, average }
     }).filter(row => row.days > 0)
   }, [multiDayData])
+
+  // 一週各日顯示資料（依固定順序或熱度排序）
+  const weekdayDisplayData = useMemo(() => {
+    if (!busiestHours?.weekdayData?.length) return []
+    const list = [...busiestHours.weekdayData]
+    if (weekdaySortMode === 'value') {
+      list.sort((a, b) => (b.average ?? 0) - (a.average ?? 0))
+    }
+    return list
+  }, [busiestHours?.weekdayData, weekdaySortMode])
+
+  // 平日／週末／假期 顯示資料（依固定順序或熱度排序）
+  const dayTypeDisplayData = useMemo(() => {
+    if (!dayTypeStats?.length) return []
+    const list = [...dayTypeStats]
+    if (dayTypeSortMode === 'value') {
+      list.sort((a, b) => (b.average ?? 0) - (a.average ?? 0))
+    }
+    return list
+  }, [dayTypeStats, dayTypeSortMode])
+
+  // 一週各日平均航班量 ECharts
+  useEffect(() => {
+    if (activeTab !== 'statistics' || !weekdayDisplayData.length || !weekdayChartRef.current) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!weekdayChartRef.current) return
+      const chart = echarts.init(weekdayChartRef.current, 'dark')
+      const option = {
+        backgroundColor: CHART_BG,
+        grid: { left: 48, right: 24, top: 20, bottom: 48 },
+        tooltip: {
+          trigger: 'axis',
+          ...TOOLTIP_STYLE_AXIS,
+          formatter: (params) => {
+            const p = params?.[0]
+            if (!p) return ''
+            const row = weekdayDisplayData[p.dataIndex]
+            return `${row.weekday}<br/>${p.marker} 平均 ${row.average} 班/天<br/>總計 ${row.total} 班（${row.days} 天）`
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: weekdayDisplayData.map((d) => d.weekday),
+          axisLabel: { color: AXIS_COLOR, fontSize: 11, interval: 0 },
+          axisLine: { lineStyle: { color: AXIS_LINE } }
+        },
+        yAxis: {
+          type: 'value',
+          name: '班/天',
+          nameTextStyle: { color: AXIS_COLOR, fontSize: 10 },
+          axisLabel: { color: AXIS_COLOR, fontSize: 11 },
+          splitLine: { lineStyle: { color: SPLIT_LINE } }
+        },
+        series: [{
+          type: 'bar',
+          barMaxWidth: 32,
+          data: weekdayDisplayData.map((d, i) => ({
+            value: d.average,
+            itemStyle: {
+              color: CHART_COLORS[i % CHART_COLORS.length],
+              borderRadius: [8, 8, 0, 0]
+            }
+          }))
+        }]
+      }
+      chart.setOption(option)
+      const onClick = (params) => {
+        if (!params?.name) return
+        const row = weekdayDisplayData.find((d) => d.weekday === params.name)
+        if (row) handleChartClick('weekday', params.name, row)
+      }
+      chart.on('click', onClick)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => {
+        window.removeEventListener('resize', onResize)
+        chart.off('click', onClick)
+        chart.dispose()
+      }
+    })
+    return () => {
+      cancelAnimationFrame(id)
+      if (cleanup) cleanup()
+    }
+  }, [activeTab, weekdayDisplayData, handleChartClick])
+
+  // 平日／週末／假期 平均航班量 ECharts
+  useEffect(() => {
+    if (activeTab !== 'statistics' || !dayTypeDisplayData.length || !dayTypeChartRef.current) return
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!dayTypeChartRef.current) return
+      const chart = echarts.init(dayTypeChartRef.current, 'dark')
+      const option = {
+        backgroundColor: CHART_BG,
+        grid: { left: 48, right: 24, top: 20, bottom: 56 },
+        tooltip: {
+          trigger: 'axis',
+          ...TOOLTIP_STYLE_AXIS,
+          formatter: (params) => {
+            const p = params?.[0]
+            if (!p) return ''
+            const row = dayTypeDisplayData[p.dataIndex]
+            return `${row.type}<br/>${p.marker} 平均 ${row.average} 班/天<br/>總計 ${row.total} 班（${row.days} 天）`
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: dayTypeDisplayData.map((d) => d.type),
+          axisLabel: { color: AXIS_COLOR, fontSize: 10, interval: 0, rotate: 18 },
+          axisLine: { lineStyle: { color: AXIS_LINE } }
+        },
+        yAxis: {
+          type: 'value',
+          name: '班/天',
+          nameTextStyle: { color: AXIS_COLOR, fontSize: 10 },
+          axisLabel: { color: AXIS_COLOR, fontSize: 11 },
+          splitLine: { lineStyle: { color: SPLIT_LINE } }
+        },
+        series: [{
+          type: 'bar',
+          barMaxWidth: 36,
+          data: dayTypeDisplayData.map((d, i) => ({
+            value: d.average,
+            itemStyle: {
+              color: CHART_COLORS[i % CHART_COLORS.length],
+              borderRadius: [8, 8, 0, 0]
+            }
+          }))
+        }]
+      }
+      chart.setOption(option)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => {
+        window.removeEventListener('resize', onResize)
+        chart.dispose()
+      }
+    })
+    return () => {
+      cancelAnimationFrame(id)
+      if (cleanup) cleanup()
+    }
+  }, [activeTab, dayTypeDisplayData])
 
   // 歷史趨勢對比：有至少 7 天歷史資料即顯示比較；或歷史天數 ≥ 當期 80% 亦可
   const HISTORICAL_MIN_DAYS = 7
@@ -1582,53 +1904,243 @@ function FlightDataContent() {
 
   // 計算登機門使用熱度（熱力圖數據）
   const gateHeatmapData = useMemo(() => {
+    const normalizeGateForHeatmap = (gate) => {
+      if (!gate) return ''
+      if (gate === 'D14') return 'D14L'
+      if (gate === 'D15') return 'D15L'
+      return gate
+    }
+    // 依需求：移除 D11R, D12R, D13R, D16R, D17R, D18R；D14/D15 改為 L
+    const gates = ['D11', 'D12', 'D13', 'D14L', 'D14R', 'D15L', 'D15R', 'D16', 'D17', 'D18']
+    const dateGateCounts = {}
+    const addGateCount = (dateStr, gate) => {
+      const key = `${dateStr}|${gate}`
+      dateGateCounts[key] = (dateGateCounts[key] || 0) + 1
+    }
+
     if (!multiDayData || multiDayData.length === 0) {
       // 如果沒有多天數據，使用當天數據
       if (!flightData || !flightData.flights) return null
-      
+
+      const baseDate = flightData.date || selectedDate
+      const dates = [baseDate]
       const gateCounts = {}
       flightData.flights.forEach(flight => {
-        const gate = flight.gate
+        const gate = normalizeGateForHeatmap(flight.gate)
+        if (!gates.includes(gate)) return
         gateCounts[gate] = (gateCounts[gate] || 0) + 1
+        addGateCount(baseDate, gate)
       })
-      
-      const gates = ['D11', 'D11R', 'D12', 'D12R', 'D13', 'D13R', 'D14', 'D14R', 'D15', 'D15R', 'D16', 'D16R', 'D17', 'D17R', 'D18', 'D18R']
+
       const maxCount = Math.max(...Object.values(gateCounts), 1)
-      
+      const data = gates.map(gate => ({
+        gate,
+        count: gateCounts[gate] || 0,
+        average: gateCounts[gate] || 0,
+        intensity: gateCounts[gate] ? (gateCounts[gate] / maxCount) : 0
+      }))
+      const matrixData = []
+      dates.forEach(dateStr => {
+        gates.forEach(gate => {
+          matrixData.push([dateStr, gate, dateGateCounts[`${dateStr}|${gate}`] || 0])
+        })
+      })
+
       return {
-        data: gates.map(gate => ({
-          gate,
-          count: gateCounts[gate] || 0,
-          intensity: gateCounts[gate] ? (gateCounts[gate] / maxCount) : 0
-        })),
+        gates,
+        dates,
+        data,
+        matrixData,
         maxCount
       }
     }
 
-    // 多天數據：統計每個登機門的總使用次數
+    // 多天數據：統計每個登機門的總使用次數，並保留日期維度供 ECharts 矩陣熱力圖
     const gateCounts = {}
+    const dates = multiDayData.map((d) => d.date).sort((a, b) => a.localeCompare(b))
     multiDayData.forEach(day => {
       day.flights.forEach(flight => {
-        const gate = flight.gate
+        const gate = normalizeGateForHeatmap(flight.gate)
+        if (!gates.includes(gate)) return
         gateCounts[gate] = (gateCounts[gate] || 0) + 1
+        addGateCount(day.date, gate)
       })
     })
 
-    const gates = ['D11', 'D11R', 'D12', 'D12R', 'D13', 'D13R', 'D14', 'D14R', 'D15', 'D15R', 'D16', 'D16R', 'D17', 'D17R', 'D18', 'D18R']
     const maxCount = Math.max(...Object.values(gateCounts), 1)
-    const averagePerDay = maxCount / multiDayData.length
+    const dayCount = Math.max(1, multiDayData.length)
+    const data = gates.map(gate => ({
+      gate,
+      count: gateCounts[gate] || 0,
+      average: gateCounts[gate] ? (gateCounts[gate] / dayCount) : 0,
+      intensity: gateCounts[gate] ? (gateCounts[gate] / maxCount) : 0
+    }))
+    const matrixData = []
+    dates.forEach(dateStr => {
+      gates.forEach(gate => {
+        matrixData.push([dateStr, gate, dateGateCounts[`${dateStr}|${gate}`] || 0])
+      })
+    })
 
     return {
-      data: gates.map(gate => ({
-        gate,
-        count: gateCounts[gate] || 0,
-        average: gateCounts[gate] ? (gateCounts[gate] / multiDayData.length) : 0,
-        intensity: gateCounts[gate] ? (gateCounts[gate] / maxCount) : 0
-      })),
-      maxCount,
-      averagePerDay
+      gates,
+      dates,
+      data,
+      matrixData,
+      maxCount
     }
-  }, [multiDayData, flightData])
+  }, [multiDayData, flightData, selectedDate])
+
+  // 登機門熱度卡片：依「總計/平均」與「固定順序/熱度排序」重組，並使用分位數色階
+  const gateHeatmapDisplayData = useMemo(() => {
+    if (!gateHeatmapData?.data?.length) return null
+
+    const items = gateHeatmapData.data.map((item) => {
+      const metric = gateHeatmapValueMode === 'average'
+        ? Number((item.average ?? item.count ?? 0).toFixed(1))
+        : (item.count ?? 0)
+      return {
+        ...item,
+        metric
+      }
+    })
+
+    if (gateHeatmapSortMode === 'value') {
+      items.sort((a, b) => b.metric - a.metric || a.gate.localeCompare(b.gate))
+    }
+
+    const nonZero = items.map((d) => d.metric).filter((v) => v > 0).sort((a, b) => a - b)
+    const pickQuantile = (arr, q) => {
+      if (!arr.length) return 0
+      const idx = Math.max(0, Math.min(arr.length - 1, Math.floor((arr.length - 1) * q)))
+      return arr[idx]
+    }
+    const q1 = pickQuantile(nonZero, 0.25)
+    const q2 = pickQuantile(nonZero, 0.5)
+    const q3 = pickQuantile(nonZero, 0.75)
+
+    const withQuantile = items.map((item) => {
+      let level = 0
+      if (item.metric > 0 && item.metric <= q1) level = 1
+      else if (item.metric > q1 && item.metric <= q2) level = 2
+      else if (item.metric > q2 && item.metric <= q3) level = 3
+      else if (item.metric > q3) level = 4
+
+      const colorClassByLevel = {
+        0: 'bg-white/5',
+        1: 'bg-sky-500/25',
+        2: 'bg-cyan-500/35',
+        3: 'bg-emerald-500/50',
+        4: 'bg-amber-500/70'
+      }
+      return {
+        ...item,
+        quantileLevel: level,
+        colorClass: colorClassByLevel[level]
+      }
+    })
+
+    return {
+      items: withQuantile,
+      q1,
+      q2,
+      q3
+    }
+  }, [gateHeatmapData, gateHeatmapSortMode, gateHeatmapValueMode])
+
+  // Gate × 日期（ECharts 熱力圖）：作為登機門使用熱度的第二視圖
+  useEffect(() => {
+    if (activeTab !== 'statistics' || gateHeatmapViewMode !== 'matrix') return
+    if (!gateHeatmapData?.dates?.length || !gateHeatmapData?.gates?.length || !gateDateHeatmapRef.current) return
+
+    let cleanup = null
+    const id = requestAnimationFrame(() => {
+      if (!gateDateHeatmapRef.current) return
+      const chart = echarts.init(gateDateHeatmapRef.current, 'dark')
+
+      const dates = gateHeatmapData.dates
+      const gates = gateHeatmapData.gates
+      const dateIdx = Object.fromEntries(dates.map((d, i) => [d, i]))
+      const gateIdx = Object.fromEntries(gates.map((g, i) => [g, i]))
+      const seriesData = (gateHeatmapData.matrixData || []).map(([dateStr, gate, value]) => [
+        dateIdx[dateStr],
+        gateIdx[gate],
+        value
+      ])
+      const values = seriesData.map((d) => d[2])
+      const maxValue = Math.max(1, ...values)
+
+      const dateLabels = dates.map((d) => {
+        const [, m, day] = d.split('-')
+        return `${parseInt(m, 10)}/${parseInt(day, 10)}`
+      })
+
+      const option = {
+        backgroundColor: CHART_BG,
+        tooltip: {
+          trigger: 'item',
+          ...TOOLTIP_STYLE_AXIS,
+          formatter: (p) => {
+            const [x, y, v] = p.data || []
+            return `${gates[y]}<br/>${dateLabels[x]}：${v} 班`
+          }
+        },
+        grid: { left: 56, right: 20, top: 18, bottom: 86 },
+        xAxis: {
+          type: 'category',
+          data: dateLabels,
+          axisLabel: { color: AXIS_COLOR, fontSize: 10, interval: 0, rotate: 35 },
+          axisLine: { lineStyle: { color: AXIS_LINE } },
+          splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)'] } }
+        },
+        yAxis: {
+          type: 'category',
+          data: gates,
+          axisLabel: { color: AXIS_COLOR, fontSize: 10 },
+          axisLine: { lineStyle: { color: AXIS_LINE } },
+          splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)'] } }
+        },
+        visualMap: {
+          min: 0,
+          max: maxValue,
+          orient: 'horizontal',
+          left: 'center',
+          bottom: 8,
+          calculable: true,
+          text: ['高', '低'],
+          textStyle: { color: AXIS_COLOR, fontSize: 10 },
+          inRange: { color: ['#0f172a', '#0ea5e9', '#22c55e', '#f59e0b'] }
+        },
+        series: [{
+          type: 'heatmap',
+          data: seriesData,
+          itemStyle: { borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 },
+          emphasis: { itemStyle: { borderColor: '#8b5cf6', borderWidth: 2 } }
+        }]
+      }
+
+      chart.setOption(option)
+      const onClick = (params) => {
+        if (!params?.data) return
+        const gate = gates[params.data[1]]
+        const row = gateHeatmapData.data.find((d) => d.gate === gate)
+        if (gate && row) handleChartClick('gate', gate, row)
+      }
+      chart.on('click', onClick)
+      const onResize = () => chart.resize()
+      window.addEventListener('resize', onResize)
+      cleanup = () => {
+        window.removeEventListener('resize', onResize)
+        chart.off('click', onClick)
+        chart.dispose()
+      }
+    })
+
+    return () => {
+      cancelAnimationFrame(id)
+      if (cleanup) cleanup()
+    }
+  }, [activeTab, gateHeatmapViewMode, gateHeatmapData, handleChartClick])
 
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const summaryCards = useMemo(() => {
@@ -2087,91 +2599,6 @@ function FlightDataContent() {
     } catch (error) {
       console.error('匯出統計分析失敗:', error)
       alert(`匯出統計分析失敗：${error.message}\n\n請檢查瀏覽器控制台以獲取更多資訊。`)
-    }
-  }
-
-  // 處理圖表點擊事件
-  const handleChartClick = (type, key, data) => {
-    if (!data) return
-    
-    let detail = null
-    
-    if (type === 'hour') {
-      // 找出該時段的所有航班
-      const flights = []
-      if (multiDayData && multiDayData.length > 0) {
-        multiDayData.forEach(day => {
-          day.flights.forEach(flight => {
-            const hour = parseInt(flight.time.split(':')[0])
-            const targetHour = parseInt(key.split(':')[0])
-            if (hour === targetHour) {
-              flights.push({ ...flight, date: day.date, dateLabel: day.dateLabel })
-            }
-          })
-        })
-      } else if (flightData && flightData.flights) {
-        flightData.flights.forEach(flight => {
-          const hour = parseInt(flight.time.split(':')[0])
-          const targetHour = parseInt(key.split(':')[0])
-          if (hour === targetHour) {
-            flights.push(flight)
-          }
-        })
-      }
-      detail = {
-        type: 'hour',
-        title: `${key} 時段航班詳情`,
-        data: data,
-        flights: flights
-      }
-    } else if (type === 'weekday') {
-      // 找出該星期幾的所有航班
-      const flights = []
-      const weekdayNum = data.weekdayNum
-      if (multiDayData && multiDayData.length > 0) {
-        multiDayData.forEach(day => {
-          const date = new Date(day.date)
-          if (date.getDay() === weekdayNum) {
-            day.flights.forEach(flight => {
-              flights.push({ ...flight, date: day.date, dateLabel: day.dateLabel })
-            })
-          }
-        })
-      }
-      detail = {
-        type: 'weekday',
-        title: `${key} 航班詳情`,
-        data: data,
-        flights: flights
-      }
-    } else if (type === 'gate') {
-      // 找出該登機門的所有航班
-      const flights = []
-      if (multiDayData && multiDayData.length > 0) {
-        multiDayData.forEach(day => {
-          day.flights.forEach(flight => {
-            if (flight.gate === key) {
-              flights.push({ ...flight, date: day.date, dateLabel: day.dateLabel })
-            }
-          })
-        })
-      } else if (flightData && flightData.flights) {
-        flightData.flights.forEach(flight => {
-          if (flight.gate === key) {
-            flights.push(flight)
-          }
-        })
-      }
-      detail = {
-        type: 'gate',
-        title: `登機門 ${key} 航班詳情`,
-        data: data,
-        flights: flights
-      }
-    }
-    
-    if (detail) {
-      setSelectedChartDetail(detail)
     }
   }
 
@@ -2971,11 +3398,11 @@ function FlightDataContent() {
 
           {/* 控制選項 */}
           <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-              <span className="text-sm text-text-secondary whitespace-nowrap">載入天數：</span>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="text-sm text-text-secondary whitespace-nowrap">快速載入</span>
               <select
-                onChange={(e) => loadMultiDayData(parseInt(e.target.value))}
-                className="px-4 py-3 sm:py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50 text-base sm:text-sm min-h-[44px] sm:min-h-0"
+                onChange={(e) => loadMultiDayData(parseInt(e.target.value, 10))}
+                className="px-3 py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50 text-sm min-h-[40px]"
                 defaultValue="30"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
@@ -2985,8 +3412,32 @@ function FlightDataContent() {
                 <option value="30">最近 30 天</option>
                 <option value="90">最近 90 天</option>
               </select>
+
+              <span className="text-text-secondary/60 text-xs hidden sm:inline">|</span>
+              <span className="text-sm text-text-secondary whitespace-nowrap">自訂區間</span>
+              <input
+                type="date"
+                value={rangeStartDate}
+                onChange={(e) => setRangeStartDate(e.target.value)}
+                className="px-3 py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50 text-sm min-h-[40px]"
+              />
+              <span className="text-text-secondary text-sm">至</span>
+              <input
+                type="date"
+                value={rangeEndDate}
+                onChange={(e) => setRangeEndDate(e.target.value)}
+                className="px-3 py-2 border border-white/20 rounded-lg bg-surface/50 text-primary focus:outline-none focus:border-purple-500/50 text-sm min-h-[40px]"
+              />
+              <button
+                type="button"
+                onClick={() => loadMultiDayDataByRange(rangeStartDate, rangeEndDate)}
+                className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-primary text-sm font-medium transition-colors min-h-[40px]"
+              >
+                套用
+              </button>
+
               {loadingMultiDay && (
-                <div className="flex items-center gap-2 text-sm text-text-secondary">
+                <div className="flex items-center gap-2 text-sm text-text-secondary ml-1">
                   <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -3010,38 +3461,6 @@ function FlightDataContent() {
             <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
               <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每小時航班數熱力圖（日期 × 時段）</h3>
               <div ref={heatmapRef} className="w-full h-[340px]" />
-            </div>
-          )}
-
-          {/* 目的地航班數 Top 10 — ECharts 柱狀圖 / Bar Race */}
-          {(statsByDestination.length > 0 || statsDestRaceFrames.length > 0) && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
-              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">目的地航班數 Top 10</h3>
-              <div className="flex gap-2 mb-2">
-                <button
-                  type="button"
-                  onClick={() => setDestChartMode('bar')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'bar' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
-                >
-                  柱狀圖
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDestChartMode('race')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'race' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
-                >
-                  Bar Race
-                </button>
-              </div>
-              <div ref={destTop10Ref} className="w-full h-[320px]" />
-            </div>
-          )}
-
-          {/* 航空公司航班數 Top 10 — ECharts */}
-          {statsByAirline.length > 0 && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
-              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">航空公司航班數 Top 10</h3>
-              <div ref={airlineTop10Ref} className="w-full h-[320px]" />
             </div>
           )}
 
@@ -3083,162 +3502,99 @@ function FlightDataContent() {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t border-white/10">
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart 
-                    data={busiestHours.hourlyData}
-                    onClick={(data, index) => {
-                      if (data && data.activePayload && data.activePayload[0]) {
-                        const hour = data.activePayload[0].payload.hour
-                        handleChartClick('hour', hour, busiestHours.hourlyData.find(d => d.hour === hour))
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                    <XAxis 
-                      dataKey="hour" 
-                      stroke="rgba(255,255,255,0.6)"
-                      style={{ fontSize: '10px' }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      stroke="rgba(255,255,255,0.6)"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(30, 30, 30, 0.95)', 
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        borderRadius: '8px'
-                      }}
-                      formatter={(value) => [`${value} 班/天`, '平均航班數']}
-                    />
-                    <Bar dataKey="average" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div ref={busiestHoursRef} className="w-full h-[220px]" />
+                <div className="mt-2 text-xs text-text-secondary">
+                  橘色為最繁忙時段 Top 3，紫色為其餘時段
+                </div>
               </div>
-              
-              {/* 星期幾統計 */}
-              {busiestHours.weekdayData && busiestHours.weekdayData.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-white/10">
-                  <h4 className="text-base sm:text-lg font-bold text-primary mb-2 sm:mb-3">一週各日平均航班量比較</h4>
-                  <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/5">
-                    <table className="w-full text-left text-sm min-w-[280px]">
-                      <thead>
-                        <tr className="border-b border-white/10 text-text-secondary">
-                          <th className="py-1.5 px-2 sm:px-3 font-medium">星期</th>
-                          <th className="py-1.5 px-2 sm:px-3 font-medium text-right">平均（班/天）</th>
-                          <th className="py-1.5 px-2 sm:px-3 font-medium text-right">總計（天數）</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {busiestHours.weekdayData.map((item) => (
-                          <tr key={item.weekday} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                            <td className="py-1 px-2 sm:px-3 text-primary font-medium">{item.weekday}</td>
-                            <td className="py-1 px-2 sm:px-3 text-primary font-semibold text-right">{item.average}</td>
-                            <td className="py-1 px-2 sm:px-3 text-text-secondary text-right">{item.total} 班（{item.days} 天）</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="mt-3">
-                    <ResponsiveContainer width="100%" height={180}>
-                      <BarChart 
-                        data={busiestHours.weekdayData}
-                        onClick={(data, index) => {
-                          if (data && data.activePayload && data.activePayload[0]) {
-                            const weekday = data.activePayload[0].payload.weekday
-                            handleChartClick('weekday', weekday, busiestHours.weekdayData.find(d => d.weekday === weekday))
-                          }
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis 
-                          dataKey="weekday" 
-                          stroke="rgba(255,255,255,0.6)"
-                          style={{ fontSize: '11px' }}
-                        />
-                        <YAxis 
-                          stroke="rgba(255,255,255,0.6)"
-                          style={{ fontSize: '12px' }}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'rgba(30, 30, 30, 0.95)', 
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: '8px'
-                          }}
-                          formatter={(value, name, props) => [
-                            `${value} 班/天（總計 ${props.payload.total} 班，${props.payload.days} 天）`,
-                            '平均航班數'
-                          ]}
-                        />
-                        <Bar dataKey="average" fill="#8b5cf6" radius={[8, 8, 0, 0]}>
-                          {busiestHours.weekdayData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
 
-              {/* 平日／週末／假期 平均航班量（卡片 + 圖表） */}
-              {dayTypeStats && dayTypeStats.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-white/10">
-                  <h4 className="text-base sm:text-lg font-bold text-primary mb-3 sm:mb-4">平日／週末／假期 平均航班量</h4>
-                  <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-4">
-                    {dayTypeStats.map((row, index) => (
-                      <div
-                        key={row.type}
-                        className="rounded-xl border border-white/10 bg-white/5 p-3 sm:p-4 flex flex-col gap-1 min-w-[140px] sm:min-w-[160px]"
-                        style={{ borderLeftWidth: 4, borderLeftColor: CHART_COLORS[index % CHART_COLORS.length] }}
-                      >
-                        <div className="text-xs sm:text-sm font-medium text-text-secondary truncate" title={row.type}>{row.type}</div>
-                        <div className="text-lg sm:text-xl font-bold text-primary">{row.average} <span className="text-sm font-normal text-text-secondary">班/天</span></div>
-                        <div className="text-xs text-text-secondary">共 {row.total} 班（{row.days} 天）</div>
+              {/* 一週各日 × 平日／週末／假期：同一區塊、緊湊排列，大螢幕可並排 */}
+              {(weekdayDisplayData.length > 0 || dayTypeDisplayData.length > 0) && (
+                <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  {/* 一週各日平均航班量比較 */}
+                  {weekdayDisplayData.length > 0 && (
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <h4 className="text-base font-bold text-primary">一週各日平均航班量</h4>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setWeekdaySortMode('fixed')}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${weekdaySortMode === 'fixed' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                          >
+                            固定順序
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setWeekdaySortMode('value')}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${weekdaySortMode === 'value' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                          >
+                            熱度排序
+                          </button>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-3">
-                    <ResponsiveContainer width="100%" height={180}>
-                      <BarChart data={dayTypeStats}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis
-                          dataKey="type"
-                          stroke="rgba(255,255,255,0.6)"
-                          style={{ fontSize: '10px' }}
-                          angle={-20}
-                          textAnchor="end"
-                          height={60}
-                        />
-                        <YAxis stroke="rgba(255,255,255,0.6)" style={{ fontSize: '12px' }} />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'rgba(30, 30, 30, 0.95)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: '8px'
-                          }}
-                          formatter={(value, name, props) => [
-                            `${value} 班/天（總計 ${props.payload.total} 班，${props.payload.days} 天）`,
-                            '平均航班數'
-                          ]}
-                        />
-                        <Bar dataKey="average" fill="#8b5cf6" radius={[8, 8, 0, 0]}>
-                          {dayTypeStats.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                      <div ref={weekdayChartRef} className="w-full h-[180px]" />
+                    </div>
+                  )}
+                  {/* 平日／週末／假期 平均航班量 */}
+                  {dayTypeDisplayData.length > 0 && (
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <h4 className="text-base font-bold text-primary">平日／週末／假期</h4>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setDayTypeSortMode('fixed')}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${dayTypeSortMode === 'fixed' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                          >
+                            固定順序
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDayTypeSortMode('value')}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${dayTypeSortMode === 'value' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                          >
+                            熱度排序
+                          </button>
+                        </div>
+                      </div>
+                      <div ref={dayTypeChartRef} className="w-full h-[180px]" />
+                    </div>
+                  )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 目的地航班數 Top 10 — ECharts 柱狀圖 / Bar Race */}
+          {(statsByDestination.length > 0 || statsDestRaceFrames.length > 0) && (
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">目的地航班數 Top 10</h3>
+              <div className="flex gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setDestChartMode('bar')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'bar' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  柱狀圖
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDestChartMode('race')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'race' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  Bar Race
+                </button>
+              </div>
+              <div ref={destTop10Ref} className="w-full h-[320px]" />
+            </div>
+          )}
+
+          {/* 航空公司航班數 Top 10 — ECharts */}
+          {statsByAirline.length > 0 && (
+            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">航空公司航班數 Top 10</h3>
+              <div ref={airlineTop10Ref} className="w-full h-[320px]" />
             </div>
           )}
 
@@ -3253,62 +3609,92 @@ function FlightDataContent() {
                   </span>
                 )}
               </h3>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3">
-                {gateHeatmapData.data.map((item) => {
-                  // 根據強度計算顏色
-                  const getColor = (intensity) => {
-                    if (intensity === 0) return 'bg-white/5'
-                    if (intensity < 0.25) return 'bg-blue-500/30'
-                    if (intensity < 0.5) return 'bg-green-500/50'
-                    if (intensity < 0.75) return 'bg-yellow-500/70'
-                    return 'bg-red-500/90'
-                  }
-                  
-                  return (
-                    <div
-                      key={item.gate}
-                      className={`${getColor(item.intensity)} rounded-lg p-3 sm:p-4 text-center transition-all duration-300 hover:scale-105 cursor-pointer border border-white/10`}
-                      title={`${item.gate}: ${item.count} 班${multiDayData.length > 0 ? ` (平均 ${item.average.toFixed(1)} 班/天)` : ''}`}
-                      onClick={() => handleChartClick('gate', item.gate, item)}
-                    >
-                      <div className="text-xs sm:text-sm font-bold text-white mb-1">{item.gate}</div>
-                      <div className="text-lg sm:text-xl font-bold text-white">
-                        {multiDayData.length > 0 ? item.average.toFixed(1) : item.count}
-                      </div>
-                      {multiDayData.length > 0 && (
-                        <div className="text-xs text-white/70 mt-1">總 {item.count}</div>
-                      )}
-                    </div>
-                  )
-                })}
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setGateHeatmapViewMode('cards')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapViewMode === 'cards' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  卡片視圖
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGateHeatmapViewMode('matrix')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapViewMode === 'matrix' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  Gate × 日期
+                </button>
+                <span className="w-px h-6 bg-white/10 mx-1 hidden sm:inline-block" />
+                <button
+                  type="button"
+                  onClick={() => setGateHeatmapValueMode('average')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapValueMode === 'average' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  平均
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGateHeatmapValueMode('total')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapValueMode === 'total' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  總計
+                </button>
+                <span className="w-px h-6 bg-white/10 mx-1 hidden sm:inline-block" />
+                <button
+                  type="button"
+                  onClick={() => setGateHeatmapSortMode('fixed')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapSortMode === 'fixed' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  固定順序
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGateHeatmapSortMode('value')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapSortMode === 'value' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                >
+                  熱度排序
+                </button>
               </div>
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <div className="flex items-center justify-between text-xs text-text-secondary">
-                  <span>使用強度</span>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded bg-white/5"></div>
-                      <span>低</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded bg-blue-500/30"></div>
-                      <span>中低</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded bg-green-500/50"></div>
-                      <span>中</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded bg-yellow-500/70"></div>
-                      <span>中高</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded bg-red-500/90"></div>
-                      <span>高</span>
+
+              {gateHeatmapViewMode === 'cards' ? (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
+                    {(gateHeatmapDisplayData?.items || []).map((item) => (
+                      <div
+                        key={item.gate}
+                        className={`${item.colorClass} rounded-lg p-3 sm:p-4 text-center transition-all duration-300 hover:scale-105 cursor-pointer border border-white/10`}
+                        title={`${item.gate}: 總 ${item.count} 班 / 平均 ${Number(item.average || 0).toFixed(1)} 班/天`}
+                        onClick={() => handleChartClick('gate', item.gate, item)}
+                      >
+                        <div className="text-xs sm:text-sm font-bold text-white mb-1">{item.gate}</div>
+                        <div className="text-lg sm:text-xl font-bold text-white">
+                          {gateHeatmapValueMode === 'average'
+                            ? Number(item.metric || 0).toFixed(1)
+                            : item.metric}
+                        </div>
+                        <div className="text-xs text-white/70 mt-1">
+                          {gateHeatmapValueMode === 'average' ? `總 ${item.count}` : `平均 ${Number(item.average || 0).toFixed(1)}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-text-secondary">
+                      <span>分位數色階</span>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-white/5"></div><span>0</span></div>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-sky-500/25"></div><span>Q1</span></div>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-cyan-500/35"></div><span>Q2</span></div>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-emerald-500/50"></div><span>Q3</span></div>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-amber-500/70"></div><span>Q4</span></div>
                     </div>
                   </div>
+                </>
+              ) : (
+                <div>
+                  <div ref={gateDateHeatmapRef} className="w-full h-[320px]" />
+                  <p className="mt-2 text-xs text-text-secondary">可查看各日期在不同登機門的熱度分布；點擊格子可查看該登機門詳情</p>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
