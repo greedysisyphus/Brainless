@@ -478,7 +478,7 @@
       "type": "departure",
       "airport_code": "FUK",
       "city": "Fukuoka",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Fukuoka (FUK)",
@@ -640,5 +640,5 @@
     "20:45 : D13 : JX26 (星宇航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-02-26T07:55:09.847963"
+  "updated_at": "2026-02-26T08:58:03.094966"
 }
