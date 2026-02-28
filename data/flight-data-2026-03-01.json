@@ -68,7 +68,7 @@
     {
       "time": "06:35",
       "datetime": "2026-03-01T06:35:00",
-      "gate": "D13",
+      "gate": "D15R",
       "flight_code": "BR158",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -129,6 +129,11 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5850",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TG6364",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -142,11 +147,6 @@
           "flight_code": "NZ4944",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5850",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -166,6 +166,11 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5802",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TG6362",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -174,11 +179,6 @@
           "flight_code": "NZ4906",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5802",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -223,7 +223,7 @@
     {
       "time": "08:30",
       "datetime": "2026-03-01T08:30:00",
-      "gate": "D15R",
+      "gate": "D13",
       "flight_code": "BR132",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -236,6 +236,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5812",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TG6356",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -244,11 +249,6 @@
           "flight_code": "NZ4914",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5812",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -309,7 +309,7 @@
     {
       "time": "10:00",
       "datetime": "2026-03-01T10:00:00",
-      "gate": "D13",
+      "gate": "D15R",
       "flight_code": "BR801",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -483,17 +483,17 @@
     "00:05 : D12 : JX12 (星宇航空)",
     "05:50 : D14R : CI2130 (中華航空)",
     "06:30 : D11 : BR178 (長榮航空)",
-    "06:35 : D13 : BR158 (長榮航空)",
+    "06:35 : D15R : BR158 (長榮航空)",
     "06:55 : D18 : JX789 (星宇航空)",
     "07:55 : D17 : BR184 (長榮航空)",
     "08:00 : D16 : BR106 (長榮航空)",
     "08:10 : D14R : BR707 (長榮航空)",
     "08:25 : D18 : JX785 (星宇航空)",
-    "08:30 : D15R : BR132 (長榮航空)",
+    "08:30 : D13 : BR132 (長榮航空)",
     "08:45 : D12 : BR265 (長榮航空)",
     "09:50 : D11 : BR867 (長榮航空)",
     "10:00 : D14R : BR154 (長榮航空)",
-    "10:00 : D13 : BR801 (長榮航空)",
+    "10:00 : D15R : BR801 (長榮航空)",
     "13:25 : D11 : JX745 (星宇航空)",
     "15:40 : D12 : JX783 (星宇航空)",
     "16:25 : D11 : CI106 (中華航空)",
@@ -502,5 +502,5 @@
     "20:30 : D13 : BR261 (長榮航空)",
     "20:45 : D12 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-02-28T14:29:40.864050"
+  "updated_at": "2026-02-28T15:30:45.670216"
 }
