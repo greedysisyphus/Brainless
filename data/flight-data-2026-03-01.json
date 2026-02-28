@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "SFO",
       "city": "San Francisco",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "San Francisco (SFO)",
@@ -502,5 +502,5 @@
     "20:30 : D13 : BR261 (長榮航空)",
     "20:45 : D12 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-02-28T15:30:45.670216"
+  "updated_at": "2026-02-28T16:35:22.491731"
 }
