@@ -65,11 +65,6 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4926",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -78,6 +73,11 @@
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4926",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "AC6535",
@@ -174,7 +174,7 @@
     {
       "time": "08:10",
       "datetime": "2026-03-02T08:10:00",
-      "gate": "D16",
+      "gate": "D18",
       "flight_code": "BR851",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -257,14 +257,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6543",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "LO5344",
@@ -286,7 +286,7 @@
     {
       "time": "09:00",
       "datetime": "2026-03-02T09:00:00",
-      "gate": "D18",
+      "gate": "D16",
       "flight_code": "BR237",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -318,7 +318,7 @@
     {
       "time": "09:50",
       "datetime": "2026-03-02T09:50:00",
-      "gate": "D16",
+      "gate": "D18",
       "flight_code": "BR712",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -336,14 +336,14 @@
           "airline_name": "立榮航空"
         },
         {
-          "flight_code": "HO3182",
-          "airline_code": "HO",
-          "airline_name": "吉祥航空"
-        },
-        {
           "flight_code": "CA5512",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "HO3182",
+          "airline_code": "HO",
+          "airline_name": "吉祥航空"
         }
       ]
     },
@@ -626,14 +626,14 @@
     "07:20 : D14R : BR257 (長榮航空)",
     "07:40 : D12 : JX711 (星宇航空)",
     "07:55 : D15R : BR184 (長榮航空)",
-    "08:10 : D16 : BR851 (長榮航空)",
+    "08:10 : D18 : BR851 (長榮航空)",
     "08:30 : D17 : JX785 (星宇航空)",
     "08:40 : D11 : JX771 (星宇航空)",
     "08:45 : D13 : BR265 (長榮航空)",
     "08:50 : D14R : BR198 (長榮航空)",
-    "09:00 : D18 : BR237 (長榮航空)",
+    "09:00 : D16 : BR237 (長榮航空)",
     "09:25 : D12 : JX741 (星宇航空)",
-    "09:50 : D16 : BR712 (長榮航空)",
+    "09:50 : D18 : BR712 (長榮航空)",
     "09:50 : D17 : BR867 (長榮航空)",
     "10:00 : D15R : BR801 (長榮航空)",
     "10:20 : D11 : BR154 (長榮航空)",
@@ -648,5 +648,5 @@
     "19:00 : D14R : BR809 (長榮航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-01T19:29:11.501636"
+  "updated_at": "2026-03-01T20:35:46.967627"
 }
