@@ -370,7 +370,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -524,5 +524,5 @@
     "20:30 : D13 : BR261 (長榮航空)",
     "20:45 : D12 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-03-01T05:00:41.343292"
+  "updated_at": "2026-03-01T06:56:10.950904"
 }
