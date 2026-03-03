@@ -17,6 +17,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6354",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "NZ4928",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -25,11 +30,6 @@
           "flight_code": "NH5834",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "TG6354",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -70,14 +70,14 @@
           "airline_name": "加拿大航空"
         },
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
         },
         {
           "flight_code": "NZ4926",
@@ -155,14 +155,14 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "TG6364",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "AC6536",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "TG6364",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "NZ4944",
@@ -272,14 +272,14 @@
           "airline_name": "波蘭航空"
         },
         {
-          "flight_code": "NZ4934",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6346",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4934",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -637,5 +637,5 @@
     "18:10 : D13 : BR857 (長榮航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-03T02:47:15.858363"
+  "updated_at": "2026-03-03T04:52:49.424769"
 }
