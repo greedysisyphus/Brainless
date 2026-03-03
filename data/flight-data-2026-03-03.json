@@ -387,14 +387,14 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "HA2582",
-          "airline_code": "HA",
-          "airline_name": "夏威夷航空"
-        },
-        {
           "flight_code": "JL5106",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "HA2582",
+          "airline_code": "HA",
+          "airline_name": "夏威夷航空"
         }
       ]
     },
@@ -688,7 +688,7 @@
       "type": "departure",
       "airport_code": "LAX",
       "city": "Los Angeles",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Los Angeles (LAX)",
@@ -733,5 +733,5 @@
     "20:45 : D12 : JX26 (星宇航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-03T15:54:00.752902"
+  "updated_at": "2026-03-03T16:58:44.377520"
 }
