@@ -65,9 +65,14 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "AC6535",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "OZ6874",
@@ -80,14 +85,9 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
+          "flight_code": "AC6535",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         }
       ]
     },
@@ -166,14 +166,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4944",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6364",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4944",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "NH5850",
@@ -289,6 +289,11 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6336",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "NH5816",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -297,11 +302,6 @@
           "flight_code": "NZ4908",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TG6336",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -422,14 +422,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "CZ7975",
-          "airline_code": "CZ",
-          "airline_name": "南方航空"
-        },
-        {
           "flight_code": "MU8903",
           "airline_code": "MU",
           "airline_name": "東方航空"
+        },
+        {
+          "flight_code": "CZ7975",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
         }
       ]
     },
@@ -528,5 +528,5 @@
     "20:30 : D12 : JX32 (星宇航空)",
     "23:40 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-03T20:39:49.855444"
+  "updated_at": "2026-03-03T21:40:31.004586"
 }
