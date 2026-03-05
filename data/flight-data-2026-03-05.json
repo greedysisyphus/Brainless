@@ -17,11 +17,6 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6354",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4928",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -30,6 +25,11 @@
           "flight_code": "NH5834",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6354",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -146,11 +146,6 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6362",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4906",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -159,6 +154,11 @@
           "flight_code": "NH5802",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6362",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -242,11 +242,6 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6346",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4934",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -260,6 +255,11 @@
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6346",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -295,11 +295,6 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6336",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5816",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -308,6 +303,11 @@
           "flight_code": "NZ4908",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TG6336",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -405,7 +405,7 @@
     {
       "time": "15:20",
       "datetime": "2026-03-05T15:20:00",
-      "gate": "D11",
+      "gate": "D13",
       "flight_code": "JX703",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -465,7 +465,7 @@
     {
       "time": "16:45",
       "datetime": "2026-03-05T16:45:00",
-      "gate": "D13",
+      "gate": "D11",
       "flight_code": "CI122",
       "airline_code": "CI",
       "airline_name": "中華航空",
@@ -478,11 +478,6 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
-          "flight_code": "KL4980",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        },
-        {
           "flight_code": "MH5596",
           "airline_code": "MH",
           "airline_name": "馬來西亞"
@@ -491,6 +486,11 @@
           "flight_code": "JL5136",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4980",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -588,14 +588,14 @@
     "10:00 : D12 : BR255 (長榮航空)",
     "13:25 : D11 : JX745 (星宇航空)",
     "15:15 : D14R : BR160 (長榮航空)",
-    "15:20 : D11 : JX703 (星宇航空)",
+    "15:20 : D13 : JX703 (星宇航空)",
     "15:30 : D12 : CI527 (中華航空)",
     "16:25 : D16 : B7187 (立榮航空)",
-    "16:45 : D13 : CI122 (中華航空)",
+    "16:45 : D11 : CI122 (中華航空)",
     "19:00 : D17 : BR809 (長榮航空)",
     "20:30 : D11 : JX32 (星宇航空)",
     "20:45 : D12 : JX26 (星宇航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-05T02:42:12.750622"
+  "updated_at": "2026-03-05T04:50:36.307407"
 }
