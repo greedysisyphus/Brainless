@@ -113,6 +113,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "LO5348",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
+        },
+        {
           "flight_code": "OZ6874",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
@@ -123,24 +128,19 @@
           "airline_name": "立榮航空"
         },
         {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
         },
         {
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "AC6535",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
-        },
-        {
-          "flight_code": "LO5348",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
         }
       ]
     },
@@ -199,6 +199,28 @@
       "codeshare_flights": []
     },
     {
+      "time": "08:10",
+      "datetime": "2026-03-07T08:10:00",
+      "gate": "D16",
+      "flight_code": "BR851",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "HKG",
+      "city": "Hong Kong",
+      "status": "準時ON TIME",
+      "aircraft": "A321-200",
+      "terminal": "2",
+      "destination": "Hong Kong (HKG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HX1821",
+          "airline_code": "HX",
+          "airline_name": "香港航空"
+        }
+      ]
+    },
+    {
       "time": "08:25",
       "datetime": "2026-03-07T08:25:00",
       "gate": "D13",
@@ -217,33 +239,6 @@
           "flight_code": "JL5132",
           "airline_code": "JL",
           "airline_name": "日本航空"
-        }
-      ]
-    },
-    {
-      "time": "08:25",
-      "datetime": "2026-03-07T08:25:00",
-      "gate": "D16",
-      "flight_code": "BR211",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "BKK",
-      "city": "Bangkok",
-      "status": "準時ON TIME",
-      "aircraft": "B777-300",
-      "terminal": "2",
-      "destination": "Bangkok (BKK)",
-      "codeshare_flights": [
-        {
-          "flight_code": "AI7051",
-          "airline_code": "AI",
-          "airline_name": "印度航空"
-        },
-        {
-          "flight_code": "TG6315",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -484,6 +479,11 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6334",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "NZ4904",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -492,11 +492,6 @@
           "flight_code": "NH5810",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "TG6334",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -532,6 +527,11 @@
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6307",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "AI7063",
           "airline_code": "AI",
           "airline_name": "印度航空"
@@ -540,11 +540,6 @@
           "flight_code": "TK9458",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
-        },
-        {
-          "flight_code": "TG6307",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -595,8 +590,8 @@
     "07:35 : D14R : CI154 (中華航空)",
     "07:45 : D11 : JX711 (星宇航空)",
     "08:05 : D12 : JX785 (星宇航空)",
+    "08:10 : D16 : BR851 (長榮航空)",
     "08:25 : D13 : CI118 (中華航空)",
-    "08:25 : D16 : BR211 (長榮航空)",
     "08:30 : D15R : JX771 (星宇航空)",
     "09:00 : D18 : BR237 (長榮航空)",
     "09:05 : D17 : BR716 (長榮航空)",
@@ -613,5 +608,5 @@
     "20:45 : D12 : JX26 (星宇航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-06T19:39:57.270050"
+  "updated_at": "2026-03-06T20:40:13.768730"
 }
