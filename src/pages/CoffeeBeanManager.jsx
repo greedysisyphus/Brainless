@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon, ArrowPathIcon, PhotoIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon, ArrowPathIcon, PhotoIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 import { db } from '../utils/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { useLocalStorage } from '../hooks/useLocalStorage'
@@ -85,6 +85,7 @@ const getPacksFromWeight = (totalG, weightSettings, containerType) => {
 function CoffeeBeanManager() {
   const [showWeightCalculator, setShowWeightCalculator] = useState(false)
   const [showBeanTypesSettings, setShowBeanTypesSettings] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
   
   // 店鋪選擇（用於庫存管理和品項設定）
   const [selectedStore, setSelectedStore] = useState('central') // 'central', 'd7', 'd13'
@@ -1786,9 +1787,17 @@ function CoffeeBeanManager() {
                   <ClipboardDocumentListIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary transform group-hover/icon:scale-110 transition-transform duration-300" />
                 </div>
               </div>
-          <div>
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent mb-1">咖啡豆盤點表</h2>
-                <p className="text-xs sm:text-sm text-text-secondary">即時更新庫存數量 · 袋/盒請輸入秤上總重(g)，系統扣掉容器重後換算成包數</p>
+          <div className="flex items-center gap-2">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">咖啡豆盤點表</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowTutorial(true)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-text-secondary hover:text-primary transition-colors"
+                  title="使用教學"
+                  aria-label="使用教學"
+                >
+                  <QuestionMarkCircleIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
           </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -2666,6 +2675,48 @@ function CoffeeBeanManager() {
         onClose={() => setShowBeanTypesSettings(false)}
         selectedStore={selectedStore}
       />
+
+      {/* 使用教學模態視窗 */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" onClick={() => setShowTutorial(false)}>
+          <div className="bg-surface border border-white/15 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/10">
+              <h3 className="text-lg font-bold text-primary">使用教學</h3>
+              <button type="button" onClick={() => setShowTutorial(false)} className="p-2 rounded-xl hover:bg-white/10 text-text-secondary hover:text-primary" aria-label="關閉">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 py-4 overflow-y-auto flex-1 space-y-4 text-sm text-primary">
+              <section>
+                <h4 className="font-semibold text-primary mb-2">填寫方式（每格右側 數／袋／盒）</h4>
+                <ul className="list-disc list-inside space-y-1 text-text-secondary">
+                  <li><strong className="text-primary">數</strong>：直接輸入「包數」</li>
+                  <li><strong className="text-primary">袋</strong>：輸入「秤上總重(g)」含銀袋，系統會扣掉銀袋重後換算成包數</li>
+                  <li><strong className="text-primary">盒</strong>：輸入「秤上總重(g)」含 IKEA／MUJI 盒，系統會扣掉盒重後換算成包數</li>
+                </ul>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-2">換算公式</h4>
+                <p className="text-text-secondary">包數 = (總重量 − 容器重) ÷ 每包克數</p>
+                <p className="text-text-secondary mt-1 text-xs">同一品項可混用不同填寫方式，總包數會自動加總並無條件捨去小數。</p>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-2">店鋪與重量設定</h4>
+                <p className="text-text-secondary">上方可切換中央店／D7／D13，盤點表與「重量換算」會依該店鋪的銀袋重、盒重、每包克數計算。請在「重量換算」內設定各店參數。</p>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-2">匯出</h4>
+                <p className="text-text-secondary">可選擇 Cat／Minimalist／自定 Logo 匯出為 PNG 圖片，或複製表格用於報表。</p>
+              </section>
+            </div>
+            <div className="px-6 pb-6 pt-2 border-t border-white/10">
+              <button type="button" onClick={() => setShowTutorial(false)} className="w-full py-2.5 rounded-xl bg-primary/25 border border-primary/40 text-primary font-medium hover:bg-primary/35">
+                知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )
