@@ -1651,28 +1651,28 @@ function CoffeeBeanManager() {
       <div className="max-w-6xl mx-auto">
         {/* 頁面標題 - 超現代設計 */}
         <div className="text-center mb-6 sm:mb-8 md:mb-10 relative">
-          {/* 背景動態光暈 - 移動設備縮小 */}
+          {/* 背景光暈（無動畫，避免閃爍） */}
           <div className="absolute inset-0 flex justify-center -z-10">
-            <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-glow opacity-50"></div>
+            <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl opacity-50"></div>
           </div>
           
           {/* 圖標容器 - 3D 效果 */}
           <div className="inline-flex items-center justify-center mb-4 sm:mb-5 md:mb-6 relative group title-icon-group">
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-purple-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
             <div className="relative inline-flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 bg-gradient-to-br from-primary/30 via-purple-500/30 to-blue-500/30 rounded-xl sm:rounded-2xl border-2 border-primary/50 shadow-2xl shadow-primary/30 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 overflow-hidden">
-              {/* 流動背景 */}
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
+              {/* 流動背景（無無限動畫，避免閃爍） */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[length:200%_100%]"></div>
               <ClipboardDocumentListIcon className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 text-primary relative z-10 transform group-hover:scale-110 transition-transform duration-300" />
           </div>
         </div>
           
           {/* 標題 */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-2 sm:mb-3 relative px-4">
-            <span className="bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient">
+            <span className="bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent">
               咖啡豆管理工具
             </span>
-            {/* 文字發光效果 */}
-            <span className="absolute inset-0 bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent blur-xl opacity-30 -z-10 animate-pulse-glow">
+            {/* 文字發光（靜態，避免閃爍） */}
+            <span className="absolute inset-0 bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent blur-xl opacity-30 -z-10">
               咖啡豆管理工具
             </span>
           </h1>
@@ -1772,12 +1772,12 @@ function CoffeeBeanManager() {
 
       {/* 一、咖啡豆盤點表 */}
       <div className="relative group mb-6 sm:mb-8">
-        {/* 卡片背景光暈 */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        {/* 卡片背景光暈（不參與點擊） */}
+        <div className="absolute -inset-1 pointer-events-none bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         
         <div className="relative backdrop-blur-xl bg-gradient-to-br from-surface/90 via-surface/70 to-surface/90 border-2 border-white/20 rounded-2xl p-4 sm:p-5 md:p-6 shadow-2xl overflow-hidden" ref={inventoryRef} style={{ transform: 'none', willChange: 'auto' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.scale = '1'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.scale = '1'; }}>
-          {/* 流動背景效果 */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-purple-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient bg-[length:200%_100%]"></div>
+          {/* 流動背景效果：不參與點擊、無無限動畫，避免閃爍 */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-primary/0 via-purple-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[length:200%_100%]"></div>
           
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 relative z-10">
             <div className="flex items-center gap-3">
@@ -1901,8 +1901,8 @@ function CoffeeBeanManager() {
           </div>
         </div>
         
-                          {/* 出杯豆 */}
-        <div id="brewing-section" className="space-y-4">
+                          {/* 出杯豆：relative z-10 確保在裝飾層之上，左側 數/袋/盒 可點擊 */}
+        <div id="brewing-section" className="relative z-10 space-y-4">
           <div id="brewing-title" className="flex items-center gap-3 mb-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-400/20 backdrop-blur-md shadow-lg">
             <div className="w-2 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></div>
             <div>
@@ -1910,7 +1910,7 @@ function CoffeeBeanManager() {
               <p className="text-sm text-blue-300/70">用於製作飲品的咖啡豆</p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-400 animate-pulse"></div>
+              <div className="w-3 h-3 rounded-full bg-blue-400"></div>
               <span className="text-xs text-blue-300 font-medium">當前區域</span>
             </div>
           </div>
@@ -1961,9 +1961,9 @@ function CoffeeBeanManager() {
                                     className="input-field flex-1 min-w-0 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
                                     inputMode="decimal"
                                   />
-                                  <div className="flex items-center gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                  <div className="flex items-center gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0" role="group" aria-label="填寫方式">
                                     {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                      <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'pourOver', 'store', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                      <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                     ))}
                                   </div>
                                   {(beanData?.store || []).length > 1 && (
@@ -1999,9 +1999,9 @@ function CoffeeBeanManager() {
                                 return (
                                   <div key={index} className="flex items-center gap-1.5 flex-wrap">
                                     <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
-                                    <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                    <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0" role="group" aria-label="填寫方式">
                                       {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                        <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                        <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                       ))}
                                     </div>
                                     {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2030,9 +2030,9 @@ function CoffeeBeanManager() {
                             return (
                               <div key={index} className="flex items-center gap-1.5 flex-wrap">
                                 <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
-                                <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0" role="group" aria-label="填寫方式">
                                   {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                   ))}
                                 </div>
                                 {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2089,7 +2089,7 @@ function CoffeeBeanManager() {
                               <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10" inputMode="decimal" />
                               <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
                                 {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                  <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'espresso', 'store', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                  <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                 ))}
                               </div>
                               {(beanData?.store || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'store', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2117,7 +2117,7 @@ function CoffeeBeanManager() {
                                 <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
                                 <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
                                   {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                   ))}
                                 </div>
                                 {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2146,7 +2146,7 @@ function CoffeeBeanManager() {
                                 <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
                                 <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
                                   {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                   ))}
                                 </div>
                                 {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2168,8 +2168,8 @@ function CoffeeBeanManager() {
           </div>
         </div>
 
-        {/* 賣豆 */}
-        <div id="retail-section" className="space-y-4 mt-8">
+        {/* 賣豆：relative z-10 確保在裝飾層之上，左側 數/袋/盒 可點擊 */}
+        <div id="retail-section" className="relative z-10 space-y-4 mt-8">
           <div id="retail-title" className="flex items-center gap-3 mb-4 p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-xl border border-orange-400/20 backdrop-blur-md shadow-lg">
             <div className="w-2 h-8 bg-gradient-to-b from-orange-400 to-yellow-400 rounded-full"></div>
             <div>
@@ -2177,7 +2177,7 @@ function CoffeeBeanManager() {
               <p className="text-sm text-orange-300/70">用於販售的咖啡豆</p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-orange-400 animate-pulse"></div>
+              <div className="w-3 h-3 rounded-full bg-orange-400"></div>
               <span className="text-xs text-orange-300 font-medium">當前區域</span>
             </div>
           </div>
@@ -2228,7 +2228,7 @@ function CoffeeBeanManager() {
                             />
                             <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
                               {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'retail', null, 'store', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                               ))}
                             </div>
                             {(beanData?.store || []).length > 1 && (
@@ -2262,7 +2262,7 @@ function CoffeeBeanManager() {
                                   <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
                                   <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
                                     {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                      <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'retail', null, 'breakRoom', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                      <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                     ))}
                                   </div>
                                   {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeRetailQuantityField(beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2293,7 +2293,7 @@ function CoffeeBeanManager() {
                               <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], dryStorage: prev.retail[beanType]?.dryStorage?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
                               <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
                                 {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                  <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'retail', null, 'dryStorage', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                  <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                 ))}
                               </div>
                               {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeRetailQuantityField(beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2317,9 +2317,9 @@ function CoffeeBeanManager() {
         </div>
       </div>
 
-      {/* 浮動區域指示器 - 可拖動 */}
+      {/* 浮動區域指示器 - 可拖動；僅 pill 區域接收點擊，其餘穿透避免擋住 數/袋/盒 */}
       <div 
-        className={`fixed z-40 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`fixed z-40 pointer-events-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
           top: `${Math.max(MIN_INDICATOR_TOP, indicatorPosition.top)}px`,
           right: indicatorPosition.right !== null ? `${indicatorPosition.right}px` : 'auto',
@@ -2329,7 +2329,7 @@ function CoffeeBeanManager() {
         }}
       >
         <div 
-          className="bg-surface/90 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 shadow-lg select-none"
+          className="pointer-events-auto bg-surface/90 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 shadow-lg select-none"
           onMouseDown={handleIndicatorDragStart}
           onTouchStart={handleIndicatorDragStart}
         >
@@ -2641,8 +2641,8 @@ function CoffeeBeanManager() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-green-500/30 via-emerald-500/30 to-green-400/30 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
                   
                   <div className="relative backdrop-blur-xl bg-gradient-to-br from-green-500/20 via-emerald-500/20 to-green-400/20 border-2 border-green-400/40 rounded-2xl p-6 shadow-2xl overflow-hidden">
-                    {/* 流動背景效果 */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-emerald-500/10 to-green-400/0 opacity-50 animate-gradient bg-[length:200%_100%]"></div>
+                    {/* 流動背景效果（無無限動畫，避免閃爍） */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-emerald-500/10 to-green-400/0 opacity-50 bg-[length:200%_100%]"></div>
                     
                     <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-4">

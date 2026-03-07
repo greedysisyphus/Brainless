@@ -161,9 +161,15 @@
     to { transform: translateY(0); opacity: 1; }
   }
 
-  /* 脈衝發光動畫 */
+  /* 脈衝發光動畫（易造成閃爍，減少動態時關閉） */
   .animate-pulse-glow {
     animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @media (prefer-reduced-motion: reduce) {
+    .animate-pulse-glow {
+      animation: none;
+      opacity: 0.65;
+    }
   }
 
   @keyframes pulse-glow {
@@ -171,9 +177,14 @@
     50% { opacity: 0.8; transform: scale(1.05); }
   }
 
-  /* 漸變動畫 */
+  /* 漸變動畫（易造成閃爍，減少動態時關閉） */
   .animate-gradient {
     animation: gradient-shift 3s ease infinite alternate;
+  }
+  @media (prefer-reduced-motion: reduce) {
+    .animate-gradient {
+      animation: none;
+    }
   }
 
   @keyframes gradient-shift {
