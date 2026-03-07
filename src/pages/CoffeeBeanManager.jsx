@@ -50,6 +50,38 @@ const DEFAULT_WEIGHTS = {
   beanWeightPerPack: 19
 }
 
+// 店鋪常數與設定集中（優化 5）
+const STORES = [
+  { id: 'central', name: '中央店' },
+  { id: 'd7', name: 'D7 店' },
+  { id: 'd13', name: 'D13 店' }
+]
+const getStoreName = (storeId) => STORES.find((s) => s.id === storeId)?.name ?? '中央店'
+const getWeightDocId = (storeId) => `coffeeBeanWeight_${storeId}`
+const getBeanTypesDocId = (storeId) => `coffeeBeanTypes_${storeId}`
+const getInventoryStorageKey = (storeId) => `coffeeBeanInventory_${storeId}`
+const getWeightSettingsStorageKey = (storeId) => `coffeeBeanWeightSettings_${storeId}`
+const getBoxWeightKey = (storeId) => (storeId === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight')
+
+// 重量 → 包數換算單一來源（優化 6）containerType: 'bag' | 'ikea' | 'muji'
+const getPacksFromWeight = (totalG, weightSettings, containerType) => {
+  if (totalG === '' || totalG == null) return 0
+  const w = typeof totalG === 'number' ? totalG : parseFloat(totalG)
+  if (isNaN(w) || w <= 0 || !weightSettings) return 0
+  const containerWeight =
+    containerType === 'bag'
+      ? weightSettings.bagWeight
+      : containerType === 'muji'
+        ? (weightSettings.mujiBoxWeight ?? weightSettings.ikeaBoxWeight)
+        : weightSettings.ikeaBoxWeight
+  const perPack = weightSettings.beanWeightPerPack
+  if (containerWeight == null || perPack == null || perPack <= 0) return 0
+  const beanWeight = w - Number(containerWeight)
+  if (!Number.isFinite(beanWeight) || beanWeight <= 0) return 0
+  const result = beanWeight / Number(perPack)
+  return Number.isFinite(result) ? result : 0
+}
+
 function CoffeeBeanManager() {
   const [showWeightCalculator, setShowWeightCalculator] = useState(false)
   const [showBeanTypesSettings, setShowBeanTypesSettings] = useState(false)
@@ -357,7 +389,41 @@ function CoffeeBeanManager() {
     if (selectedWeightStore === 'd13') return weightSettingsD13
     return weightSettingsCentral
   }, [selectedWeightStore, weightSettingsCentral, weightSettingsD7, weightSettingsD13])
-  
+
+  // 當前盤點店鋪的重量設定（用於表格「以重量填寫」時的換算，與豆子計算機公式一致）
+  const weightSettingsForInventory = useMemo(() => {
+    if (selectedStore === 'd7') return weightSettingsD7
+    if (selectedStore === 'd13') return weightSettingsD13
+    return weightSettingsCentral
+  }, [selectedStore, weightSettingsCentral, weightSettingsD7, weightSettingsD13])
+
+  // 每一「列」的填寫方式：同一位置可混用 數量/銀袋/盒子；key 為 beanKey + '.' + location，value 為 mode 陣列與該位置格子一一對應
+  const [beanInputModes, setBeanInputModes] = useLocalStorage('coffeeBeanTableInputModes', {})
+
+  const getCellModesKey = (beanName, category, subCategory, location) =>
+    `${getBeanKey(beanName, category, subCategory)}.${location}`
+
+  const getCellModesArray = (beanName, category, subCategory, location) => {
+    const key = getCellModesKey(beanName, category, subCategory, location)
+    const arr = beanInputModes[key]
+    return Array.isArray(arr) ? arr : []
+  }
+
+  const getCellInputMode = (beanName, category, subCategory, location, index) => {
+    const arr = getCellModesArray(beanName, category, subCategory, location)
+    const m = arr[index]
+    return m === 'weightBag' || m === 'weightBox' ? m : 'quantity'
+  }
+
+  const setCellInputMode = (beanName, category, subCategory, location, index, mode) => {
+    const key = getCellModesKey(beanName, category, subCategory, location)
+    setBeanInputModes(prev => {
+      const arr = [...(prev[key] || [])]
+      arr[index] = mode
+      return { ...prev, [key]: arr }
+    })
+  }
+
   // 用於追蹤 Firebase 訂閱
   const weightUnsubscribeRef = useRef(null)
   const [calculations, setCalculations] = useState(() => {
@@ -395,7 +461,7 @@ function CoffeeBeanManager() {
       inventoryUnsubscribeRef.current = null
     }
     
-    const firebaseDocId = `coffeeBeanInventory_${selectedStore}`
+    const firebaseDocId = getInventoryStorageKey(selectedStore)
     let unsubscribe
     let isMounted = true
     let timeoutId
@@ -481,7 +547,7 @@ function CoffeeBeanManager() {
       weightUnsubscribeRef.current = null
     }
     
-    const firebaseDocId = `coffeeBeanWeight_${selectedWeightStore}`
+    const firebaseDocId = getWeightDocId(selectedWeightStore)
     let unsubscribe
     let isMounted = true
     let timeoutId
@@ -577,7 +643,7 @@ function CoffeeBeanManager() {
         }
       }, 5000)
 
-      const firebaseDocId = `coffeeBeanTypes_${selectedStore}`
+      const firebaseDocId = getBeanTypesDocId(selectedStore)
       unsubscribe = onSnapshot(
         doc(db, 'settings', firebaseDocId),
         (docSnapshot) => {
@@ -796,7 +862,7 @@ function CoffeeBeanManager() {
   useEffect(() => {
     // 使用 ref 追蹤當前要同步的店鋪
     inventorySyncStoreRef.current = selectedStore
-    const firebaseDocId = `coffeeBeanInventory_${selectedStore}`
+    const firebaseDocId = getInventoryStorageKey(selectedStore)
     // 使用防抖來避免過於頻繁的寫入
     const timeoutId = setTimeout(() => {
       // 確保店鋪沒有改變才進行同步（避免在快速切換店鋪時造成衝突）
@@ -913,9 +979,15 @@ function CoffeeBeanManager() {
     }
   }
 
-  // 新增數量欄位
+  // 新增數量欄位（同時在該位置的 mode 陣列尾端加一筆，預設 'quantity'）
   const addQuantityField = (category, subCategory, beanType, location) => {
     initializeBeanType(category, subCategory, beanType)
+    const key = getCellModesKey(beanType, category, subCategory, location)
+    setBeanInputModes(prev => {
+      const arr = [...(prev[key] || [])]
+      arr.push('quantity')
+      return { ...prev, [key]: arr }
+    })
     setInventory(prev => ({
       ...prev,
       [category]: {
@@ -951,8 +1023,55 @@ function CoffeeBeanManager() {
     }))
   }
 
-  // 移除數量欄位
+  // 賣豆：新增一列（同步 mode 陣列）
+  const addRetailQuantityField = (beanType, location) => {
+    initializeRetailBeanType(beanType)
+    const key = getCellModesKey(beanType, 'retail', null, location)
+    setBeanInputModes(prev => {
+      const arr = [...(prev[key] || [])]
+      arr.push('quantity')
+      return { ...prev, [key]: arr }
+    })
+    setInventory(prev => ({
+      ...prev,
+      retail: {
+        ...prev.retail,
+        [beanType]: {
+          ...prev.retail[beanType],
+          [location]: [...(prev.retail[beanType]?.[location] || ['']), '']
+        }
+      }
+    }))
+  }
+
+  // 賣豆：移除一列（同步 mode 陣列）
+  const removeRetailQuantityField = (beanType, location, index) => {
+    const key = getCellModesKey(beanType, 'retail', null, location)
+    setBeanInputModes(prev => {
+      const arr = [...(prev[key] || [])]
+      arr.splice(index, 1)
+      return { ...prev, [key]: arr }
+    })
+    setInventory(prev => ({
+      ...prev,
+      retail: {
+        ...prev.retail,
+        [beanType]: {
+          ...prev.retail[beanType],
+          [location]: prev.retail[beanType]?.[location]?.filter((_, i) => i !== index) || ['']
+        }
+      }
+    }))
+  }
+
+  // 移除數量欄位（同時從該位置的 mode 陣列移除對應索引）
   const removeQuantityField = (category, subCategory, beanType, location, index) => {
+    const key = getCellModesKey(beanType, category, subCategory, location)
+    setBeanInputModes(prev => {
+      const arr = [...(prev[key] || [])]
+      arr.splice(index, 1)
+      return { ...prev, [key]: arr }
+    })
     setInventory(prev => ({
       ...prev,
       [category]: {
@@ -968,38 +1087,45 @@ function CoffeeBeanManager() {
     }))
   }
 
-  // 計算總數
+  // 計算總數（純數量加總，用於內部）
   const calculateTotal = (quantities) => {
     return quantities?.reduce((sum, q) => sum + (parseInt(q) || 0), 0) || 0
   }
 
-  // 計算豆種總數（包含所有位置）
-  const calculateBeanTypeTotal = (beanData) => {
+  // 單格重量 → 包數（使用統一 getPacksFromWeight，依目前盤點店鋪 weightSettingsForInventory）
+  const weightToPacksForCell = (totalWeightG, containerType) => {
+    const type = containerType === 'weightBox' ? (selectedStore === 'd13' ? 'muji' : 'ikea') : 'bag'
+    return getPacksFromWeight(totalWeightG, weightSettingsForInventory, type)
+  }
+
+  // 依每列的填寫方式取得「有效包數」總和；modes 與 values 一一對應，不足補 'quantity'
+  const getEffectiveTotal = (values, modes) => {
+    if (!values?.length) return 0
+    const m = Array.isArray(modes) ? modes : []
+    return values.reduce((sum, v, i) => {
+      const mode = m[i] === 'weightBag' || m[i] === 'weightBox' ? m[i] : 'quantity'
+      if (mode === 'weightBag') return sum + weightToPacksForCell(v, 'weightBag')
+      if (mode === 'weightBox') return sum + weightToPacksForCell(v, 'weightBox')
+      return sum + (parseFloat(v) || 0)
+    }, 0)
+  }
+
+  // 計算豆種總數（包含所有位置），依每列填寫方式換算為包數
+  const calculateBeanTypeTotal = (beanData, beanType, category, subCategory) => {
     if (!beanData) return 0
     let total = 0
-    if (beanData.store) {
-      total += calculateTotal(beanData.store)
-    }
-    if (beanData.breakRoom) {
-      total += calculateTotal(beanData.breakRoom)
-    }
-    if (beanData.dryStorage) {
-      total += calculateTotal(beanData.dryStorage)
-    }
+    if (beanData.store) total += getEffectiveTotal(beanData.store, getCellModesArray(beanType, category, subCategory, 'store'))
+    if (beanData.breakRoom) total += getEffectiveTotal(beanData.breakRoom, getCellModesArray(beanType, category, subCategory, 'breakRoom'))
+    if (beanData.dryStorage) total += getEffectiveTotal(beanData.dryStorage, getCellModesArray(beanType, category, subCategory, 'dryStorage'))
     return total
   }
 
-  // 重量換算計算
+  // 重量換算計算（使用統一 getPacksFromWeight）
   const calculateEstimatedPacks = (totalWeight) => {
-    if (!totalWeight) return 0
-    const containerWeight = weightMode === 'bag' 
-      ? weightSettings.bagWeight 
-      : (selectedWeightStore === 'd13' 
-          ? (weightSettings.mujiBoxWeight || weightSettings.ikeaBoxWeight)
-          : weightSettings.ikeaBoxWeight)
-    const beanWeight = totalWeight - containerWeight
-    if (beanWeight <= 0) return 0
-    return Math.round((beanWeight / weightSettings.beanWeightPerPack) * 10) / 10
+    const type = weightMode === 'bag' ? 'bag' : (selectedWeightStore === 'd13' ? 'muji' : 'ikea')
+    const packs = getPacksFromWeight(totalWeight, weightSettings, type)
+    const rounded = Number.isFinite(packs) ? Math.round(packs * 10) / 10 : 0
+    return rounded
   }
 
   // 臨時存儲輸入值（用於解決輸入框問題）
@@ -1037,8 +1163,7 @@ function CoffeeBeanManager() {
       
       // 同步到 Firebase
       try {
-        const firebaseDocId = `coffeeBeanWeight_${selectedWeightStore}`
-        await setDoc(doc(db, 'settings', firebaseDocId), updatedSettings)
+        await setDoc(doc(db, 'settings', getWeightDocId(selectedWeightStore)), updatedSettings)
       } catch (error) {
         console.error('更新重量設定錯誤:', error)
         // 即使 Firebase 失敗，本地設定已保存
@@ -1100,12 +1225,10 @@ function CoffeeBeanManager() {
       setWeightSettingsD13(DEFAULT_WEIGHTS)
       setWeightMode('bag')
       // 清除所有店鋪的庫存 localStorage
-      localStorage.removeItem('coffeeBeanInventory_central')
-      localStorage.removeItem('coffeeBeanInventory_d7')
-      localStorage.removeItem('coffeeBeanInventory_d13')
-      localStorage.removeItem('coffeeBeanWeightSettings_central')
-      localStorage.removeItem('coffeeBeanWeightSettings_d7')
-      localStorage.removeItem('coffeeBeanWeightSettings_d13')
+      STORES.forEach((s) => {
+        localStorage.removeItem(getInventoryStorageKey(s.id))
+        localStorage.removeItem(getWeightSettingsStorageKey(s.id))
+      })
       localStorage.removeItem('coffeeBeanCalculations')
       localStorage.removeItem('coffeeBeanWeightMode')
     }
@@ -1126,8 +1249,7 @@ function CoffeeBeanManager() {
       
       // 同步到 Firebase
       try {
-        const firebaseDocId = `coffeeBeanWeight_${selectedWeightStore}`
-        await setDoc(doc(db, 'settings', firebaseDocId), DEFAULT_WEIGHTS)
+        await setDoc(doc(db, 'settings', getWeightDocId(selectedWeightStore)), DEFAULT_WEIGHTS)
       } catch (error) {
         console.error('更新重量設定錯誤:', error)
       }
@@ -1138,13 +1260,18 @@ function CoffeeBeanManager() {
   const createSummaryTable = () => {
     const tableData = []
     
-    // 輔助函數：處理單一品項的數據
+    // 總包數無條件捨去，不顯示小數
+    const floorPacks = (n) => Math.floor(n)
+    // 輔助函數：處理單一品項的數據（依每列填寫方式換算為有效包數）
     const processBeanType = (beanType, beanData, categoryName, category = null, subCategory = null) => {
       const location = getBeanLocation(beanType, category, subCategory)
-      const storeTotal = calculateTotal(beanData?.store || [])
-      const breakRoomTotal = location.breakRoom ? calculateTotal(beanData?.breakRoom || []) : 0
-      const dryStorageTotal = location.dryStorage ? calculateTotal(beanData?.dryStorage || []) : 0
-      const grandTotal = storeTotal + breakRoomTotal + dryStorageTotal
+      const storeModes = getCellModesArray(beanType, category, subCategory, 'store')
+      const breakRoomModes = getCellModesArray(beanType, category, subCategory, 'breakRoom')
+      const dryStorageModes = getCellModesArray(beanType, category, subCategory, 'dryStorage')
+      const storeTotal = floorPacks(getEffectiveTotal(beanData?.store || [], storeModes))
+      const breakRoomTotal = floorPacks(location.breakRoom ? getEffectiveTotal(beanData?.breakRoom || [], breakRoomModes) : 0)
+      const dryStorageTotal = floorPacks(location.dryStorage ? getEffectiveTotal(beanData?.dryStorage || [], dryStorageModes) : 0)
+      const grandTotal = floorPacks(storeTotal + breakRoomTotal + dryStorageTotal)
       
       tableData.push({
         category: categoryName,
@@ -1176,16 +1303,6 @@ function CoffeeBeanManager() {
     })
     
     return tableData
-  }
-
-  // 獲取店鋪名稱
-  const getStoreName = (store) => {
-    const storeNames = {
-      'central': '中央店',
-      'd7': 'D7 店',
-      'd13': 'D13 店'
-    }
-    return storeNames[store] || '中央店'
   }
 
   // 創建 Minimalist 風格表格 HTML（不帶 logo，純簡潔風格）
@@ -1588,18 +1705,14 @@ function CoffeeBeanManager() {
             
             {/* 選項按鈕 - 簡化動畫效果 */}
             <div className="relative grid grid-cols-3 gap-1.5">
-              {[
-                { value: 'central', label: '中央店' },
-                { value: 'd7', label: 'D7 店' },
-                { value: 'd13', label: 'D13 店' }
-              ].map((store) => {
-                const isSelected = selectedStore === store.value
+              {STORES.map((store) => {
+                const isSelected = selectedStore === store.id
                 return (
             <button
-                    key={store.value}
-                    onClick={() => setSelectedStore(store.value)}
+                    key={store.id}
+                    onClick={() => setSelectedStore(store.id)}
                     className={`
-                      relative z-10
+                      relative z-10 min-h-[44px]
                       px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5
                       rounded-lg sm:rounded-xl
                       font-bold text-xs sm:text-sm md:text-base
@@ -1618,7 +1731,7 @@ function CoffeeBeanManager() {
                       {isSelected && (
                         <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full shadow-sm" />
                       )}
-                      <span className="tracking-wide">{store.label}</span>
+                      <span className="tracking-wide">{store.name}</span>
                     </span>
                     
                     {/* 選中時的背景效果 - 簡化版本 */}
@@ -1636,21 +1749,21 @@ function CoffeeBeanManager() {
         <div className="flex flex-wrap justify-center gap-3 mb-6 sm:mb-8">
               <button
             onClick={() => setShowWeightCalculator(true)}
-            className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-2"
+            className="min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-2"
               >
             <CalculatorIcon className="w-4 h-4" />
             重量換算
               </button>
               <button
             onClick={() => setShowBeanTypesSettings(true)}
-            className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-purple-400 hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-500/50 transition-all duration-200 flex items-center gap-2"
+            className="min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-purple-400 hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-500/50 transition-all duration-200 flex items-center gap-2"
               >
             <Cog6ToothIcon className="w-4 h-4" />
             品項設定
               </button>
           <button
             onClick={resetAllData}
-            className="px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
+            className="min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
           >
             重置數據
           </button>
@@ -1675,10 +1788,10 @@ function CoffeeBeanManager() {
               </div>
           <div>
                 <h2 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent mb-1">咖啡豆盤點表</h2>
-                <p className="text-xs sm:text-sm text-text-secondary">即時更新庫存數量</p>
+                <p className="text-xs sm:text-sm text-text-secondary">即時更新庫存數量 · 袋/盒請輸入秤上總重(g)，系統扣掉容器重後換算成包數</p>
           </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {/* 匯出模式選擇 - 三選一 */}
             <div className="flex items-center gap-2 px-3 py-2 bg-surface/40 rounded-lg border border-white/10">
                 <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
@@ -1804,7 +1917,6 @@ function CoffeeBeanManager() {
               {beanTypes.brewing.pourOver.map(beanType => {
                 const location = getBeanLocation(beanType, 'brewing', 'pourOver')
                 const beanData = inventory.brewing.pourOver[beanType]
-                
                 return (
                   <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
                     <div className="flex items-center justify-between mb-3">
@@ -1828,26 +1940,31 @@ function CoffeeBeanManager() {
                           </div>
                           
                           <div className="space-y-1.5">
-                            {(beanData?.store || ['']).map((quantity, index) => (
-                              <div key={index} className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  value={quantity}
-                                  onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
-                                  placeholder="數量"
-                              className="input-field flex-1 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
-                                  inputMode="decimal"
-                                />
-                                {(beanData?.store || []).length > 1 && (
-                                  <button
-                                    onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'store', index)}
-                                    className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                  >
-                                    <TrashIcon className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
+                            {(beanData?.store || ['']).map((quantity, index) => {
+                              const cellMode = getCellInputMode(beanType, 'brewing', 'pourOver', 'store', index)
+                              return (
+                                <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                                  <input
+                                    type="number"
+                                    value={quantity}
+                                    onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
+                                    placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'}
+                                    className="input-field flex-1 min-w-0 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
+                                    inputMode="decimal"
+                                  />
+                                  <div className="flex items-center gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                    {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                      <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'pourOver', 'store', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                    ))}
+                                  </div>
+                                  {(beanData?.store || []).length > 1 && (
+                                    <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'store', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0">
+                                      <TrashIcon className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
                         </div>
 
@@ -1868,26 +1985,20 @@ function CoffeeBeanManager() {
                             </div>
                             
                             <div className="space-y-1.5">
-                              {(beanData?.breakRoom || ['']).map((quantity, index) => (
-                                <div key={index} className="flex items-center gap-1.5">
-                                  <input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)}
-                                    placeholder="數量"
-                                    className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
-                                    inputMode="decimal"
-                                  />
-                                  {(beanData?.breakRoom || []).length > 1 && (
-                                    <button
-                                      onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'breakRoom', index)}
-                                      className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                    >
-                                      <TrashIcon className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
+                              {(beanData?.breakRoom || ['']).map((quantity, index) => {
+                                const cellMode = getCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index)
+                                return (
+                                  <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                                    <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
+                                    <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                      {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                        <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                      ))}
+                                    </div>
+                                    {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
+                                  </div>
+                                )
+                              })}
                             </div>
                           </div>
                         )}
@@ -1900,42 +2011,32 @@ function CoffeeBeanManager() {
                             <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
                             乾倉
                           </h6>
-                          <button
-                            onClick={() => addQuantityField('brewing', 'pourOver', beanType, 'dryStorage')}
-                            className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors"
-                          >
+                          <button onClick={() => addQuantityField('brewing', 'pourOver', beanType, 'dryStorage')} className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors">
                             <PlusIcon className="w-3 h-3" />
                           </button>
                         </div>
-                        
                         <div className="space-y-1.5">
-                          {(beanData?.dryStorage || ['']).map((quantity, index) => (
-                            <div key={index} className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                value={quantity}
-                                onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, e.target.value)}
-                                placeholder="數量"
-                                className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10"
-                                inputMode="decimal"
-                              />
-                              {(beanData?.dryStorage || []).length > 1 && (
-                                <button
-                                  onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'dryStorage', index)}
-                                  className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                >
-                                  <TrashIcon className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          ))}
+                          {(beanData?.dryStorage || ['']).map((quantity, index) => {
+                            const cellMode = getCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index)
+                            return (
+                              <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
+                                <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                  {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                    <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                  ))}
+                                </div>
+                                {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
                         
                         <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
                           <span className="text-xs font-semibold text-primary">
-                            {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
+                            {beanType}：總共 {Math.floor(calculateBeanTypeTotal(beanData, beanType, 'brewing', 'pourOver'))} 包
                           </span>
                         </div>
                   </div>
@@ -1955,95 +2056,68 @@ function CoffeeBeanManager() {
               {beanTypes.brewing.espresso.map(beanType => {
                 const location = getBeanLocation(beanType, 'brewing', 'espresso')
                 const beanData = inventory.brewing.espresso[beanType]
-                
                 return (
                   <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
                       <div className="w-2 h-2 rounded-full bg-primary/60"></div>
                     </div>
-                    
-                        {/* 店面庫存 */}
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                              店面庫存
-                            </h6>
-                            <button
-                              onClick={() => addQuantityField('brewing', 'espresso', beanType, 'store')}
-                              className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
-                            >
-                              <PlusIcon className="w-3 h-3" />
-                            </button>
-                          </div>
-                          
-                          <div className="space-y-1.5">
-                            {(beanData?.store || ['']).map((quantity, index) => (
-                              <div key={index} className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  value={quantity}
-                                  onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)}
-                                  placeholder="數量"
-                                  className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
-                                  inputMode="decimal"
-                                />
-                                {(beanData?.store || []).length > 1 && (
-                                  <button
-                                    onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'store', index)}
-                                    className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                  >
-                                    <TrashIcon className="w-3 h-3" />
-                                  </button>
-                                )}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                          店面庫存
+                        </h6>
+                        <button onClick={() => addQuantityField('brewing', 'espresso', beanType, 'store')} className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors">
+                          <PlusIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="space-y-1.5">
+                        {(beanData?.store || ['']).map((quantity, index) => {
+                          const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'store', index)
+                          return (
+                            <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                              <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10" inputMode="decimal" />
+                              <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                  <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'espresso', 'store', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        </div>
-
-                    {/* 員休室庫存 */}
+                              {(beanData?.store || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'store', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                     {location.breakRoom && (
-                          <div className="mb-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                                員休室庫存
-                              </h6>
-                              <button
-                                onClick={() => addQuantityField('brewing', 'espresso', beanType, 'breakRoom')}
-                                className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
-                              >
-                                <PlusIcon className="w-3 h-3" />
-                              </button>
-                            </div>
-                            
-                            <div className="space-y-1.5">
-                              {(beanData?.breakRoom || ['']).map((quantity, index) => (
-                                <div key={index} className="flex items-center gap-1.5">
-                                  <input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)}
-                                    placeholder="數量"
-                                    className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
-                                    inputMode="decimal"
-                                  />
-                                  {(beanData?.breakRoom || []).length > 1 && (
-                                    <button
-                                      onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'breakRoom', index)}
-                                      className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                    >
-                                      <TrashIcon className="w-3 h-3" />
-                                    </button>
-                                  )}
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                            員休室庫存
+                          </h6>
+                          <button onClick={() => addQuantityField('brewing', 'espresso', beanType, 'breakRoom')} className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors">
+                            <PlusIcon className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <div className="space-y-1.5">
+                          {(beanData?.breakRoom || ['']).map((quantity, index) => {
+                            const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index)
+                            return (
+                              <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
+                                <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                  {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                    <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                    {/* 乾倉 */}
+                                {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                     {location.dryStorage && (
                       <div className="mb-3">
                         <div className="flex items-center justify-between mb-2">
@@ -2051,42 +2125,31 @@ function CoffeeBeanManager() {
                             <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
                             乾倉
                           </h6>
-                          <button
-                            onClick={() => addQuantityField('brewing', 'espresso', beanType, 'dryStorage')}
-                            className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors"
-                          >
+                          <button onClick={() => addQuantityField('brewing', 'espresso', beanType, 'dryStorage')} className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors">
                             <PlusIcon className="w-3 h-3" />
                           </button>
                         </div>
-                        
                         <div className="space-y-1.5">
-                          {(beanData?.dryStorage || ['']).map((quantity, index) => (
-                            <div key={index} className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                value={quantity}
-                                onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, e.target.value)}
-                                placeholder="數量"
-                                className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10"
-                                inputMode="decimal"
-                              />
-                              {(beanData?.dryStorage || []).length > 1 && (
-                                <button
-                                  onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'dryStorage', index)}
-                                  className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                >
-                                  <TrashIcon className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          ))}
+                          {(beanData?.dryStorage || ['']).map((quantity, index) => {
+                            const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index)
+                            return (
+                              <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
+                                <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                  {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                    <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                  ))}
+                                </div>
+                                {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
-                        
                         <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
                           <span className="text-xs font-semibold text-primary">
-                            {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
+                            {beanType}：總共 {Math.floor(calculateBeanTypeTotal(beanData, beanType, 'brewing', 'espresso'))} 包
                           </span>
                         </div>
                   </div>
@@ -2113,93 +2176,62 @@ function CoffeeBeanManager() {
             {beanTypes.retail.map(beanType => {
               const location = getBeanLocation(beanType, 'retail')
               const beanData = inventory.retail[beanType]
-              
               return (
                 <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
                   <div className="flex items-center justify-between mb-3">
                     <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
                     <div className="w-2 h-2 rounded-full bg-primary/60"></div>
                   </div>
-                  
-                      {/* 店面庫存 */}
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                            店面庫存
-                          </h6>
-                          <button
-                            onClick={() => {
-                          initializeRetailBeanType(beanType)
-                              
-                              // 新增數量欄位
-                              setInventory(prev => ({
-                                ...prev,
-                                retail: {
-                                  ...prev.retail,
-                                  [beanType]: {
-                                    ...prev.retail[beanType],
-                                    store: [...(prev.retail[beanType]?.store || ['']), '']
-                                  }
-                                }
-                              }))
-                            }}
-                            className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
-                          >
-                            <PlusIcon className="w-3 h-3" />
-                          </button>
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          {(beanData?.store || ['']).map((quantity, index) => (
-                            <div key={index} className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                value={quantity}
-                                onChange={(e) => {
-                              initializeRetailBeanType(beanType)
-                                  
-                                  // 更新數量
-                                  setInventory(prev => ({
-                                    ...prev,
-                                    retail: {
-                                      ...prev.retail,
-                                      [beanType]: {
-                                        ...prev.retail[beanType],
-                                        store: prev.retail[beanType]?.store?.map((q, i) => 
-                                          i === index ? e.target.value : q
-                                        ) || ['']
-                                      }
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h6 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                        店面庫存
+                      </h6>
+                      <button onClick={() => addRetailQuantityField(beanType, 'store')} className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors">
+                        <PlusIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {(beanData?.store || ['']).map((quantity, index) => {
+                        const cellMode = getCellInputMode(beanType, 'retail', null, 'store', index)
+                        return (
+                          <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                            <input
+                              type="number"
+                              value={quantity}
+                              onChange={(e) => {
+                                initializeRetailBeanType(beanType)
+                                setInventory(prev => ({
+                                  ...prev,
+                                  retail: {
+                                    ...prev.retail,
+                                    [beanType]: {
+                                      ...prev.retail[beanType],
+                                      store: prev.retail[beanType]?.store?.map((q, i) => (i === index ? e.target.value : q)) || ['']
                                     }
-                                  }))
-                                }}
-                                placeholder="數量"
-                                className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
-                                inputMode="decimal"
-                              />
-                              {(beanData?.store || []).length > 1 && (
-                                <button
-                                  onClick={() => {
-                                    setInventory(prev => ({
-                                      ...prev,
-                                      retail: {
-                                        ...prev.retail,
-                                        [beanType]: {
-                                          ...prev.retail[beanType],
-                                          store: prev.retail[beanType]?.store?.filter((_, i) => i !== index) || ['']
-                                        }
-                                      }
-                                    }))
-                                  }}
-                                  className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                >
-                                  <TrashIcon className="w-3 h-3" />
-                                </button>
-                              )}
+                                  }
+                                }))
+                              }}
+                              placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'}
+                              className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                              inputMode="decimal"
+                            />
+                            <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                              {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'retail', null, 'store', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </div>
+                            {(beanData?.store || []).length > 1 && (
+                              <button onClick={() => removeRetailQuantityField(beanType, 'store', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0">
+                                <TrashIcon className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
 
                   {/* 員休室庫存 */}
                   {location.breakRoom && (
@@ -2209,78 +2241,27 @@ function CoffeeBeanManager() {
                               <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
                               員休室庫存
                             </h6>
-                            <button
-                              onClick={() => {
-                            initializeRetailBeanType(beanType)
-                                
-                                // 新增數量欄位
-                                setInventory(prev => ({
-                                  ...prev,
-                                  retail: {
-                                    ...prev.retail,
-                                    [beanType]: {
-                                      ...prev.retail[beanType],
-                                      breakRoom: [...(prev.retail[beanType]?.breakRoom || ['']), '']
-                                    }
-                                  }
-                                }))
-                              }}
-                              className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
-                            >
+                            <button onClick={() => addRetailQuantityField(beanType, 'breakRoom')} className="p-1 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors">
                               <PlusIcon className="w-3 h-3" />
                             </button>
                           </div>
-                          
                           <div className="space-y-1.5">
-                            {(beanData?.breakRoom || ['']).map((quantity, index) => (
-                              <div key={index} className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  value={quantity}
-                                  onChange={(e) => {
-                                initializeRetailBeanType(beanType)
-                                
-                                // 更新數量
-                                      setInventory(prev => ({
-                                        ...prev,
-                                        retail: {
-                                          ...prev.retail,
-                                    [beanType]: {
-                                      ...prev.retail[beanType],
-                                      breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => 
-                                        i === index ? e.target.value : q
-                                      ) || ['']
-                                    }
-                                  }
-                                }))
-                              }}
-                              placeholder="數量"
-                              className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
-                              inputMode="decimal"
-                            />
-                            {(beanData?.breakRoom || []).length > 1 && (
-                              <button
-                                onClick={() => {
-                                  setInventory(prev => ({
-                                    ...prev,
-                                    retail: {
-                                      ...prev.retail,
-                                      [beanType]: {
-                                        ...prev.retail[beanType],
-                                        breakRoom: prev.retail[beanType]?.breakRoom?.filter((_, i) => i !== index) || ['']
-                                      }
-                                    }
-                                  }))
-                                }}
-                                className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                              >
-                                <TrashIcon className="w-3 h-3" />
-                              </button>
-                            )}
+                            {(beanData?.breakRoom || ['']).map((quantity, index) => {
+                              const cellMode = getCellInputMode(beanType, 'retail', null, 'breakRoom', index)
+                              return (
+                                <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                                  <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
+                                  <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                    {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                      <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'retail', null, 'breakRoom', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                    ))}
+                                  </div>
+                                  {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeRetailQuantityField(beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
+                                </div>
+                              )
+                            })}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
                   )}
 
                   {/* 乾倉 */}
@@ -2291,83 +2272,32 @@ function CoffeeBeanManager() {
                           <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
                           乾倉
                         </h6>
-                        <button
-                          onClick={() => {
-                            initializeRetailBeanType(beanType)
-                            
-                            // 新增數量欄位
-                            setInventory(prev => ({
-                              ...prev,
-                              retail: {
-                                ...prev.retail,
-                                [beanType]: {
-                                  ...prev.retail[beanType],
-                                  dryStorage: [...(prev.retail[beanType]?.dryStorage || ['']), '']
-                                }
-                                        }
-                                      }))
-                          }}
-                          className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors"
-                        >
+                        <button onClick={() => addRetailQuantityField(beanType, 'dryStorage')} className="p-1 rounded-lg hover:bg-orange-500/20 text-orange-400 transition-colors">
                           <PlusIcon className="w-3 h-3" />
                         </button>
                       </div>
-                      
                       <div className="space-y-1.5">
-                        {(beanData?.dryStorage || ['']).map((quantity, index) => (
-                          <div key={index} className="flex items-center gap-1.5">
-                            <input
-                              type="number"
-                              value={quantity}
-                              onChange={(e) => {
-                                initializeRetailBeanType(beanType)
-                                    
-                                    // 更新數量
-                                    setInventory(prev => ({
-                                      ...prev,
-                                      retail: {
-                                        ...prev.retail,
-                                        [beanType]: {
-                                          ...prev.retail[beanType],
-                                      dryStorage: prev.retail[beanType]?.dryStorage?.map((q, i) => 
-                                            i === index ? e.target.value : q
-                                          ) || ['']
-                                        }
-                                      }
-                                    }))
-                                  }}
-                                  placeholder="數量"
-                              className="input-field flex-1 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10"
-                                  inputMode="decimal"
-                                />
-                            {(beanData?.dryStorage || []).length > 1 && (
-                                  <button
-                                    onClick={() => {
-                                      setInventory(prev => ({
-                                        ...prev,
-                                        retail: {
-                                          ...prev.retail,
-                                          [beanType]: {
-                                            ...prev.retail[beanType],
-                                        dryStorage: prev.retail[beanType]?.dryStorage?.filter((_, i) => i !== index) || ['']
-                                          }
-                                        }
-                                      }))
-                                    }}
-                                    className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                  >
-                                    <TrashIcon className="w-3 h-3" />
-                                  </button>
-                                )}
+                        {(beanData?.dryStorage || ['']).map((quantity, index) => {
+                          const cellMode = getCellInputMode(beanType, 'retail', null, 'dryStorage', index)
+                          return (
+                            <div key={index} className="flex items-center gap-1.5 flex-wrap">
+                              <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], dryStorage: prev.retail[beanType]?.dryStorage?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
+                              <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                {['quantity', 'weightBag', 'weightBox'].map(m => (
+                                  <button key={m} type="button" onClick={() => setCellInputMode(beanType, 'retail', null, 'dryStorage', index, m)} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                              {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeRetailQuantityField(beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                       
                       <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
                         <span className="text-xs font-semibold text-primary">
-                          {beanType}：總共 {calculateBeanTypeTotal(beanData)} 包
+                          {beanType}：總共 {Math.floor(calculateBeanTypeTotal(beanData, beanType, 'retail', null))} 包
                         </span>
                       </div>
                 </div>
@@ -2492,18 +2422,14 @@ function CoffeeBeanManager() {
                 
                 {/* 選項按鈕 */}
                 <div className="relative grid grid-cols-3 gap-1.5">
-                  {[
-                    { value: 'central', label: '中央店' },
-                    { value: 'd7', label: 'D7 店' },
-                    { value: 'd13', label: 'D13 店' }
-                  ].map((store) => {
-                    const isSelected = selectedWeightStore === store.value
+                  {STORES.map((store) => {
+                    const isSelected = selectedWeightStore === store.id
                     return (
                       <button
-                        key={store.value}
-                        onClick={() => setSelectedWeightStore(store.value)}
+                        key={store.id}
+                        onClick={() => setSelectedWeightStore(store.id)}
                         className={`
-                          relative z-10
+                          relative z-10 min-h-[44px]
                           px-3 py-3 sm:px-4 sm:py-4
                           rounded-lg
                           font-bold text-xs sm:text-sm
@@ -2522,7 +2448,7 @@ function CoffeeBeanManager() {
                           {isSelected && (
                             <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full shadow-sm" />
                           )}
-                          <span className="tracking-wide">{store.label}</span>
+                          <span className="tracking-wide">{store.name}</span>
                         </span>
                         
                         {isSelected && (
@@ -2565,7 +2491,7 @@ function CoffeeBeanManager() {
                   />
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                    <span className="font-medium">{selectedWeightStore === 'd13' ? 'MUJI 盒子' : 'IKEA 盒子'}</span>
+                    <span className="font-medium">{getBoxWeightKey(selectedWeightStore) === 'mujiBoxWeight' ? 'MUJI 盒子' : 'IKEA 盒子'}</span>
                   </div>
                 </label>
               </div>
@@ -2585,21 +2511,21 @@ function CoffeeBeanManager() {
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
                     {weightMode === 'bag' 
                       ? '銀袋重量' 
-                      : (selectedWeightStore === 'd13' ? 'MUJI 盒重量' : 'IKEA 盒重量')} (g)
+                      : (getBoxWeightKey(selectedWeightStore) === 'mujiBoxWeight' ? 'MUJI 盒重量' : 'IKEA 盒重量')} (g)
                   </label>
                   <input
                     type="number"
                     value={(() => {
-                      const key = weightMode === 'bag' ? 'bagWeight' : (selectedWeightStore === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight')
-                      return tempInputValues[key] !== undefined ? tempInputValues[key] : (weightMode === 'bag' ? weightSettings.bagWeight : (selectedWeightStore === 'd13' ? weightSettings.mujiBoxWeight || weightSettings.ikeaBoxWeight : weightSettings.ikeaBoxWeight))
+                      const key = weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore)
+                      return tempInputValues[key] !== undefined ? tempInputValues[key] : (weightMode === 'bag' ? weightSettings.bagWeight : weightSettings[getBoxWeightKey(selectedWeightStore)] ?? weightSettings.ikeaBoxWeight)
                     })()}
                     onChange={(e) => updateWeightSetting(
-                      weightMode === 'bag' ? 'bagWeight' : (selectedWeightStore === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight'), 
+                      weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore),
                       e.target.value,
                       false
                     )}
                     onBlur={(e) => updateWeightSetting(
-                      weightMode === 'bag' ? 'bagWeight' : (selectedWeightStore === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight'), 
+                      weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore),
                       e.target.value,
                       true
                     )}
@@ -2675,13 +2601,13 @@ function CoffeeBeanManager() {
                     <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-lg p-3 border border-white/10">
                       <label className="block text-sm font-semibold mb-2 text-text-secondary flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                        總重量 (g)
+                        總重量 (g，含袋/盒)
                       </label>
                       <input
                         type="number"
                         value={calc.totalWeight}
                         onChange={(e) => updateCalculation(calc.id, e.target.value)}
-                        placeholder="輸入總重量"
+                        placeholder="秤上總重"
                         className="input-field w-full text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
                         inputMode="decimal"
                       />

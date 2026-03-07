@@ -4,38 +4,28 @@ import { motion } from 'framer-motion'
 import Clock from '../Clock'
 import CatSpeechBubble from '../CatSpeechBubble'
 import YouTubeModal from '../YouTubeModal'
-import { useTheme } from '../../contexts/ThemeContext'
 import logoCat from '../../assets/logo-cat.png'
-import { SparklesIcon, PaintBrushIcon } from '@heroicons/react/24/outline'
+import { DocumentTextIcon } from '@heroicons/react/24/outline'
+import { useChangelog } from '../../contexts/ChangelogContext'
 
 function Header() {
-  const { theme, toggleTheme } = useTheme()
+  const { openChangelog } = useChangelog()
   const [showVideo, setShowVideo] = useState(false)
 
   return (
-    <header className={`${theme === 'linear' ? 'bg-[#0d0d0d]/80 backdrop-blur-xl border-b border-white/5' : 'bg-surface'} text-white sticky top-6 sm:top-6 z-[60]`}>
+    <header className="bg-surface text-white sticky top-6 sm:top-6 z-[60]">
       <div className="container-custom pt-2 sm:pt-4 md:pt-6 pb-3 sm:pb-2 md:pb-4">
         <div className="flex flex-col items-center relative min-h-[70px] sm:min-h-[85px]">
-          {/* 主題切換按鈕 - 固定在左上角，移動設備優化 */}
+          {/* 本次更新按鈕 - 左上角 */}
           <motion.button
-            onClick={toggleTheme}
-            className={`absolute top-0 left-0 z-10 p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-300 touch-manipulation ${
-              theme === 'linear'
-                ? 'bg-white/5 hover:bg-white/10 border border-white/10'
-                : 'bg-primary/20 hover:bg-primary/30 border border-primary/30'
-            }`}
+            onClick={openChangelog}
+            className="absolute top-0 left-0 z-10 p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-300 touch-manipulation bg-primary/20 hover:bg-primary/30 border border-primary/30"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            title={theme === 'linear' ? '切換到經典風格' : '切換到 Linear 風格'}
+            title="本次更新內容"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            {theme === 'linear' ? (
-              <PaintBrushIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            ) : (
-              <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-            )}
-            {/* 切換指示器 - 移動設備上隱藏 */}
-            <span className="hidden sm:block absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
+            <DocumentTextIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
           </motion.button>
 
           {/* Logo 和標題區域 - 居中顯示，移動設備優化 */}
@@ -52,11 +42,7 @@ function Header() {
                 title="點擊我！"
             />
               <div className="flex flex-col items-center gap-0.5 sm:gap-1">
-                <h1 className={`text-xl sm:text-2xl md:text-4xl font-bold ${
-                  theme === 'linear' 
-                    ? 'text-white' 
-                    : 'bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent'
-                }`}>
+                <h1 className="text-xl sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 Brainless
               </h1>
                 {/* 時鐘 - 移動設備也顯示，但調整樣式 */}

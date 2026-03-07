@@ -1,8 +1,7 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy, useEffect, useState } from 'react'
 import Layout from './components/layout/Layout'
-import LayoutLinear from './components/layout/LayoutLinear'
-import { ThemeProvider, useTheme } from './contexts/ThemeContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import LoadingPage from './pages/LoadingPage'
 import ErrorPage from './pages/ErrorPage'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -14,23 +13,20 @@ import CoffeeBeanManager from './pages/CoffeeBeanManager'
 import DailyReportGenerator from './pages/DailyReportGenerator'
 import ScheduleManager from './pages/ScheduleManager'
 import DataFormatTester from './pages/DataFormatTester'
-import HomepageLinear from './pages/HomepageLinear'
 import Playground from './pages/Playground'
+import { ChangelogProvider } from './contexts/ChangelogContext'
 
 // 懶加載頁面
 const CashierManagement = lazy(() => import('./pages/CashierManagement'))
 const AdminPanel = lazy(() => import('./pages/AdminPanel'))
 const FlightData = lazy(() => import('./pages/FlightData'))
 
-// 內部組件：根據主題選擇 Layout
 function AppContent() {
-  const { theme } = useTheme()
   const [firebaseStatus, setFirebaseStatus] = useState({
     checked: false,
     connected: false,
     error: null
-  });
-
+  })
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -53,11 +49,8 @@ function AppContent() {
     checkConnection();
   }, []);
 
-  // 根據主題選擇 Layout
-  const CurrentLayout = theme === 'linear' ? LayoutLinear : Layout
-
   return (
-    <CurrentLayout>
+    <Layout>
           {firebaseStatus.checked && !firebaseStatus.connected && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 m-4">
               <h3 className="text-amber-500 font-bold mb-2">Firebase 連接警告</h3>
@@ -72,7 +65,7 @@ function AppContent() {
           )}
           <Suspense fallback={<LoadingPage />}>
             <Routes>
-          <Route path="/" element={theme === 'linear' ? <HomepageLinear /> : <Navigate to="/sandwich" replace />} />
+          <Route path="/" element={<Navigate to="/sandwich" replace />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />
               <Route path="/cashier" element={<CashierManagement />} />
               <Route path="/alcohol" element={<AlcoholCalculator />} />
@@ -88,7 +81,7 @@ function AppContent() {
               <Route path="*" element={<ErrorPage />} />
             </Routes>
           </Suspense>
-    </CurrentLayout>
+    </Layout>
   )
 }
 
@@ -97,8 +90,10 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <Router>
-          <AppContent />
-      </Router>
+          <ChangelogProvider>
+            <AppContent />
+          </ChangelogProvider>
+        </Router>
       </ThemeProvider>
     </ErrorBoundary>
   )

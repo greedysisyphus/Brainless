@@ -146,10 +146,10 @@ jobs:
       - name: Generate app version
         id: version
         run: |
-          # 使用 Git commit SHA 的前 8 位作為版本號
-          VERSION=$(git rev-parse --short=8 HEAD)
+          # 使用 package.json 的 version，與 GitHub 發行／標籤一致
+          VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Generated app version: $VERSION"
+          echo "Generated app version: $VERSION (from package.json)"
       
       - name: Build
         run: npm run build

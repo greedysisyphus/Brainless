@@ -1,13 +1,13 @@
 {
   "name": "flight-forecast",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
     "dev": "bash scripts/sync-data-for-dev.sh && vite",
     "start": "bash scripts/sync-data-for-dev.sh && vite",
     "server": "node server.js",
-    "build": "vite build && npm run copy-data && npm run verify-build",
+    "build": "vite build && npm run copy-data && node scripts/inject-version.js && npm run verify-build",
     "verify-build": "bash scripts/verify-build.sh",
     "copy-data": "mkdir -p docs/data && cp data/*.json docs/data/ 2>/dev/null || true",
     "pull-data": "node scripts/pull-data-from-github.js",
