@@ -408,7 +408,7 @@
       "type": "departure",
       "airport_code": "DAD",
       "city": "Da Nang",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Da Nang (DAD)",
@@ -527,14 +527,14 @@
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
         {
-          "flight_code": "TK9458",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "AI7063",
           "airline_code": "AI",
           "airline_name": "印度航空"
+        },
+        {
+          "flight_code": "TK9458",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         },
         {
           "flight_code": "TG6307",
@@ -608,5 +608,5 @@
     "20:45 : D12 : JX26 (星宇航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-07T02:32:55.608074"
+  "updated_at": "2026-03-07T04:26:06.936723"
 }
