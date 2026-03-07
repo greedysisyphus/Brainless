@@ -32,6 +32,9 @@ const convertStoreOnlyToLocations = (storeOnlyBeans, allBeanNames) => {
   return locations
 }
 
+// iOS 偵測：關閉 modal 後若還原 body position:fixed 會導致觸控層錯位，故在 iOS 僅用 overflow 鎖定
+const isIOS = () => typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
 // 根據店鋪獲取預設品項位置設定
 // D7 店：所有品項的 dryStorage 預設為 true
 // 中央店和 D13 店：所有品項的 dryStorage 預設為 false
@@ -147,22 +150,23 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
     }
   }, [isOpen, selectedStore])
 
-  // 滾動鎖定
+  // 滾動鎖定：iOS 上不用 body position:fixed，避免關閉後觸控層錯位
   useEffect(() => {
-    if (isOpen) {
-      const scrollY = window.scrollY
-      document.body.style.overflow = 'hidden'
+    if (!isOpen) return
+    const ios = isIOS()
+    const scrollY = window.scrollY
+    document.body.style.overflow = 'hidden'
+    if (!ios) {
       document.body.style.position = 'fixed'
       document.body.style.width = '100%'
       document.body.style.top = `-${scrollY}px`
-
-      return () => {
-        document.body.style.overflow = ''
-        document.body.style.position = ''
-        document.body.style.width = ''
-        document.body.style.top = ''
-        window.scrollTo(0, scrollY)
-      }
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      if (!ios) requestAnimationFrame(() => { window.scrollTo(0, scrollY) })
     }
   }, [isOpen])
 

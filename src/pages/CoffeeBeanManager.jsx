@@ -63,6 +63,9 @@ const getInventoryStorageKey = (storeId) => `coffeeBeanInventory_${storeId}`
 const getWeightSettingsStorageKey = (storeId) => `coffeeBeanWeightSettings_${storeId}`
 const getBoxWeightKey = (storeId) => (storeId === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight')
 
+// iOS 偵測：關閉 modal 後若還原 body position:fixed 會導致觸控層錯位、按鈕按不到，故在 iOS 僅用 overflow 鎖定
+const isIOS = () => typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
 // 重量 → 包數換算單一來源（優化 6）containerType: 'bag' | 'ikea' | 'muji'
 const getPacksFromWeight = (totalG, weightSettings, containerType) => {
   if (totalG === '' || totalG == null) return 0
@@ -288,28 +291,29 @@ function CoffeeBeanManager() {
     }
   }, [isDragging, setIndicatorPosition])
   
-  // 滾動鎖定功能
+  // 滾動鎖定：iOS 上不用 body position:fixed，避免關閉 modal 後觸控層錯位、數/袋/盒 按不到
   useEffect(() => {
+    const ios = isIOS()
     if (showWeightCalculator) {
-      // 保存當前滾動位置
       scrollPositionRef.current = window.scrollY
-      // 鎖定背景滾動
       document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.width = '100%'
-      document.body.style.top = `-${scrollPositionRef.current}px`
+      if (!ios) {
+        document.body.style.position = 'fixed'
+        document.body.style.width = '100%'
+        document.body.style.top = `-${scrollPositionRef.current}px`
+      }
     } else {
-      // 恢復背景滾動
-      const savedScrollY = scrollPositionRef.current
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.width = ''
-      document.body.style.top = ''
-      // 恢復滾動位置
-      window.scrollTo(0, savedScrollY)
+      if (!ios) {
+        const savedScrollY = scrollPositionRef.current
+        document.body.style.position = ''
+        document.body.style.width = ''
+        document.body.style.top = ''
+        document.body.style.overflow = ''
+        requestAnimationFrame(() => { window.scrollTo(0, savedScrollY) })
+      } else {
+        document.body.style.overflow = ''
+      }
     }
-    
-    // 清理函數
     return () => {
       document.body.style.overflow = ''
       document.body.style.position = ''
