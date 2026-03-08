@@ -81,11 +81,6 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4907",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6332",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -99,6 +94,11 @@
           "flight_code": "TK9454",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "NZ4907",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -134,21 +134,6 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
-          "flight_code": "NZ4926",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -157,6 +142,21 @@
           "flight_code": "AC6535",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
+        },
+        {
+          "flight_code": "NZ4926",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -297,7 +297,7 @@
     {
       "time": "09:50",
       "datetime": "2026-03-09T09:50:00",
-      "gate": "D17",
+      "gate": "D13",
       "flight_code": "BR712",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -351,7 +351,7 @@
     {
       "time": "10:00",
       "datetime": "2026-03-09T10:00:00",
-      "gate": "D13",
+      "gate": "D12",
       "flight_code": "BR255",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -367,7 +367,7 @@
     {
       "time": "10:00",
       "datetime": "2026-03-09T10:00:00",
-      "gate": "D12",
+      "gate": "D17",
       "flight_code": "BR801",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -609,28 +609,6 @@
       ]
     },
     {
-      "time": "18:10",
-      "datetime": "2026-03-09T18:10:00",
-      "gate": "D16",
-      "flight_code": "BR857",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "HKG",
-      "city": "Hong Kong",
-      "status": "準時ON TIME",
-      "aircraft": "A330-300",
-      "terminal": "2",
-      "destination": "Hong Kong (HKG)",
-      "codeshare_flights": [
-        {
-          "flight_code": "HX1833",
-          "airline_code": "HX",
-          "airline_name": "香港航空"
-        }
-      ]
-    },
-    {
       "time": "19:00",
       "datetime": "2026-03-09T19:00:00",
       "gate": "D14R",
@@ -686,9 +664,9 @@
     }
   ],
   "summary": {
-    "total_flights": 31,
+    "total_flights": 30,
     "before_17:00": 27,
-    "after_17:00": 4
+    "after_17:00": 3
   },
   "formatted_display": [
     "06:30 : D15R : BR178 (長榮航空)",
@@ -704,10 +682,10 @@
     "08:50 : D16 : BR233 (長榮航空)",
     "09:00 : D18 : BR237 (長榮航空)",
     "09:25 : D11 : JX741 (星宇航空)",
-    "09:50 : D17 : BR712 (長榮航空)",
+    "09:50 : D13 : BR712 (長榮航空)",
     "09:50 : D14R : BR867 (長榮航空)",
-    "10:00 : D13 : BR255 (長榮航空)",
-    "10:00 : D12 : BR801 (長榮航空)",
+    "10:00 : D12 : BR255 (長榮航空)",
+    "10:00 : D17 : BR801 (長榮航空)",
     "13:25 : D13 : JX745 (星宇航空)",
     "14:00 : D12 : JX713 (星宇航空)",
     "14:20 : D11 : CI172 (中華航空)",
@@ -718,10 +696,9 @@
     "16:25 : D17 : B7187 (立榮航空)",
     "16:30 : D16 : BR805 (長榮航空)",
     "16:35 : D18 : BR871 (長榮航空)",
-    "18:10 : D16 : BR857 (長榮航空)",
     "19:00 : D14R : BR809 (長榮航空)",
     "20:30 : D11 : JX10 (星宇航空)",
     "23:35 : D12 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-08T16:38:07.071235"
+  "updated_at": "2026-03-08T17:29:48.906884"
 }
