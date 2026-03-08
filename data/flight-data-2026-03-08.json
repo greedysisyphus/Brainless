@@ -300,7 +300,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -327,7 +327,7 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
@@ -359,7 +359,7 @@
       "type": "departure",
       "airport_code": "KMJ",
       "city": "Kumamoto",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Kumamoto (KMJ)",
@@ -674,5 +674,5 @@
     "20:30 : D11 : JX32 (星宇航空)",
     "23:40 : D12 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-08T05:50:25.546634"
+  "updated_at": "2026-03-08T06:54:23.419770"
 }
