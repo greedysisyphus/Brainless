@@ -17,6 +17,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4928",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "NH5834",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -25,11 +30,6 @@
           "flight_code": "TG6354",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NZ4928",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -49,6 +49,11 @@
       "destination": "Komatsu (KMQ)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4920",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "NH5820",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -57,11 +62,6 @@
           "flight_code": "TG6376",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NZ4920",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -139,6 +139,11 @@
           "airline_name": "加拿大航空"
         },
         {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "OZ6874",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
@@ -147,11 +152,6 @@
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         },
         {
           "flight_code": "TG6396",
@@ -310,11 +310,6 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "HO3182",
-          "airline_code": "HO",
-          "airline_name": "吉祥航空"
-        },
-        {
           "flight_code": "B77016",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -323,6 +318,11 @@
           "flight_code": "CA5512",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "HO3182",
+          "airline_code": "HO",
+          "airline_name": "吉祥航空"
         }
       ]
     },
@@ -521,6 +521,11 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4902",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "TG6282",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -534,11 +539,6 @@
           "flight_code": "NH5848",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "NZ4902",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -647,6 +647,22 @@
       "codeshare_flights": []
     },
     {
+      "time": "20:30",
+      "datetime": "2026-03-09T20:30:00",
+      "gate": "D12",
+      "flight_code": "JX32",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "SEA",
+      "city": "Seattle",
+      "status": "準時ON TIME",
+      "aircraft": "A350-900",
+      "terminal": "2",
+      "destination": "Seattle (SEA)",
+      "codeshare_flights": []
+    },
+    {
       "time": "23:35",
       "datetime": "2026-03-09T23:35:00",
       "gate": "D12",
@@ -664,9 +680,9 @@
     }
   ],
   "summary": {
-    "total_flights": 30,
+    "total_flights": 31,
     "before_17:00": 27,
-    "after_17:00": 3
+    "after_17:00": 4
   },
   "formatted_display": [
     "06:30 : D15R : BR178 (長榮航空)",
@@ -698,7 +714,8 @@
     "16:35 : D18 : BR871 (長榮航空)",
     "19:00 : D14R : BR809 (長榮航空)",
     "20:30 : D11 : JX10 (星宇航空)",
+    "20:30 : D12 : JX32 (星宇航空)",
     "23:35 : D12 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-08T18:45:01.322196"
+  "updated_at": "2026-03-08T19:30:20.182886"
 }
