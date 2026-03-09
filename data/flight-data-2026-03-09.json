@@ -81,11 +81,6 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6332",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5836",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -99,6 +94,11 @@
           "flight_code": "NZ4907",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TG6332",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -134,14 +134,14 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "AC6535",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         },
         {
           "flight_code": "OZ6874",
@@ -154,9 +154,9 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -412,7 +412,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -428,20 +428,20 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5106",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "HA2582",
           "airline_code": "HA",
           "airline_name": "夏威夷航空"
+        },
+        {
+          "flight_code": "JL5106",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -455,7 +455,7 @@
       "type": "departure",
       "airport_code": "TFU",
       "city": "Chengdu Tianfu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Chengdu Tianfu (TFU)",
@@ -477,7 +477,7 @@
       "type": "departure",
       "airport_code": "PQC",
       "city": "Phu Quoc",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Phu Quoc (PQC)",
@@ -521,6 +521,11 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6282",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "TK9452",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
@@ -534,11 +539,6 @@
           "flight_code": "NZ4902",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TG6282",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -603,6 +603,28 @@
       "codeshare_flights": [
         {
           "flight_code": "HX1831",
+          "airline_code": "HX",
+          "airline_name": "香港航空"
+        }
+      ]
+    },
+    {
+      "time": "18:10",
+      "datetime": "2026-03-09T18:10:00",
+      "gate": "D16",
+      "flight_code": "BR857",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "HKG",
+      "city": "Hong Kong",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Hong Kong (HKG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HX1833",
           "airline_code": "HX",
           "airline_name": "香港航空"
         }
@@ -680,9 +702,9 @@
     }
   ],
   "summary": {
-    "total_flights": 31,
+    "total_flights": 32,
     "before_17:00": 27,
-    "after_17:00": 4
+    "after_17:00": 5
   },
   "formatted_display": [
     "06:30 : D15R : BR178 (長榮航空)",
@@ -712,10 +734,11 @@
     "16:25 : D17 : B7187 (立榮航空)",
     "16:30 : D16 : BR805 (長榮航空)",
     "16:35 : D18 : BR871 (長榮航空)",
+    "18:10 : D16 : BR857 (長榮航空)",
     "19:00 : D14R : BR809 (長榮航空)",
     "20:30 : D11 : JX10 (星宇航空)",
     "20:30 : D12 : JX32 (星宇航空)",
     "23:35 : D12 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-09T06:06:59.651590"
+  "updated_at": "2026-03-09T07:53:38.783797"
 }
