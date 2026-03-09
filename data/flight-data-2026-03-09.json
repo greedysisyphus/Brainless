@@ -662,7 +662,7 @@
       "type": "departure",
       "airport_code": "ONT",
       "city": "Ontario",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Ontario (ONT)",
@@ -678,7 +678,7 @@
       "type": "departure",
       "airport_code": "SEA",
       "city": "Seattle",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Seattle (SEA)",
@@ -740,5 +740,5 @@
     "20:30 : D12 : JX32 (星宇航空)",
     "23:35 : D12 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-09T11:38:17.632199"
+  "updated_at": "2026-03-09T13:20:32.264779"
 }
