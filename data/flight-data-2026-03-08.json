@@ -392,14 +392,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "NZ4922",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         },
         {
           "flight_code": "OZ6872",
@@ -674,5 +674,5 @@
     "20:30 : D11 : JX32 (星宇航空)",
     "23:40 : D12 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-09T13:20:32.263987"
+  "updated_at": "2026-03-09T14:59:07.733890"
 }
