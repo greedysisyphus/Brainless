@@ -33,14 +33,14 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6354",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5834",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6354",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "NZ4928",
@@ -559,14 +559,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "TG6334",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5810",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6334",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -677,5 +677,5 @@
     "20:30 : D11 : JX32 (星宇航空)",
     "23:35 : D12 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-10T16:09:11.482041"
+  "updated_at": "2026-03-10T17:52:36.765821"
 }
