@@ -466,14 +466,14 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
-          "flight_code": "HA2516",
-          "airline_code": "HA",
-          "airline_name": "夏威夷航空"
-        },
-        {
           "flight_code": "JL5128",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "HA2516",
+          "airline_code": "HA",
+          "airline_name": "夏威夷航空"
         },
         {
           "flight_code": "KL4988",
@@ -612,5 +612,5 @@
     "19:30 : D11 : BR381 (長榮航空)",
     "20:45 : D13 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-03-11T20:41:00.487557"
+  "updated_at": "2026-03-11T21:40:46.338127"
 }
