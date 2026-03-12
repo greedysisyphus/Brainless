@@ -65,14 +65,14 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6354",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5834",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6354",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "NZ4928",
@@ -156,14 +156,14 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "NZ4914",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6356",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4914",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -247,14 +247,14 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6336",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5816",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6336",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "NZ4908",
@@ -550,11 +550,6 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
-          "flight_code": "MH5596",
-          "airline_code": "MH",
-          "airline_name": "馬來西亞"
-        },
-        {
           "flight_code": "KL4980",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
@@ -563,6 +558,11 @@
           "flight_code": "JL5136",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "MH5596",
+          "airline_code": "MH",
+          "airline_name": "馬來西亞"
         }
       ]
     },
@@ -662,5 +662,5 @@
     "18:10 : D13 : BR857 (長榮航空)",
     "23:40 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-12T17:53:52.148467"
+  "updated_at": "2026-03-12T19:03:29.141401"
 }
