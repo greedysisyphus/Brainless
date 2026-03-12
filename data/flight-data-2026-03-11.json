@@ -38,14 +38,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "NZ4924",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TK9456",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "NZ4924",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -134,6 +134,11 @@
           "airline_name": "泰國航空"
         },
         {
+          "flight_code": "TK9454",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        },
+        {
           "flight_code": "NZ4907",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -142,11 +147,6 @@
           "flight_code": "NH5836",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "TK9454",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
         }
       ]
     },
@@ -337,11 +337,6 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "NZ4934",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "AC6543",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
@@ -350,6 +345,11 @@
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
+        },
+        {
+          "flight_code": "NZ4934",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -417,6 +417,11 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
+          "flight_code": "HO3182",
+          "airline_code": "HO",
+          "airline_name": "吉祥航空"
+        },
+        {
           "flight_code": "B77016",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -425,11 +430,6 @@
           "flight_code": "CA5512",
           "airline_code": "CA",
           "airline_name": "中國國際"
-        },
-        {
-          "flight_code": "HO3182",
-          "airline_code": "HO",
-          "airline_name": "吉祥航空"
         }
       ]
     },
@@ -678,5 +678,5 @@
     "20:30 : D11 : JX32 (星宇航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-03-11T23:33:54.929263"
+  "updated_at": "2026-03-12T02:44:06.493149"
 }
