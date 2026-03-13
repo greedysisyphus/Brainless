@@ -38,14 +38,14 @@
           "airline_name": "土耳其航空"
         },
         {
-          "flight_code": "NZ4924",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6366",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4924",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -295,20 +295,20 @@
       "type": "departure",
       "airport_code": "PVG",
       "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-9",
       "terminal": "2",
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "HO3186",
-          "airline_code": "HO",
-          "airline_name": "吉祥航空"
-        },
-        {
           "flight_code": "CA5524",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "HO3186",
+          "airline_code": "HO",
+          "airline_name": "吉祥航空"
         },
         {
           "flight_code": "B77020",
@@ -344,7 +344,7 @@
       "airport_code": "CAN",
       "city": "Guangzhou",
       "status": "準時ON TIME",
-      "aircraft": "A321-271",
+      "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Guangzhou (CAN)",
       "codeshare_flights": [
@@ -488,7 +488,7 @@
     {
       "time": "16:35",
       "datetime": "2026-03-13T16:35:00",
-      "gate": "D16",
+      "gate": "D13",
       "flight_code": "CI503",
       "airline_code": "CI",
       "airline_name": "中華航空",
@@ -655,12 +655,12 @@
     "15:40 : D12 : JX783 (星宇航空)",
     "16:25 : D14R : BR758 (長榮航空)",
     "16:30 : D17 : BR805 (長榮航空)",
-    "16:35 : D16 : CI503 (中華航空)",
+    "16:35 : D13 : CI503 (中華航空)",
     "16:35 : D18 : BR871 (長榮航空)",
     "16:45 : D15R : CI122 (中華航空)",
     "17:35 : D11 : CI505 (中華航空)",
     "18:10 : D13 : BR857 (長榮航空)",
     "23:40 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-13T02:41:37.156843"
+  "updated_at": "2026-03-13T04:50:30.816767"
 }
