@@ -712,7 +712,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -734,7 +734,7 @@
       "type": "departure",
       "airport_code": "PHX",
       "city": "Phoenix",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Phoenix (PHX)",
@@ -794,5 +794,5 @@
     "20:45 : D12 : JX26 (星宇航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-14T11:31:01.487488"
+  "updated_at": "2026-03-14T13:07:44.348685"
 }
