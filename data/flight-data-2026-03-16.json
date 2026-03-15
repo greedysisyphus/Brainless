@@ -536,14 +536,14 @@
           "airline_name": "立榮航空"
         },
         {
-          "flight_code": "CA5522",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
-        },
-        {
           "flight_code": "HO3188",
           "airline_code": "HO",
           "airline_name": "吉祥航空"
+        },
+        {
+          "flight_code": "CA5522",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
         }
       ]
     },
@@ -735,5 +735,5 @@
     "19:30 : D16 : BR381 (長榮航空)",
     "20:30 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-03-15T20:37:54.583725"
+  "updated_at": "2026-03-15T21:34:52.007104"
 }
