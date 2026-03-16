@@ -149,14 +149,14 @@
           "airline_name": "波蘭航空"
         },
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
         }
       ]
     },
@@ -380,14 +380,14 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5174",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "HA2518",
           "airline_code": "HA",
           "airline_name": "夏威夷航空"
+        },
+        {
+          "flight_code": "JL5174",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         },
         {
           "flight_code": "KL4971",
@@ -609,5 +609,5 @@
     "16:50 : D16 : BR186 (長榮航空)",
     "20:45 : D11 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-03-16T17:11:51.319316"
+  "updated_at": "2026-03-16T19:14:15.350154"
 }
