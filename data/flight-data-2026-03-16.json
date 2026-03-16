@@ -33,6 +33,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4928",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "NH5834",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -41,11 +46,6 @@
           "flight_code": "TG6354",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NZ4928",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -273,6 +273,11 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4908",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "NH5816",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -281,11 +286,6 @@
           "flight_code": "TG6336",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NZ4908",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -503,7 +503,7 @@
       "type": "departure",
       "airport_code": "PEK",
       "city": "Beijing",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Beijing (PEK)",
@@ -557,7 +557,7 @@
       "type": "departure",
       "airport_code": "PVG",
       "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Shanghai/Pudong (PVG)",
@@ -606,7 +606,7 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
@@ -661,28 +661,6 @@
       ]
     },
     {
-      "time": "19:30",
-      "datetime": "2026-03-16T19:30:00",
-      "gate": "D15R",
-      "flight_code": "BR381",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "SGN",
-      "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
-      "aircraft": "A330-300",
-      "terminal": "2",
-      "destination": "Ho Chi Minh (SGN)",
-      "codeshare_flights": [
-        {
-          "flight_code": "TK9469",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        }
-      ]
-    },
-    {
       "time": "20:30",
       "datetime": "2026-03-16T20:30:00",
       "gate": "D11",
@@ -700,9 +678,9 @@
     }
   ],
   "summary": {
-    "total_flights": 29,
+    "total_flights": 28,
     "before_17:00": 27,
-    "after_17:00": 2
+    "after_17:00": 1
   },
   "formatted_display": [
     "06:30 : D18 : BR134 (長榮航空)",
@@ -732,8 +710,7 @@
     "16:35 : D15R : BR871 (長榮航空)",
     "16:45 : D12 : CI122 (中華航空)",
     "16:50 : D13 : BR186 (長榮航空)",
-    "19:30 : D15R : BR381 (長榮航空)",
     "20:30 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-03-16T07:41:29.355565"
+  "updated_at": "2026-03-16T09:06:12.123890"
 }
