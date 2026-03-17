@@ -129,6 +129,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -142,11 +147,6 @@
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         },
         {
           "flight_code": "AC6535",
@@ -328,34 +328,29 @@
       ]
     },
     {
-      "time": "09:50",
-      "datetime": "2026-03-18T09:50:00",
+      "time": "09:35",
+      "datetime": "2026-03-18T09:35:00",
       "gate": "D11",
-      "flight_code": "BR712",
+      "flight_code": "BR215",
       "airline_code": "BR",
       "airline_name": "長榮航空",
       "type": "departure",
-      "airport_code": "PVG",
-      "city": "Shanghai/Pudong",
+      "airport_code": "SIN",
+      "city": "Singapore",
       "status": "準時ON TIME",
       "aircraft": "B777-300",
       "terminal": "2",
-      "destination": "Shanghai/Pudong (PVG)",
+      "destination": "Singapore (SIN)",
       "codeshare_flights": [
         {
-          "flight_code": "B77016",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
+          "flight_code": "SQ5803",
+          "airline_code": "SQ",
+          "airline_name": "新加坡航空"
         },
         {
-          "flight_code": "HO3182",
-          "airline_code": "HO",
-          "airline_name": "吉祥航空"
-        },
-        {
-          "flight_code": "CA5512",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
+          "flight_code": "AI7059",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
         }
       ]
     },
@@ -445,6 +440,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "TG6392",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -453,11 +453,6 @@
           "flight_code": "OZ6872",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
-        },
-        {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         },
         {
           "flight_code": "NZ4922",
@@ -518,22 +513,6 @@
     {
       "time": "20:30",
       "datetime": "2026-03-18T20:30:00",
-      "gate": "D17",
-      "flight_code": "BR261",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "MNL",
-      "city": "Manila",
-      "status": "準時ON TIME",
-      "aircraft": "B777-300",
-      "terminal": "2",
-      "destination": "Manila (MNL)",
-      "codeshare_flights": []
-    },
-    {
-      "time": "20:30",
-      "datetime": "2026-03-18T20:30:00",
       "gate": "D12",
       "flight_code": "JX32",
       "airline_code": "JX",
@@ -565,9 +544,9 @@
     }
   ],
   "summary": {
-    "total_flights": 22,
+    "total_flights": 21,
     "before_17:00": 19,
-    "after_17:00": 3
+    "after_17:00": 2
   },
   "formatted_display": [
     "06:15 : D16 : BR166 (長榮航空)",
@@ -582,16 +561,15 @@
     "08:15 : D12 : JX785 (星宇航空)",
     "08:30 : D18 : BR132 (長榮航空)",
     "09:30 : D17 : BR116 (長榮航空)",
-    "09:50 : D11 : BR712 (長榮航空)",
+    "09:35 : D11 : BR215 (長榮航空)",
     "09:50 : D16 : BR867 (長榮航空)",
     "14:00 : D11 : JX713 (星宇航空)",
     "14:25 : D12 : CI108 (中華航空)",
     "15:15 : D15R : BR160 (長榮航空)",
     "16:35 : D14R : CI503 (中華航空)",
     "16:35 : D16 : BR871 (長榮航空)",
-    "20:30 : D17 : BR261 (長榮航空)",
     "20:30 : D12 : JX32 (星宇航空)",
     "23:40 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-17T15:05:18.566742"
+  "updated_at": "2026-03-17T17:12:00.190836"
 }
