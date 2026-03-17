@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "MYJ",
       "city": "Matsuyama",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Matsuyama (MYJ)",
@@ -75,7 +75,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -107,7 +107,7 @@
       "type": "departure",
       "airport_code": "CGK",
       "city": "Jakarta",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Jakarta (CGK)",
@@ -328,6 +328,33 @@
       ]
     },
     {
+      "time": "09:45",
+      "datetime": "2026-03-18T09:45:00",
+      "gate": "D12",
+      "flight_code": "CI152",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "KIX",
+      "city": "Osaka Kansai",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Osaka Kansai (KIX)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5104",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "HA2542",
+          "airline_code": "HA",
+          "airline_name": "夏威夷航空"
+        }
+      ]
+    },
+    {
       "time": "09:50",
       "datetime": "2026-03-18T09:50:00",
       "gate": "D11",
@@ -482,14 +509,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5040",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "HA2506",
           "airline_code": "HA",
           "airline_name": "夏威夷航空"
+        },
+        {
+          "flight_code": "JL5040",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -576,8 +603,8 @@
     }
   ],
   "summary": {
-    "total_flights": 22,
-    "before_17:00": 20,
+    "total_flights": 23,
+    "before_17:00": 21,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -593,6 +620,7 @@
     "08:15 : D12 : JX785 (星宇航空)",
     "08:30 : D18 : BR132 (長榮航空)",
     "09:30 : D17 : BR116 (長榮航空)",
+    "09:45 : D12 : CI152 (中華航空)",
     "09:50 : D11 : BR712 (長榮航空)",
     "09:50 : D16 : BR867 (長榮航空)",
     "14:00 : D11 : JX713 (星宇航空)",
@@ -604,5 +632,5 @@
     "20:30 : D12 : JX32 (星宇航空)",
     "23:40 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-17T22:41:15.488110"
+  "updated_at": "2026-03-17T23:39:21.704748"
 }
