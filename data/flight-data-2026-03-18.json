@@ -129,6 +129,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -142,11 +147,6 @@
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         },
         {
           "flight_code": "AC6535",
@@ -440,6 +440,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "TG6392",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -448,11 +453,6 @@
           "flight_code": "OZ6872",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
-        },
-        {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         },
         {
           "flight_code": "NZ4922",
@@ -520,7 +520,7 @@
       "type": "departure",
       "airport_code": "ONT",
       "city": "Ontario",
-      "status": "準時ON TIME",
+      "status": "時間更改SCHEDULE CHANGE",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Ontario (ONT)",
@@ -588,5 +588,5 @@
     "20:30 : D12 : JX32 (星宇航空)",
     "23:40 : D17 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-18T13:42:25.213875"
+  "updated_at": "2026-03-18T15:12:41.253258"
 }
