@@ -129,16 +129,6 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
-          "flight_code": "NZ4926",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -147,6 +137,16 @@
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
+        },
+        {
+          "flight_code": "NZ4926",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "AC6535",
@@ -418,7 +418,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-900",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -445,11 +445,6 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "OZ6872",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
           "flight_code": "B77026",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -458,33 +453,11 @@
           "flight_code": "TG6392",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        }
-      ]
-    },
-    {
-      "time": "16:25",
-      "datetime": "2026-03-18T16:25:00",
-      "gate": "D13",
-      "flight_code": "CI106",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "NRT",
-      "city": "Tokyo",
-      "status": "準時ON TIME",
-      "aircraft": "A321-271",
-      "terminal": "2",
-      "destination": "Tokyo (NRT)",
-      "codeshare_flights": [
-        {
-          "flight_code": "HA2506",
-          "airline_code": "HA",
-          "airline_name": "夏威夷航空"
         },
         {
-          "flight_code": "JL5040",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
+          "flight_code": "OZ6872",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
         }
       ]
     },
@@ -571,8 +544,8 @@
     }
   ],
   "summary": {
-    "total_flights": 22,
-    "before_17:00": 20,
+    "total_flights": 21,
+    "before_17:00": 19,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -593,11 +566,10 @@
     "09:50 : D16 : BR867 (長榮航空)",
     "14:00 : D11 : JX713 (星宇航空)",
     "15:15 : D15R : BR160 (長榮航空)",
-    "16:25 : D13 : CI106 (中華航空)",
     "16:35 : D14R : CI503 (中華航空)",
     "16:35 : D16 : BR871 (長榮航空)",
     "20:30 : D12 : JX32 (星宇航空)",
     "23:40 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-18T05:03:16.304553"
+  "updated_at": "2026-03-18T07:12:17.788625"
 }
