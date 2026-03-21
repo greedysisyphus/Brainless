@@ -460,14 +460,14 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
-          "flight_code": "KL4980",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        },
-        {
           "flight_code": "MH5596",
           "airline_code": "MH",
           "airline_name": "馬來西亞"
+        },
+        {
+          "flight_code": "KL4980",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
         },
         {
           "flight_code": "JL5136",
@@ -643,5 +643,5 @@
     "20:45 : D14R : JX26 (星宇航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-21T19:31:36.346980"
+  "updated_at": "2026-03-21T20:35:39.628762"
 }
