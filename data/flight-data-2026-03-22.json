@@ -27,7 +27,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -59,7 +59,7 @@
       "type": "departure",
       "airport_code": "KMQ",
       "city": "Komatsu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Komatsu (KMQ)",
@@ -91,7 +91,7 @@
       "type": "departure",
       "airport_code": "CGK",
       "city": "Jakarta",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Jakarta (CGK)",
@@ -107,7 +107,7 @@
       "type": "departure",
       "airport_code": "CRK",
       "city": "Clark",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Clark (CRK)",
@@ -653,5 +653,5 @@
     "20:30 : D17 : BR261 (長榮航空)",
     "20:30 : D12 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-03-21T22:33:23.669824"
+  "updated_at": "2026-03-21T23:32:28.571496"
 }
