@@ -17,6 +17,11 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
+          "flight_code": "TK9456",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        },
+        {
           "flight_code": "TG6366",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -25,11 +30,6 @@
           "flight_code": "NZ4924",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TK9456",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
         }
       ]
     },
@@ -81,6 +81,11 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5836",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "NZ4907",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -94,11 +99,6 @@
           "flight_code": "TG6332",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NH5836",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -166,6 +166,11 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5802",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TG6362",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -174,11 +179,6 @@
           "flight_code": "NZ4906",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5802",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -242,6 +242,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5812",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TG6356",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -250,11 +255,6 @@
           "flight_code": "NZ4914",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5812",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -312,14 +312,19 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "LO5344",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "AC6543",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "LO5344",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         },
         {
           "flight_code": "TG6346",
@@ -330,11 +335,6 @@
           "flight_code": "NZ4934",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -462,6 +462,11 @@
       "destination": "Sendai (SDJ)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5818",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TG6372",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -475,11 +480,6 @@
           "flight_code": "TK9464",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
-        },
-        {
-          "flight_code": "NH5818",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -515,6 +515,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5828",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TG6342",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -528,11 +533,6 @@
           "flight_code": "NZ4912",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5828",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -747,11 +747,6 @@
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6307",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "AI7063",
           "airline_code": "AI",
           "airline_name": "印度航空"
@@ -760,6 +755,11 @@
           "flight_code": "TK9458",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "TG6307",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     }
@@ -802,5 +802,5 @@
     "20:30 : D11 : JX10 (星宇航空)",
     "20:45 : D12 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-03-23T09:06:47.720321"
+  "updated_at": "2026-03-23T10:59:54.883892"
 }
