@@ -350,6 +350,28 @@
       ]
     },
     {
+      "time": "14:05",
+      "datetime": "2026-03-26T14:05:00",
+      "gate": "D15R",
+      "flight_code": "CI521",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "CAN",
+      "city": "Guangzhou",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Guangzhou (CAN)",
+      "codeshare_flights": [
+        {
+          "flight_code": "CZ7971",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
+        }
+      ]
+    },
+    {
       "time": "15:20",
       "datetime": "2026-03-26T15:20:00",
       "gate": "D11",
@@ -533,8 +555,8 @@
     }
   ],
   "summary": {
-    "total_flights": 24,
-    "before_17:00": 22,
+    "total_flights": 25,
+    "before_17:00": 23,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -554,6 +576,7 @@
     "09:30 : D18 : BR315 (長榮航空)",
     "10:00 : D15R : BR255 (長榮航空)",
     "10:00 : D12 : BR801 (長榮航空)",
+    "14:05 : D15R : CI521 (中華航空)",
     "15:20 : D11 : JX703 (星宇航空)",
     "15:30 : D14R : CI527 (中華航空)",
     "15:35 : D13 : CI517 (中華航空)",
@@ -563,5 +586,5 @@
     "20:45 : D11 : JX26 (星宇航空)",
     "23:35 : D11 : JX2 (星宇航空)"
   ],
-  "updated_at": "2026-03-26T02:56:04.789883"
+  "updated_at": "2026-03-26T05:13:15.463719"
 }
