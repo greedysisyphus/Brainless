@@ -444,14 +444,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5048",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "QF8740",
           "airline_code": "QF",
           "airline_name": "澳洲航空"
+        },
+        {
+          "flight_code": "JL5048",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -642,5 +642,5 @@
     "19:00 : D15R : BR809 (長榮航空)",
     "20:05 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-03-30T17:04:46.481961"
+  "updated_at": "2026-03-30T19:10:10.995724"
 }
