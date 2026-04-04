@@ -382,14 +382,14 @@
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
         {
-          "flight_code": "AI7065",
-          "airline_code": "AI",
-          "airline_name": "印度航空"
-        },
-        {
           "flight_code": "TK9473",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "AI7065",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
         },
         {
           "flight_code": "TG6317",
@@ -515,7 +515,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "1",
       "destination": "Hong Kong (HKG)",
@@ -653,5 +653,5 @@
     "18:10 : D14R : BR857 (長榮航空)",
     "20:10 : D12 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-04-04T09:48:40.165456"
+  "updated_at": "2026-04-04T10:41:26.820570"
 }
