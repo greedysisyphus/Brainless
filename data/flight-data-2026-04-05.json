@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "SFO",
       "city": "San Francisco",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "San Francisco (SFO)",
@@ -27,7 +27,7 @@
       "type": "departure",
       "airport_code": "LAX",
       "city": "Los Angeles",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Los Angeles (LAX)",
@@ -49,16 +49,6 @@
       "destination": "Komatsu (KMQ)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4920",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TG6376",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5820",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -67,6 +57,16 @@
           "flight_code": "TK9543",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "NZ4920",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TG6376",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -188,22 +188,6 @@
       "codeshare_flights": []
     },
     {
-      "time": "08:25",
-      "datetime": "2026-04-05T08:25:00",
-      "gate": "D16",
-      "flight_code": "CI551",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "TFU",
-      "city": "Chengdu Tianfu",
-      "status": "準時ON TIME",
-      "aircraft": "A321-271",
-      "terminal": "2",
-      "destination": "Chengdu Tianfu (TFU)",
-      "codeshare_flights": []
-    },
-    {
       "time": "08:40",
       "datetime": "2026-04-05T08:40:00",
       "gate": "D15R",
@@ -240,6 +224,28 @@
       "terminal": "2",
       "destination": "Techo International Airport (KTI)",
       "codeshare_flights": []
+    },
+    {
+      "time": "08:50",
+      "datetime": "2026-04-05T08:50:00",
+      "gate": "D16",
+      "flight_code": "CI100",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "NRT",
+      "city": "Tokyo",
+      "status": "準時ON TIME",
+      "aircraft": "A350-900",
+      "terminal": "2",
+      "destination": "Tokyo (NRT)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5046",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        }
+      ]
     },
     {
       "time": "08:55",
@@ -305,6 +311,11 @@
       "destination": "Aomori (AOJ)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5830",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TK9541",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
@@ -318,11 +329,6 @@
           "flight_code": "NZ4946",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5830",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -386,6 +392,11 @@
       "destination": "Sendai (SDJ)",
       "codeshare_flights": [
         {
+          "flight_code": "TK9464",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        },
+        {
           "flight_code": "TG6372",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -399,11 +410,6 @@
           "flight_code": "NZ4910",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TK9464",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
         }
       ]
     },
@@ -455,14 +461,14 @@
       "destination": "Takamatsu (TAK)",
       "codeshare_flights": [
         {
-          "flight_code": "KL4985",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        },
-        {
           "flight_code": "JL5124",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4985",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -482,14 +488,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8740",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
-        },
-        {
           "flight_code": "JL5048",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "QF8740",
+          "airline_code": "QF",
+          "airline_name": "澳洲航空"
         }
       ]
     },
@@ -547,6 +553,11 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5810",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TK9455",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
@@ -560,11 +571,6 @@
           "flight_code": "NZ4904",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5810",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -664,9 +670,9 @@
     "07:30 : D18 : BR170 (長榮航空)",
     "07:40 : D17 : JX711 (星宇航空)",
     "08:10 : D12 : JX771 (星宇航空)",
-    "08:25 : D16 : CI551 (中華航空)",
     "08:40 : D15R : AE991 (華信航空)",
     "08:45 : D14R : BR265 (長榮航空)",
+    "08:50 : D16 : CI100 (中華航空)",
     "08:55 : D11 : JX741 (星宇航空)",
     "09:25 : D18 : BR154 (長榮航空)",
     "09:55 : D13 : BR122 (長榮航空)",
@@ -685,5 +691,5 @@
     "17:25 : D15R : JX791 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-04-04T15:39:10.516102"
+  "updated_at": "2026-04-04T16:45:02.288164"
 }
