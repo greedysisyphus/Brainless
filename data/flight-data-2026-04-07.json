@@ -172,14 +172,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
         },
         {
           "flight_code": "AC6535",
@@ -731,5 +731,5 @@
     "20:10 : D13 : JX26 (星宇航空)",
     "20:45 : D16 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-04-08T05:50:41.955087"
+  "updated_at": "2026-04-08T07:46:07.629288"
 }
