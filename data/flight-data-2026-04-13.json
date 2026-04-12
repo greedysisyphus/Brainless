@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -129,11 +129,6 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -142,6 +137,11 @@
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
         }
       ]
     },
@@ -781,5 +781,5 @@
     "20:10 : D12 : JX32 (星宇航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-04-12T21:41:51.664324"
+  "updated_at": "2026-04-12T22:43:03.231360"
 }
