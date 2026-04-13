@@ -59,7 +59,7 @@
       "type": "departure",
       "airport_code": "KMQ",
       "city": "Komatsu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Komatsu (KMQ)",
@@ -96,7 +96,7 @@
       "type": "departure",
       "airport_code": "MNL",
       "city": "Manila",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Manila (MNL)",
@@ -112,7 +112,7 @@
       "type": "departure",
       "airport_code": "CRK",
       "city": "Clark",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Clark (CRK)",
@@ -128,7 +128,7 @@
       "type": "departure",
       "airport_code": "HIJ",
       "city": "Hiroshima",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Hiroshima (HIJ)",
@@ -629,5 +629,5 @@
     "19:00 : D15R : BR809 (長榮航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-04-13T22:52:45.668437"
+  "updated_at": "2026-04-13T23:52:32.783181"
 }
