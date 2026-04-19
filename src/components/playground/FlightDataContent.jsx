@@ -13,7 +13,7 @@ const STRESS_BEFORE_DEP_END_MIN = 30
 const STRESS_WINDOW_MINUTES = STRESS_BEFORE_DEP_START_MIN - STRESS_BEFORE_DEP_END_MIN
 const SLOT_STEP_MIN = 15
 
-/** 高峰／低峰共用：候選 60 分槽「起點」範圍；lastStartMin 為最後一段槽起點，槽覆蓋至 lastStartMin+60 */
+/** 高峰／離峰共用：候選 60 分槽「起點」範圍；lastStartMin 為最後一段槽起點，槽覆蓋至 lastStartMin+60 */
 const STRESS_SHIFT_PRESETS = Object.freeze({
   full: { label: '全天', firstStartMin: 5 * 60, lastStartMin: 20 * 60 },
   morning: { label: '早班', firstStartMin: 5 * 60, lastStartMin: 12 * 60 + 30 },
@@ -386,9 +386,9 @@ function FlightDataContent() {
   const [updateLogs, setUpdateLogs] = useState([]) // 更新日誌
   const [selectedChartDetail, setSelectedChartDetail] = useState(null) // 選中的圖表詳細資訊
   const [showUpdateLog, setShowUpdateLog] = useState(false) // 顯示更新日誌 Modal
-  /** null | 'today' | 'multi' — 高峰／低峰（奶酥）完整說明 */
+  /** null | 'today' | 'multi' — 高峰／離峰（奶酥）完整說明 */
   const [stressSlotsHelp, setStressSlotsHelp] = useState(null)
-  /** 高峰／低峰 60 分槽掃描班別：全天 05:00–21:00、早班 05:00–13:30、晚班 13:30–21:00 */
+  /** 高峰／離峰 60 分槽掃描班別：全天 05:00–21:00、早班 05:00–13:30、晚班 13:30–21:00 */
   const [stressPeakShift, setStressPeakShift] = useState('full')
   const [stressLowShift, setStressLowShift] = useState('full')
   const [selectedLogDetail, setSelectedLogDetail] = useState(null) // 選中的日誌詳細資料
@@ -2561,7 +2561,7 @@ function FlightDataContent() {
     )
   }, [flightData])
 
-  // 奶酥時刻：當日高峰／低峰（槽位日＝班表檔案 date，避免選定日與 fallback 檔不一致時全為 0）
+  // 奶酥時刻：當日高峰／離峰（槽位日＝班表檔案 date，避免選定日與 fallback 檔不一致時全為 0）
   const stressSlotsToday = useMemo(() => {
     if (!flightData?.flights?.length) return null
     const dayKey = flightData.date || selectedDate
@@ -3319,12 +3319,12 @@ function FlightDataContent() {
           {stressSlotsToday && (
             <div className="mt-4 sm:mt-6 rounded-xl border border-white/10 bg-surface/40 backdrop-blur-md p-4 sm:p-5">
               <div className="flex flex-wrap items-center gap-1 mb-2">
-                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／低峰（奶酥）時段（當天）</h3>
+                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／離峰（奶酥）時段（當天）</h3>
                 <button
                   type="button"
                   onClick={() => setStressSlotsHelp('today')}
                   className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/45 bg-primary/15 text-primary hover:bg-primary/28 active:bg-primary/35 transition-colors"
-                  aria-label="高峰與低峰（奶酥）完整說明"
+                  aria-label="高峰與離峰（奶酥）完整說明"
                   title="說明"
                   style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                 >
@@ -3368,10 +3368,10 @@ function FlightDataContent() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="low" groupLabel="低峰時段" value={stressLowShift} onChange={setStressLowShift} />
+                  <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} />
                   <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 sm:p-4 flex-1 min-h-0">
                     <h4 className="text-sm font-semibold text-cyan-200 mb-2">
-                      低峰（奶酥）（{formatStressShiftSpan(stressLowShift)}，分數最低）
+                      離峰（奶酥）（{formatStressShiftSpan(stressLowShift)}，分數最低）
                     </h4>
                     <ol className="space-y-2 text-sm">
                       {stressSlotsToday.low.map((row, i) => (
@@ -3558,7 +3558,7 @@ function FlightDataContent() {
         </div>
       )}
 
-      {/* 高峰／低峰（奶酥）完整說明 */}
+      {/* 高峰／離峰（奶酥）完整說明 */}
       {stressSlotsHelp && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
@@ -3573,7 +3573,7 @@ function FlightDataContent() {
           >
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-gradient-to-r from-purple-500/15 to-cyan-500/10 shrink-0">
               <h3 id="stress-slots-help-title" className="text-lg font-bold text-primary pr-2">
-                {stressSlotsHelp === 'today' ? '高峰／低峰（奶酥）— 當天版說明' : '高峰／低峰（奶酥）— 多日平均版說明'}
+                {stressSlotsHelp === 'today' ? '高峰／離峰（奶酥）— 當天版說明' : '高峰／離峰（奶酥）— 多日平均版說明'}
               </h3>
               <button
                 type="button"
@@ -3589,7 +3589,7 @@ function FlightDataContent() {
                 <h4 className="font-semibold text-primary mb-1.5">用途</h4>
                 <p>
                   依班表推估「登機前一段時間」對店前的<strong className="text-primary/90">相對壓力</strong>，以固定長度<strong> 60 分鐘</strong>時間槽呈現。
-                  <strong className="text-primary/90">高峰</strong>在所選時段範圍內列出壓力較集中的槽；<strong className="text-primary/90">低峰（奶酥）</strong>在所選時段範圍內列出壓力較低的槽，供自行安排參考。
+                  <strong className="text-primary/90">高峰</strong>在所選時段範圍內列出壓力較集中的槽；<strong className="text-primary/90">離峰（奶酥）</strong>在所選時段範圍內列出壓力較低的槽，供自行安排參考。
                 </p>
               </section>
               <section>
@@ -3643,7 +3643,7 @@ function FlightDataContent() {
                 <ul className="list-disc pl-5 space-y-1">
                   <li>槽長一律 <strong>60 分鐘</strong>；候選<strong>起點</strong>每 <strong>{SLOT_STEP_MIN}</strong> 分鐘一步。</li>
                   <li>
-                    <strong className="text-primary/90">高峰</strong>與<strong className="text-primary/90">低峰（奶酥）</strong>可各自切換班別：<strong>全天</strong> {formatStressShiftSpan('full')}、<strong>早班</strong>{' '}
+                    <strong className="text-primary/90">高峰</strong>與<strong className="text-primary/90">離峰（奶酥）</strong>可各自切換班別：<strong>全天</strong> {formatStressShiftSpan('full')}、<strong>早班</strong>{' '}
                     {formatStressShiftSpan('morning')}、<strong>晚班</strong> {formatStressShiftSpan('evening')}（皆為該側候選槽的時間範圍）。
                   </li>
                 </ul>
@@ -3651,14 +3651,14 @@ function FlightDataContent() {
               <section>
                 <h4 className="font-semibold text-primary mb-1.5">各邊顯示 5 個槽的原因</h4>
                 <p>
-                  候選槽依<strong>總分</strong>排序後，以<strong>不重疊</strong>方式依序取 5 個：高峰取分數最高者，低峰（奶酥）取分數最低者，避免五段全擠在同一小時內，方便閱讀與比對。
+                  候選槽依<strong>總分</strong>排序後，以<strong>不重疊</strong>方式依序取 5 個：高峰取分數最高者，離峰（奶酥）取分數最低者，避免五段全擠在同一小時內，方便閱讀與比對。
                 </p>
               </section>
               {stressSlotsHelp === 'multi' && (
                 <section>
                   <h4 className="font-semibold text-primary mb-1.5">多日平均與當天版的差異</h4>
                   <p>
-                    對<strong>同一槽起點</strong>（例如每日皆計算 14:00–15:00），先算該槽在<strong>每一天</strong>的分數，再對已載入天數做<strong>算術平均</strong>；最後在平均後的分數上套用與當天版相同的不重疊篩選（高峰取高、低峰取低）。
+                    對<strong>同一槽起點</strong>（例如每日皆計算 14:00–15:00），先算該槽在<strong>每一天</strong>的分數，再對已載入天數做<strong>算術平均</strong>；最後在平均後的分數上套用與當天版相同的不重疊篩選（高峰取高、離峰取低）。
                   </p>
                   <p className="text-xs mt-1">統計頁上方「快速載入／自訂區間」用來載入要平均的日期範圍；天數愈多，曲線愈平滑、單日極端值影響愈小。</p>
                 </section>
@@ -4107,7 +4107,7 @@ function FlightDataContent() {
             </div>
           )}
 
-          {/* 控制選項（置於多日高峰／低峰分析上方，方便先載入區間） */}
+          {/* 控制選項（置於多日高峰／離峰分析上方，方便先載入區間） */}
           <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="text-sm text-text-secondary whitespace-nowrap">快速載入</span>
@@ -4164,12 +4164,12 @@ function FlightDataContent() {
           {stressSlotsMultiDay && multiDayData.length > 0 && (
             <div className="rounded-xl border border-white/10 bg-surface/40 backdrop-blur-md p-4 sm:p-5">
               <div className="flex flex-wrap items-center gap-1 mb-2">
-                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／低峰（奶酥）時段（多日平均）</h3>
+                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／離峰（奶酥）時段（多日平均）</h3>
                 <button
                   type="button"
                   onClick={() => setStressSlotsHelp('multi')}
                   className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/45 bg-primary/15 text-primary hover:bg-primary/28 active:bg-primary/35 transition-colors"
-                  aria-label="高峰與低峰（奶酥）多日平均完整說明"
+                  aria-label="高峰與離峰（奶酥）多日平均完整說明"
                   title="說明"
                   style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                 >
@@ -4218,10 +4218,10 @@ function FlightDataContent() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="low" groupLabel="低峰時段" value={stressLowShift} onChange={setStressLowShift} />
+                  <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} />
                   <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 sm:p-4 flex-1 min-h-0">
                     <h4 className="text-sm font-semibold text-cyan-200 mb-2">
-                      低峰（奶酥）（{formatStressShiftSpan(stressLowShift)}，平均分最低）
+                      離峰（奶酥）（{formatStressShiftSpan(stressLowShift)}，平均分最低）
                     </h4>
                     <ol className="space-y-2 text-sm">
                       {stressSlotsMultiDay.low.map((row, i) => (
