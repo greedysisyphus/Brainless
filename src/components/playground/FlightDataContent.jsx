@@ -1,9 +1,340 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { PaperAirplaneIcon, ArrowPathIcon, XMarkIcon, ArrowDownTrayIcon, ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import { PaperAirplaneIcon, ArrowPathIcon, XMarkIcon, ArrowDownTrayIcon, ClockIcon, DocumentTextIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '../../utils/firebase'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import * as echarts from 'echarts'
 import { isPublicHoliday2026, isPreHoliday2026 } from '../../utils/taiwanHolidays2026'
 // 觸發部署更新
+
+/** 奶酥時刻：起飛前 [60,30] 分鐘視為登機壓力窗，與 60 分鐘觀察槽重疊分鐘數 × 登機門權重計分（權重 Firebase 同步，見標題旁齒輪） */
+const STRESS_BEFORE_DEP_START_MIN = 60
+const STRESS_BEFORE_DEP_END_MIN = 30
+const STRESS_WINDOW_MINUTES = STRESS_BEFORE_DEP_START_MIN - STRESS_BEFORE_DEP_END_MIN
+const SLOT_STEP_MIN = 15
+
+/** 高峰／低峰共用：候選 60 分槽「起點」範圍；lastStartMin 為最後一段槽起點，槽覆蓋至 lastStartMin+60 */
+const STRESS_SHIFT_PRESETS = Object.freeze({
+  full: { label: '全天', firstStartMin: 5 * 60, lastStartMin: 20 * 60 },
+  morning: { label: '早班', firstStartMin: 5 * 60, lastStartMin: 12 * 60 + 30 },
+  evening: { label: '晚班', firstStartMin: 13 * 60 + 30, lastStartMin: 20 * 60 }
+})
+
+const STRESS_SHIFT_ORDER = ['full', 'morning', 'evening']
+
+function stressShiftRange(shiftKey) {
+  const p = STRESS_SHIFT_PRESETS[shiftKey] || STRESS_SHIFT_PRESETS.full
+  return { firstStartMin: p.firstStartMin, lastStartMin: p.lastStartMin }
+}
+
+function formatMinAsHHMM(totalMin) {
+  const h = Math.floor(totalMin / 60) % 24
+  const m = totalMin % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+function formatStressShiftSpan(shiftKey) {
+  const { firstStartMin, lastStartMin } = stressShiftRange(shiftKey)
+  return `${formatMinAsHHMM(firstStartMin)}–${formatMinAsHHMM(lastStartMin + 60)}`
+}
+
+function InfoTipIcon({ className }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.75" />
+      <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 11v6" />
+      <circle cx="12" cy="7.5" r="1.25" fill="currentColor" />
+    </svg>
+  )
+}
+
+function normalizeGateKey(gate) {
+  if (gate == null || gate === '') return ''
+  return String(gate).trim().toUpperCase()
+}
+
+const GATE_STRESS_STORAGE_KEY = 'flightGateStressWeightsV1'
+/** Firestore：`settings/{GATE_STRESS_FIREBASE_DOC_ID}`，欄位 `weights` + `updatedAt` */
+const GATE_STRESS_FIREBASE_DOC_ID = 'flight_gate_stress_weights'
+
+/** 預設：D13 最大；D12＝D14；D15；D16＝D17＝D18；D14–D18 含 L／R 與同號合併 */
+const DEFAULT_GATE_STRESS_WEIGHTS = Object.freeze({
+  D11: 0.9,
+  D12: 2.7,
+  D13: 4,
+  D14: 2.7,
+  D15: 2.4,
+  D16: 2.0,
+  D17: 2.0,
+  D18: 2.0,
+  D_OTHER: 1.2,
+  OTHER: 1.0
+})
+
+function gateToStressWeightKey(gateRaw) {
+  const g = normalizeGateKey(gateRaw)
+  if (!g) return 'OTHER'
+  if (/^D11(L|R)?$/.test(g)) return 'D11'
+  if (/^D12(L|R)?$/.test(g)) return 'D12'
+  if (/^D13(L|R)?$/.test(g)) return 'D13'
+  const m = g.match(/^D(1[4-8])(L|R)?$/)
+  if (m) return `D${m[1]}`
+  if (g.startsWith('D')) return 'D_OTHER'
+  return 'OTHER'
+}
+
+function mergeGateStressWeights(partial) {
+  const out = { ...DEFAULT_GATE_STRESS_WEIGHTS }
+  if (!partial || typeof partial !== 'object') return out
+  for (const k of Object.keys(DEFAULT_GATE_STRESS_WEIGHTS)) {
+    const v = partial[k]
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) out[k] = v
+  }
+  return out
+}
+
+function loadStoredGateStressWeights() {
+  if (typeof window === 'undefined') return { ...DEFAULT_GATE_STRESS_WEIGHTS }
+  try {
+    const raw = localStorage.getItem(GATE_STRESS_STORAGE_KEY)
+    if (!raw) return { ...DEFAULT_GATE_STRESS_WEIGHTS }
+    return mergeGateStressWeights(JSON.parse(raw))
+  } catch {
+    return { ...DEFAULT_GATE_STRESS_WEIGHTS }
+  }
+}
+
+function cacheGateStressWeightsLocal(weights) {
+  try {
+    localStorage.setItem(GATE_STRESS_STORAGE_KEY, JSON.stringify(weights))
+  } catch {
+    // ignore
+  }
+}
+
+function resolveGateStressWeight(gateRaw, weights) {
+  const key = gateToStressWeightKey(gateRaw)
+  const w = weights[key]
+  if (typeof w === 'number' && Number.isFinite(w) && w >= 0) return w
+  return DEFAULT_GATE_STRESS_WEIGHTS[key]
+}
+
+// 壓力分析：已出發仍代表當日實際客流／登機壓力，必須計入；僅排除取消／延誤取消等
+function isStressCancelledFlight(flight) {
+  const raw = flight.status || ''
+  const s = raw.toUpperCase()
+  if (s.includes('CANCEL') || raw.includes('取消')) return true
+  return false
+}
+
+function getFlightDepartureMs(dateStr, flight) {
+  if (flight.datetime) {
+    const raw = String(flight.datetime).trim()
+    if (raw) {
+      if (/[Zz]|[+-]\d{2}:?\d{2}$/.test(raw)) {
+        const d = new Date(raw)
+        if (!Number.isNaN(d.getTime())) return d.getTime()
+      } else {
+        const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/)
+        if (m) {
+          const ms = new Date(
+            Number(m[1]),
+            Number(m[2]) - 1,
+            Number(m[3]),
+            Number(m[4]),
+            Number(m[5]),
+            Number(m[6] || 0)
+          ).getTime()
+          if (!Number.isNaN(ms)) return ms
+        }
+        const d = new Date(raw)
+        if (!Number.isNaN(d.getTime())) return d.getTime()
+      }
+    }
+  }
+  if (flight.time && dateStr) {
+    const parts = String(flight.time).split(':')
+    const hh = parseInt(parts[0], 10)
+    const mm = parseInt(parts[1] || '0', 10)
+    if (Number.isNaN(hh)) return null
+    return new Date(`${dateStr}T${String(hh).padStart(2, '0')}:${String(Number.isNaN(mm) ? 0 : mm).padStart(2, '0')}:00`).getTime()
+  }
+  return null
+}
+
+function dayStartMs(dateStr) {
+  return new Date(`${dateStr}T00:00:00`).getTime()
+}
+
+function slotRangeMs(dateStr, startMinFromMidnight) {
+  const base = dayStartMs(dateStr)
+  return { start: base + startMinFromMidnight * 60 * 1000, end: base + (startMinFromMidnight + 60) * 60 * 1000 }
+}
+
+function overlapMinutesMs(a0, a1, b0, b1) {
+  const lo = Math.max(a0, b0)
+  const hi = Math.min(a1, b1)
+  return Math.max(0, (hi - lo) / 60000)
+}
+
+function formatSlotRange24h(startMinFromMidnight) {
+  const pad = (n) => String(n).padStart(2, '0')
+  const h1 = Math.floor(startMinFromMidnight / 60)
+  const m1 = startMinFromMidnight % 60
+  const end = startMinFromMidnight + 60
+  const h2 = Math.floor(end / 60)
+  const m2 = end % 60
+  return `${pad(h1)}:${pad(m1)}–${pad(h2)}:${pad(m2)}`
+}
+
+function enumerateSlotStarts(firstStart, lastStart, step) {
+  const out = []
+  for (let s = firstStart; s <= lastStart; s += step) out.push(s)
+  return out
+}
+
+function scoreOneSlotForDay(flights, dateStr, startMinFromMidnight, weights) {
+  const { start: slot0, end: slot1 } = slotRangeMs(dateStr, startMinFromMidnight)
+  let score = 0
+  let flightCount = 0
+  for (const flight of flights) {
+    if (isStressCancelledFlight(flight)) continue
+    const depMs = getFlightDepartureMs(dateStr, flight)
+    if (depMs == null) continue
+    const p0 = depMs - STRESS_BEFORE_DEP_START_MIN * 60 * 1000
+    const p1 = depMs - STRESS_BEFORE_DEP_END_MIN * 60 * 1000
+    const ov = overlapMinutesMs(p0, p1, slot0, slot1)
+    if (ov <= 0) continue
+    const w = resolveGateStressWeight(flight.gate, weights)
+    score += w * (ov / STRESS_WINDOW_MINUTES)
+    flightCount += 1
+  }
+  return { score, flightCount }
+}
+
+function pickTopDisjointSlots(scored, count, highest) {
+  const sorted = [...scored].sort((a, b) => (highest ? b.score - a.score : a.score - b.score))
+  const picked = []
+  for (const item of sorted) {
+    if (picked.length >= count) break
+    const a0 = item.startMin
+    const a1 = a0 + 60
+    const overlaps = picked.some((p) => {
+      const b0 = p.startMin
+      const b1 = b0 + 60
+      return !(a1 <= b0 || b1 <= a0)
+    })
+    if (!overlaps) picked.push(item)
+  }
+  return picked
+}
+
+function computeStressSlotsDay(flights, dateStr, weights, peakShiftKey, lowShiftKey) {
+  const peakR = stressShiftRange(peakShiftKey)
+  const lowR = stressShiftRange(lowShiftKey)
+  const peakStarts = enumerateSlotStarts(peakR.firstStartMin, peakR.lastStartMin, SLOT_STEP_MIN)
+  const peakScored = peakStarts.map((startMin) => {
+    const { score, flightCount } = scoreOneSlotForDay(flights, dateStr, startMin, weights)
+    return { startMin, score, flightCount, label: formatSlotRange24h(startMin) }
+  })
+  const peak = pickTopDisjointSlots(peakScored, 5, true)
+
+  const lowStarts = enumerateSlotStarts(lowR.firstStartMin, lowR.lastStartMin, SLOT_STEP_MIN)
+  const lowScored = lowStarts.map((startMin) => {
+    const { score, flightCount } = scoreOneSlotForDay(flights, dateStr, startMin, weights)
+    return { startMin, score, flightCount, label: formatSlotRange24h(startMin) }
+  })
+  const low = pickTopDisjointSlots(lowScored, 5, false)
+
+  return { peak, low }
+}
+
+function averageStressSlotsAcrossDays(multiDayData, weights, peakShiftKey, lowShiftKey) {
+  const nDays = multiDayData.length
+  if (nDays === 0) return { peak: [], low: [] }
+
+  const peakR = stressShiftRange(peakShiftKey)
+  const lowR = stressShiftRange(lowShiftKey)
+  const peakStarts = enumerateSlotStarts(peakR.firstStartMin, peakR.lastStartMin, SLOT_STEP_MIN)
+  const peakAgg = new Map(peakStarts.map((sm) => [sm, { sum: 0, flights: 0 }]))
+  const lowStarts = enumerateSlotStarts(lowR.firstStartMin, lowR.lastStartMin, SLOT_STEP_MIN)
+  const lowAgg = new Map(lowStarts.map((sm) => [sm, { sum: 0, flights: 0 }]))
+
+  for (const day of multiDayData) {
+    const flights = day.flights || []
+    for (const sm of peakStarts) {
+      const { score, flightCount } = scoreOneSlotForDay(flights, day.date, sm, weights)
+      const cur = peakAgg.get(sm)
+      cur.sum += score
+      cur.flights += flightCount
+    }
+    for (const sm of lowStarts) {
+      const { score, flightCount } = scoreOneSlotForDay(flights, day.date, sm, weights)
+      const cur = lowAgg.get(sm)
+      cur.sum += score
+      cur.flights += flightCount
+    }
+  }
+
+  const peakAveraged = peakStarts.map((startMin) => ({
+    startMin,
+    score: peakAgg.get(startMin).sum / nDays,
+    flightCount: peakAgg.get(startMin).flights / nDays,
+    label: formatSlotRange24h(startMin)
+  }))
+  const lowAveraged = lowStarts.map((startMin) => ({
+    startMin,
+    score: lowAgg.get(startMin).sum / nDays,
+    flightCount: lowAgg.get(startMin).flights / nDays,
+    label: formatSlotRange24h(startMin)
+  }))
+
+  return {
+    peak: pickTopDisjointSlots(peakAveraged, 5, true),
+    low: pickTopDisjointSlots(lowAveraged, 5, false)
+  }
+}
+
+function StressSlotShiftPanel({ variant, groupLabel, value, onChange }) {
+  const isPeak = variant === 'peak'
+  const shell = isPeak
+    ? 'rounded-lg border border-amber-500/25 bg-amber-500/5 p-2 sm:p-2.5'
+    : 'rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-2 sm:p-2.5'
+  const titleCls = isPeak ? 'text-[11px] font-semibold text-amber-200/95 mb-2' : 'text-[11px] font-semibold text-cyan-200/95 mb-2'
+  const btnActive = isPeak
+    ? 'bg-white/15 text-amber-50 border border-amber-400/35 shadow-sm'
+    : 'bg-white/15 text-cyan-50 border border-cyan-400/35 shadow-sm'
+  const btnIdle = isPeak
+    ? 'bg-black/10 text-amber-100/75 border border-amber-500/15 hover:bg-amber-500/10'
+    : 'bg-black/10 text-cyan-100/75 border border-cyan-500/15 hover:bg-cyan-500/10'
+
+  return (
+    <div className={shell}>
+      <div className={titleCls}>{groupLabel}</div>
+      <div className="flex flex-wrap gap-1" role="group" aria-label={groupLabel}>
+        {STRESS_SHIFT_ORDER.map((k) => {
+          const active = value === k
+          const p = STRESS_SHIFT_PRESETS[k]
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => onChange(k)}
+              className={`flex-1 min-w-[4.75rem] px-2 py-1.5 rounded-md text-center transition-colors ${
+                active ? btnActive : btnIdle
+              }`}
+            >
+              <span className="block text-xs font-semibold">{p.label}</span>
+              <span className={`block text-[10px] font-normal mt-0.5 tabular-nums leading-tight ${isPeak ? 'text-amber-100/80' : 'text-cyan-100/80'}`}>
+                {formatStressShiftSpan(k)}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function FlightDataContent() {
   const getLocalDateString = (date) => {
@@ -55,6 +386,11 @@ function FlightDataContent() {
   const [updateLogs, setUpdateLogs] = useState([]) // 更新日誌
   const [selectedChartDetail, setSelectedChartDetail] = useState(null) // 選中的圖表詳細資訊
   const [showUpdateLog, setShowUpdateLog] = useState(false) // 顯示更新日誌 Modal
+  /** null | 'today' | 'multi' — 高峰／低峰（奶酥）完整說明 */
+  const [stressSlotsHelp, setStressSlotsHelp] = useState(null)
+  /** 高峰／低峰 60 分槽掃描班別：全天 05:00–21:00、早班 05:00–13:30、晚班 13:30–21:00 */
+  const [stressPeakShift, setStressPeakShift] = useState('full')
+  const [stressLowShift, setStressLowShift] = useState('full')
   const [selectedLogDetail, setSelectedLogDetail] = useState(null) // 選中的日誌詳細資料
   const [deploymentLogs, setDeploymentLogs] = useState([]) // 部署記錄
   const [destChartMode, setDestChartMode] = useState('bar') // 'bar' | 'race'（統計分析 目的地）
@@ -70,6 +406,41 @@ function FlightDataContent() {
     return getLocalDateString(d)
   })
   const [rangeEndDate, setRangeEndDate] = useState(() => getLocalDateString(new Date()))
+  const [gateStressWeights, setGateStressWeights] = useState(loadStoredGateStressWeights)
+  const [gateStressWeightsModalOpen, setGateStressWeightsModalOpen] = useState(false)
+  const [draftGateStressWeights, setDraftGateStressWeights] = useState(() => ({ ...DEFAULT_GATE_STRESS_WEIGHTS }))
+  const [gateStressSaveState, setGateStressSaveState] = useState('idle')
+  const [gateStressRemoteError, setGateStressRemoteError] = useState(null)
+
+  useEffect(() => {
+    const ref = doc(db, 'settings', GATE_STRESS_FIREBASE_DOC_ID)
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        setGateStressRemoteError(null)
+        if (snap.exists()) {
+          const data = snap.data()
+          const raw = data?.weights && typeof data.weights === 'object' ? data.weights : data
+          const merged = mergeGateStressWeights(raw)
+          setGateStressWeights(merged)
+          cacheGateStressWeightsLocal(merged)
+          return
+        }
+        const seed = mergeGateStressWeights(loadStoredGateStressWeights())
+        setGateStressWeights(seed)
+        cacheGateStressWeightsLocal(seed)
+        setDoc(ref, { weights: seed, updatedAt: serverTimestamp() }, { merge: true }).catch((err) => {
+          console.error('[gateStressWeights] 建立 Firestore 文件失敗:', err)
+          setGateStressRemoteError(err?.message || String(err))
+        })
+      },
+      (err) => {
+        console.error('[gateStressWeights] onSnapshot 錯誤:', err)
+        setGateStressRemoteError(err?.message || String(err))
+      }
+    )
+    return () => unsub()
+  }, [])
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr + 'T00:00:00')
@@ -579,8 +950,8 @@ function FlightDataContent() {
     const start = new Date(`${startDate}T12:00:00`)
     const end = new Date(`${endDate}T12:00:00`)
     const diffDays = Math.floor((end - start) / 86400000) + 1
-    if (diffDays > 120) {
-      setStatus({ message: '自訂區間最多 120 天，請縮小範圍', type: 'error' })
+    if (diffDays > 150) {
+      setStatus({ message: '自訂區間最多 150 天，請縮小範圍', type: 'error' })
       return
     }
 
@@ -775,6 +1146,24 @@ function FlightDataContent() {
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
   }, [selectedFlight])
+
+  useEffect(() => {
+    if (!stressSlotsHelp) return
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setStressSlotsHelp(null)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [stressSlotsHelp])
+
+  useEffect(() => {
+    if (!gateStressWeightsModalOpen) return
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setGateStressWeightsModalOpen(false)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [gateStressWeightsModalOpen])
 
   // 計算統計資料
   const statistics = useMemo(() => {
@@ -2172,6 +2561,20 @@ function FlightDataContent() {
     )
   }, [flightData])
 
+  // 奶酥時刻：當日高峰／低峰（槽位日＝班表檔案 date，避免選定日與 fallback 檔不一致時全為 0）
+  const stressSlotsToday = useMemo(() => {
+    if (!flightData?.flights?.length) return null
+    const dayKey = flightData.date || selectedDate
+    if (!dayKey) return null
+    return computeStressSlotsDay(flightData.flights, dayKey, gateStressWeights, stressPeakShift, stressLowShift)
+  }, [flightData, selectedDate, gateStressWeights, stressPeakShift, stressLowShift])
+
+  // 奶酥時刻：多日區間平均（依 multiDayData）
+  const stressSlotsMultiDay = useMemo(() => {
+    if (!multiDayData.length) return null
+    return averageStressSlotsAcrossDays(multiDayData, gateStressWeights, stressPeakShift, stressLowShift)
+  }, [multiDayData, gateStressWeights, stressPeakShift, stressLowShift])
+
   // 檢查即將出發的航班（1小時內）
   const isUpcomingFlight = useCallback((flight) => {
     if (!flight.datetime) return false
@@ -2913,6 +3316,79 @@ function FlightDataContent() {
             {summaryCards}
           </div>
 
+          {stressSlotsToday && (
+            <div className="mt-4 sm:mt-6 rounded-xl border border-white/10 bg-surface/40 backdrop-blur-md p-4 sm:p-5">
+              <div className="flex flex-wrap items-center gap-1 mb-2">
+                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／低峰（奶酥）時段（當天）</h3>
+                <button
+                  type="button"
+                  onClick={() => setStressSlotsHelp('today')}
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/45 bg-primary/15 text-primary hover:bg-primary/28 active:bg-primary/35 transition-colors"
+                  aria-label="高峰與低峰（奶酥）完整說明"
+                  title="說明"
+                  style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                >
+                  <InfoTipIcon className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraftGateStressWeights({ ...gateStressWeights })
+                    setGateStressSaveState('idle')
+                    setGateStressWeightsModalOpen(true)
+                  }}
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 text-primary hover:bg-white/18 active:bg-white/25 transition-colors"
+                  aria-label="調整登機門壓力權重（Firebase 同步）"
+                  title="登機門權重"
+                  style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                >
+                  <Cog6ToothIcon className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[11px] sm:text-xs text-text-secondary mb-4 leading-relaxed">
+                依<strong>載入班表</strong>（檔案 <code className="text-[10px] bg-white/10 px-1 rounded">date</code>）與航班列表計算。圓形圖示為完整規則；<strong>齒輪</strong>可調登機門權重。
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2 min-w-0">
+                  <StressSlotShiftPanel variant="peak" groupLabel="高峰時段" value={stressPeakShift} onChange={setStressPeakShift} />
+                  <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 sm:p-4 flex-1 min-h-0">
+                    <h4 className="text-sm font-semibold text-amber-200 mb-2">
+                      高峰（{formatStressShiftSpan(stressPeakShift)}，分數最高）
+                    </h4>
+                    <ol className="space-y-2 text-sm">
+                      {stressSlotsToday.peak.map((row, i) => (
+                        <li key={row.startMin} className="flex justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                          <span className="text-text-secondary"><span className="text-primary font-mono">{i + 1}.</span> {row.label}</span>
+                          <span className="text-right shrink-0 text-amber-100/90">
+                            {row.score.toFixed(2)} <span className="text-text-secondary text-xs">（{row.flightCount} 班）</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 min-w-0">
+                  <StressSlotShiftPanel variant="low" groupLabel="低峰時段" value={stressLowShift} onChange={setStressLowShift} />
+                  <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 sm:p-4 flex-1 min-h-0">
+                    <h4 className="text-sm font-semibold text-cyan-200 mb-2">
+                      低峰（奶酥）（{formatStressShiftSpan(stressLowShift)}，分數最低）
+                    </h4>
+                    <ol className="space-y-2 text-sm">
+                      {stressSlotsToday.low.map((row, i) => (
+                        <li key={row.startMin} className="flex justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                          <span className="text-text-secondary"><span className="text-primary font-mono">{i + 1}.</span> {row.label}</span>
+                          <span className="text-right shrink-0 text-cyan-100/90">
+                            {row.score.toFixed(2)} <span className="text-text-secondary text-xs">（{row.flightCount} 班）</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 航班列表 */}
       {loading && !flightData ? (
         <SkeletonScreen />
@@ -3077,6 +3553,241 @@ function FlightDataContent() {
             {/* Modal Content */}
             <div className="p-6">
               <FlightItem flight={selectedFlight} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 高峰／低峰（奶酥）完整說明 */}
+      {stressSlotsHelp && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          onClick={() => setStressSlotsHelp(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="stress-slots-help-title"
+        >
+          <div
+            className="bg-surface border border-white/15 rounded-2xl shadow-2xl max-w-lg w-full max-h-[88vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-gradient-to-r from-purple-500/15 to-cyan-500/10 shrink-0">
+              <h3 id="stress-slots-help-title" className="text-lg font-bold text-primary pr-2">
+                {stressSlotsHelp === 'today' ? '高峰／低峰（奶酥）— 當天版說明' : '高峰／低峰（奶酥）— 多日平均版說明'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setStressSlotsHelp(null)}
+                className="p-2 rounded-xl hover:bg-white/10 text-text-secondary hover:text-primary transition-colors shrink-0"
+                aria-label="關閉說明"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="px-4 py-4 overflow-y-auto text-sm text-text-secondary space-y-4 leading-relaxed">
+              <section>
+                <h4 className="font-semibold text-primary mb-1.5">用途</h4>
+                <p>
+                  依班表推估「登機前一段時間」對店前的<strong className="text-primary/90">相對壓力</strong>，以固定長度<strong> 60 分鐘</strong>時間槽呈現。
+                  <strong className="text-primary/90">高峰</strong>在所選時段範圍內列出壓力較集中的槽；<strong className="text-primary/90">低峰（奶酥）</strong>在所選時段範圍內列出壓力較低的槽，供自行安排參考。
+                </p>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-1.5">計入與排除的航班</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong className="text-primary/90">已出發</strong>班次計入（代表當天實際發生過的登機／動線壓力）。</li>
+                  <li>狀態含 <strong className="text-primary/90">取消</strong>或 CANCEL 類字樣的班次<strong>不計入</strong>。</li>
+                  <li>起飛時間優先使用 <code className="text-xs bg-white/10 px-1 rounded">datetime</code>；沒有該欄位時，以班表檔案 <code className="text-xs bg-white/10 px-1 rounded">date</code> 與 <code className="text-xs bg-white/10 px-1 rounded">time</code> 組成本地時間。</li>
+                  {stressSlotsHelp === 'today' && (
+                    <li>
+                      當天版<strong>槽位所屬日曆日</strong>與<strong>班表檔案的 <code className="text-xs bg-white/10 px-1 rounded">date</code></strong>一致（若選擇器與載入檔不同，仍以檔案為準，避免分數全為 0）。
+                    </li>
+                  )}
+                </ul>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-1.5">壓力時間窗（每班）</h4>
+                <p>
+                  以<strong>表定起飛時間</strong>為基準，取起飛前 <strong>{STRESS_BEFORE_DEP_START_MIN}</strong> 分鐘 ～ 起飛前 <strong>{STRESS_BEFORE_DEP_END_MIN}</strong> 分鐘這段<strong>30 分鐘</strong>區間，視為與登機／人潮相關的壓力窗（模擬「起飛前約半小時登機」附近的忙碌帶）。
+                </p>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-1.5">單班對某一 60 分鐘槽的分數</h4>
+                <p className="mb-1">
+                  該班壓力窗與槽 <code className="text-xs bg-white/10 px-1 rounded">[槽起點, 槽起點+60 分)</code> 在時間軸上重疊時，貢獻如下：
+                </p>
+                <p className="font-mono text-xs bg-black/25 border border-white/10 rounded-lg px-3 py-2 text-primary/95">
+                  分數 += 登機門權重 ×（重疊分鐘數 ÷ {STRESS_WINDOW_MINUTES}）
+                </p>
+                <p className="mt-1 text-xs">重疊愈多，該班對該槽的貢獻愈大；權重見下表。</p>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-1.5">登機門權重（目前設定）</h4>
+                <p className="text-xs mb-2">
+                  D11–D13 可含 <strong>L／R</strong>；D14–D18 含 <strong>L／R</strong>（例如 D15R）與不帶側者共用該號權重。數值由標題旁<strong>齒輪</strong>開啟調整（Firestore 同步）。
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm">
+                  {['D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18'].map((k) => (
+                    <li key={k}>
+                      <strong className="text-primary/90">{k}</strong>：{gateStressWeights[k]}
+                    </li>
+                  ))}
+                  <li>
+                    其他 <strong className="text-primary/90">D</strong> 開頭且未列舉者：{gateStressWeights.D_OTHER}
+                  </li>
+                  <li>非 D 登機門：{gateStressWeights.OTHER}</li>
+                </ul>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-1.5">60 分鐘槽的掃描方式</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>槽長一律 <strong>60 分鐘</strong>；候選<strong>起點</strong>每 <strong>{SLOT_STEP_MIN}</strong> 分鐘一步。</li>
+                  <li>
+                    <strong className="text-primary/90">高峰</strong>與<strong className="text-primary/90">低峰（奶酥）</strong>可各自切換班別：<strong>全天</strong> {formatStressShiftSpan('full')}、<strong>早班</strong>{' '}
+                    {formatStressShiftSpan('morning')}、<strong>晚班</strong> {formatStressShiftSpan('evening')}（皆為該側候選槽的時間範圍）。
+                  </li>
+                </ul>
+              </section>
+              <section>
+                <h4 className="font-semibold text-primary mb-1.5">各邊顯示 5 個槽的原因</h4>
+                <p>
+                  候選槽依<strong>總分</strong>排序後，以<strong>不重疊</strong>方式依序取 5 個：高峰取分數最高者，低峰（奶酥）取分數最低者，避免五段全擠在同一小時內，方便閱讀與比對。
+                </p>
+              </section>
+              {stressSlotsHelp === 'multi' && (
+                <section>
+                  <h4 className="font-semibold text-primary mb-1.5">多日平均與當天版的差異</h4>
+                  <p>
+                    對<strong>同一槽起點</strong>（例如每日皆計算 14:00–15:00），先算該槽在<strong>每一天</strong>的分數，再對已載入天數做<strong>算術平均</strong>；最後在平均後的分數上套用與當天版相同的不重疊篩選（高峰取高、低峰取低）。
+                  </p>
+                  <p className="text-xs mt-1">統計頁上方「快速載入／自訂區間」用來載入要平均的日期範圍；天數愈多，曲線愈平滑、單日極端值影響愈小。</p>
+                </section>
+              )}
+            </div>
+            <div className="px-4 py-3 border-t border-white/10 bg-black/20 shrink-0">
+              <button
+                type="button"
+                onClick={() => setStressSlotsHelp(null)}
+                className="w-full py-2.5 rounded-xl bg-primary/20 border border-primary/35 text-primary font-medium hover:bg-primary/30 transition-colors"
+              >
+                關閉
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 登機門壓力權重（Firestore settings 同步） */}
+      {gateStressWeightsModalOpen && (
+        <div
+          className="fixed inset-0 z-[101] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          onClick={() => setGateStressWeightsModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="gate-stress-modal-title"
+        >
+          <div
+            className="bg-surface border border-white/15 rounded-2xl shadow-2xl max-w-lg w-full max-h-[88vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-gradient-to-r from-purple-500/15 to-cyan-500/10 shrink-0">
+              <h3 id="gate-stress-modal-title" className="text-lg font-bold text-primary pr-2">
+                登機門壓力權重
+              </h3>
+              <button
+                type="button"
+                onClick={() => setGateStressWeightsModalOpen(false)}
+                className="p-2 rounded-xl hover:bg-white/10 text-text-secondary hover:text-primary transition-colors shrink-0"
+                aria-label="關閉"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="px-4 py-4 overflow-y-auto text-sm text-text-secondary flex-1 min-h-0">
+              {gateStressRemoteError && (
+                <p className="text-amber-200/90 text-xs mb-3 leading-relaxed">
+                  雲端連線異常：{gateStressRemoteError}。畫面上仍可能為本機快取；儲存時若仍失敗請檢查網路或 Firebase 權限。
+                </p>
+              )}
+              <p className="text-xs text-text-secondary mb-3 leading-relaxed">
+                文件：<code className="text-[11px] bg-white/10 px-1 rounded">settings/{GATE_STRESS_FIREBASE_DOC_ID}</code>
+                ，欄位 <code className="text-[11px] bg-white/10 px-1 rounded">weights</code>。D14–D18 含 L／R 與同號共用；儲存後其他裝置即時同步。
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  ['D11', 'D11'],
+                  ['D12', 'D12'],
+                  ['D13', 'D13'],
+                  ['D14', 'D14'],
+                  ['D15', 'D15'],
+                  ['D16', 'D16'],
+                  ['D17', 'D17'],
+                  ['D18', 'D18'],
+                  ['D_OTHER', '其他 D（未列舉）'],
+                  ['OTHER', '非 D 登機門']
+                ].map(([key, label]) => (
+                  <label key={key} className="flex flex-col gap-0.5 min-w-[6.5rem] flex-1 sm:max-w-[10rem]">
+                    <span className="text-[11px] text-text-secondary leading-tight">{label}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      step={0.1}
+                      value={draftGateStressWeights[key]}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        if (raw.trim() === '') return
+                        const n = parseFloat(raw)
+                        if (Number.isNaN(n)) return
+                        setDraftGateStressWeights((prev) => ({ ...prev, [key]: Math.min(99, Math.max(0, n)) }))
+                      }}
+                      className="px-2 py-1.5 rounded-lg border border-white/20 bg-surface/50 text-primary text-sm w-full min-h-[40px]"
+                    />
+                  </label>
+                ))}
+              </div>
+              {gateStressSaveState === 'error' && (
+                <p className="text-red-400/90 text-xs mt-3">儲存失敗，請稍後再試。</p>
+              )}
+            </div>
+            <div className="px-4 py-3 border-t border-white/10 bg-black/20 shrink-0 flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => setGateStressWeightsModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/15 text-text-secondary font-medium hover:bg-white/10 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraftGateStressWeights({ ...DEFAULT_GATE_STRESS_WEIGHTS })}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/15 text-primary font-medium hover:bg-white/10 transition-colors"
+              >
+                還原預設（草稿）
+              </button>
+              <button
+                type="button"
+                disabled={gateStressSaveState === 'saving'}
+                onClick={async () => {
+                  const merged = mergeGateStressWeights(draftGateStressWeights)
+                  setGateStressSaveState('saving')
+                  try {
+                    await setDoc(
+                      doc(db, 'settings', GATE_STRESS_FIREBASE_DOC_ID),
+                      { weights: merged, updatedAt: serverTimestamp() },
+                      { merge: true }
+                    )
+                    setGateStressSaveState('idle')
+                    setGateStressWeightsModalOpen(false)
+                  } catch (err) {
+                    console.error('[gateStressWeights] setDoc 失敗:', err)
+                    setGateStressSaveState('error')
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-primary/25 border border-primary/40 text-primary font-medium hover:bg-primary/35 transition-colors disabled:opacity-50"
+              >
+                {gateStressSaveState === 'saving' ? '同步中…' : '儲存並同步'}
+              </button>
             </div>
           </div>
         </div>
@@ -3396,7 +4107,7 @@ function FlightDataContent() {
             </div>
           )}
 
-          {/* 控制選項 */}
+          {/* 控制選項（置於多日高峰／低峰分析上方，方便先載入區間） */}
           <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="text-sm text-text-secondary whitespace-nowrap">快速載入</span>
@@ -3411,6 +4122,8 @@ function FlightDataContent() {
                 <option value="14">最近 14 天</option>
                 <option value="30">最近 30 天</option>
                 <option value="90">最近 90 天</option>
+                <option value="120">最近 120 天</option>
+                <option value="150">最近 150 天</option>
               </select>
 
               <span className="text-text-secondary/60 text-xs hidden sm:inline">|</span>
@@ -3447,6 +4160,84 @@ function FlightDataContent() {
               )}
             </div>
           </div>
+
+          {stressSlotsMultiDay && multiDayData.length > 0 && (
+            <div className="rounded-xl border border-white/10 bg-surface/40 backdrop-blur-md p-4 sm:p-5">
+              <div className="flex flex-wrap items-center gap-1 mb-2">
+                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／低峰（奶酥）時段（多日平均）</h3>
+                <button
+                  type="button"
+                  onClick={() => setStressSlotsHelp('multi')}
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/45 bg-primary/15 text-primary hover:bg-primary/28 active:bg-primary/35 transition-colors"
+                  aria-label="高峰與低峰（奶酥）多日平均完整說明"
+                  title="說明"
+                  style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                >
+                  <InfoTipIcon className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraftGateStressWeights({ ...gateStressWeights })
+                    setGateStressSaveState('idle')
+                    setGateStressWeightsModalOpen(true)
+                  }}
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 text-primary hover:bg-white/18 active:bg-white/25 transition-colors"
+                  aria-label="調整登機門壓力權重（Firebase 同步）"
+                  title="登機門權重"
+                  style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                >
+                  <Cog6ToothIcon className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[11px] sm:text-xs text-text-secondary mb-3 leading-relaxed">
+                依目前已載入 <strong>{multiDayData.length}</strong> 天做<strong>槽位分數平均</strong>。圓形圖示為完整說明；<strong>齒輪</strong>可調登機門權重。
+                {multiDayData[0]?.date && multiDayData[multiDayData.length - 1]?.date && (
+                  <span className="block mt-1 text-text-secondary/90">
+                    資料範圍：{multiDayData[0].date} ～ {multiDayData[multiDayData.length - 1].date}
+                  </span>
+                )}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2 min-w-0">
+                  <StressSlotShiftPanel variant="peak" groupLabel="高峰時段" value={stressPeakShift} onChange={setStressPeakShift} />
+                  <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 sm:p-4 flex-1 min-h-0">
+                    <h4 className="text-sm font-semibold text-amber-200 mb-2">
+                      高峰（{formatStressShiftSpan(stressPeakShift)}，平均分最高）
+                    </h4>
+                    <ol className="space-y-2 text-sm">
+                      {stressSlotsMultiDay.peak.map((row, i) => (
+                        <li key={row.startMin} className="flex justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                          <span className="text-text-secondary"><span className="text-primary font-mono">{i + 1}.</span> {row.label}</span>
+                          <span className="text-right shrink-0 text-amber-100/90">
+                            {row.score.toFixed(2)} <span className="text-text-secondary text-xs">（均 {row.flightCount.toFixed(1)} 班）</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 min-w-0">
+                  <StressSlotShiftPanel variant="low" groupLabel="低峰時段" value={stressLowShift} onChange={setStressLowShift} />
+                  <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 sm:p-4 flex-1 min-h-0">
+                    <h4 className="text-sm font-semibold text-cyan-200 mb-2">
+                      低峰（奶酥）（{formatStressShiftSpan(stressLowShift)}，平均分最低）
+                    </h4>
+                    <ol className="space-y-2 text-sm">
+                      {stressSlotsMultiDay.low.map((row, i) => (
+                        <li key={row.startMin} className="flex justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                          <span className="text-text-secondary"><span className="text-primary font-mono">{i + 1}.</span> {row.label}</span>
+                          <span className="text-right shrink-0 text-cyan-100/90">
+                            {row.score.toFixed(2)} <span className="text-text-secondary text-xs">（均 {row.flightCount.toFixed(1)} 班）</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 每日總航班數（柱狀圖 + 趨勢線）— ECharts */}
           {multiDayData.length > 0 && (

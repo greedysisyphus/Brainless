@@ -4,6 +4,16 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.4.1',
+    date: '2026-04-19',
+    title: '高峰／低峰（奶酥）時段',
+    items: [
+      '航班資料與統計分析：新增「高峰／低峰（奶酥）時段」（起飛前壓力窗、登機門權重；當天版與多日平均）',
+      '統計分析「快速載入」：新增最近 120 天、最近 150 天；自訂區間上限同步為 150 天',
+      '登機門壓力權重：標題「說明」右側齒輪開啟調整，Firestore（settings/flight_gate_stress_weights）即時同步多機，並保留本機快取'
+    ]
+  },
+  {
     version: '1.4.0',
     date: '2026-02-05',
     title: '點豆更新',
@@ -63,7 +73,7 @@ export const APP_CHANGELOG = [
 ]
 
 // 版號單一來源：之後發版只需改 APP_CHANGELOG 最上方一筆
-const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.4.0'
+const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.4.1'
 const CHANGELOG_STORAGE_KEY = 'appChangelogLastSeenVersion'
 
 const ChangelogContext = createContext(null)
