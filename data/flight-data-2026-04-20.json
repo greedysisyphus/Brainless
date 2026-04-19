@@ -87,14 +87,14 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         },
         {
           "flight_code": "OZ6874",
@@ -498,5 +498,5 @@
     "18:10 : D13 : BR857 (長榮航空)",
     "19:00 : D12 : BR809 (長榮航空)"
   ],
-  "updated_at": "2026-04-19T20:47:39.358746"
+  "updated_at": "2026-04-19T21:43:22.671408"
 }
