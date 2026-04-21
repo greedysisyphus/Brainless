@@ -33,6 +33,11 @@
       "destination": "Komatsu (KMQ)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5820",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "TK9543",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
@@ -46,11 +51,6 @@
           "flight_code": "NZ4920",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5820",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -108,6 +108,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "AC6535",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
+        },
+        {
           "flight_code": "OZ6874",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
@@ -126,11 +131,6 @@
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
-        },
-        {
-          "flight_code": "AC6535",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
         }
       ]
     },
@@ -166,6 +166,11 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5850",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "NZ4944",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -179,11 +184,6 @@
           "flight_code": "TG6364",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NH5850",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -203,6 +203,11 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
+          "flight_code": "KL4997",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
+        },
+        {
           "flight_code": "JL5134",
           "airline_code": "JL",
           "airline_name": "日本航空"
@@ -211,11 +216,6 @@
           "flight_code": "MH5604",
           "airline_code": "MH",
           "airline_name": "馬來西亞"
-        },
-        {
-          "flight_code": "KL4997",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -257,14 +257,14 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5100",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4978",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5100",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -300,6 +300,16 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "TG6346",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "NZ4934",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -313,16 +323,6 @@
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
-        },
-        {
-          "flight_code": "AC6543",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
-          "flight_code": "TG6346",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -412,7 +412,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -428,7 +428,7 @@
       "type": "departure",
       "airport_code": "KMJ",
       "city": "Kumamoto",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Kumamoto (KMJ)",
@@ -450,11 +450,16 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
+        {
+          "flight_code": "NH5810",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
         {
           "flight_code": "NZ4904",
           "airline_code": "NZ",
@@ -469,11 +474,6 @@
           "flight_code": "TG6334",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NH5810",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -493,14 +493,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "MU8903",
-          "airline_code": "MU",
-          "airline_name": "東方航空"
-        },
-        {
           "flight_code": "CZ7975",
           "airline_code": "CZ",
           "airline_name": "南方航空"
+        },
+        {
+          "flight_code": "MU8903",
+          "airline_code": "MU",
+          "airline_name": "東方航空"
         }
       ]
     },
@@ -514,7 +514,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -542,14 +542,14 @@
       "destination": "Nagoya (NGO)",
       "codeshare_flights": [
         {
-          "flight_code": "KL4998",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        },
-        {
           "flight_code": "JL5114",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4998",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -578,7 +578,7 @@
     {
       "time": "20:30",
       "datetime": "2026-04-21T20:30:00",
-      "gate": "D15R",
+      "gate": "D18",
       "flight_code": "BR261",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -621,7 +621,7 @@
     "16:40 : D12 : BR871 (長榮航空)",
     "17:15 : D14R : CI150 (中華航空)",
     "18:10 : D16 : BR857 (長榮航空)",
-    "20:30 : D15R : BR261 (長榮航空)"
+    "20:30 : D18 : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-04-21T06:07:28.619089"
+  "updated_at": "2026-04-21T08:56:09.252526"
 }
