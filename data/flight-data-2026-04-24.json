@@ -65,7 +65,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -81,7 +81,7 @@
       "type": "departure",
       "airport_code": "CEB",
       "city": "Cebu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Cebu (CEB)",
@@ -97,7 +97,7 @@
       "type": "departure",
       "airport_code": "SIN",
       "city": "Singapore",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Singapore (SIN)",
@@ -113,20 +113,20 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6356",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4914",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TG6356",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "NH5812",
@@ -145,7 +145,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -161,7 +161,7 @@
       "type": "departure",
       "airport_code": "ICN",
       "city": "Incheon",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Incheon (ICN)",
@@ -193,7 +193,7 @@
       "type": "departure",
       "airport_code": "SIN",
       "city": "Singapore",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-9",
       "terminal": "2",
       "destination": "Singapore (SIN)",
@@ -220,7 +220,7 @@
       "type": "departure",
       "airport_code": "DAD",
       "city": "Da Nang",
-      "status": "時間更改SCHEDULE CHANGE",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Da Nang (DAD)",
@@ -236,7 +236,7 @@
       "type": "departure",
       "airport_code": "CAN",
       "city": "Guangzhou",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Guangzhou (CAN)",
@@ -258,7 +258,7 @@
       "type": "departure",
       "airport_code": "MFM",
       "city": "Macau",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-9",
       "terminal": "2",
       "destination": "Macau (MFM)",
@@ -280,7 +280,7 @@
       "type": "departure",
       "airport_code": "SDJ",
       "city": "Sendai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Sendai (SDJ)",
@@ -348,7 +348,7 @@
     {
       "time": "14:15",
       "datetime": "2026-04-24T14:15:00",
-      "gate": "D11",
+      "gate": "D14R",
       "flight_code": "JX713",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -360,28 +360,6 @@
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
       "codeshare_flights": []
-    },
-    {
-      "time": "14:25",
-      "datetime": "2026-04-24T14:25:00",
-      "gate": "D14R",
-      "flight_code": "CI194",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "KMJ",
-      "city": "Kumamoto",
-      "status": "準時ON TIME",
-      "aircraft": "A321-271",
-      "terminal": "2",
-      "destination": "Kumamoto (KMJ)",
-      "codeshare_flights": [
-        {
-          "flight_code": "JL5172",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        }
-      ]
     },
     {
       "time": "14:50",
@@ -421,6 +399,11 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6282",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "TK9452",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
@@ -434,11 +417,6 @@
           "flight_code": "NZ4902",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TG6282",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -569,8 +547,8 @@
     }
   ],
   "summary": {
-    "total_flights": 25,
-    "before_17:00": 22,
+    "total_flights": 24,
+    "before_17:00": 21,
     "after_17:00": 3
   },
   "formatted_display": [
@@ -590,8 +568,7 @@
     "10:05 : D17 : BR118 (長榮航空)",
     "13:50 : D12 : JX745 (星宇航空)",
     "14:10 : D13 : CI521 (中華航空)",
-    "14:15 : D11 : JX713 (星宇航空)",
-    "14:25 : D14R : CI194 (中華航空)",
+    "14:15 : D14R : JX713 (星宇航空)",
     "14:50 : D15R : CI527 (中華航空)",
     "15:10 : D16 : BR102 (長榮航空)",
     "16:30 : D13 : BR722 (長榮航空)",
@@ -600,5 +577,5 @@
     "19:00 : D15R : BR809 (長榮航空)",
     "19:35 : D12 : BR381 (長榮航空)"
   ],
-  "updated_at": "2026-04-23T23:56:18.536936"
+  "updated_at": "2026-04-24T03:39:52.461945"
 }
