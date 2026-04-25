@@ -442,7 +442,7 @@
     {
       "time": "14:30",
       "datetime": "2026-04-26T14:30:00",
-      "gate": "D12",
+      "gate": "D16",
       "flight_code": "CI194",
       "airline_code": "CI",
       "airline_name": "中華航空",
@@ -456,6 +456,33 @@
       "codeshare_flights": [
         {
           "flight_code": "JL5172",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        }
+      ]
+    },
+    {
+      "time": "14:50",
+      "datetime": "2026-04-26T14:50:00",
+      "gate": "D12",
+      "flight_code": "CI128",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "FUK",
+      "city": "Fukuoka",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Fukuoka (FUK)",
+      "codeshare_flights": [
+        {
+          "flight_code": "KL4971",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5174",
           "airline_code": "JL",
           "airline_name": "日本航空"
         }
@@ -502,22 +529,6 @@
           "airline_name": "泰國航空"
         }
       ]
-    },
-    {
-      "time": "15:35",
-      "datetime": "2026-04-26T15:35:00",
-      "gate": "D11",
-      "flight_code": "CI517",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "PEK",
-      "city": "Beijing",
-      "status": "準時ON TIME",
-      "aircraft": "A321-271",
-      "terminal": "2",
-      "destination": "Beijing (PEK)",
-      "codeshare_flights": []
     },
     {
       "time": "16:25",
@@ -743,9 +754,9 @@
     "10:05 : D14R : BR118 (長榮航空)",
     "10:10 : D15R : BR116 (長榮航空)",
     "14:20 : D11 : JX713 (星宇航空)",
-    "14:30 : D12 : CI194 (中華航空)",
+    "14:30 : D16 : CI194 (中華航空)",
+    "14:50 : D12 : CI128 (中華航空)",
     "15:15 : D18 : BR160 (長榮航空)",
-    "15:35 : D11 : CI517 (中華航空)",
     "16:25 : D15R : BR186 (長榮航空)",
     "16:30 : D12 : CI503 (中華航空)",
     "16:40 : D14R : BR805 (長榮航空)",
@@ -756,5 +767,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D16 : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-04-25T19:04:07.790786"
+  "updated_at": "2026-04-25T20:49:14.007914"
 }
