@@ -38,6 +38,116 @@ function formatStressShiftSpan(shiftKey) {
   return `${formatMinAsHHMM(firstStartMin)}–${formatMinAsHHMM(lastStartMin + 60)}`
 }
 
+const NIGHT_SHIFT_SUPPORT_CONFIG = Object.freeze({
+  supportStartMin: 17 * 60, // 17:00
+  supportEndMin: 21 * 60, // 21:00（此時之後航班不納入晚班支援判斷）
+  shiftEndMin: 21 * 60 + 30, // 21:30
+  closingBufferMin: 30 // 收班 30 分鐘
+})
+
+function parseHHMMToMinutes(raw) {
+  if (!raw) return null
+  const parts = String(raw).split(':')
+  const hh = parseInt(parts[0], 10)
+  const mm = parseInt(parts[1] || '0', 10)
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null
+  return hh * 60 + mm
+}
+
+function isNightSupportTargetGate(gateRaw) {
+  const gate = normalizeGateKey(gateRaw)
+  return /^D1[2-8](L|R)?$/.test(gate)
+}
+
+function flightRowKey(flight) {
+  const t = (flight?.time && String(flight.time)) || ''
+  const g = normalizeGateKey(flight?.gate)
+  const code = (flight?.flight_code || flight?.flight || '').toString().trim()
+  return `${t}|${g}|${code}`
+}
+
+function isStressSlotInSupportPeriod(startMin, supportFrom, supportUntil) {
+  if (typeof startMin !== 'number') return false
+  const supportStart = parseHHMMToMinutes(supportFrom)
+  const supportEnd = parseHHMMToMinutes(supportUntil)
+  if (supportStart == null || supportEnd == null || supportEnd <= supportStart) return false
+  const slotStart = startMin
+  const slotEnd = startMin + 60
+  return Math.max(slotStart, supportStart) < Math.min(slotEnd, supportEnd)
+}
+
+function computeNightSupportPlan(flights) {
+  const base = {
+    needSupport: false,
+    keepStoreUntil: null,
+    supportFrom: null,
+    supportUntil: null,
+    supportMinutes: 0,
+    lastFlightGate: null,
+    lastFlightTime: null,
+    note: ''
+  }
+  if (!Array.isArray(flights) || flights.length === 0) {
+    return { ...base, note: '當天無航班資料' }
+  }
+
+  const eligibleFlights = flights
+    .filter((flight) => (flight?.type || 'departure') === 'departure')
+    .map((flight) => ({
+      ...flight,
+      minutes: parseHHMMToMinutes(flight?.time)
+    }))
+    .filter((flight) => (
+      flight.minutes !== null &&
+      flight.minutes >= NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin &&
+      flight.minutes <= NIGHT_SHIFT_SUPPORT_CONFIG.supportEndMin &&
+      isNightSupportTargetGate(flight?.gate)
+    ))
+
+  const minimumKeepStoreMin = NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin + NIGHT_SHIFT_SUPPORT_CONFIG.closingBufferMin
+
+  if (eligibleFlights.length === 0) {
+    const start = minimumKeepStoreMin
+    return {
+      ...base,
+      needSupport: true,
+      keepStoreUntil: formatMinAsHHMM(start),
+      supportFrom: formatMinAsHHMM(start),
+      supportUntil: formatMinAsHHMM(NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin),
+      supportMinutes: NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin - start,
+      note: '17:00 後 D12-D18 無航班，晚班可支援 1、2 店'
+    }
+  }
+
+  const lastFlight = eligibleFlights.reduce((latest, current) => {
+    if (!latest || current.minutes > latest.minutes) return current
+    return latest
+  }, null)
+
+  const keepUntilMin = Math.min(
+    NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin,
+    Math.max(
+      minimumKeepStoreMin,
+      (lastFlight?.minutes || NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin) + NIGHT_SHIFT_SUPPORT_CONFIG.closingBufferMin
+    )
+  )
+  const supportMinutes = Math.max(0, NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin - keepUntilMin)
+
+  return {
+    ...base,
+    needSupport: supportMinutes > 0,
+    keepStoreUntil: formatMinAsHHMM(keepUntilMin),
+    supportFrom: supportMinutes > 0 ? formatMinAsHHMM(keepUntilMin) : null,
+    supportUntil: supportMinutes > 0 ? formatMinAsHHMM(NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin) : null,
+    supportMinutes,
+    lastFlightGate: lastFlight?.gate || null,
+    lastFlightTime: lastFlight?.time || null,
+    note: supportMinutes > 0
+      ? `最後航班 ${lastFlight?.gate || ''} ${lastFlight?.time || ''}，收班後可支援 1、2 店`
+      : `最後航班 ${lastFlight?.gate || ''} ${lastFlight?.time || ''}，收班後已接近晚班下班`
+  }
+}
+
 function InfoTipIcon({ className }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
@@ -368,6 +478,7 @@ function FlightDataContent() {
   const [selectedFlight, setSelectedFlight] = useState(null) // 選中的航班（用於顯示詳細資料）
   const [dataValidation, setDataValidation] = useState({ warnings: [], errors: [] }) // 資料驗證結果
   const [dataDiff, setDataDiff] = useState(null) // 資料差異
+  const [showStatusPanel, setShowStatusPanel] = useState(false) // 狀態與驗證可收合
   const previousFlightDataRef = useRef(null) // 保存上次載入的資料
   const abortControllerRef = useRef(null)
   const exportTableRef = useRef(null)
@@ -382,11 +493,15 @@ function FlightDataContent() {
   const gateDateHeatmapRef = useRef(null) // Gate × 日期 熱力圖（ECharts）
   const weekdayChartRef = useRef(null) // 一週各日平均航班量（ECharts）
   const dayTypeChartRef = useRef(null) // 平日／週末／假期 平均航班量（ECharts）
+  const statsOverviewRef = useRef(null)
+  const statsSlotRef = useRef(null)
+  const statsGateRef = useRef(null)
+  const statsTrendRef = useRef(null)
   const historicalLoadMountedRef = useRef(true)
   const [updateLogs, setUpdateLogs] = useState([]) // 更新日誌
   const [selectedChartDetail, setSelectedChartDetail] = useState(null) // 選中的圖表詳細資訊
   const [showUpdateLog, setShowUpdateLog] = useState(false) // 顯示更新日誌 Modal
-  /** null | 'today' | 'multi' — 高峰／離峰（奶酥）完整說明 */
+  /** null | 'today' | 'multi' — 高峰／離峰完整說明 */
   const [stressSlotsHelp, setStressSlotsHelp] = useState(null)
   /** 高峰／離峰 60 分槽掃描班別：全天 05:00–21:00、早班 05:00–13:30、晚班 13:30–21:00 */
   const [stressPeakShift, setStressPeakShift] = useState('full')
@@ -2532,34 +2647,97 @@ function FlightDataContent() {
   }, [activeTab, gateHeatmapViewMode, gateHeatmapData, handleChartClick])
 
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
+  const nightSupportPlan = useMemo(() => {
+    if (!flightData?.flights?.length) return null
+    return computeNightSupportPlan(flightData.flights)
+  }, [flightData])
+
+  const nightSupportLastRowKeys = useMemo(() => {
+    if (!flightData?.flights?.length) return new Set()
+    const eligible = flightData.flights
+      .filter((f) => (f?.type || 'departure') === 'departure')
+      .map((f) => ({ f, m: parseHHMMToMinutes(f?.time) }))
+      .filter(
+        ({ f, m }) =>
+          m != null &&
+          m >= NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin &&
+          m <= NIGHT_SHIFT_SUPPORT_CONFIG.supportEndMin &&
+          isNightSupportTargetGate(f?.gate)
+      )
+    if (eligible.length === 0) return new Set()
+    const maxM = Math.max(...eligible.map((x) => x.m))
+    return new Set(
+      eligible.filter((x) => x.m === maxM).map((x) => flightRowKey(x.f))
+    )
+  }, [flightData])
+
+  // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const summaryCards = useMemo(() => {
     if (!flightData || !flightData.summary) return null
+    const cardBaseClass = 'relative overflow-hidden rounded-2xl border border-white/15 bg-surface/45 backdrop-blur-xl p-4 sm:p-5 shadow-lg'
+    const labelClass = 'text-[11px] sm:text-xs font-semibold tracking-wide text-white/80'
+    const valueClass = 'text-3xl sm:text-4xl font-black text-white drop-shadow-sm'
+    const noteClass = 'text-[11px] sm:text-xs text-white/75 leading-relaxed'
+
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-        <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-4 sm:p-6 text-center text-white">
-          <h3 className="text-xs sm:text-sm opacity-90 mb-2">總航班數</h3>
-          <div className="text-3xl sm:text-4xl font-bold mb-1">
-            {flightData.summary.total_flights ?? 0}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+        <div className={`${cardBaseClass} bg-gradient-to-br from-violet-600/80 via-purple-600/70 to-fuchsia-600/70`}>
+          <div className="absolute right-0 top-0 h-20 w-20 -translate-y-6 translate-x-6 rounded-full bg-white/15 blur-xl" />
+          <div className="relative space-y-2">
+            <h3 className={labelClass}>總航班數</h3>
+            <div className={valueClass}>
+              {flightData.summary.total_flights ?? 0}
+            </div>
+            <div className={noteClass}>當天 D11-D18 全部航班</div>
           </div>
-          <div className="text-xs opacity-80">班</div>
         </div>
-        <div className="bg-gradient-to-br from-pink-500 to-red-500 rounded-xl p-4 sm:p-6 text-center text-white">
-          <h3 className="text-xs sm:text-sm opacity-90 mb-2">17:00 前</h3>
-          <div className="text-3xl sm:text-4xl font-bold mb-1">
-            {flightData.summary['before_17:00'] ?? flightData.summary.before_17_00 ?? 0}
+
+        <div className={`${cardBaseClass} bg-gradient-to-br from-rose-500/80 via-pink-500/70 to-orange-500/70`}>
+          <div className="absolute right-0 top-0 h-20 w-20 -translate-y-6 translate-x-6 rounded-full bg-white/15 blur-xl" />
+          <div className="relative space-y-2">
+            <h3 className={labelClass}>17:00 前</h3>
+            <div className={valueClass}>
+              {flightData.summary['before_17:00'] ?? flightData.summary.before_17_00 ?? 0}
+            </div>
+            <div className={noteClass}>早段航班量</div>
           </div>
-          <div className="text-xs opacity-80">班</div>
         </div>
-        <div className="bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl p-4 sm:p-6 text-center text-white">
-          <h3 className="text-xs sm:text-sm opacity-90 mb-2">17:00 後</h3>
-          <div className="text-3xl sm:text-4xl font-bold mb-1">
-            {flightData.summary['after_17:00'] ?? flightData.summary.after_17_00 ?? 0}
+
+        <div className={`${cardBaseClass} bg-gradient-to-br from-sky-500/80 via-cyan-500/70 to-blue-600/70`}>
+          <div className="absolute right-0 top-0 h-20 w-20 -translate-y-6 translate-x-6 rounded-full bg-white/15 blur-xl" />
+          <div className="relative space-y-2">
+            <h3 className={labelClass}>17:00 後</h3>
+            <div className={valueClass}>
+              {flightData.summary['after_17:00'] ?? flightData.summary.after_17_00 ?? 0}
+            </div>
+            <div className={noteClass}>晚段航班量</div>
           </div>
-          <div className="text-xs opacity-80">班</div>
+        </div>
+
+        <div className={`${cardBaseClass} bg-gradient-to-br from-indigo-600/85 via-violet-600/75 to-purple-700/70`}>
+          <div className="absolute right-0 top-0 h-20 w-20 -translate-y-6 translate-x-6 rounded-full bg-white/15 blur-xl" />
+          <div className="relative space-y-2">
+            <h3 className={labelClass}>晚班支援</h3>
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                nightSupportPlan?.needSupport
+                  ? 'bg-emerald-300/25 text-emerald-100 border border-emerald-200/40'
+                  : 'bg-slate-300/20 text-slate-100 border border-slate-200/30'
+              }`}>
+                {nightSupportPlan?.needSupport ? '需要支援' : '不需支援'}
+              </span>
+            </div>
+            <div className="text-xs text-white/75">留店至 {nightSupportPlan?.keepStoreUntil || '--:--'}</div>
+            <div className={noteClass}>
+              {nightSupportPlan?.needSupport
+                ? `支援時段：${nightSupportPlan.supportFrom}–${nightSupportPlan.supportUntil}`
+                : '晚班在原店收班'}
+            </div>
+          </div>
         </div>
       </div>
     )
-  }, [flightData])
+  }, [flightData, nightSupportPlan])
 
   // 奶酥時刻：當日高峰／離峰（槽位日＝班表檔案 date，避免選定日與 fallback 檔不一致時全為 0）
   const stressSlotsToday = useMemo(() => {
@@ -3007,6 +3185,18 @@ function FlightDataContent() {
 
   // 圖表顏色
   const CHART_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#3b82f6', '#f97316', '#10b981', '#ef4444', '#6366f1']
+  const hasStatusPanelContent = (
+    (loading && loadingProgress > 0) ||
+    Boolean(status.message) ||
+    dataValidation.warnings.length > 0 ||
+    dataValidation.errors.length > 0 ||
+    Boolean(dataDiff && (dataDiff.added.length > 0 || dataDiff.removed.length > 0 || dataDiff.modified.length > 0))
+  )
+
+  const scrollToStatsSection = (ref) => {
+    if (!ref?.current) return
+    ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <div className="space-y-6">
@@ -3060,7 +3250,11 @@ function FlightDataContent() {
       </div>
 
       {/* 控制區 */}
-      <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-md">
+      <div className="bg-surface/35 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 shadow-md">
+        <div className="mb-3 sm:mb-4">
+          <h2 className="text-sm sm:text-base font-semibold text-primary">篩選與操作</h2>
+          <p className="text-xs text-text-secondary mt-1">日期切換、資料刷新、匯出與顯示選項</p>
+        </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 mb-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1">
             <label className="font-semibold text-primary text-sm sm:text-base whitespace-nowrap">選擇日期：</label>
@@ -3160,6 +3354,20 @@ function FlightDataContent() {
           </div>
         </div>
         
+        <div className="pt-1 border-t border-white/10">
+          <button
+            type="button"
+            onClick={() => setShowStatusPanel((prev) => !prev)}
+            className="w-full sm:w-auto inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs sm:text-sm text-text-secondary transition-colors"
+            title="展開或收合狀態與驗證訊息"
+          >
+            <span>狀態與驗證</span>
+            <span className="text-primary">{showStatusPanel ? '收合' : '展開'}</span>
+          </button>
+        </div>
+
+        {showStatusPanel && hasStatusPanelContent && (
+          <div className="mt-3 space-y-3">
         {/* 載入進度條 */}
         {loading && loadingProgress > 0 && (
           <div className="mb-4">
@@ -3280,6 +3488,8 @@ function FlightDataContent() {
             </div>
           </div>
         )}
+          </div>
+        )}
       </div>
 
       {/* Tab 切換 */}
@@ -3319,12 +3529,12 @@ function FlightDataContent() {
           {stressSlotsToday && (
             <div className="mt-4 sm:mt-6 rounded-xl border border-white/10 bg-surface/40 backdrop-blur-md p-4 sm:p-5">
               <div className="flex flex-wrap items-center gap-1 mb-2">
-                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／離峰（奶酥）時段（當天）</h3>
+                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／離峰時段（當天）</h3>
                 <button
                   type="button"
                   onClick={() => setStressSlotsHelp('today')}
                   className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/45 bg-primary/15 text-primary hover:bg-primary/28 active:bg-primary/35 transition-colors"
-                  aria-label="高峰與離峰（奶酥）完整說明"
+                  aria-label="高峰與離峰完整說明"
                   title="說明"
                   style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                 >
@@ -3371,17 +3581,31 @@ function FlightDataContent() {
                   <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} />
                   <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 sm:p-4 flex-1 min-h-0">
                     <h4 className="text-sm font-semibold text-cyan-200 mb-2">
-                      離峰（奶酥）（{formatStressShiftSpan(stressLowShift)}，分數最低）
+                      離峰（{formatStressShiftSpan(stressLowShift)}，分數最低）
                     </h4>
                     <ol className="space-y-2 text-sm">
-                      {stressSlotsToday.low.map((row, i) => (
-                        <li key={row.startMin} className="flex justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
-                          <span className="text-text-secondary"><span className="text-primary font-mono">{i + 1}.</span> {row.label}</span>
-                          <span className="text-right shrink-0 text-cyan-100/90">
-                            {row.score.toFixed(2)} <span className="text-text-secondary text-xs">（{row.flightCount} 班）</span>
-                          </span>
-                        </li>
-                      ))}
+                      {stressSlotsToday.low.map((row, i) => {
+                        const inSupportPeriod = isStressSlotInSupportPeriod(
+                          row.startMin,
+                          nightSupportPlan?.supportFrom,
+                          nightSupportPlan?.supportUntil
+                        )
+                        return (
+                          <li key={row.startMin} className="flex justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                            <span className="text-text-secondary">
+                              <span className="text-primary font-mono">{i + 1}.</span> {row.label}
+                              {inSupportPeriod && (
+                                <span className="ml-2 inline-flex items-center rounded-full border border-indigo-300/35 bg-indigo-400/10 px-2 py-0.5 text-[10px] text-indigo-200 align-middle">
+                                  在支援期間
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-right shrink-0 text-cyan-100/90">
+                              {row.score.toFixed(2)} <span className="text-text-secondary text-xs">（{row.flightCount} 班）</span>
+                            </span>
+                          </li>
+                        )
+                      })}
                     </ol>
                   </div>
                 </div>
@@ -3445,13 +3669,14 @@ function FlightDataContent() {
               className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg animate-scale-in"
             >
               <div className="overflow-x-auto -mx-2 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-                <table className="w-full border-collapse min-w-[600px] sm:min-w-0">
+                <table className="w-full border-collapse min-w-[780px] sm:min-w-0">
                   <thead>
                     <tr className="bg-gradient-to-r from-purple-500/25 via-pink-500/20 to-purple-500/25 border-b-2 border-purple-500/40">
                       <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">時間</th>
                       <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">登機門</th>
                       <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">航班</th>
                       <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">狀態</th>
+                      <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">晚班支援/留店</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3477,6 +3702,19 @@ function FlightDataContent() {
                         }
                       }
                       const statusColorClass = getStatusColor(status)
+                      const flightMinutes = parseHHMMToMinutes(flight.time)
+                      const showNightSupportHint = (
+                        isNightSupportTargetGate(flight.gate) &&
+                        flightMinutes !== null &&
+                        flightMinutes >= NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin &&
+                        flightMinutes <= NIGHT_SHIFT_SUPPORT_CONFIG.supportEndMin
+                      )
+                      const isD11Gate = /^D11(L|R)?$/i.test(normalizeGateKey(flight.gate))
+                      const isAfterSupportStart = (
+                        flightMinutes !== null &&
+                        flightMinutes >= NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin
+                      )
+                      const isLastDefining = nightSupportLastRowKeys.size > 0 && nightSupportLastRowKeys.has(flightRowKey(flight))
                       
                       return (
                         <tr
@@ -3509,6 +3747,20 @@ function FlightDataContent() {
                             <span className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold border-2 ${statusColorClass} shadow-sm inline-block whitespace-nowrap`}>
                               {status || '未知'}
                             </span>
+                          </td>
+                          <td className="px-3 sm:px-5 py-3 sm:py-4">
+                            {isD11Gate && isAfterSupportStart ? (
+                              <span className="text-xs sm:text-sm text-amber-200 font-semibold">D11 不列入考慮</span>
+                            ) : showNightSupportHint && isLastDefining ? (
+                              <span
+                                className="text-xs sm:text-sm text-indigo-200 font-semibold"
+                                title={`彙總與本列一致，留店至 ${nightSupportPlan?.keepStoreUntil || '--:--'}`}
+                              >
+                                {`留店至 ${nightSupportPlan?.keepStoreUntil || '--:--'}`}
+                              </span>
+                            ) : (
+                              <span className="text-xs sm:text-sm text-text-secondary">-</span>
+                            )}
                           </td>
                         </tr>
                       )
@@ -3558,7 +3810,7 @@ function FlightDataContent() {
         </div>
       )}
 
-      {/* 高峰／離峰（奶酥）完整說明 */}
+      {/* 高峰／離峰完整說明 */}
       {stressSlotsHelp && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
@@ -3573,7 +3825,7 @@ function FlightDataContent() {
           >
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-gradient-to-r from-purple-500/15 to-cyan-500/10 shrink-0">
               <h3 id="stress-slots-help-title" className="text-lg font-bold text-primary pr-2">
-                {stressSlotsHelp === 'today' ? '高峰／離峰（奶酥）— 當天版說明' : '高峰／離峰（奶酥）— 多日平均版說明'}
+                {stressSlotsHelp === 'today' ? '高峰／離峰 — 當天版說明' : '高峰／離峰 — 多日平均版說明'}
               </h3>
               <button
                 type="button"
@@ -3586,83 +3838,23 @@ function FlightDataContent() {
             </div>
             <div className="px-4 py-4 overflow-y-auto text-sm text-text-secondary space-y-4 leading-relaxed">
               <section>
-                <h4 className="font-semibold text-primary mb-1.5">用途</h4>
-                <p>
-                  依班表推估「登機前一段時間」對店前的<strong className="text-primary/90">相對壓力</strong>，以固定長度<strong> 60 分鐘</strong>時間槽呈現。
-                  <strong className="text-primary/90">高峰</strong>在所選時段範圍內列出壓力較集中的槽；<strong className="text-primary/90">離峰（奶酥）</strong>在所選時段範圍內列出壓力較低的槽，供自行安排參考。
-                </p>
-              </section>
-              <section>
-                <h4 className="font-semibold text-primary mb-1.5">計入與排除的航班</h4>
+                <h4 className="font-semibold text-primary mb-1.5">原理</h4>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li><strong className="text-primary/90">已出發</strong>班次計入（代表當天實際發生過的登機／動線壓力）。</li>
-                  <li>狀態含 <strong className="text-primary/90">取消</strong>或 CANCEL 類字樣的班次<strong>不計入</strong>。</li>
-                  <li>起飛時間優先使用 <code className="text-xs bg-white/10 px-1 rounded">datetime</code>；沒有該欄位時，以班表檔案 <code className="text-xs bg-white/10 px-1 rounded">date</code> 與 <code className="text-xs bg-white/10 px-1 rounded">time</code> 組成本地時間。</li>
-                  {stressSlotsHelp === 'today' && (
-                    <li>
-                      當天版<strong>槽位所屬日曆日</strong>與<strong>班表檔案的 <code className="text-xs bg-white/10 px-1 rounded">date</code></strong>一致（若選擇器與載入檔不同，仍以檔案為準，避免分數全為 0）。
-                    </li>
-                  )}
+                  <li>每班航班會看「起飛前 60～30 分鐘」這段登機壓力窗。</li>
+                  <li>系統用 60 分鐘觀察槽去掃描，計算壓力窗和觀察槽重疊多少分鐘。</li>
+                  <li>重疊分鐘數再乘上登機門權重，累加後就是該時段分數。</li>
+                  <li>分數越高越忙（高峰），越低越鬆（離峰）。</li>
                 </ul>
               </section>
+
               <section>
-                <h4 className="font-semibold text-primary mb-1.5">壓力時間窗（每班）</h4>
+                <h4 className="font-semibold text-primary mb-1.5">權重</h4>
                 <p>
-                  以<strong>表定起飛時間</strong>為基準，取起飛前 <strong>{STRESS_BEFORE_DEP_START_MIN}</strong> 分鐘 ～ 起飛前 <strong>{STRESS_BEFORE_DEP_END_MIN}</strong> 分鐘這段<strong>30 分鐘</strong>區間，視為與登機／人潮相關的壓力窗（模擬「起飛前約半小時登機」附近的忙碌帶）。
+                  權重代表不同登機門的相對壓力。數值越高，代表同樣重疊分鐘下，該登機門對忙碌度的影響越大。
+                  你可以用右上齒輪調整，調整後會同步到雲端設定。
                 </p>
               </section>
-              <section>
-                <h4 className="font-semibold text-primary mb-1.5">單班對某一 60 分鐘槽的分數</h4>
-                <p className="mb-1">
-                  該班壓力窗與槽 <code className="text-xs bg-white/10 px-1 rounded">[槽起點, 槽起點+60 分)</code> 在時間軸上重疊時，貢獻如下：
-                </p>
-                <p className="font-mono text-xs bg-black/25 border border-white/10 rounded-lg px-3 py-2 text-primary/95">
-                  分數 += 登機門權重 ×（重疊分鐘數 ÷ {STRESS_WINDOW_MINUTES}）
-                </p>
-                <p className="mt-1 text-xs">重疊愈多，該班對該槽的貢獻愈大；權重見下表。</p>
-              </section>
-              <section>
-                <h4 className="font-semibold text-primary mb-1.5">登機門權重（目前設定）</h4>
-                <p className="text-xs mb-2">
-                  D11–D13 可含 <strong>L／R</strong>；D14–D18 含 <strong>L／R</strong>（例如 D15R）與不帶側者共用該號權重。數值由標題旁<strong>齒輪</strong>開啟調整（Firestore 同步）。
-                </p>
-                <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm">
-                  {['D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18'].map((k) => (
-                    <li key={k}>
-                      <strong className="text-primary/90">{k}</strong>：{gateStressWeights[k]}
-                    </li>
-                  ))}
-                  <li>
-                    其他 <strong className="text-primary/90">D</strong> 開頭且未列舉者：{gateStressWeights.D_OTHER}
-                  </li>
-                  <li>非 D 登機門：{gateStressWeights.OTHER}</li>
-                </ul>
-              </section>
-              <section>
-                <h4 className="font-semibold text-primary mb-1.5">60 分鐘槽的掃描方式</h4>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>槽長一律 <strong>60 分鐘</strong>；候選<strong>起點</strong>每 <strong>{SLOT_STEP_MIN}</strong> 分鐘一步。</li>
-                  <li>
-                    <strong className="text-primary/90">高峰</strong>與<strong className="text-primary/90">離峰（奶酥）</strong>可各自切換班別：<strong>全天</strong> {formatStressShiftSpan('full')}、<strong>早班</strong>{' '}
-                    {formatStressShiftSpan('morning')}、<strong>晚班</strong> {formatStressShiftSpan('evening')}（皆為該側候選槽的時間範圍）。
-                  </li>
-                </ul>
-              </section>
-              <section>
-                <h4 className="font-semibold text-primary mb-1.5">各邊顯示 5 個槽的原因</h4>
-                <p>
-                  候選槽依<strong>總分</strong>排序後，以<strong>不重疊</strong>方式依序取 5 個：高峰取分數最高者，離峰（奶酥）取分數最低者，避免五段全擠在同一小時內，方便閱讀與比對。
-                </p>
-              </section>
-              {stressSlotsHelp === 'multi' && (
-                <section>
-                  <h4 className="font-semibold text-primary mb-1.5">多日平均與當天版的差異</h4>
-                  <p>
-                    對<strong>同一槽起點</strong>（例如每日皆計算 14:00–15:00），先算該槽在<strong>每一天</strong>的分數，再對已載入天數做<strong>算術平均</strong>；最後在平均後的分數上套用與當天版相同的不重疊篩選（高峰取高、離峰取低）。
-                  </p>
-                  <p className="text-xs mt-1">統計頁上方「快速載入／自訂區間」用來載入要平均的日期範圍；天數愈多，曲線愈平滑、單日極端值影響愈小。</p>
-                </section>
-              )}
+
             </div>
             <div className="px-4 py-3 border-t border-white/10 bg-black/20 shrink-0">
               <button
@@ -4039,11 +4231,19 @@ function FlightDataContent() {
       {/* 統計分析 Tab */}
       {activeTab === 'statistics' && (
         <div className="space-y-6 animate-fade-in" ref={exportStatisticsRef} data-export-statistics="true">
+          <div className="sticky top-2 z-20 rounded-2xl border border-white/10 bg-surface/70 backdrop-blur-md px-3 py-2">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => scrollToStatsSection(statsOverviewRef)} className="px-3 py-1.5 rounded-lg text-xs sm:text-sm bg-white/8 hover:bg-white/14 text-text-secondary hover:text-primary transition-colors">總覽</button>
+              <button type="button" onClick={() => scrollToStatsSection(statsSlotRef)} className="px-3 py-1.5 rounded-lg text-xs sm:text-sm bg-white/8 hover:bg-white/14 text-text-secondary hover:text-primary transition-colors">時段</button>
+              <button type="button" onClick={() => scrollToStatsSection(statsGateRef)} className="px-3 py-1.5 rounded-lg text-xs sm:text-sm bg-white/8 hover:bg-white/14 text-text-secondary hover:text-primary transition-colors">登機門</button>
+              <button type="button" onClick={() => scrollToStatsSection(statsTrendRef)} className="px-3 py-1.5 rounded-lg text-xs sm:text-sm bg-white/8 hover:bg-white/14 text-text-secondary hover:text-primary transition-colors">趨勢</button>
+            </div>
+          </div>
           {/* 當天統計圖表 - 移到最上方 */}
           {statistics && flightData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div ref={statsOverviewRef} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 scroll-mt-20">
               {/* 各登機門航班數量分布 */}
-              <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <div className="bg-surface/35 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 shadow-lg">
                 <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">各登機門航班數量分布（當天）</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart 
@@ -4084,7 +4284,7 @@ function FlightDataContent() {
               </div>
 
               {/* 時間分布圖表（每小時航班數）（當天）— ECharts 面積圖 / 柱狀圖 */}
-              <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+              <div className="bg-surface/35 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 shadow-lg">
                 <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">時間分布（每小時航班數）（當天）</h3>
                 <div className="flex gap-2 mb-2">
                   <button
@@ -4108,7 +4308,7 @@ function FlightDataContent() {
           )}
 
           {/* 控制選項（置於多日高峰／離峰分析上方，方便先載入區間） */}
-          <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4">
+          <div ref={statsSlotRef} className="bg-surface/35 backdrop-blur-md border border-white/10 rounded-2xl p-4 scroll-mt-20">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="text-sm text-text-secondary whitespace-nowrap">快速載入</span>
               <select
@@ -4162,14 +4362,14 @@ function FlightDataContent() {
           </div>
 
           {stressSlotsMultiDay && multiDayData.length > 0 && (
-            <div className="rounded-xl border border-white/10 bg-surface/40 backdrop-blur-md p-4 sm:p-5">
+            <div className="rounded-2xl border border-white/10 bg-surface/35 backdrop-blur-md p-4 sm:p-5">
               <div className="flex flex-wrap items-center gap-1 mb-2">
-                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／離峰（奶酥）時段（多日平均）</h3>
+                <h3 className="text-base sm:text-lg font-bold text-primary leading-snug">高峰／離峰時段（多日平均）</h3>
                 <button
                   type="button"
                   onClick={() => setStressSlotsHelp('multi')}
                   className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/45 bg-primary/15 text-primary hover:bg-primary/28 active:bg-primary/35 transition-colors"
-                  aria-label="高峰與離峰（奶酥）多日平均完整說明"
+                  aria-label="高峰與離峰多日平均完整說明"
                   title="說明"
                   style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                 >
@@ -4221,7 +4421,7 @@ function FlightDataContent() {
                   <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} />
                   <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 sm:p-4 flex-1 min-h-0">
                     <h4 className="text-sm font-semibold text-cyan-200 mb-2">
-                      離峰（奶酥）（{formatStressShiftSpan(stressLowShift)}，平均分最低）
+                      離峰（{formatStressShiftSpan(stressLowShift)}，平均分最低）
                     </h4>
                     <ol className="space-y-2 text-sm">
                       {stressSlotsMultiDay.low.map((row, i) => (
@@ -4241,7 +4441,7 @@ function FlightDataContent() {
 
           {/* 每日總航班數（柱狀圖 + 趨勢線）— ECharts */}
           {multiDayData.length > 0 && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div ref={statsTrendRef} className="bg-surface/35 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 shadow-lg scroll-mt-20">
               <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每日總航班數</h3>
               <div ref={dailyTotalChartRef} className="w-full h-[280px]" />
             </div>
@@ -4249,7 +4449,7 @@ function FlightDataContent() {
 
           {/* 每小時航班數熱力圖（日期 × 時段） */}
           {heatmapDataFromMultiDay.length > 0 && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div ref={statsGateRef} className="bg-surface/35 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 shadow-lg scroll-mt-20">
               <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每小時航班數熱力圖（日期 × 時段）</h3>
               <div ref={heatmapRef} className="w-full h-[340px]" />
             </div>
@@ -4257,7 +4457,7 @@ function FlightDataContent() {
 
           {/* 每小時航班數趨勢（多天比較）— ECharts（與 Demo 同款） */}
           {hourlyTrendingData && hourlyTrendingData.data && hourlyTrendingData.dates?.length > 0 && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-surface/35 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 shadow-lg">
               <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">每小時航班數趨勢（多天比較）</h3>
               <p className="text-xs text-text-secondary mb-2">可縮放時段、圖例切換</p>
               <div ref={multiDayHourlyTrendRef} className="w-full h-[320px]" />

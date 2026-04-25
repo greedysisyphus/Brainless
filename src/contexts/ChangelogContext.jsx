@@ -4,6 +4,17 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.4.2',
+    date: '2026-04-26',
+    title: '晚班支援規則與航班介面優化',
+    items: [
+      '新增晚班支援與收班時間邏輯',
+      '晚班留店時間加入最低門檻',
+      '航班列表新增「晚班支援/留店」欄位',
+      '離峰時段清單新增支援期間標註'
+    ]
+  },
+  {
     version: '1.4.1',
     date: '2026-04-19',
     title: '高峰／離峰（奶酥）時段',

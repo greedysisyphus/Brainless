@@ -46,3 +46,6 @@ docs/index.html
 # 實際資料在 data/ 目錄中
 public/data/
 public/data/**
+
+# Cursor local rules (personal preferences)
+.cursorrules
