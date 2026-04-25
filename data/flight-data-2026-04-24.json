@@ -172,14 +172,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "TG6286",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "OZ6870",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
+        },
+        {
+          "flight_code": "TG6286",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -199,14 +199,14 @@
       "destination": "Singapore (SIN)",
       "codeshare_flights": [
         {
-          "flight_code": "SQ5803",
-          "airline_code": "SQ",
-          "airline_name": "新加坡航空"
-        },
-        {
           "flight_code": "AI7059",
           "airline_code": "AI",
           "airline_name": "印度航空"
+        },
+        {
+          "flight_code": "SQ5803",
+          "airline_code": "SQ",
+          "airline_name": "新加坡航空"
         }
       ]
     },
@@ -296,14 +296,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "TG6372",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5818",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6372",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -577,5 +577,5 @@
     "19:00 : D15R : BR809 (長榮航空)",
     "19:35 : D12 : BR381 (長榮航空)"
   ],
-  "updated_at": "2026-04-25T10:51:32.562684"
+  "updated_at": "2026-04-25T11:43:58.247504"
 }
