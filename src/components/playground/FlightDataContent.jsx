@@ -38,12 +38,152 @@ function formatStressShiftSpan(shiftKey) {
   return `${formatMinAsHHMM(firstStartMin)}–${formatMinAsHHMM(lastStartMin + 60)}`
 }
 
-const NIGHT_SHIFT_SUPPORT_CONFIG = Object.freeze({
-  supportStartMin: 17 * 60, // 17:00
-  supportEndMin: 21 * 60, // 21:00（此時之後航班不納入晚班支援判斷）
-  shiftEndMin: 21 * 60 + 30, // 21:30
-  closingBufferMin: 30 // 收班 30 分鐘
+/** 晚班支援參數預設（登機門 D12–D18 納入、D11 不納入） */
+const NIGHT_SHIFT_GATE_ORDER = Object.freeze(['D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18'])
+const NIGHT_SHIFT_LOCAL_KEY = 'flightNightShiftSupportV1'
+/** Firestore：`settings/{NIGHT_SHIFT_FIREBASE_DOC_ID}` */
+const NIGHT_SHIFT_FIREBASE_DOC_ID = 'night_shift_support'
+
+const DEFAULT_NIGHT_SHIFT_SUPPORT = Object.freeze({
+  supportStartMin: 17 * 60, // 17:00 關店／支援起算
+  supportEndMin: 21 * 60, // 21:00 前起飛的航班納入晚班支援判斷
+  shiftEndMin: 21 * 60 + 30, // 21:30 晚班可支援到的時刻
+  closingBufferMin: 30, // 收班後幾分鐘離店
+  gateIncluded: Object.freeze({
+    D11: false,
+    D12: true,
+    D13: true,
+    D14: true,
+    D15: true,
+    D16: true,
+    D17: true,
+    D18: true
+  })
 })
+
+function clampIntOr(n, min, max, fallback) {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, Math.round(n)))
+}
+
+function mergeNightShiftConfig(partial) {
+  const g0 = { ...DEFAULT_NIGHT_SHIFT_SUPPORT.gateIncluded }
+  if (partial && typeof partial.gateIncluded === 'object' && partial.gateIncluded) {
+    for (const k of NIGHT_SHIFT_GATE_ORDER) {
+      if (typeof partial.gateIncluded[k] === 'boolean') g0[k] = partial.gateIncluded[k]
+    }
+  }
+  const supportStartMin = clampIntOr(
+    partial?.supportStartMin,
+    0,
+    24 * 60 - 1,
+    DEFAULT_NIGHT_SHIFT_SUPPORT.supportStartMin
+  )
+  let supportEndMin = clampIntOr(
+    partial?.supportEndMin,
+    0,
+    24 * 60,
+    DEFAULT_NIGHT_SHIFT_SUPPORT.supportEndMin
+  )
+  if (supportEndMin <= supportStartMin) {
+    supportEndMin = Math.min(24 * 60, supportStartMin + 60)
+  }
+  let shiftEndMin = clampIntOr(
+    partial?.shiftEndMin,
+    0,
+    24 * 60,
+    DEFAULT_NIGHT_SHIFT_SUPPORT.shiftEndMin
+  )
+  if (shiftEndMin < supportEndMin) shiftEndMin = supportEndMin
+  const closingBufferMin = clampIntOr(
+    partial?.closingBufferMin,
+    0,
+    3 * 60,
+    DEFAULT_NIGHT_SHIFT_SUPPORT.closingBufferMin
+  )
+  return {
+    supportStartMin,
+    supportEndMin,
+    shiftEndMin,
+    closingBufferMin,
+    gateIncluded: g0
+  }
+}
+
+function loadStoredNightShiftConfig() {
+  if (typeof window === 'undefined') return mergeNightShiftConfig(null)
+  try {
+    const raw = localStorage.getItem(NIGHT_SHIFT_LOCAL_KEY)
+    if (!raw) return mergeNightShiftConfig(null)
+    return mergeNightShiftConfig(JSON.parse(raw))
+  } catch {
+    return mergeNightShiftConfig(null)
+  }
+}
+
+function cacheNightShiftConfigLocal(config) {
+  try {
+    localStorage.setItem(NIGHT_SHIFT_LOCAL_KEY, JSON.stringify(config))
+  } catch {
+    // ignore
+  }
+}
+
+/** 將登機門正規成 D11…D18（L/R 併入同號），不屬於此範圍則 null */
+function gateToD11D18Family(gateRaw) {
+  if (gateRaw == null || gateRaw === '') return null
+  const g = String(gateRaw).trim().toUpperCase()
+  const m = g.match(/^D(1[1-8])(L|R)?$/)
+  return m ? `D${m[1]}` : null
+}
+
+function isNightSupportTargetGate(gateRaw, config) {
+  const cfg = mergeNightShiftConfig(config)
+  const fam = gateToD11D18Family(gateRaw)
+  if (!fam) return false
+  return cfg.gateIncluded[fam] === true
+}
+
+function formatGateIncludedSummary(cfg) {
+  const c = mergeNightShiftConfig(cfg)
+  const on = NIGHT_SHIFT_GATE_ORDER.filter((k) => c.gateIncluded[k])
+  return on.length ? on.join('、') : '（無）'
+}
+
+/** `<input type="time" step={60} />` 用：0:00–23:59 */
+function minutesToTimeInputValue(totalMin) {
+  const t = Math.max(0, Math.min(24 * 60 - 1, totalMin))
+  const h = Math.floor(t / 60)
+  const m = t % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+function timeInputValueToMinutes(s) {
+  if (!s || typeof s !== 'string') return null
+  const p = s.split(':')
+  const h = parseInt(p[0], 10)
+  const mm = parseInt(p[1] || '0', 10)
+  if (Number.isNaN(h) || Number.isNaN(mm)) return null
+  if (h < 0 || h > 23 || mm < 0 || mm > 59) return null
+  return h * 60 + mm
+}
+
+function validateNightShiftDraftForSave(d) {
+  const c = mergeNightShiftConfig(d)
+  if (!NIGHT_SHIFT_GATE_ORDER.some((k) => c.gateIncluded[k])) {
+    return '請至少勾選一個登機門。'
+  }
+  if (c.supportEndMin <= c.supportStartMin) {
+    return '「納入判斷的最晚起飛」須晚於「關店／起算時刻」。'
+  }
+  if (c.shiftEndMin < c.supportEndMin) {
+    return '「晚班支援結束」不可早於「納入判斷截止」。'
+  }
+  if (c.supportStartMin + c.closingBufferMin > c.shiftEndMin) {
+    return '關店起算時刻 + 收班緩衝 不可超過 晚班支援結束 時間。'
+  }
+  return null
+}
 
 function parseHHMMToMinutes(raw) {
   if (!raw) return null
@@ -52,11 +192,6 @@ function parseHHMMToMinutes(raw) {
   const mm = parseInt(parts[1] || '0', 10)
   if (Number.isNaN(hh) || Number.isNaN(mm)) return null
   return hh * 60 + mm
-}
-
-function isNightSupportTargetGate(gateRaw) {
-  const gate = normalizeGateKey(gateRaw)
-  return /^D1[2-8](L|R)?$/.test(gate)
 }
 
 function flightRowKey(flight) {
@@ -76,7 +211,11 @@ function isStressSlotInSupportPeriod(startMin, supportFrom, supportUntil) {
   return Math.max(slotStart, supportStart) < Math.min(slotEnd, supportEnd)
 }
 
-function computeNightSupportPlan(flights) {
+function computeNightSupportPlan(flights, config) {
+  const c = mergeNightShiftConfig(config)
+  const tStart = formatMinAsHHMM(c.supportStartMin)
+  const tEnd = formatMinAsHHMM(c.supportEndMin)
+  const gatesStr = formatGateIncludedSummary(c)
   const base = {
     needSupport: false,
     keepStoreUntil: null,
@@ -99,12 +238,12 @@ function computeNightSupportPlan(flights) {
     }))
     .filter((flight) => (
       flight.minutes !== null &&
-      flight.minutes >= NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin &&
-      flight.minutes <= NIGHT_SHIFT_SUPPORT_CONFIG.supportEndMin &&
-      isNightSupportTargetGate(flight?.gate)
+      flight.minutes >= c.supportStartMin &&
+      flight.minutes <= c.supportEndMin &&
+      isNightSupportTargetGate(flight?.gate, c)
     ))
 
-  const minimumKeepStoreMin = NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin + NIGHT_SHIFT_SUPPORT_CONFIG.closingBufferMin
+  const minimumKeepStoreMin = c.supportStartMin + c.closingBufferMin
 
   if (eligibleFlights.length === 0) {
     const start = minimumKeepStoreMin
@@ -113,9 +252,9 @@ function computeNightSupportPlan(flights) {
       needSupport: true,
       keepStoreUntil: formatMinAsHHMM(start),
       supportFrom: formatMinAsHHMM(start),
-      supportUntil: formatMinAsHHMM(NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin),
-      supportMinutes: NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin - start,
-      note: '17:00 後 D12-D18 無航班，晚班可支援 1、2 店'
+      supportUntil: formatMinAsHHMM(c.shiftEndMin),
+      supportMinutes: c.shiftEndMin - start,
+      note: `${tStart}–${tEnd} 內，${gatesStr} 無符合航班，晚班可支援 1、2 店`
     }
   }
 
@@ -125,20 +264,20 @@ function computeNightSupportPlan(flights) {
   }, null)
 
   const keepUntilMin = Math.min(
-    NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin,
+    c.shiftEndMin,
     Math.max(
       minimumKeepStoreMin,
-      (lastFlight?.minutes || NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin) + NIGHT_SHIFT_SUPPORT_CONFIG.closingBufferMin
+      (lastFlight?.minutes || c.supportStartMin) + c.closingBufferMin
     )
   )
-  const supportMinutes = Math.max(0, NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin - keepUntilMin)
+  const supportMinutes = Math.max(0, c.shiftEndMin - keepUntilMin)
 
   return {
     ...base,
     needSupport: supportMinutes > 0,
     keepStoreUntil: formatMinAsHHMM(keepUntilMin),
     supportFrom: supportMinutes > 0 ? formatMinAsHHMM(keepUntilMin) : null,
-    supportUntil: supportMinutes > 0 ? formatMinAsHHMM(NIGHT_SHIFT_SUPPORT_CONFIG.shiftEndMin) : null,
+    supportUntil: supportMinutes > 0 ? formatMinAsHHMM(c.shiftEndMin) : null,
     supportMinutes,
     lastFlightGate: lastFlight?.gate || null,
     lastFlightTime: lastFlight?.time || null,
@@ -498,16 +637,12 @@ function FlightDataContent() {
   const statsGateRef = useRef(null)
   const statsTrendRef = useRef(null)
   const historicalLoadMountedRef = useRef(true)
-  const [updateLogs, setUpdateLogs] = useState([]) // 更新日誌
   const [selectedChartDetail, setSelectedChartDetail] = useState(null) // 選中的圖表詳細資訊
-  const [showUpdateLog, setShowUpdateLog] = useState(false) // 顯示更新日誌 Modal
   /** null | 'today' | 'multi' — 高峰／離峰完整說明 */
   const [stressSlotsHelp, setStressSlotsHelp] = useState(null)
   /** 高峰／離峰 60 分槽掃描班別：全天 05:00–21:00、早班 05:00–13:30、晚班 13:30–21:00 */
   const [stressPeakShift, setStressPeakShift] = useState('full')
   const [stressLowShift, setStressLowShift] = useState('full')
-  const [selectedLogDetail, setSelectedLogDetail] = useState(null) // 選中的日誌詳細資料
-  const [deploymentLogs, setDeploymentLogs] = useState([]) // 部署記錄
   const [destChartMode, setDestChartMode] = useState('bar') // 'bar' | 'race'（統計分析 目的地）
   const [hourlyChartMode, setHourlyChartMode] = useState('area') // 'area' | 'bar'（統計分析 當天每小時）
   const [gateHeatmapViewMode, setGateHeatmapViewMode] = useState('cards') // 'cards' | 'matrix'
@@ -526,6 +661,15 @@ function FlightDataContent() {
   const [draftGateStressWeights, setDraftGateStressWeights] = useState(() => ({ ...DEFAULT_GATE_STRESS_WEIGHTS }))
   const [gateStressSaveState, setGateStressSaveState] = useState('idle')
   const [gateStressRemoteError, setGateStressRemoteError] = useState(null)
+
+  const [nightShiftConfig, setNightShiftConfig] = useState(loadStoredNightShiftConfig)
+  const [nightShiftModalOpen, setNightShiftModalOpen] = useState(false)
+  const [draftNightShift, setDraftNightShift] = useState(() => mergeNightShiftConfig(null))
+  const [nightShiftSaveState, setNightShiftSaveState] = useState('idle')
+  const [nightShiftRemoteError, setNightShiftRemoteError] = useState(null)
+  const [nsGateRangeLo, setNsGateRangeLo] = useState(12)
+  const [nsGateRangeHi, setNsGateRangeHi] = useState(18)
+  const [nightShiftDraftError, setNightShiftDraftError] = useState(null)
 
   useEffect(() => {
     const ref = doc(db, 'settings', GATE_STRESS_FIREBASE_DOC_ID)
@@ -552,6 +696,52 @@ function FlightDataContent() {
       (err) => {
         console.error('[gateStressWeights] onSnapshot 錯誤:', err)
         setGateStressRemoteError(err?.message || String(err))
+      }
+    )
+    return () => unsub()
+  }, [])
+
+  useEffect(() => {
+    const ref = doc(db, 'settings', NIGHT_SHIFT_FIREBASE_DOC_ID)
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        setNightShiftRemoteError(null)
+        if (snap.exists()) {
+          const data = snap.data() || {}
+          const merged = mergeNightShiftConfig({
+            supportStartMin: data.supportStartMin,
+            supportEndMin: data.supportEndMin,
+            shiftEndMin: data.shiftEndMin,
+            closingBufferMin: data.closingBufferMin,
+            gateIncluded: data.gateIncluded
+          })
+          setNightShiftConfig(merged)
+          cacheNightShiftConfigLocal(merged)
+          return
+        }
+        const seed = mergeNightShiftConfig(loadStoredNightShiftConfig())
+        setNightShiftConfig(seed)
+        cacheNightShiftConfigLocal(seed)
+        setDoc(
+          ref,
+          {
+            supportStartMin: seed.supportStartMin,
+            supportEndMin: seed.supportEndMin,
+            shiftEndMin: seed.shiftEndMin,
+            closingBufferMin: seed.closingBufferMin,
+            gateIncluded: seed.gateIncluded,
+            updatedAt: serverTimestamp()
+          },
+          { merge: true }
+        ).catch((err) => {
+          console.error('[nightShift] 建立 Firestore 文件失敗:', err)
+          setNightShiftRemoteError(err?.message || String(err))
+        })
+      },
+      (err) => {
+        console.error('[nightShift] onSnapshot 錯誤:', err)
+        setNightShiftRemoteError(err?.message || String(err))
       }
     )
     return () => unsub()
@@ -854,71 +1044,6 @@ function FlightDataContent() {
         setDataDiff(null)
         // 如果日期不同，清除之前的差異顯示
       }
-      
-      // 記錄更新日誌（在計算 dataDiff 之後）
-      // 只在以下情況記錄日誌：
-      // 1. 有實質變化（isSameDate && diff 有變化）
-      // 2. 用戶主動載入（不是自動刷新或初始化載入）
-      // 3. 首次載入該日期（但不在頁面初始化時記錄，避免刷新時重複記錄）
-      try {
-        // 檢查是否應該記錄日誌
-        const shouldLog = 
-          (isSameDate && diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.modified.length > 0)) || // 有實質變化
-          (!isSameDate && previousFlightDataRef.current !== null) // 切換日期（但不是首次初始化）
-        
-        if (shouldLog) {
-          const logEntry = {
-            id: Date.now(),
-            timestamp: new Date().toISOString(), // 使用 ISO 字符串以便序列化
-            date: effectiveDate,
-            flightCount: data.flights?.length || 0,
-            summary: data.summary || {},
-            hasChanges: isSameDate && diff && (diff.added.length > 0 || diff.removed.length > 0 || diff.modified.length > 0),
-            changes: isSameDate ? diff : null,
-            isFirstLoad: !isSameDate && previousFlightDataRef.current !== null // 標記是否為首次載入該日期（排除初始化）
-          }
-          
-          // 從 localStorage 讀取現有日誌
-          let existingLogs = []
-          try {
-            const stored = localStorage.getItem('flightDataUpdateLogs')
-            if (stored) {
-              existingLogs = JSON.parse(stored)
-            }
-          } catch (e) {
-            console.warn('無法讀取更新日誌:', e)
-            existingLogs = []
-          }
-          
-          // 檢查是否已經有相同的記錄（避免重複記錄）
-          // 如果最近 1 分鐘內有相同日期的記錄，且沒有變化，則不記錄
-          const now = Date.now()
-          const oneMinuteAgo = now - 60 * 1000
-          const recentSameDateLog = existingLogs.find(log => 
-            log.date === date && 
-            new Date(log.timestamp).getTime() > oneMinuteAgo &&
-            !log.hasChanges
-          )
-          
-          // 如果有實質變化，或者沒有最近的相同記錄，則記錄
-          if (logEntry.hasChanges || !recentSameDateLog) {
-            // 只保留最近 100 條，避免 localStorage 過大
-            const newLogs = [logEntry, ...existingLogs].slice(0, 100)
-            
-            try {
-              localStorage.setItem('flightDataUpdateLogs', JSON.stringify(newLogs))
-              setUpdateLogs(newLogs)
-            } catch (e) {
-              console.warn('無法保存更新日誌（可能 localStorage 已滿）:', e)
-              // 如果存儲失敗，至少更新狀態（不包含新條目）
-              setUpdateLogs(existingLogs)
-            }
-          }
-        }
-      } catch (error) {
-        console.error('記錄更新日誌時出錯:', error)
-        // 不影響主要功能，繼續執行
-      }
 
       // 保存當前資料作為下次比較的基準
       previousFlightDataRef.current = { ...data }
@@ -1171,36 +1296,6 @@ function FlightDataContent() {
     }
   }, [activeTab, multiDayData.length, loadMultiDayData])
 
-  // 載入部署記錄的函數
-  const loadDeploymentLogs = useCallback(async () => {
-    try {
-      const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-      const response = await fetch(`${basePath}deployment-log.json?t=${Date.now()}`)
-      if (!response.ok) {
-        setDeploymentLogs([])
-        return
-      }
-      const text = await response.text()
-      if (typeof text === 'string' && text.trimStart().startsWith('<')) {
-        setDeploymentLogs([])
-        return
-      }
-      const data = JSON.parse(text)
-      setDeploymentLogs(data.deployments || [])
-    } catch {
-      setDeploymentLogs([])
-    }
-  }, [])
-
-  // 初始化：從 localStorage 載入更新日誌，並從服務器載入部署記錄
-  useEffect(() => {
-    const logs = JSON.parse(localStorage.getItem('flightDataUpdateLogs') || '[]')
-    setUpdateLogs(logs)
-    
-    // 載入部署記錄
-    loadDeploymentLogs()
-  }, [loadDeploymentLogs])
-
   // 自動載入今天的資料（只在組件掛載時執行一次）
   useEffect(() => {
     // 強制計算今天的日期，使用本地時區
@@ -1279,6 +1374,15 @@ function FlightDataContent() {
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
   }, [gateStressWeightsModalOpen])
+
+  useEffect(() => {
+    if (!nightShiftModalOpen) return
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setNightShiftModalOpen(false)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [nightShiftModalOpen])
 
   // 計算統計資料
   const statistics = useMemo(() => {
@@ -2649,27 +2753,28 @@ function FlightDataContent() {
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const nightSupportPlan = useMemo(() => {
     if (!flightData?.flights?.length) return null
-    return computeNightSupportPlan(flightData.flights)
-  }, [flightData])
+    return computeNightSupportPlan(flightData.flights, nightShiftConfig)
+  }, [flightData, nightShiftConfig])
 
   const nightSupportLastRowKeys = useMemo(() => {
     if (!flightData?.flights?.length) return new Set()
+    const c = mergeNightShiftConfig(nightShiftConfig)
     const eligible = flightData.flights
       .filter((f) => (f?.type || 'departure') === 'departure')
       .map((f) => ({ f, m: parseHHMMToMinutes(f?.time) }))
       .filter(
         ({ f, m }) =>
           m != null &&
-          m >= NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin &&
-          m <= NIGHT_SHIFT_SUPPORT_CONFIG.supportEndMin &&
-          isNightSupportTargetGate(f?.gate)
+          m >= c.supportStartMin &&
+          m <= c.supportEndMin &&
+          isNightSupportTargetGate(f?.gate, c)
       )
     if (eligible.length === 0) return new Set()
     const maxM = Math.max(...eligible.map((x) => x.m))
     return new Set(
       eligible.filter((x) => x.m === maxM).map((x) => flightRowKey(x.f))
     )
-  }, [flightData])
+  }, [flightData, nightShiftConfig])
 
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const summaryCards = useMemo(() => {
@@ -2716,8 +2821,26 @@ function FlightDataContent() {
 
         <div className={`${cardBaseClass} bg-gradient-to-br from-indigo-600/85 via-violet-600/75 to-purple-700/70`}>
           <div className="absolute right-0 top-0 h-20 w-20 -translate-y-6 translate-x-6 rounded-full bg-white/15 blur-xl" />
-          <div className="relative space-y-2">
-            <h3 className={labelClass}>晚班支援</h3>
+          <div className="relative space-y-1">
+            <div className="flex items-center justify-between gap-1.5 pr-0">
+              <h3 className={labelClass}>晚班支援</h3>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setDraftNightShift(mergeNightShiftConfig(nightShiftConfig))
+                  setNsGateRangeLo(12)
+                  setNsGateRangeHi(18)
+                  setNightShiftDraftError(null)
+                  setNightShiftModalOpen(true)
+                }}
+                className="shrink-0 p-1 rounded-md border border-white/20 bg-white/10 text-indigo-100 hover:bg-white/20 hover:text-white transition-colors"
+                title="晚班支援參數（雲端同步）"
+                aria-label="晚班支援參數"
+              >
+                <Cog6ToothIcon className="w-3 h-3" />
+              </button>
+            </div>
             <div className="flex items-center gap-2">
               <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${
                 nightSupportPlan?.needSupport
@@ -2737,7 +2860,7 @@ function FlightDataContent() {
         </div>
       </div>
     )
-  }, [flightData, nightSupportPlan])
+  }, [flightData, nightSupportPlan, nightShiftConfig])
 
   // 奶酥時刻：當日高峰／離峰（槽位日＝班表檔案 date，避免選定日與 fallback 檔不一致時全為 0）
   const stressSlotsToday = useMemo(() => {
@@ -3228,23 +3351,13 @@ function FlightDataContent() {
           </span>
         </h1>
         
-        {/* 最後更新時間和更新日誌按鈕 */}
+        {/* 最後更新時間 */}
         {lastUpdated && (
           <div className="text-sm text-text-secondary mt-2 px-4 flex items-center gap-3 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface/40 backdrop-blur-sm border border-white/10 rounded-lg">
               <ClockIcon className="w-4 h-4 text-primary/60" />
               <span>最後更新：{formatLastUpdated(lastUpdated)}</span>
             </span>
-            <button
-              onClick={() => {
-                setShowUpdateLog(true)
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface/40 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-surface/60 transition-colors text-primary/80 hover:text-primary"
-              title="查看部署記錄"
-            >
-              <DocumentTextIcon className="w-4 h-4" />
-              <span>更新日誌 ({deploymentLogs.length})</span>
-            </button>
           </div>
         )}
       </div>
@@ -3702,17 +3815,21 @@ function FlightDataContent() {
                         }
                       }
                       const statusColorClass = getStatusColor(status)
+                      const nsCfg = mergeNightShiftConfig(nightShiftConfig)
                       const flightMinutes = parseHHMMToMinutes(flight.time)
                       const showNightSupportHint = (
-                        isNightSupportTargetGate(flight.gate) &&
+                        isNightSupportTargetGate(flight.gate, nsCfg) &&
                         flightMinutes !== null &&
-                        flightMinutes >= NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin &&
-                        flightMinutes <= NIGHT_SHIFT_SUPPORT_CONFIG.supportEndMin
+                        flightMinutes >= nsCfg.supportStartMin &&
+                        flightMinutes <= nsCfg.supportEndMin
                       )
-                      const isD11Gate = /^D11(L|R)?$/i.test(normalizeGateKey(flight.gate))
+                      const gateFamily = gateToD11D18Family(flight.gate)
+                      const isExcludedFromNightSupport = Boolean(
+                        gateFamily && !nsCfg.gateIncluded[gateFamily]
+                      )
                       const isAfterSupportStart = (
                         flightMinutes !== null &&
-                        flightMinutes >= NIGHT_SHIFT_SUPPORT_CONFIG.supportStartMin
+                        flightMinutes >= nsCfg.supportStartMin
                       )
                       const isLastDefining = nightSupportLastRowKeys.size > 0 && nightSupportLastRowKeys.has(flightRowKey(flight))
                       
@@ -3749,8 +3866,10 @@ function FlightDataContent() {
                             </span>
                           </td>
                           <td className="px-3 sm:px-5 py-3 sm:py-4">
-                            {isD11Gate && isAfterSupportStart ? (
-                              <span className="text-xs sm:text-sm text-amber-200 font-semibold">D11 不列入考慮</span>
+                            {isExcludedFromNightSupport && isAfterSupportStart ? (
+                              <span className="text-xs sm:text-sm text-amber-200 font-semibold">
+                                {gateFamily} 不列入考慮
+                              </span>
                             ) : showNightSupportHint && isLastDefining ? (
                               <span
                                 className="text-xs sm:text-sm text-indigo-200 font-semibold"
@@ -3985,244 +4104,252 @@ function FlightDataContent() {
         </div>
       )}
 
-      {/* 更新日誌 Modal */}
-      {showUpdateLog && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowUpdateLog(false)}
+      {/* 晚班支援參數（Firestore settings 同步） */}
+      {nightShiftModalOpen && (
+        <div
+          className="fixed inset-0 z-[102] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          onClick={() => setNightShiftModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="night-shift-modal-title"
         >
-          <div 
-            className="bg-surface border border-white/20 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+          <div
+            className="bg-surface border border-white/15 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10 px-6 py-4 flex items-center justify-between backdrop-blur-md">
-              <div>
-                <h3 className="text-xl font-bold text-primary">更新日誌</h3>
-                <p className="text-sm text-text-secondary mt-1">
-                  部署記錄: {deploymentLogs.length} 次
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={loadDeploymentLogs}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                  title="重新整理部署記錄"
-                >
-                  <ArrowPathIcon className="w-5 h-5 text-primary" />
-                </button>
-                <button
-                  onClick={() => setShowUpdateLog(false)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <XMarkIcon className="w-6 h-6 text-primary" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6">
-              {/* 部署記錄區塊 */}
-              {deploymentLogs.length === 0 ? (
-                <div className="text-center py-12 text-text-secondary">
-                  <DocumentTextIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p>尚無部署記錄</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {deploymentLogs.map((deploy, index) => (
-                    <div 
-                      key={index}
-                      className="bg-purple-500/10 backdrop-blur-sm border border-purple-500/30 rounded-lg p-4 hover:border-purple-500/50 transition-colors"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <ClockIcon className="w-4 h-4 text-purple-400" />
-                          <span className="text-primary font-semibold">
-                            {deploy.timestamp ? new Date(deploy.timestamp).toLocaleString('zh-TW', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit'
-                            }) : '未知時間'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          {deploy.hasDataUpdate ? (
-                            <>
-                              <span className="text-green-400 font-medium">✓ 有更新航班資料</span>
-                              <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">資料更新</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-text-secondary">僅代碼部署</span>
-                              <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs">代碼更新</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {deploy.commitMessage && (
-                        <div className="mt-2 pt-2 border-t border-purple-500/20 text-xs text-text-secondary">
-                          <span className="font-medium">提交訊息：</span>
-                          <span className="ml-1">{deploy.commitMessage}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 變化詳細資料 Modal */}
-      {selectedLogDetail && selectedLogDetail.changes && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={() => setSelectedLogDetail(null)}
-        >
-          <div 
-            className="bg-surface border border-white/20 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10 px-6 py-4 flex items-center justify-between backdrop-blur-md">
-              <div>
-                <h3 className="text-xl font-bold text-primary">變化詳細資料</h3>
-                <p className="text-sm text-text-secondary mt-1">
-                  {selectedLogDetail.date} - {selectedLogDetail.timestamp ? new Date(selectedLogDetail.timestamp).toLocaleString('zh-TW') : ''}
-                </p>
-              </div>
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-gradient-to-r from-indigo-500/20 to-violet-500/15 shrink-0">
+              <h3 id="night-shift-modal-title" className="text-lg font-bold text-primary pr-2">
+                晚班支援參數
+              </h3>
               <button
-                onClick={() => setSelectedLogDetail(null)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                type="button"
+                onClick={() => setNightShiftModalOpen(false)}
+                className="p-2 rounded-xl hover:bg-white/10 text-text-secondary hover:text-primary transition-colors shrink-0"
+                aria-label="關閉"
               >
-                <XMarkIcon className="w-6 h-6 text-primary" />
+                <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
-
-            {/* Modal Content */}
-            <div className="p-6 space-y-6">
-              {/* 總覽 */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {selectedLogDetail.changes.added.length > 0 && (
-                  <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4">
-                    <div className="text-green-400 font-bold text-2xl mb-1">
-                      +{selectedLogDetail.changes.added.length}
-                    </div>
-                    <div className="text-sm text-text-secondary">新增航班</div>
-                  </div>
-                )}
-                {selectedLogDetail.changes.removed.length > 0 && (
-                  <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
-                    <div className="text-red-400 font-bold text-2xl mb-1">
-                      -{selectedLogDetail.changes.removed.length}
-                    </div>
-                    <div className="text-sm text-text-secondary">移除航班</div>
-                  </div>
-                )}
-                {selectedLogDetail.changes.modified.length > 0 && (
-                  <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4">
-                    <div className="text-yellow-400 font-bold text-2xl mb-1">
-                      ~{selectedLogDetail.changes.modified.length}
-                    </div>
-                    <div className="text-sm text-text-secondary">狀態變更</div>
-                  </div>
-                )}
-                {selectedLogDetail.changes.totalChange !== 0 && (
-                  <div className="bg-purple-500/20 border border-purple-500/30 rounded-lg p-4">
-                    <div className={`font-bold text-2xl mb-1 ${
-                      selectedLogDetail.changes.totalChange > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {selectedLogDetail.changes.totalChange > 0 ? '+' : ''}{selectedLogDetail.changes.totalChange}
-                    </div>
-                    <div className="text-sm text-text-secondary">總航班數變化</div>
-                  </div>
-                )}
+            <div className="px-4 py-4 overflow-y-auto text-sm text-text-secondary flex-1 min-h-0 space-y-4">
+              {nightShiftRemoteError && (
+                <p className="text-amber-200/90 text-xs leading-relaxed">
+                  雲端連線異常：{nightShiftRemoteError}。畫面仍可能為本機快取；請檢查網路或 Firebase 權限。
+                </p>
+              )}
+              <div className="space-y-3">
+                <p className="text-[11px] font-semibold text-primary/90">時間</p>
+                <label className="block space-y-1">
+                  <span className="text-[11px] text-text-secondary">關店／支援起算</span>
+                  <input
+                    type="time"
+                    step={60}
+                    value={minutesToTimeInputValue(draftNightShift.supportStartMin)}
+                    onChange={(e) => {
+                      const m = timeInputValueToMinutes(e.target.value)
+                      if (m == null) return
+                      setDraftNightShift((p) => ({ ...p, supportStartMin: m }))
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-white/20 bg-surface/50 text-primary min-h-[40px]"
+                  />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-[11px] text-text-secondary">納入晚班判斷的最晚起飛（此時之後不計）</span>
+                  <input
+                    type="time"
+                    step={60}
+                    value={minutesToTimeInputValue(draftNightShift.supportEndMin)}
+                    onChange={(e) => {
+                      const m = timeInputValueToMinutes(e.target.value)
+                      if (m == null) return
+                      setDraftNightShift((p) => ({ ...p, supportEndMin: m }))
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-white/20 bg-surface/50 text-primary min-h-[40px]"
+                  />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-[11px] text-text-secondary">晚班可支援到</span>
+                  <input
+                    type="time"
+                    step={60}
+                    value={minutesToTimeInputValue(draftNightShift.shiftEndMin)}
+                    onChange={(e) => {
+                      const m = timeInputValueToMinutes(e.target.value)
+                      if (m == null) return
+                      setDraftNightShift((p) => ({ ...p, shiftEndMin: m }))
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-white/20 bg-surface/50 text-primary min-h-[40px]"
+                  />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-[11px] text-text-secondary">收班後幾分鐘離店（最早留店＝關店起算＋本值）</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={180}
+                    value={draftNightShift.closingBufferMin}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10)
+                      if (Number.isNaN(n)) return
+                      setDraftNightShift((p) => ({
+                        ...p,
+                        closingBufferMin: Math.min(180, Math.max(0, n))
+                      }))
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-white/20 bg-surface/50 text-primary min-h-[40px]"
+                  />
+                </label>
               </div>
-
-              {/* 新增的航班 */}
-              {selectedLogDetail.changes.added.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-bold text-green-400 mb-3 flex items-center gap-2">
-                    <span>新增航班 ({selectedLogDetail.changes.added.length} 班)</span>
-                  </h4>
-                  <div className="bg-surface/40 rounded-lg p-4 space-y-2 max-h-60 overflow-y-auto">
-                    {selectedLogDetail.changes.added.map((flight, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-2 bg-green-500/10 rounded border border-green-500/20">
-                        <span className="text-green-400 font-mono text-sm">{flight.time}</span>
-                        <span className="bg-green-500/30 text-white px-2 py-1 rounded text-sm font-semibold">
-                          {flight.gate}
-                        </span>
-                        <span className="text-primary font-semibold">{flight.flight_code || flight.flight || 'N/A'}</span>
-                        {flight.airline_name && (
-                          <span className="text-text-secondary text-sm">({flight.airline_name})</span>
-                        )}
-                        {flight.destination && (
-                          <span className="text-text-secondary text-sm ml-auto">→ {flight.destination}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+              <div className="border-t border-white/10 pt-3 space-y-2">
+                <p className="text-[11px] font-semibold text-primary/90">登機門 D11–D18</p>
+                <p className="text-[10px] text-text-secondary/90 leading-relaxed">
+                  以「同號＋L／R」合併判斷。僅勾選的登機門在
+                  {minutesToTimeInputValue(draftNightShift.supportStartMin)}–{minutesToTimeInputValue(draftNightShift.supportEndMin)} 內
+                  納入晚班支援計算；未勾選者列表顯示「登機門 不列入考慮」。
+                </p>
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="flex flex-col gap-0.5 text-[11px] text-text-secondary min-w-0">
+                    起迄
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span className="text-text-secondary">D</span>
+                      <select
+                        value={nsGateRangeLo}
+                        onChange={(e) => setNsGateRangeLo(Number(e.target.value))}
+                        className="px-2 py-1.5 rounded-lg border border-white/20 bg-surface/50 text-primary"
+                      >
+                        {NIGHT_SHIFT_GATE_ORDER.map((_, i) => {
+                          const n = 11 + i
+                          return (
+                            <option key={n} value={n}>
+                              {n}
+                            </option>
+                          )
+                        })}
+                      </select>
+                      <span className="text-text-secondary/80">至</span>
+                      <span className="text-text-secondary">D</span>
+                      <select
+                        value={nsGateRangeHi}
+                        onChange={(e) => setNsGateRangeHi(Number(e.target.value))}
+                        className="px-2 py-1.5 rounded-lg border border-white/20 bg-surface/50 text-primary"
+                      >
+                        {NIGHT_SHIFT_GATE_ORDER.map((_, i) => {
+                          const n = 11 + i
+                          return (
+                            <option key={n} value={n}>
+                              {n}
+                            </option>
+                          )
+                        })}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const lo = Math.min(nsGateRangeLo, nsGateRangeHi)
+                          const hi = Math.max(nsGateRangeLo, nsGateRangeHi)
+                          setDraftNightShift((prev) => {
+                            const g = { ...prev.gateIncluded }
+                            for (let n = 11; n <= 18; n += 1) {
+                              g[`D${n}`] = n >= lo && n <= hi
+                            }
+                            return { ...prev, gateIncluded: g }
+                          })
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-indigo-400/40 bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 transition-colors"
+                      >
+                        套用起迄
+                      </button>
+                    </div>
+                  </label>
                 </div>
-              )}
-
-              {/* 移除的航班 */}
-              {selectedLogDetail.changes.removed.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-bold text-red-400 mb-3 flex items-center gap-2">
-                    <span>移除航班 ({selectedLogDetail.changes.removed.length} 班)</span>
-                  </h4>
-                  <div className="bg-surface/40 rounded-lg p-4 space-y-2 max-h-60 overflow-y-auto">
-                    {selectedLogDetail.changes.removed.map((flight, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-2 bg-red-500/10 rounded border border-red-500/20">
-                        <span className="text-red-400 font-mono text-sm">{flight.time}</span>
-                        <span className="bg-red-500/30 text-white px-2 py-1 rounded text-sm font-semibold">
-                          {flight.gate}
-                        </span>
-                        <span className="text-primary font-semibold">{flight.flight_code || flight.flight || 'N/A'}</span>
-                        {flight.airline_name && (
-                          <span className="text-text-secondary text-sm">({flight.airline_name})</span>
-                        )}
-                        {flight.destination && (
-                          <span className="text-text-secondary text-sm ml-auto">→ {flight.destination}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                <p className="text-[10px] text-amber-200/80">
+                  套用起迄：區間內打勾、區間外取消；之後可再單獨微調核取方塊。
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {NIGHT_SHIFT_GATE_ORDER.map((k) => (
+                    <label
+                      key={k}
+                      className="flex items-center gap-2 cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[12px] text-primary"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(draftNightShift.gateIncluded?.[k])}
+                        onChange={(e) => {
+                          setDraftNightShift((p) => ({
+                            ...p,
+                            gateIncluded: { ...p.gateIncluded, [k]: e.target.checked }
+                          }))
+                        }}
+                        className="rounded border-white/30"
+                      />
+                      <span>{k}</span>
+                    </label>
+                  ))}
                 </div>
+              </div>
+              {nightShiftDraftError && (
+                <p className="text-amber-200/95 text-xs leading-relaxed">{nightShiftDraftError}</p>
               )}
-
-              {/* 狀態變更的航班 */}
-              {selectedLogDetail.changes.modified.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-bold text-yellow-400 mb-3 flex items-center gap-2">
-                    <span>狀態變更 ({selectedLogDetail.changes.modified.length} 班)</span>
-                  </h4>
-                  <div className="bg-surface/40 rounded-lg p-4 space-y-2 max-h-60 overflow-y-auto">
-                    {selectedLogDetail.changes.modified.map((change, idx) => (
-                      <div key={idx} className="p-3 bg-yellow-500/10 rounded border border-yellow-500/20">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-yellow-400 font-mono text-sm">{change.new.time}</span>
-                          <span className="bg-yellow-500/30 text-white px-2 py-1 rounded text-sm font-semibold">
-                            {change.new.gate}
-                          </span>
-                          <span className="text-primary font-semibold">{change.new.flight_code || change.new.flight || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-text-secondary">狀態：</span>
-                          <span className="text-red-400 line-through">{change.old.status || '未知'}</span>
-                          <span className="text-primary">→</span>
-                          <span className="text-green-400">{change.new.status || '未知'}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {nightShiftSaveState === 'error' && (
+                <p className="text-red-400/90 text-xs">儲存失敗，請稍後再試。</p>
               )}
+            </div>
+            <div className="px-4 py-3 border-t border-white/10 bg-black/20 shrink-0 flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setNightShiftDraftError(null)
+                  setNightShiftModalOpen(false)
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/15 text-text-secondary font-medium hover:bg-white/10 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNightShiftDraftError(null)
+                  setDraftNightShift(mergeNightShiftConfig(null))
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/15 text-primary font-medium hover:bg-white/10 transition-colors"
+              >
+                還原預設（草稿）
+              </button>
+              <button
+                type="button"
+                disabled={nightShiftSaveState === 'saving'}
+                onClick={async () => {
+                  setNightShiftDraftError(null)
+                  const err = validateNightShiftDraftForSave(draftNightShift)
+                  if (err) {
+                    setNightShiftDraftError(err)
+                    return
+                  }
+                  const merged = mergeNightShiftConfig(draftNightShift)
+                  setNightShiftSaveState('saving')
+                  try {
+                    await setDoc(
+                      doc(db, 'settings', NIGHT_SHIFT_FIREBASE_DOC_ID),
+                      {
+                        supportStartMin: merged.supportStartMin,
+                        supportEndMin: merged.supportEndMin,
+                        shiftEndMin: merged.shiftEndMin,
+                        closingBufferMin: merged.closingBufferMin,
+                        gateIncluded: merged.gateIncluded,
+                        updatedAt: serverTimestamp()
+                      },
+                      { merge: true }
+                    )
+                    setNightShiftSaveState('idle')
+                    setNightShiftModalOpen(false)
+                  } catch (e) {
+                    console.error('[nightShift] setDoc 失敗:', e)
+                    setNightShiftSaveState('error')
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-primary/25 border border-primary/40 text-primary font-medium hover:bg-primary/35 transition-colors disabled:opacity-50"
+              >
+                {nightShiftSaveState === 'saving' ? '同步中…' : '儲存並同步'}
+              </button>
             </div>
           </div>
         </div>
