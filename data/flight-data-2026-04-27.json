@@ -27,7 +27,7 @@
       "type": "departure",
       "airport_code": "UKB",
       "city": "KOBE",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "KOBE (UKB)",
@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -657,5 +657,5 @@
     "20:05 : D11 : JX10 (星宇航空)",
     "20:10 : D13 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-04-26T21:48:27.454100"
+  "updated_at": "2026-04-26T22:49:25.324543"
 }
