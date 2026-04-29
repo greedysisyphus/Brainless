@@ -404,14 +404,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5048",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "QF8740",
           "airline_code": "QF",
           "airline_name": "澳洲航空"
+        },
+        {
+          "flight_code": "JL5048",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -511,14 +511,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "CA5522",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
-        },
-        {
           "flight_code": "B77018",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "CA5522",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
         },
         {
           "flight_code": "HO3188",
@@ -666,5 +666,5 @@
     "19:35 : D14R : BR381 (長榮航空)",
     "20:10 : D15R : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-04-29T11:45:14.502349"
+  "updated_at": "2026-04-29T14:20:17.449702"
 }

@@ -337,14 +337,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5048",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "QF8740",
           "airline_code": "QF",
           "airline_name": "澳洲航空"
+        },
+        {
+          "flight_code": "JL5048",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -364,14 +364,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "LO5342",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
-        },
-        {
           "flight_code": "NH5806",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "LO5342",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         },
         {
           "flight_code": "TG6352",
@@ -438,7 +438,7 @@
       "type": "departure",
       "airport_code": "ONT",
       "city": "Ontario",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Ontario (ONT)",
@@ -472,5 +472,5 @@
     "17:25 : D15R : JX791 (星宇航空)",
     "20:05 : D14R : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-04-29T11:45:14.503188"
+  "updated_at": "2026-04-29T14:20:17.450508"
 }
