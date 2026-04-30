@@ -4,13 +4,12 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
-    version: '1.4.3',
-    date: '2026-04-27',
-    title: '晚班支援參數與介面精簡',
+    version: '1.4.5',
+    date: '2026-04-30',
+    title: '報表生成器雙模式',
     items: [
-      '晚班支援：可自訂關店起算、收班緩衝、晚班支援結束，以及 D11–D18 自由勾選',
-      '晚班支援卡：列表「不列入考慮」隨參數顯示對應登機門',
-      '航班資料：移除「更新日誌」與相關功能（本機日誌、部署記錄 Modal 等）'
+      '報表生成器：新增「自訂 Template」模式（本機即時生成下載，不更新 Repo）',
+      '自訂 Template：支援預設樣板/上傳 .numbers、單月/全年打包與輸出檔名預覽'
     ]
   },
   {
@@ -95,7 +94,7 @@ export const APP_CHANGELOG = [
 ]
 
 // 版號單一來源：之後發版只需改 APP_CHANGELOG 最上方一筆
-const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.4.3'
+const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.4.5'
 const CHANGELOG_STORAGE_KEY = 'appChangelogLastSeenVersion'
 
 const ChangelogContext = createContext(null)

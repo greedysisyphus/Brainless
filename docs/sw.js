@@ -1,6 +1,6 @@
 // Service Worker for PWA
 // 版本號會在部署時自動注入
-const APP_VERSION = '1.4.3'
+const APP_VERSION = '1.4.5'
 const CACHE_NAME = `brainless-flight-data-${APP_VERSION}`
 const RUNTIME_CACHE = `brainless-runtime-${APP_VERSION}`
 
