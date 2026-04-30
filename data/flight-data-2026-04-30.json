@@ -139,14 +139,14 @@
           "airline_name": "加拿大航空"
         },
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
         }
       ]
     },
@@ -751,7 +751,7 @@
       "type": "departure",
       "airport_code": "BNE",
       "city": "Brisbane",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Brisbane (BNE)",
@@ -802,5 +802,5 @@
     "20:30 : D14R : BR261 (長榮航空)",
     "23:55 : D12 : CI53 (中華航空)"
   ],
-  "updated_at": "2026-04-30T15:15:15.273266"
+  "updated_at": "2026-04-30T17:27:13.197186"
 }
