@@ -27,7 +27,7 @@
       "type": "departure",
       "airport_code": "UKB",
       "city": "KOBE",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "KOBE (UKB)",
@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -75,7 +75,7 @@
       "type": "departure",
       "airport_code": "KUL",
       "city": "Kuala Lumpur",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Kuala Lumpur (KUL)",
@@ -172,14 +172,14 @@
           "airline_name": "加拿大航空"
         },
         {
-          "flight_code": "NZ4944",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6364",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4944",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -655,5 +655,5 @@
     "19:00 : D15R : BR809 (長榮航空)",
     "20:10 : D13 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-04-30T21:08:05.603385"
+  "updated_at": "2026-04-30T22:58:37.970752"
 }
