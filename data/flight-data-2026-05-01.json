@@ -386,7 +386,7 @@
       "type": "departure",
       "airport_code": "PQC",
       "city": "Phu Quoc",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Phu Quoc (PQC)",
@@ -402,7 +402,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -418,7 +418,7 @@
       "type": "departure",
       "airport_code": "KMJ",
       "city": "Kumamoto",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Kumamoto (KMJ)",
@@ -440,7 +440,7 @@
       "type": "departure",
       "airport_code": "HAN",
       "city": "Hanoi",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Hanoi (HAN)",
@@ -473,11 +473,6 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "OZ6872",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
@@ -486,6 +481,11 @@
           "flight_code": "NZ4922",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         },
         {
           "flight_code": "TK9547",
@@ -509,6 +509,28 @@
       "terminal": "2",
       "destination": "Cebu (CEB)",
       "codeshare_flights": []
+    },
+    {
+      "time": "16:25",
+      "datetime": "2026-05-01T16:25:00",
+      "gate": "D17",
+      "flight_code": "CI106",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "NRT",
+      "city": "Tokyo",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Tokyo (NRT)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5040",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        }
+      ]
     },
     {
       "time": "16:30",
@@ -584,7 +606,7 @@
     {
       "time": "19:00",
       "datetime": "2026-05-01T19:00:00",
-      "gate": "D15R",
+      "gate": "D17",
       "flight_code": "BR809",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -621,8 +643,8 @@
     }
   ],
   "summary": {
-    "total_flights": 28,
-    "before_17:00": 25,
+    "total_flights": 29,
+    "before_17:00": 26,
     "after_17:00": 3
   },
   "formatted_display": [
@@ -649,11 +671,12 @@
     "14:40 : D17 : BR385 (長榮航空)",
     "15:15 : D15R : BR160 (長榮航空)",
     "16:15 : D11 : JX783 (星宇航空)",
+    "16:25 : D17 : CI106 (中華航空)",
     "16:30 : D16 : CI503 (中華航空)",
     "16:40 : D12 : BR871 (長榮航空)",
     "18:10 : D11 : BR857 (長榮航空)",
-    "19:00 : D15R : BR809 (長榮航空)",
+    "19:00 : D17 : BR809 (長榮航空)",
     "20:10 : D13 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-05-01T04:11:30.758074"
+  "updated_at": "2026-05-01T07:29:23.241641"
 }
