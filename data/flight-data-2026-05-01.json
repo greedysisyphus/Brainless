@@ -483,14 +483,14 @@
           "airline_name": "韓亞航空"
         },
         {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "NZ4922",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -678,5 +678,5 @@
     "19:00 : D17 : BR809 (長榮航空)",
     "20:10 : D13 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-05-01T19:20:45.397840"
+  "updated_at": "2026-05-01T21:00:41.551419"
 }
