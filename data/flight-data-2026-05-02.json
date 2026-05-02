@@ -253,7 +253,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "時間更改SCHEDULE CHANGE",
+      "status": "出發DEPARTED",
       "aircraft": "A330-900",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -441,7 +441,7 @@
       "type": "departure",
       "airport_code": "CNX",
       "city": "Chiang Mai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Chiang Mai (CNX)",
@@ -645,7 +645,7 @@
     {
       "time": "20:05",
       "datetime": "2026-05-02T20:05:00",
-      "gate": "D12",
+      "gate": "D14R",
       "flight_code": "JX10",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -653,7 +653,7 @@
       "airport_code": "ONT",
       "city": "Ontario",
       "status": "準時ON TIME",
-      "aircraft": "A330-900",
+      "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Ontario (ONT)",
       "codeshare_flights": []
@@ -709,8 +709,8 @@
     "16:25 : D14R : BR186 (長榮航空)",
     "16:40 : D16 : BR805 (長榮航空)",
     "19:35 : D15R : BR381 (長榮航空)",
-    "20:05 : D12 : JX10 (星宇航空)",
+    "20:05 : D14R : JX10 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-05-02T03:40:21.871045"
+  "updated_at": "2026-05-02T06:14:23.386492"
 }
