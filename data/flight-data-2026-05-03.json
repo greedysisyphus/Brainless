@@ -161,6 +161,38 @@
       "codeshare_flights": []
     },
     {
+      "time": "08:00",
+      "datetime": "2026-05-03T08:00:00",
+      "gate": "D13",
+      "flight_code": "CI120",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "OKA",
+      "city": "Okinawa",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Okinawa (OKA)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5134",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "MH5604",
+          "airline_code": "MH",
+          "airline_name": "馬來西亞"
+        },
+        {
+          "flight_code": "KL4997",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
+        }
+      ]
+    },
+    {
       "time": "08:10",
       "datetime": "2026-05-03T08:10:00",
       "gate": "D15R",
@@ -530,8 +562,8 @@
     }
   ],
   "summary": {
-    "total_flights": 23,
-    "before_17:00": 21,
+    "total_flights": 24,
+    "before_17:00": 22,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -541,6 +573,7 @@
     "06:35 : D13 : BR158 (長榮航空)",
     "07:30 : D18 : BR170 (長榮航空)",
     "07:40 : D11 : JX711 (星宇航空)",
+    "08:00 : D13 : CI120 (中華航空)",
     "08:10 : D15R : BR106 (長榮航空)",
     "08:10 : D16 : JX771 (星宇航空)",
     "08:40 : D18 : AE991 (華信航空)",
@@ -559,5 +592,5 @@
     "17:15 : D12 : CI150 (中華航空)",
     "20:10 : D13 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-05-02T19:11:48.386628"
+  "updated_at": "2026-05-02T20:51:58.323929"
 }
