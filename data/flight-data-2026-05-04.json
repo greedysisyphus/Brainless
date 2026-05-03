@@ -312,14 +312,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "TK9450",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "NH5816",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TK9450",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         },
         {
           "flight_code": "TG6336",
@@ -552,5 +552,5 @@
     "17:25 : D12 : JX791 (星宇航空)",
     "20:05 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-05-03T19:12:32.574345"
+  "updated_at": "2026-05-03T20:54:20.124710"
 }
