@@ -87,6 +87,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "AC6535",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
+        },
+        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -105,11 +110,6 @@
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "AC6535",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
         }
       ]
     },
@@ -123,7 +123,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -139,7 +139,7 @@
       "type": "departure",
       "airport_code": "SIN",
       "city": "Singapore",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Singapore (SIN)",
@@ -155,11 +155,16 @@
       "type": "departure",
       "airport_code": "FUK",
       "city": "Fukuoka",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
+        {
+          "flight_code": "NH5802",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
         {
           "flight_code": "NZ4906",
           "airline_code": "NZ",
@@ -169,11 +174,6 @@
           "flight_code": "TG6362",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NH5802",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -187,7 +187,7 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
@@ -209,7 +209,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -225,7 +225,7 @@
       "type": "departure",
       "airport_code": "CGK",
       "city": "Jakarta",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-9",
       "terminal": "2",
       "destination": "Jakarta (CGK)",
@@ -241,7 +241,7 @@
       "type": "departure",
       "airport_code": "BNE",
       "city": "Brisbane",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Brisbane (BNE)",
@@ -263,7 +263,7 @@
       "type": "departure",
       "airport_code": "DAD",
       "city": "Da Nang",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Da Nang (DAD)",
@@ -279,7 +279,7 @@
       "type": "departure",
       "airport_code": "KUL",
       "city": "Kuala Lumpur",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Kuala Lumpur (KUL)",
@@ -301,7 +301,7 @@
       "type": "departure",
       "airport_code": "CTS",
       "city": "Sapporo/CTS",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Sapporo/CTS (CTS)",
@@ -338,11 +338,16 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
+        {
+          "flight_code": "TK9415",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        },
         {
           "flight_code": "AI7065",
           "airline_code": "AI",
@@ -352,11 +357,6 @@
           "flight_code": "TG6317",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "TK9415",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
         }
       ]
     },
@@ -370,7 +370,7 @@
       "type": "departure",
       "airport_code": "KUL",
       "city": "Kuala Lumpur",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Kuala Lumpur (KUL)",
@@ -379,7 +379,7 @@
     {
       "time": "14:00",
       "datetime": "2026-05-04T14:00:00",
-      "gate": "D18",
+      "gate": "D16",
       "flight_code": "JX705",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -433,7 +433,7 @@
     {
       "time": "16:05",
       "datetime": "2026-05-04T16:05:00",
-      "gate": "D17",
+      "gate": "D18",
       "flight_code": "BR716",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -468,6 +468,11 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
+          "flight_code": "TK9455",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        },
+        {
           "flight_code": "TG6334",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -481,11 +486,28 @@
           "flight_code": "NZ4904",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
+        }
+      ]
+    },
+    {
+      "time": "16:40",
+      "datetime": "2026-05-04T16:40:00",
+      "gate": "D17",
+      "flight_code": "BR805",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "MFM",
+      "city": "Macau",
+      "status": "準時ON TIME",
+      "aircraft": "B787-10",
+      "terminal": "2",
+      "destination": "Macau (MFM)",
+      "codeshare_flights": [
         {
-          "flight_code": "TK9455",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
+          "flight_code": "NX3005",
+          "airline_code": "NX",
+          "airline_name": "澳門航空"
         }
       ]
     },
@@ -523,8 +545,8 @@
     }
   ],
   "summary": {
-    "total_flights": 23,
-    "before_17:00": 21,
+    "total_flights": 24,
+    "before_17:00": 22,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -544,13 +566,14 @@
     "10:10 : D15R : BR116 (長榮航空)",
     "10:20 : D18 : BR201 (長榮航空)",
     "11:15 : D12 : JX725 (星宇航空)",
-    "14:00 : D18 : JX705 (星宇航空)",
+    "14:00 : D16 : JX705 (星宇航空)",
     "14:30 : D15R : CI194 (中華航空)",
     "15:45 : D12 : JX703 (星宇航空)",
-    "16:05 : D17 : BR716 (長榮航空)",
+    "16:05 : D18 : BR716 (長榮航空)",
     "16:25 : D13 : BR186 (長榮航空)",
+    "16:40 : D17 : BR805 (長榮航空)",
     "17:25 : D12 : JX791 (星宇航空)",
     "20:05 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-05-03T23:55:56.152352"
+  "updated_at": "2026-05-04T03:59:25.812231"
 }
