@@ -22,14 +22,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "NH5834",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "TG6354",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NH5834",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -312,9 +312,9 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "NH5816",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
+          "flight_code": "TG6336",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "TK9450",
@@ -322,9 +322,9 @@
           "airline_name": "土耳其航空"
         },
         {
-          "flight_code": "TG6336",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
+          "flight_code": "NH5816",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -468,14 +468,14 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
-          "flight_code": "TK9455",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "TG6334",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "TK9455",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         },
         {
           "flight_code": "NH5810",
@@ -575,5 +575,5 @@
     "17:25 : D12 : JX791 (星宇航空)",
     "20:05 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-05-05T03:44:57.841738"
+  "updated_at": "2026-05-05T06:23:53.270605"
 }
