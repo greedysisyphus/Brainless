@@ -97,14 +97,14 @@
           "airline_name": "立榮航空"
         },
         {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "OZ6874",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
+        },
+        {
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "NZ4926",
@@ -575,5 +575,5 @@
     "17:25 : D12 : JX791 (星宇航空)",
     "20:05 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-05-05T09:11:51.067889"
+  "updated_at": "2026-05-05T11:20:55.246039"
 }
