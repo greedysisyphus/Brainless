@@ -483,6 +483,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "OZ6872",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
@@ -491,11 +496,6 @@
           "flight_code": "NZ4922",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         },
         {
           "flight_code": "TK9547",
@@ -697,5 +697,5 @@
     "20:05 : D12 : JX10 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-05-07T18:51:06.992135"
+  "updated_at": "2026-05-07T22:07:56.281769"
 }
