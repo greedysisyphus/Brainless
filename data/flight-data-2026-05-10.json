@@ -632,7 +632,7 @@
       "type": "departure",
       "airport_code": "PHX",
       "city": "Phoenix",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Phoenix (PHX)",
@@ -672,5 +672,5 @@
     "17:25 : D13 : JX791 (星宇航空)",
     "17:30 : D12 : CI36 (中華航空)"
   ],
-  "updated_at": "2026-05-10T09:43:55.768715"
+  "updated_at": "2026-05-10T11:04:09.420822"
 }
