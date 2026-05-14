@@ -194,14 +194,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "NH5850",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6536",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NH5850",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "TG6364",
@@ -718,5 +718,5 @@
     "20:10 : D12 : JX26 (星宇航空)",
     "20:30 : D13 : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-05-14T17:59:33.108450"
+  "updated_at": "2026-05-14T19:58:33.393128"
 }
