@@ -697,7 +697,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -719,7 +719,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -741,7 +741,7 @@
       "type": "departure",
       "airport_code": "ONT",
       "city": "Ontario",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Ontario (ONT)",
@@ -786,5 +786,5 @@
     "19:00 : D18 : BR809 (長榮航空)",
     "20:05 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-05-15T10:34:16.693256"
+  "updated_at": "2026-05-15T12:59:04.273606"
 }
