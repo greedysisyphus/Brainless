@@ -246,14 +246,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "AC6543",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         },
         {
           "flight_code": "NZ4934",
@@ -671,7 +671,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -693,7 +693,7 @@
       "type": "departure",
       "airport_code": "SEA",
       "city": "Seattle",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Seattle (SEA)",
@@ -737,5 +737,5 @@
     "19:00 : D13 : BR809 (長榮航空)",
     "20:10 : D12 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-05-18T10:18:28.238630"
+  "updated_at": "2026-05-18T14:35:05.222445"
 }
