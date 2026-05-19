@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -91,7 +91,7 @@
       "type": "departure",
       "airport_code": "CEB",
       "city": "Cebu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Cebu (CEB)",
@@ -547,5 +547,5 @@
     "18:10 : D12 : BR857 (長榮航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-05-19T21:26:09.140751"
+  "updated_at": "2026-05-19T23:11:29.648554"
 }
