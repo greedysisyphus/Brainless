@@ -348,14 +348,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5048",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "QF8740",
           "airline_code": "QF",
           "airline_name": "澳洲航空"
+        },
+        {
+          "flight_code": "JL5048",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -428,7 +428,7 @@
       "type": "departure",
       "airport_code": "MFM",
       "city": "Macau",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Macau (MFM)",
@@ -450,7 +450,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -472,7 +472,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -547,5 +547,5 @@
     "18:10 : D12 : BR857 (長榮航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-05-20T08:31:13.875181"
+  "updated_at": "2026-05-20T11:52:34.283455"
 }
