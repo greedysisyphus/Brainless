@@ -124,14 +124,14 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "NZ4920",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6376",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4920",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "TK9543",
@@ -666,5 +666,5 @@
     "16:40 : D14R : BR805 (長榮航空)",
     "16:40 : D12 : BR871 (長榮航空)"
   ],
-  "updated_at": "2026-05-22T11:49:56.030867"
+  "updated_at": "2026-05-22T14:52:08.013987"
 }
