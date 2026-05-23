@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "SFO",
       "city": "San Francisco",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "San Francisco (SFO)",
@@ -27,7 +27,7 @@
       "type": "departure",
       "airport_code": "LAX",
       "city": "Los Angeles",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Los Angeles (LAX)",
@@ -351,7 +351,7 @@
     {
       "time": "10:05",
       "datetime": "2026-05-24T10:05:00",
-      "gate": "D13",
+      "gate": "D15R",
       "flight_code": "BR118",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -433,14 +433,14 @@
       "destination": "Takamatsu (TAK)",
       "codeshare_flights": [
         {
-          "flight_code": "KL4985",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        },
-        {
           "flight_code": "JL5124",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4985",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -547,14 +547,14 @@
       "destination": "Nagoya (NGO)",
       "codeshare_flights": [
         {
-          "flight_code": "KL4998",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        },
-        {
           "flight_code": "JL5114",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4998",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -611,7 +611,7 @@
     "09:50 : D11 : BR255 (長榮航空)",
     "10:00 : D14R : BR707 (長榮航空)",
     "10:00 : D18 : BR801 (長榮航空)",
-    "10:05 : D13 : BR118 (長榮航空)",
+    "10:05 : D15R : BR118 (長榮航空)",
     "13:50 : D12 : JX745 (星宇航空)",
     "14:20 : D11 : JX713 (星宇航空)",
     "14:30 : D15R : CI178 (中華航空)",
@@ -622,5 +622,5 @@
     "17:15 : D12 : CI150 (中華航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-05-23T15:07:39.002909"
+  "updated_at": "2026-05-23T17:10:40.119145"
 }
