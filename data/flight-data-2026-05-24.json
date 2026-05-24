@@ -579,7 +579,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -633,5 +633,5 @@
     "17:15 : D12 : CI150 (中華航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-05-24T12:04:30.451366"
+  "updated_at": "2026-05-24T14:39:58.339350"
 }
