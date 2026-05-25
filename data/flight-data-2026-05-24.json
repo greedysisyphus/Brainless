@@ -112,6 +112,11 @@
           "airline_name": "韓亞航空"
         },
         {
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -120,11 +125,6 @@
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -149,14 +149,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "NH5850",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6536",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NH5850",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "NZ4944",
@@ -558,14 +558,14 @@
       "destination": "Nagoya (NGO)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5114",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4998",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5114",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -633,5 +633,5 @@
     "17:15 : D12 : CI150 (中華航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-05-25T10:22:35.409355"
+  "updated_at": "2026-05-25T14:13:06.706626"
 }
