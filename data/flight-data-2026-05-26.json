@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -75,7 +75,7 @@
       "type": "departure",
       "airport_code": "KMQ",
       "city": "Komatsu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Komatsu (KMQ)",
@@ -118,6 +118,11 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
+        },
+        {
           "flight_code": "NZ4926",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -136,11 +141,6 @@
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
         }
       ]
     },
@@ -192,6 +192,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6356",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "NZ4914",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -200,18 +205,13 @@
           "flight_code": "NH5812",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "TG6356",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
     {
       "time": "08:20",
       "datetime": "2026-05-26T08:20:00",
-      "gate": "D16",
+      "gate": "D13",
       "flight_code": "BR211",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -312,7 +312,7 @@
     {
       "time": "09:45",
       "datetime": "2026-05-26T09:45:00",
-      "gate": "D13",
+      "gate": "D16",
       "flight_code": "BR383",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -470,14 +470,14 @@
       "destination": "Takamatsu (TAK)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5124",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4985",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5124",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -561,6 +561,11 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6334",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "NZ4904",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -574,11 +579,6 @@
           "flight_code": "NH5810",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "TG6334",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -673,11 +673,11 @@
     "07:45 : D11 : JX711 (星宇航空)",
     "08:00 : D14R : BR281 (長榮航空)",
     "08:20 : D18 : BR132 (長榮航空)",
-    "08:20 : D16 : BR211 (長榮航空)",
+    "08:20 : D13 : BR211 (長榮航空)",
     "08:30 : D12 : JX771 (星宇航空)",
     "08:55 : D11 : JX741 (星宇航空)",
     "09:00 : D17 : BR198 (長榮航空)",
-    "09:45 : D13 : BR383 (長榮航空)",
+    "09:45 : D16 : BR383 (長榮航空)",
     "09:50 : D14R : BR255 (長榮航空)",
     "09:55 : D12 : BR712 (長榮航空)",
     "10:00 : D18 : BR801 (長榮航空)",
@@ -692,5 +692,5 @@
     "20:10 : D13 : JX26 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-05-25T21:16:45.005110"
+  "updated_at": "2026-05-25T23:13:04.158954"
 }
