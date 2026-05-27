@@ -166,14 +166,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5850",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6536",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NH5850",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "NZ4944",
@@ -293,14 +293,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6543",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "NZ4934",
@@ -389,14 +389,14 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "CA5512",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
-        },
-        {
           "flight_code": "B77016",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "CA5512",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
         }
       ]
     },
@@ -447,7 +447,7 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
@@ -469,7 +469,7 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
@@ -543,7 +543,7 @@
     {
       "time": "17:25",
       "datetime": "2026-05-27T17:25:00",
-      "gate": "D11",
+      "gate": "D18",
       "flight_code": "JX791",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -584,7 +584,7 @@
     "16:25 : D14R : BR186 (長榮航空)",
     "16:40 : D16 : BR805 (長榮航空)",
     "16:40 : D13 : BR871 (長榮航空)",
-    "17:25 : D11 : JX791 (星宇航空)"
+    "17:25 : D18 : JX791 (星宇航空)"
   ],
-  "updated_at": "2026-05-27T04:25:25.081909"
+  "updated_at": "2026-05-27T08:41:56.925233"
 }
