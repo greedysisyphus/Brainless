@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "UKB",
       "city": "KOBE",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "KOBE (UKB)",
@@ -59,7 +59,7 @@
       "type": "departure",
       "airport_code": "CRK",
       "city": "Clark",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Clark (CRK)",
@@ -75,7 +75,7 @@
       "type": "departure",
       "airport_code": "MNL",
       "city": "Manila",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Manila (MNL)",
@@ -180,7 +180,7 @@
     {
       "time": "08:20",
       "datetime": "2026-05-29T08:20:00",
-      "gate": "D15R",
+      "gate": "D16",
       "flight_code": "BR132",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -371,7 +371,7 @@
     {
       "time": "10:00",
       "datetime": "2026-05-29T10:00:00",
-      "gate": "D16",
+      "gate": "D15R",
       "flight_code": "BR707",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -535,14 +535,14 @@
     "07:40 : D11 : JX711 (星宇航空)",
     "08:10 : D14R : JX771 (星宇航空)",
     "08:15 : D13 : BR851 (長榮航空)",
-    "08:20 : D15R : BR132 (長榮航空)",
+    "08:20 : D16 : BR132 (長榮航空)",
     "09:00 : D18 : BR198 (長榮航空)",
     "09:10 : D12 : JX741 (星宇航空)",
     "09:40 : D11 : JX1703 (星宇航空)",
     "09:50 : D17 : BR255 (長榮航空)",
     "09:55 : D13 : BR122 (長榮航空)",
     "09:55 : D14R : BR712 (長榮航空)",
-    "10:00 : D16 : BR707 (長榮航空)",
+    "10:00 : D15R : BR707 (長榮航空)",
     "14:00 : D11 : JX705 (星宇航空)",
     "14:15 : D14R : JX713 (星宇航空)",
     "14:40 : D15R : BR164 (長榮航空)",
@@ -550,5 +550,5 @@
     "16:40 : D12 : BR871 (長榮航空)",
     "20:10 : D12 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-05-28T21:11:54.717964"
+  "updated_at": "2026-05-28T23:22:45.925404"
 }
