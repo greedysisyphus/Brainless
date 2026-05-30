@@ -65,14 +65,14 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "LO5348",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
-        },
-        {
           "flight_code": "AC6535",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "LO5348",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         },
         {
           "flight_code": "TG6396",
@@ -234,14 +234,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "LO5344",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
-        },
-        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "LO5344",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         }
       ]
     },
@@ -359,14 +359,14 @@
       "destination": "Sendai (SDJ)",
       "codeshare_flights": [
         {
-          "flight_code": "TK9464",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "NH5818",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TK9464",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         },
         {
           "flight_code": "TG6372",
@@ -487,7 +487,7 @@
       "type": "departure",
       "airport_code": "PHX",
       "city": "Phoenix",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Phoenix (PHX)",
@@ -503,7 +503,7 @@
       "type": "departure",
       "airport_code": "SEA",
       "city": "Seattle",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Seattle (SEA)",
@@ -539,5 +539,5 @@
     "20:10 : D12 : JX26 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-05-30T12:07:02.762070"
+  "updated_at": "2026-05-30T14:43:17.522759"
 }
