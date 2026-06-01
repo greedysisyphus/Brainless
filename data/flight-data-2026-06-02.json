@@ -299,43 +299,6 @@
     {
       "time": "09:55",
       "datetime": "2026-06-02T09:55:00",
-      "gate": "D11",
-      "flight_code": "BR122",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "AOJ",
-      "city": "Aomori",
-      "status": "準時ON TIME",
-      "aircraft": "A321-200",
-      "terminal": "2",
-      "destination": "Aomori (AOJ)",
-      "codeshare_flights": [
-        {
-          "flight_code": "TG6296",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NZ4946",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TK9541",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
-          "flight_code": "NH5830",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        }
-      ]
-    },
-    {
-      "time": "09:55",
-      "datetime": "2026-06-02T09:55:00",
       "gate": "D16",
       "flight_code": "BR712",
       "airline_code": "BR",
@@ -354,14 +317,14 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "B77016",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "CA5512",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "B77016",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -502,8 +465,8 @@
     }
   ],
   "summary": {
-    "total_flights": 23,
-    "before_17:00": 21,
+    "total_flights": 22,
+    "before_17:00": 20,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -521,7 +484,6 @@
     "09:00 : D18 : CI152 (中華航空)",
     "09:25 : D13 : BR215 (長榮航空)",
     "09:50 : D14R : BR255 (長榮航空)",
-    "09:55 : D11 : BR122 (長榮航空)",
     "09:55 : D16 : BR712 (長榮航空)",
     "13:20 : D13 : JX751 (星宇航空)",
     "13:50 : D12 : JX745 (星宇航空)",
@@ -531,5 +493,5 @@
     "18:10 : D14R : BR857 (長榮航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-06-01T18:42:22.821927"
+  "updated_at": "2026-06-01T22:12:49.721754"
 }
