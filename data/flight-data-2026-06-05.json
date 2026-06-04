@@ -125,14 +125,14 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
         },
         {
           "flight_code": "AC6535",
@@ -698,5 +698,5 @@
     "16:40 : D13 : BR871 (長榮航空)",
     "19:00 : D14R : BR809 (長榮航空)"
   ],
-  "updated_at": "2026-06-04T19:27:13.830569"
+  "updated_at": "2026-06-04T21:47:37.877310"
 }
