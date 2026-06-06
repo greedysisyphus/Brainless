@@ -128,7 +128,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -160,7 +160,7 @@
       "type": "departure",
       "airport_code": "SIN",
       "city": "Singapore",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Singapore (SIN)",
@@ -176,7 +176,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -192,16 +192,11 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
-        {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
         {
           "flight_code": "AC6543",
           "airline_code": "AC",
@@ -211,6 +206,11 @@
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "TG6346",
@@ -234,7 +234,7 @@
       "type": "departure",
       "airport_code": "CGK",
       "city": "Jakarta",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-9",
       "terminal": "2",
       "destination": "Jakarta (CGK)",
@@ -250,7 +250,7 @@
       "type": "departure",
       "airport_code": "PEK",
       "city": "Beijing",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Beijing (PEK)",
@@ -272,7 +272,7 @@
       "type": "departure",
       "airport_code": "DPS",
       "city": "Bali",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Bali (DPS)",
@@ -288,7 +288,7 @@
       "type": "departure",
       "airport_code": "MFM",
       "city": "Macau",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Macau (MFM)",
@@ -310,20 +310,20 @@
       "type": "departure",
       "airport_code": "CTS",
       "city": "Sapporo/CTS",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5816",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "TK9450",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "NH5816",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "TG6336",
@@ -347,7 +347,7 @@
       "type": "departure",
       "airport_code": "KUL",
       "city": "Kuala Lumpur",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Kuala Lumpur (KUL)",
@@ -422,22 +422,6 @@
           "airline_name": "土耳其航空"
         }
       ]
-    },
-    {
-      "time": "15:35",
-      "datetime": "2026-06-06T15:35:00",
-      "gate": "D15R",
-      "flight_code": "CI517",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "PEK",
-      "city": "Beijing",
-      "status": "準時ON TIME",
-      "aircraft": "A321-271",
-      "terminal": "2",
-      "destination": "Beijing (PEK)",
-      "codeshare_flights": []
     },
     {
       "time": "16:25",
@@ -559,8 +543,8 @@
     }
   ],
   "summary": {
-    "total_flights": 26,
-    "before_17:00": 24,
+    "total_flights": 25,
+    "before_17:00": 23,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -584,12 +568,11 @@
     "13:50 : D12 : JX745 (星宇航空)",
     "14:20 : D11 : JX713 (星宇航空)",
     "14:40 : D17 : BR385 (長榮航空)",
-    "15:35 : D15R : CI517 (中華航空)",
     "16:25 : D14R : BR186 (長榮航空)",
     "16:30 : D12 : CI503 (中華航空)",
     "16:40 : D13 : BR871 (長榮航空)",
     "20:05 : D12 : JX10 (星宇航空)",
     "20:10 : D11 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-06-06T00:14:49.255799"
+  "updated_at": "2026-06-06T04:58:44.141112"
 }
