@@ -198,11 +198,6 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "AC6543",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
@@ -211,6 +206,11 @@
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "TG6346",
@@ -574,5 +574,5 @@
     "20:05 : D12 : JX10 (星宇航空)",
     "20:10 : D11 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-06-07T05:43:34.948732"
+  "updated_at": "2026-06-07T09:26:20.027677"
 }
