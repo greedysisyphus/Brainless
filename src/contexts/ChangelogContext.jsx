@@ -5,7 +5,7 @@ import ChangelogModal from '../components/ChangelogModal'
 export const APP_CHANGELOG = [
   {
     version: '1.5.0',
-    date: '2026-06-02',
+    date: '2026-06-08',
     title: 'Studio 主題測試 與電子菜單',
     items: [
       '新增 Studio Beta 雙主題：Classic 與 Studio 可一鍵切換',

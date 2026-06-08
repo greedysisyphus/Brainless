@@ -1,6 +1,6 @@
 # Brainless 1.5 更新內容（草稿）
 
-> 已定稿並同步至 `ChangelogContext.jsx`（2026-06-02）。
+> 已定稿並同步至 `ChangelogContext.jsx`（2026-06-08）。
 
 ---
 
