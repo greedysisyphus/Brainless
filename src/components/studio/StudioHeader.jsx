@@ -121,11 +121,12 @@ export default function StudioHeader({ isAdmin }) {
             <button
               type="button"
               onClick={() => setTheme('classic')}
-              className="cw-touch-target hidden items-center gap-1 rounded-[var(--cw-radius)] border border-[var(--cw-border)] px-2.5 py-2 text-xs font-semibold text-[var(--cw-text-muted)] hover:border-[var(--cw-border-strong)] hover:text-[var(--cw-text)] sm:inline-flex"
+              className="cw-touch-target inline-flex items-center gap-1 rounded-[var(--cw-radius)] border border-[var(--cw-border)] px-2 py-2 text-xs font-semibold text-[var(--cw-text-muted)] hover:border-[var(--cw-border-strong)] hover:text-[var(--cw-text)] sm:px-2.5"
               title="切換為 Classic 主題"
+              aria-label="切換為 Classic 主題"
             >
               <ArrowsRightLeftIcon className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
-              <span>Classic</span>
+              <span className="hidden sm:inline">Classic</span>
             </button>
             {isAdmin ? (
               <NavLink
