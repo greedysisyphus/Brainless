@@ -1,192 +1,304 @@
-import React, { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../../utils/firebase';
-import { weatherCategories } from '../../utils/weatherCategories';
-import ResponsiveContainer, { 
-  ResponsiveCard, 
-  ResponsiveButton, 
-  ResponsiveInput, 
-  ResponsiveLabel, 
-  ResponsiveTitle, 
-  ResponsiveText 
-} from '../common/ResponsiveContainer';
+import { useState, useEffect } from 'react'
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore'
+import { db, auth } from '../../utils/firebase'
+import { weatherCategories } from '../../utils/weatherCategories'
+import { useTheme } from '../../contexts/ThemeContext'
+import {
+  ResponsiveCard,
+  ResponsiveLabel,
+  ResponsiveTitle,
+  ResponsiveText,
+} from '../common/ResponsiveContainer'
+import { CwAlert, CwCard, CwInput, CwTextarea } from '../studio/ui'
+
+const CW_CHECKBOX =
+  'h-4 w-4 shrink-0 cursor-pointer rounded border-[var(--cw-border-strong)] accent-zinc-400 focus:ring-[var(--cw-focus-ring)] disabled:opacity-50'
 
 /**
- * 跑馬燈設定組件
- * 管理當前播放歌曲跑馬燈的設定
+ * 跑馬燈設定（音樂／天氣）；Studio 使用 CwCard / CwInput，Classic 維持 Responsive*。
  */
-const NowPlayingMarqueeSettings = () => {
+export default function NowPlayingMarqueeSettings() {
+  const { isStudio } = useTheme()
 
-  const [enabled, setEnabled] = useState(false);
-  const [showOnlyNowPlaying, setShowOnlyNowPlaying] = useState(false);
-  const [showOnlyNowPlayingStrict, setShowOnlyNowPlayingStrict] = useState(false); // 只有"正在播放"才顯示
-  const [speed, setSpeed] = useState(60); // 預設 60 秒
-  const [speedInput, setSpeedInput] = useState('60'); // 用於輸入框的臨時值
-  const [weatherPhrases, setWeatherPhrases] = useState({}); // 天氣自訂用語（已保存的值）
-  const [weatherPhrasesInput, setWeatherPhrasesInput] = useState({}); // 天氣自訂用語（輸入中的臨時值）
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [enabled, setEnabled] = useState(false)
+  const [showOnlyNowPlaying, setShowOnlyNowPlaying] = useState(false)
+  const [showOnlyNowPlayingStrict, setShowOnlyNowPlayingStrict] = useState(false)
+  const [speed, setSpeed] = useState(60)
+  const [speedInput, setSpeedInput] = useState('60')
+  const [weatherPhrases, setWeatherPhrases] = useState({})
+  const [weatherPhrasesInput, setWeatherPhrasesInput] = useState({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
 
-  // 載入設定
   useEffect(() => {
     const unsubscribe = onSnapshot(
       doc(db, 'nowPlayingMarquee', 'global'),
-      (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          const speedValue = data.speed || 60;
-          const phrases = data.weatherPhrases || {};
-          setEnabled(data.enabled || false);
-          setShowOnlyNowPlaying(data.showOnlyNowPlaying || false);
-          setShowOnlyNowPlayingStrict(data.showOnlyNowPlayingStrict || false);
-          setSpeed(speedValue);
-          setSpeedInput(speedValue.toString());
-          setWeatherPhrases(phrases);
-          setWeatherPhrasesInput(phrases); // 初始化輸入值
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data()
+          const speedValue = data.speed || 60
+          const phrases = data.weatherPhrases || {}
+          setEnabled(data.enabled || false)
+          setShowOnlyNowPlaying(data.showOnlyNowPlaying || false)
+          setShowOnlyNowPlayingStrict(data.showOnlyNowPlayingStrict || false)
+          setSpeed(speedValue)
+          setSpeedInput(speedValue.toString())
+          setWeatherPhrases(phrases)
+          setWeatherPhrasesInput(phrases)
         } else {
-          // 如果文檔不存在，使用預設值
-          setEnabled(false);
-          setShowOnlyNowPlaying(false);
-          setShowOnlyNowPlayingStrict(false);
-          setSpeed(60);
-          setSpeedInput('60');
-          setWeatherPhrases({});
-          setWeatherPhrasesInput({});
+          setEnabled(false)
+          setShowOnlyNowPlaying(false)
+          setShowOnlyNowPlayingStrict(false)
+          setSpeed(60)
+          setSpeedInput('60')
+          setWeatherPhrases({})
+          setWeatherPhrasesInput({})
         }
-        setIsLoading(false);
-        setError('');
+        setIsLoading(false)
+        setError('')
       },
-      (error) => {
-        console.error('載入跑馬燈設定失敗:', error);
-        setError('載入設定失敗');
-        setIsLoading(false);
+      (err) => {
+        console.error('載入跑馬燈設定失敗:', err)
+        setError('載入設定失敗')
+        setIsLoading(false)
       }
-    );
+    )
+    return unsubscribe
+  }, [])
 
-    return unsubscribe;
-  }, []);
-
-  // 更新設定
   const updateSettings = async (updates) => {
     try {
-      setIsSaving(true);
-      setError('');
-      setSuccessMessage('');
+      setIsSaving(true)
+      setError('')
+      setSuccessMessage('')
 
       const currentData = {
-        enabled: enabled,
-        showOnlyNowPlaying: showOnlyNowPlaying,
-        showOnlyNowPlayingStrict: showOnlyNowPlayingStrict,
-        speed: speed,
-        weatherPhrases: weatherPhrases,
-        ...updates
-      };
+        enabled,
+        showOnlyNowPlaying,
+        showOnlyNowPlayingStrict,
+        speed,
+        weatherPhrases,
+        ...updates,
+      }
 
       await setDoc(doc(db, 'nowPlayingMarquee', 'global'), {
         ...currentData,
         lastUpdated: serverTimestamp(),
-        updatedBy: auth.currentUser?.uid
-      });
+        updatedBy: auth.currentUser?.uid,
+      })
 
-      setSuccessMessage('設定已更新');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      console.error('更新設定失敗:', error);
-      setError('更新設定失敗');
+      setSuccessMessage('設定已更新')
+      setTimeout(() => setSuccessMessage(''), 3000)
+    } catch (err) {
+      console.error('更新設定失敗:', err)
+      setError('更新設定失敗')
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
-
-  // 處理開關變更
   const handleEnabledChange = async (newEnabled) => {
-    setEnabled(newEnabled);
-    await updateSettings({ enabled: newEnabled });
-  };
+    setEnabled(newEnabled)
+    await updateSettings({ enabled: newEnabled })
+  }
 
-  // 處理只顯示正在播放的變更
   const handleShowOnlyNowPlayingChange = async (newValue) => {
-    setShowOnlyNowPlaying(newValue);
-    await updateSettings({ showOnlyNowPlaying: newValue });
-  };
+    setShowOnlyNowPlaying(newValue)
+    await updateSettings({ showOnlyNowPlaying: newValue })
+  }
 
-  // 處理只有"正在播放"才顯示的變更
   const handleShowOnlyNowPlayingStrictChange = async (newValue) => {
-    setShowOnlyNowPlayingStrict(newValue);
-    await updateSettings({ showOnlyNowPlayingStrict: newValue });
-  };
+    setShowOnlyNowPlayingStrict(newValue)
+    await updateSettings({ showOnlyNowPlayingStrict: newValue })
+  }
 
-  // 處理速度變更（滑桿）
   const handleSpeedChange = async (newSpeed) => {
-    const speedValue = Math.max(10, Math.min(300, parseInt(newSpeed) || 60)); // 限制在 10-300 秒之間
-    setSpeed(speedValue);
-    setSpeedInput(speedValue.toString());
-    await updateSettings({ speed: speedValue });
-  };
+    const speedValue = Math.max(10, Math.min(300, parseInt(newSpeed, 10) || 60))
+    setSpeed(speedValue)
+    setSpeedInput(speedValue.toString())
+    await updateSettings({ speed: speedValue })
+  }
 
-  // 處理速度輸入框變更（允許輸入，不立即保存）
   const handleSpeedInputChange = (e) => {
-    setSpeedInput(e.target.value);
-  };
+    setSpeedInput(e.target.value)
+  }
 
-  // 處理速度輸入框失去焦點或按 Enter（保存）
   const handleSpeedInputBlur = async () => {
-    const numValue = parseInt(speedInput);
-    if (!isNaN(numValue) && numValue >= 10 && numValue <= 300) {
-      const speedValue = numValue;
-      setSpeed(speedValue);
-      await updateSettings({ speed: speedValue });
+    const numValue = parseInt(speedInput, 10)
+    if (!Number.isNaN(numValue) && numValue >= 10 && numValue <= 300) {
+      const speedValue = numValue
+      setSpeed(speedValue)
+      await updateSettings({ speed: speedValue })
     } else {
-      // 如果輸入無效，恢復為當前速度值
-      setSpeedInput(speed.toString());
+      setSpeedInput(speed.toString())
     }
-  };
+  }
 
-  // 處理速度輸入框按 Enter
   const handleSpeedInputKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.target.blur(); // 觸發 blur 事件來保存
-    }
-  };
+    if (e.key === 'Enter') e.target.blur()
+  }
 
-  // 處理天氣自訂用語輸入變更（只更新本地狀態，不保存）
   const handleWeatherPhraseInputChange = (categoryKey, phrase) => {
-    setWeatherPhrasesInput({
-      ...weatherPhrasesInput,
-      [categoryKey]: phrase
-    });
-  };
+    setWeatherPhrasesInput({ ...weatherPhrasesInput, [categoryKey]: phrase })
+  }
 
-  // 處理天氣自訂用語失去焦點（保存到 Firestore）
   const handleWeatherPhraseBlur = async (categoryKey) => {
-    const phrase = weatherPhrasesInput[categoryKey] || '';
-    // 只有當值改變時才保存
+    const phrase = weatherPhrasesInput[categoryKey] || ''
     if (weatherPhrases[categoryKey] !== phrase) {
-      const newPhrases = {
-        ...weatherPhrases,
-        [categoryKey]: phrase
-      };
-      setWeatherPhrases(newPhrases);
-      await updateSettings({ weatherPhrases: newPhrases });
+      const newPhrases = { ...weatherPhrases, [categoryKey]: phrase }
+      setWeatherPhrases(newPhrases)
+      await updateSettings({ weatherPhrases: newPhrases })
     }
-  };
+  }
+
+  const controlsDisabled = isSaving || !enabled
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center py-12">
+        <div
+          className={
+            isStudio
+              ? 'h-8 w-8 animate-spin rounded-full border-2 border-[var(--cw-border)] border-t-[var(--cw-text)]'
+              : 'h-8 w-8 animate-spin rounded-full border-b-2 border-primary'
+          }
+          aria-hidden
+        />
       </div>
-    );
+    )
+  }
+
+  if (isStudio) {
+    return (
+      <div className="space-y-4">
+        {successMessage ? <CwAlert variant="success">{successMessage}</CwAlert> : null}
+        {error ? <CwAlert variant="error">{error}</CwAlert> : null}
+
+        <CwCard
+          title="跑馬燈總開關"
+          subtitle="控制是否啟用跑馬燈功能"
+        >
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => handleEnabledChange(e.target.checked)}
+              disabled={isSaving}
+              className={CW_CHECKBOX}
+            />
+            <span className="text-sm text-[var(--cw-text)]">啟用跑馬燈顯示</span>
+          </label>
+        </CwCard>
+
+        <CwCard
+          title="播歌顯示"
+          subtitle="關閉後跑馬燈仍會顯示天氣資訊"
+        >
+          <div className="space-y-3">
+            <label className="flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={showOnlyNowPlaying}
+                onChange={(e) => handleShowOnlyNowPlayingChange(e.target.checked)}
+                disabled={controlsDisabled}
+                className={CW_CHECKBOX}
+              />
+              <span className="text-sm text-[var(--cw-text)]">顯示音樂播放資訊</span>
+            </label>
+            {showOnlyNowPlaying ? (
+              <label className="flex cursor-pointer items-center gap-3 pl-7">
+                <input
+                  type="checkbox"
+                  checked={showOnlyNowPlayingStrict}
+                  onChange={(e) => handleShowOnlyNowPlayingStrictChange(e.target.checked)}
+                  disabled={controlsDisabled}
+                  className={CW_CHECKBOX}
+                />
+                <span className="text-sm text-[var(--cw-text-muted)]">
+                  只有「正在播放」時才顯示（不顯示「最近播放」）
+                </span>
+              </label>
+            ) : null}
+          </div>
+        </CwCard>
+
+        <CwCard
+          title="跑馬燈速度"
+          subtitle="數值越小滾動越快，建議 10–300 秒"
+        >
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="min-w-[4.5rem] text-xs font-medium uppercase tracking-wide text-[var(--cw-text-muted)]">
+                速度（秒）
+              </span>
+              <input
+                type="range"
+                min="10"
+                max="300"
+                step="5"
+                value={speed}
+                onChange={(e) => handleSpeedChange(e.target.value)}
+                disabled={controlsDisabled}
+                className="h-1.5 min-w-[8rem] flex-1 cursor-pointer appearance-none rounded-full bg-[var(--cw-mega-surface)] accent-[var(--cw-text)] disabled:opacity-50"
+              />
+              <CwInput
+                type="number"
+                min={10}
+                max={300}
+                value={speedInput}
+                onChange={handleSpeedInputChange}
+                onBlur={handleSpeedInputBlur}
+                onKeyDown={handleSpeedInputKeyPress}
+                disabled={controlsDisabled}
+                className="w-24 shrink-0"
+                inputClassName="min-h-9 text-center cw-tabular"
+                aria-label="跑馬燈速度秒數"
+              />
+            </div>
+            <div className="flex justify-between text-[11px] text-[var(--cw-text-muted)]">
+              <span>快速 (10s)</span>
+              <span>中等 (60s)</span>
+              <span>慢速 (300s)</span>
+            </div>
+          </div>
+        </CwCard>
+
+        <CwCard
+          title="天氣自訂用語"
+          subtitle="每行一則，會隨機選一則接在天氣資訊後"
+        >
+          <CwAlert variant="neutral" className="mb-4">
+            <strong>資料來源：</strong>桃園機場（25.0797°N, 121.2342°E），用語依該地實際天氣顯示。
+          </CwAlert>
+          <div className="space-y-5">
+            {weatherCategories.map((category) => (
+              <div key={category.key}>
+                <div className="mb-2 flex flex-wrap items-baseline gap-2">
+                  <span className="text-sm font-medium text-[var(--cw-text)]">{category.label}</span>
+                  <span className="text-xs text-[var(--cw-text-muted)]">{category.description}</span>
+                </div>
+                <CwTextarea
+                  value={weatherPhrasesInput[category.key] || ''}
+                  onChange={(e) => handleWeatherPhraseInputChange(category.key, e.target.value)}
+                  onBlur={() => handleWeatherPhraseBlur(category.key)}
+                  disabled={controlsDisabled}
+                  rows={3}
+                  hint="每行一個用語"
+                />
+              </div>
+            ))}
+          </div>
+        </CwCard>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* 狀態訊息 */}
       {successMessage && (
-        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+        <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4">
           <div className="flex items-center gap-3">
             <div className="text-green-400">✓</div>
             <ResponsiveText color="success">{successMessage}</ResponsiveText>
@@ -195,7 +307,7 @@ const NowPlayingMarqueeSettings = () => {
       )}
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
           <div className="flex items-center gap-3">
             <div className="text-red-400">✗</div>
             <ResponsiveText color="danger">{error}</ResponsiveText>
@@ -203,56 +315,58 @@ const NowPlayingMarqueeSettings = () => {
         </div>
       )}
 
-      {/* 跑馬燈總開關 */}
       <ResponsiveCard>
         <div className="space-y-4">
           <div>
-            <ResponsiveTitle level={3} className="mb-2">跑馬燈總開關</ResponsiveTitle>
+            <ResponsiveTitle level={3} className="mb-2">
+              跑馬燈總開關
+            </ResponsiveTitle>
             <ResponsiveText size="sm" color="secondary" className="mb-4">
               控制是否啟用跑馬燈功能
             </ResponsiveText>
           </div>
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex cursor-pointer items-center gap-3">
             <input
               type="checkbox"
               checked={enabled}
               onChange={(e) => handleEnabledChange(e.target.checked)}
               disabled={isSaving}
-              className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+              className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
             />
             <ResponsiveText>啟用跑馬燈顯示</ResponsiveText>
           </label>
         </div>
       </ResponsiveCard>
 
-      {/* 播歌顯示開關 */}
       <ResponsiveCard>
         <div className="space-y-4">
           <div>
-            <ResponsiveTitle level={3} className="mb-2">播歌顯示開關</ResponsiveTitle>
+            <ResponsiveTitle level={3} className="mb-2">
+              播歌顯示開關
+            </ResponsiveTitle>
             <ResponsiveText size="sm" color="secondary" className="mb-4">
               控制是否在跑馬燈中顯示音樂播放資訊。即使關閉，跑馬燈仍會顯示天氣資訊。
             </ResponsiveText>
           </div>
           <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
                 checked={showOnlyNowPlaying}
                 onChange={(e) => handleShowOnlyNowPlayingChange(e.target.checked)}
-                disabled={isSaving || !enabled}
-                className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                disabled={controlsDisabled}
+                className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <ResponsiveText>顯示音樂播放資訊</ResponsiveText>
             </label>
             {showOnlyNowPlaying && (
-              <label className="flex items-center gap-3 cursor-pointer ml-8">
+              <label className="ml-8 flex cursor-pointer items-center gap-3">
                 <input
                   type="checkbox"
                   checked={showOnlyNowPlayingStrict}
                   onChange={(e) => handleShowOnlyNowPlayingStrictChange(e.target.checked)}
-                  disabled={isSaving || !enabled}
-                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                  disabled={controlsDisabled}
+                  className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
                 />
                 <ResponsiveText size="sm">只有「正在播放」時才顯示（不顯示「最近播放」）</ResponsiveText>
               </label>
@@ -261,11 +375,12 @@ const NowPlayingMarqueeSettings = () => {
         </div>
       </ResponsiveCard>
 
-      {/* 跑馬燈速度設定 */}
       <ResponsiveCard>
         <div className="space-y-4">
           <div>
-            <ResponsiveTitle level={3} className="mb-2">跑馬燈速度</ResponsiveTitle>
+            <ResponsiveTitle level={3} className="mb-2">
+              跑馬燈速度
+            </ResponsiveTitle>
             <ResponsiveText size="sm" color="secondary" className="mb-4">
               調整跑馬燈滾動速度（數值越小速度越快，建議範圍：10-300 秒）
             </ResponsiveText>
@@ -280,8 +395,8 @@ const NowPlayingMarqueeSettings = () => {
                 step="5"
                 value={speed}
                 onChange={(e) => handleSpeedChange(e.target.value)}
-                disabled={isSaving || !enabled}
-                className="flex-1 h-2 bg-surface rounded-lg appearance-none cursor-pointer accent-primary"
+                disabled={controlsDisabled}
+                className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-surface accent-primary"
               />
               <input
                 type="number"
@@ -291,8 +406,8 @@ const NowPlayingMarqueeSettings = () => {
                 onChange={handleSpeedInputChange}
                 onBlur={handleSpeedInputBlur}
                 onKeyPress={handleSpeedInputKeyPress}
-                disabled={isSaving || !enabled}
-                className="w-20 px-2 py-1 text-center bg-surface border border-white/10 rounded text-primary focus:outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={controlsDisabled}
+                className="w-20 rounded border border-white/10 bg-surface px-2 py-1 text-center text-primary focus:border-primary/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
             <div className="flex items-center justify-between text-xs text-text-secondary">
@@ -304,15 +419,13 @@ const NowPlayingMarqueeSettings = () => {
         </div>
       </ResponsiveCard>
 
-      {/* 天氣自訂用語設定 */}
       <ResponsiveCard>
         <div className="space-y-4">
           <div>
-            <ResponsiveTitle level={3} className="mb-2">天氣自訂用語</ResponsiveTitle>
-            <ResponsiveText size="sm" color="secondary" className="mb-4">
-              根據不同天氣狀況設定自訂用語，會顯示在跑馬燈的天氣資訊後面。每種天氣可以設定多個用語（用換行分隔），每次會隨機顯示其中一個。
-            </ResponsiveText>
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
+            <ResponsiveTitle level={3} className="mb-2">
+              天氣自訂用語
+            </ResponsiveTitle>
+            <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
               <ResponsiveText size="xs" color="secondary">
                 <strong>注意：</strong>天氣數據來源為<strong>桃園機場</strong>（經緯度：25.0797°N, 121.2342°E），自訂用語會根據桃園機場的實際天氣狀況顯示。
               </ResponsiveText>
@@ -329,10 +442,9 @@ const NowPlayingMarqueeSettings = () => {
                   value={weatherPhrasesInput[category.key] || ''}
                   onChange={(e) => handleWeatherPhraseInputChange(category.key, e.target.value)}
                   onBlur={() => handleWeatherPhraseBlur(category.key)}
-                  disabled={isSaving || !enabled}
-                  placeholder={`例如：今天不順，真的不能怪天氣\n或者：天氣真好，適合出門走走`}
+                  disabled={controlsDisabled}
                   rows={3}
-                  className="w-full px-3 py-2 bg-surface border border-white/10 rounded text-primary placeholder-text-secondary focus:outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed resize-y"
+                  className="w-full resize-y rounded border border-white/10 bg-surface px-3 py-2 text-primary placeholder-text-secondary focus:border-primary/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <ResponsiveText size="xs" color="secondary" className="mt-1">
                   每行一個用語，會隨機選擇其中一個顯示
@@ -342,9 +454,6 @@ const NowPlayingMarqueeSettings = () => {
           </div>
         </div>
       </ResponsiveCard>
-
     </div>
-  );
-};
-
-export default NowPlayingMarqueeSettings;
+  )
+}

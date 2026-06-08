@@ -1,20 +1,69 @@
-import { createContext, useContext, useEffect, useMemo } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
-const ThemeContext = createContext()
+export const STORAGE_KEY_APP_THEME = 'app-theme'
+
+const VALID_THEMES = ['classic', 'studio']
+
+const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
-  // 僅保留經典風格；Linear 風格已移除，舊的 localStorage 會自動視為 classic
-  const theme = 'classic'
+  const [theme, setThemeState] = useState(() => {
+    try {
+      const saved = typeof localStorage !== 'undefined'
+        ? localStorage.getItem(STORAGE_KEY_APP_THEME)
+        : null
+      if (saved === 'studio') return 'studio'
+      if (saved === 'craftwork') {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY_APP_THEME, 'studio')
+        }
+        return 'studio'
+      }
+      if (saved === 'linear') {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY_APP_THEME, 'classic')
+        }
+      }
+      return 'classic'
+    } catch {
+      return 'classic'
+    }
+  })
 
   useEffect(() => {
-    const saved = localStorage.getItem('app-theme')
-    if (saved === 'linear') localStorage.setItem('app-theme', 'classic')
+    document.documentElement.setAttribute('data-app-theme', theme)
+    try {
+      localStorage.setItem(STORAGE_KEY_APP_THEME, theme)
+    } catch {
+      /* ignore */
+    }
+    // Theme-color for mobile browser chrome while in studio
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) {
+      meta.setAttribute('content', theme === 'studio' ? '#0a0a0a' : '#8b5cf6')
+    }
+  }, [theme])
+
+  const setTheme = useCallback((next) => {
+    if (VALID_THEMES.includes(next)) {
+      setThemeState(next)
+    }
   }, [])
 
-  const value = useMemo(() => ({
-    theme,
-    toggleTheme: () => {} // 已移除主題切換，保留 API 避免報錯
-  }), [])
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => (prev === 'classic' ? 'studio' : 'classic'))
+  }, [])
+
+  const value = useMemo(
+    () => ({
+      theme,
+      setTheme,
+      toggleTheme,
+      isStudio: theme === 'studio',
+      isClassic: theme === 'classic',
+    }),
+    [theme, setTheme, toggleTheme]
+  )
 
   return (
     <ThemeContext.Provider value={value}>

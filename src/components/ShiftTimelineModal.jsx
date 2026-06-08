@@ -2,18 +2,27 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { CwModalFrame } from './studio/ui/CwModalFrame'
 
-// 班次定義（與 Clock.jsx 保持一致）
-const SHIFTS = {
-  morning: { name: '早班', start: 4 * 60 + 30, end: 13 * 60, color: 'bg-blue-500' },      // 04:30 - 13:00
-  mid: { name: '中班', start: 5 * 60 + 30, end: 14 * 60, color: 'bg-green-500' },          // 05:30 - 14:00
-  noon: { name: '午班', start: 7 * 60 + 30, end: 16 * 60, color: 'bg-yellow-500' },         // 07:30 - 16:00
-  evening: { name: '晚班', start: 14 * 60, end: 22 * 60 + 30, color: 'bg-purple-500' }      // 14:00 - 22:30
+const SHIFTS_CLASSIC = {
+  morning: { name: '早班', start: 4 * 60 + 30, end: 13 * 60, color: 'bg-blue-500' },
+  mid: { name: '中班', start: 5 * 60 + 30, end: 14 * 60, color: 'bg-green-500' },
+  noon: { name: '午班', start: 7 * 60 + 30, end: 16 * 60, color: 'bg-yellow-500' },
+  evening: { name: '晚班', start: 14 * 60, end: 22 * 60 + 30, color: 'bg-purple-500' },
+}
+
+const SHIFTS_STUDIO = {
+  morning: { name: '早班', start: 4 * 60 + 30, end: 13 * 60, color: 'bg-zinc-600' },
+  mid: { name: '中班', start: 5 * 60 + 30, end: 14 * 60, color: 'bg-zinc-500' },
+  noon: { name: '午班', start: 7 * 60 + 30, end: 16 * 60, color: 'bg-zinc-400' },
+  evening: { name: '晚班', start: 14 * 60, end: 22 * 60 + 30, color: 'bg-zinc-300' },
 }
 
 // 移除視圖切換，只保留甘特圖風格
 
-function ShiftTimelineModal({ isOpen, onClose }) {
+function ShiftTimelineModal({ isOpen, onClose, visualVariant = 'classic' }) {
+  const isCraft = visualVariant === 'studio'
+  const SHIFTS = isCraft ? SHIFTS_STUDIO : SHIFTS_CLASSIC
   const [currentTime, setCurrentTime] = useState(null)
   const [shiftData, setShiftData] = useState([])
 
@@ -87,7 +96,12 @@ function ShiftTimelineModal({ isOpen, onClose }) {
   }
 
   const getTimeStyle = (minutes) => {
-    if (minutes === null) return 'text-text-secondary'
+    if (minutes === null) return isCraft ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'
+    if (isCraft) {
+      if (minutes <= 30) return 'text-[var(--cw-danger)] font-semibold'
+      if (minutes <= 120) return 'text-[var(--cw-warning)]'
+      return 'text-[var(--cw-text)]'
+    }
     if (minutes <= 30) return 'text-red-400'
     if (minutes <= 120) return 'text-orange-400'
     return 'text-primary'
@@ -123,7 +137,13 @@ function ShiftTimelineModal({ isOpen, onClose }) {
     return (
       <div className="space-y-6">
         {/* 時間軸主體 */}
-        <div className="relative bg-background/30 rounded-lg border border-primary/10 overflow-hidden">
+        <div
+          className={
+            isCraft
+              ? 'relative overflow-hidden rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)]'
+              : 'relative bg-background/30 rounded-lg border border-primary/10 overflow-hidden'
+          }
+        >
           {/* 垂直網格線 - 每小時 */}
           <div className="absolute inset-0">
             {hours.map((hour) => (
@@ -244,11 +264,46 @@ function ShiftTimelineModal({ isOpen, onClose }) {
   }
 
   // 使用 Portal 渲染到 document.body，確保顯示在最上層
-  const modalContent = (
+  const timelineBody = (
+    <>
+      {renderGanttView()}
+      {currentTime !== null && (
+        <div
+          className={`text-center pt-6 mt-6 border-t ${
+            isCraft ? 'border-[var(--cw-border)]' : 'border-primary/20'
+          }`}
+        >
+          <div className={isCraft ? 'cw-label mb-1' : 'text-text-secondary text-sm mb-1'}>當前時間</div>
+          <div className={isCraft ? 'cw-kpi' : 'text-2xl font-bold text-white'}>{formatTime(currentTime)}</div>
+        </div>
+      )}
+    </>
+  )
+
+  const modalContent = isCraft ? (
+    <CwModalFrame
+      open={isOpen}
+      onClose={onClose}
+      title="班次時間軸"
+      maxWidthClass="max-w-4xl"
+      contentMaxHeightClass="max-h-[calc(90vh-120px)]"
+      headerActions={
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-[var(--cw-radius)] p-2 text-[var(--cw-text-muted)] hover:bg-[var(--cw-bg)]"
+          aria-label="關閉"
+        >
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+      }
+    >
+      {timelineBody}
+    </CwModalFrame>
+  ) : (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* 背景遮罩 */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -256,8 +311,6 @@ function ShiftTimelineModal({ isOpen, onClose }) {
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
             onClick={onClose}
           />
-          
-          {/* 彈窗內容 */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -266,31 +319,13 @@ function ShiftTimelineModal({ isOpen, onClose }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-surface rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-primary/20">
-              {/* 標題欄 */}
               <div className="flex items-center justify-between p-6 border-b border-primary/20">
                 <h2 className="text-2xl font-bold text-white">班次時間軸</h2>
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                >
+                <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
                   <XMarkIcon className="w-6 h-6 text-white" />
                 </button>
               </div>
-
-              {/* 時間軸區域 */}
-              <div className="p-6">
-                {renderGanttView()}
-
-                {/* 當前時間顯示 */}
-                {currentTime !== null && (
-                  <div className="text-center pt-6 mt-6 border-t border-primary/20">
-                    <div className="text-text-secondary text-sm mb-1">當前時間</div>
-                    <div className="text-2xl font-bold text-white">
-                      {formatTime(currentTime)}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <div className="p-6">{timelineBody}</div>
             </div>
           </motion.div>
         </>

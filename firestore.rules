@@ -1,9 +1,21 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 暫時允許所有操作，讓功能恢復正常
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // 電子菜單 metadata：客人可讀 imageUrl；僅管理員可寫
+    match /publicMenu/current {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 暫時允許所有操作，讓 Brainless 既有功能維持正常
     match /{document=**} {
       allow read, write: if true;
     }
   }
-} 
+}

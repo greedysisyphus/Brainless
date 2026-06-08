@@ -648,7 +648,7 @@ function MusicContent() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
+              <div className="p-3 ui-warm-panel rounded-xl">
                 <MusicalNoteIcon className="w-8 h-8 text-purple-400" />
               </div>
               <div>
@@ -780,7 +780,7 @@ function MusicContent() {
                         }}
                       />
                     ) : null}
-                    <div className={`w-16 h-16 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center flex-shrink-0 ${image ? 'hidden' : ''}`}>
+                    <div className={`w-16 h-16 rounded-lg ui-warm-panel flex items-center justify-center flex-shrink-0 ${image ? 'hidden' : ''}`}>
                       <MusicalNoteIcon className="w-8 h-8 text-purple-400/50" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -946,7 +946,7 @@ function MusicContent() {
                         }}
                       />
                     ) : null}
-                    <div className={`w-16 h-16 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center flex-shrink-0 ${image ? 'hidden' : ''}`}>
+                    <div className={`w-16 h-16 rounded-lg ui-warm-panel flex items-center justify-center flex-shrink-0 ${image ? 'hidden' : ''}`}>
                       <MusicalNoteIcon className="w-8 h-8 text-purple-400/50" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1297,7 +1297,7 @@ function MusicContent() {
                             onError={(e) => { e.target.style.display = 'none' }}
                           />
                         ) : (
-                          <div className="w-full h-48 bg-gradient-to-br from-purple-500/20 to-pink-500/20"></div>
+                          <div className="w-full h-48 ui-warm-panel"></div>
                         )}
                         <div className="absolute bottom-0 left-0 bg-purple-500/90 px-3 py-1.5 rounded-tr-lg">
                           <span className="text-xs font-bold text-white uppercase tracking-wide">Top Artist</span>

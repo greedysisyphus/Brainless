@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, PlusIcon, TrashIcon, PencilIcon, CheckIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline'
 import { db } from '../utils/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
+import { useTheme } from '../contexts/ThemeContext'
+import { CwButton, CwInput, CwModalFrame } from './studio/ui'
 
 // 預設品項結構
 const DEFAULT_BEAN_TYPES = {
@@ -61,6 +63,7 @@ const initializeBeanLocation = (beanLocations, beanName, selectedStore) => {
 }
 
 function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) {
+  const { isStudio } = useTheme()
   const [beanTypes, setBeanTypes] = useState(DEFAULT_BEAN_TYPES)
   const [beanLocations, setBeanLocations] = useState(getDefaultBeanLocationsForStore(selectedStore))
   const [editingItem, setEditingItem] = useState(null) // { category, subCategory, index } 或 { category, index } 或 'storeOnly'
@@ -439,6 +442,491 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
     })
   }
 
+  const storeLabel = selectedStore === 'central' ? '中央店' : selectedStore === 'd7' ? 'D7 店' : 'D13 店'
+  const itemRowClass = isStudio
+    ? 'flex items-center gap-2 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] p-3'
+    : 'flex items-center gap-2 rounded-xl border border-white/10 bg-gradient-to-br from-surface/40 to-surface/20 p-3'
+  const studioCheckboxClass =
+    'h-4 w-4 shrink-0 rounded border-[var(--cw-border)] bg-[var(--cw-bg)] text-[var(--cw-text)] focus:ring-[var(--cw-focus-ring)]'
+  const locLabelClass = isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'
+
+
+  const renderBody = () => (
+    <>
+      {isLoading ? (
+      <div className="flex items-center justify-center py-12">
+        <div className={isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}>載入中...</div>
+      </div>
+    ) : (
+      <>
+        {/* 分類選擇 */}
+        <div className="mb-6">
+          <div className="mb-4 flex items-center gap-3">
+            <div
+              className={
+                isStudio
+                  ? 'h-6 w-1 rounded-full bg-[var(--cw-text)]'
+                  : 'h-6 w-1 rounded-full bg-gradient-to-b from-primary to-purple-400'
+              }
+            />
+            <h3 className={`text-lg font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>選擇分類</h3>
+          </div>
+          {isStudio ? (
+            <div className="flex flex-wrap gap-2">
+              <CwButton
+                type="button"
+                variant={selectedCategory === 'brewing' ? 'primary' : 'secondary'}
+                className="min-h-11"
+                onClick={() => setSelectedCategory('brewing')}
+              >
+                出杯豆
+              </CwButton>
+              <CwButton
+                type="button"
+                variant={selectedCategory === 'retail' ? 'primary' : 'secondary'}
+                className="min-h-11"
+                onClick={() => setSelectedCategory('retail')}
+              >
+                賣豆
+              </CwButton>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('brewing')}
+                className={`rounded-lg px-4 py-2 font-medium transition-all ${
+                  selectedCategory === 'brewing'
+                    ? 'border border-primary/50 bg-primary/20 text-primary'
+                    : 'border border-white/10 bg-surface/40 text-text-secondary hover:border-primary/30'
+                }`}
+              >
+                出杯豆
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('retail')}
+                className={`rounded-lg px-4 py-2 font-medium transition-all ${
+                  selectedCategory === 'retail'
+                    ? 'border border-primary/50 bg-primary/20 text-primary'
+                    : 'border border-white/10 bg-surface/40 text-text-secondary hover:border-primary/30'
+                }`}
+              >
+                賣豆
+              </button>
+            </div>
+          )}
+    
+          {selectedCategory === 'brewing' &&
+            (isStudio ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <CwButton
+                  type="button"
+                  variant={selectedSubCategory === 'pourOver' ? 'primary' : 'secondary'}
+                  className="min-h-11"
+                  onClick={() => setSelectedSubCategory('pourOver')}
+                >
+                  手沖豆
+                </CwButton>
+                <CwButton
+                  type="button"
+                  variant={selectedSubCategory === 'espresso' ? 'primary' : 'secondary'}
+                  className="min-h-11"
+                  onClick={() => setSelectedSubCategory('espresso')}
+                >
+                  義式豆
+                </CwButton>
+              </div>
+            ) : (
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubCategory('pourOver')}
+                  className={`rounded-lg px-4 py-2 font-medium transition-all ${
+                    selectedSubCategory === 'pourOver'
+                      ? 'border border-blue-500/50 bg-blue-500/20 text-blue-400'
+                      : 'border border-white/10 bg-surface/40 text-text-secondary hover:border-blue-500/30'
+                  }`}
+                >
+                  手沖豆
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubCategory('espresso')}
+                  className={`rounded-lg px-4 py-2 font-medium transition-all ${
+                    selectedSubCategory === 'espresso'
+                      ? 'border border-purple-500/50 bg-purple-500/20 text-purple-400'
+                      : 'border border-white/10 bg-surface/40 text-text-secondary hover:border-purple-500/30'
+                  }`}
+                >
+                  義式豆
+                </button>
+              </div>
+            ))}
+        </div>
+    
+        {/* 品項列表 */}
+        <div className="mb-6">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={
+                  isStudio
+                    ? 'h-6 w-1 rounded-full bg-emerald-500/80'
+                    : 'h-6 w-1 rounded-full bg-gradient-to-b from-green-400 to-emerald-400'
+                }
+              />
+              <h3 className={`text-lg font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>
+                {selectedCategory === 'brewing'
+                  ? selectedSubCategory === 'pourOver'
+                    ? '手沖豆品項'
+                    : '義式豆品項'
+                  : '賣豆品項'}
+              </h3>
+            </div>
+            {/* 一鍵全開/全關按鈕 */}
+            {isStudio ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <CwButton
+                  type="button"
+                  variant={areAllLocationsEnabled('store') ? 'primary' : 'secondary'}
+                  className="!min-h-9 !gap-1.5 !px-3 !py-1.5 !text-xs"
+                  title={areAllLocationsEnabled('store') ? '一鍵全關店面' : '一鍵全開店面'}
+                  onClick={() => toggleAllLocations('store')}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${areAllLocationsEnabled('store') ? 'bg-[var(--cw-text)]' : 'bg-[var(--cw-text-muted)]'}`}
+                  />
+                  全{areAllLocationsEnabled('store') ? '關' : '開'}店面
+                </CwButton>
+                <CwButton
+                  type="button"
+                  variant={areAllLocationsEnabled('breakRoom') ? 'primary' : 'secondary'}
+                  className="!min-h-9 !gap-1.5 !px-3 !py-1.5 !text-xs"
+                  title={areAllLocationsEnabled('breakRoom') ? '一鍵全關員休庫存' : '一鍵全開員休庫存'}
+                  onClick={() => toggleAllLocations('breakRoom')}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${areAllLocationsEnabled('breakRoom') ? 'bg-[var(--cw-text)]' : 'bg-[var(--cw-text-muted)]'}`}
+                  />
+                  全{areAllLocationsEnabled('breakRoom') ? '關' : '開'}員休庫存
+                </CwButton>
+                <CwButton
+                  type="button"
+                  variant={areAllLocationsEnabled('dryStorage') ? 'primary' : 'secondary'}
+                  className="!min-h-9 !gap-1.5 !px-3 !py-1.5 !text-xs"
+                  title={areAllLocationsEnabled('dryStorage') ? '一鍵全關乾倉' : '一鍵全開乾倉'}
+                  onClick={() => toggleAllLocations('dryStorage')}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${areAllLocationsEnabled('dryStorage') ? 'bg-[var(--cw-text)]' : 'bg-[var(--cw-text-muted)]'}`}
+                  />
+                  全{areAllLocationsEnabled('dryStorage') ? '關' : '開'}乾倉
+                </CwButton>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleAllLocations('store')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                    areAllLocationsEnabled('store')
+                      ? 'border border-blue-500/50 bg-blue-500/20 text-blue-400'
+                      : 'border border-white/10 bg-surface/40 text-text-secondary hover:border-blue-500/30'
+                  }`}
+                  title={areAllLocationsEnabled('store') ? '一鍵全關店面' : '一鍵全開店面'}
+                >
+                  <span className={`h-2 w-2 rounded-full ${areAllLocationsEnabled('store') ? 'bg-blue-400' : 'bg-gray-400'}`} />
+                  <span>全{areAllLocationsEnabled('store') ? '關' : '開'}店面</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleAllLocations('breakRoom')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                    areAllLocationsEnabled('breakRoom')
+                      ? 'border border-green-500/50 bg-green-500/20 text-green-400'
+                      : 'border border-white/10 bg-surface/40 text-text-secondary hover:border-green-500/30'
+                  }`}
+                  title={areAllLocationsEnabled('breakRoom') ? '一鍵全關員休庫存' : '一鍵全開員休庫存'}
+                >
+                  <span className={`h-2 w-2 rounded-full ${areAllLocationsEnabled('breakRoom') ? 'bg-green-400' : 'bg-gray-400'}`} />
+                  <span>全{areAllLocationsEnabled('breakRoom') ? '關' : '開'}員休庫存</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleAllLocations('dryStorage')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                    areAllLocationsEnabled('dryStorage')
+                      ? 'border border-orange-500/50 bg-orange-500/20 text-orange-400'
+                      : 'border border-white/10 bg-surface/40 text-text-secondary hover:border-orange-500/30'
+                  }`}
+                  title={areAllLocationsEnabled('dryStorage') ? '一鍵全關乾倉' : '一鍵全開乾倉'}
+                >
+                  <span className={`h-2 w-2 rounded-full ${areAllLocationsEnabled('dryStorage') ? 'bg-orange-400' : 'bg-gray-400'}`} />
+                  <span>全{areAllLocationsEnabled('dryStorage') ? '關' : '開'}乾倉</span>
+                </button>
+              </div>
+            )}
+          </div>
+    
+          <div className="space-y-2 mb-4">
+            {(selectedCategory === 'retail'
+              ? beanTypes.retail
+              : beanTypes.brewing[selectedSubCategory]
+            ).map((item, index) => {
+              const itemKey = selectedCategory === 'retail'
+                ? { category: selectedCategory, index }
+                : { category: selectedCategory, subCategory: selectedSubCategory, index }
+              const isEditing = editingItem && JSON.stringify(editingItem) === JSON.stringify(itemKey)
+    
+              return (
+                <div key={index} className={itemRowClass}>
+                  {isEditing ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEdit()
+                          if (e.key === 'Escape') cancelEdit()
+                        }}
+                        className={
+                          isStudio
+                            ? 'min-w-0 flex-1 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2 text-sm text-[var(--cw-text)] focus:border-[var(--cw-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--cw-focus-ring)]'
+                            : 'flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:border-primary/50 focus:bg-white/10 focus:outline-none'
+                        }
+                        autoFocus
+                      />
+                      {isStudio ? (
+                        <>
+                          <CwButton type="button" variant="secondary" className="!min-h-10 !p-2" onClick={saveEdit} aria-label="儲存">
+                            <CheckIcon className="h-5 w-5 text-emerald-500" />
+                          </CwButton>
+                          <CwButton type="button" variant="ghost" className="!min-h-10 !p-2" onClick={cancelEdit} aria-label="取消">
+                            <XMarkIcon className="h-5 w-5" />
+                          </CwButton>
+                        </>
+                      ) : (
+                        <>
+                          <button type="button" onClick={saveEdit} className="rounded-lg p-2 text-green-400 transition-colors hover:bg-green-500/20">
+                            <CheckIcon className="h-5 w-5" />
+                          </button>
+                          <button type="button" onClick={cancelEdit} className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-500/20">
+                            <XMarkIcon className="h-5 w-5" />
+                          </button>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-1">
+                        {isStudio ? (
+                          <>
+                            <CwButton
+                              type="button"
+                              variant="ghost"
+                              className="!min-h-8 !p-1"
+                              disabled={index === 0}
+                              title="向上移動"
+                              onClick={() => moveItem(itemKey, 'up')}
+                            >
+                              <ArrowUpIcon className="h-4 w-4" />
+                            </CwButton>
+                            <CwButton
+                              type="button"
+                              variant="ghost"
+                              className="!min-h-8 !p-1"
+                              disabled={
+                                index ===
+                                (selectedCategory === 'retail' ? beanTypes.retail : beanTypes.brewing[selectedSubCategory]).length - 1
+                              }
+                              title="向下移動"
+                              onClick={() => moveItem(itemKey, 'down')}
+                            >
+                              <ArrowDownIcon className="h-4 w-4" />
+                            </CwButton>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => moveItem(itemKey, 'up')}
+                              disabled={index === 0}
+                              className="rounded-lg p-1 text-purple-400 transition-colors hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-30"
+                              title="向上移動"
+                            >
+                              <ArrowUpIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveItem(itemKey, 'down')}
+                              disabled={
+                                index ===
+                                (selectedCategory === 'retail' ? beanTypes.retail : beanTypes.brewing[selectedSubCategory]).length - 1
+                              }
+                              className="rounded-lg p-1 text-purple-400 transition-colors hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-30"
+                              title="向下移動"
+                            >
+                              <ArrowDownIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <span className={`shrink-0 font-medium ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>{item}</span>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                          <label className="flex cursor-pointer items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={getLocationForBean(item).store}
+                              onChange={() => toggleBeanLocation(item, 'store')}
+                              className={
+                                isStudio
+                                  ? studioCheckboxClass
+                                  : 'h-4 w-4 rounded border-white/20 bg-white/5 text-blue-400 focus:ring-blue-400/50'
+                              }
+                            />
+                            <span className={`text-xs ${locLabelClass}`}>店面</span>
+                          </label>
+                          <label className="flex cursor-pointer items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={getLocationForBean(item).breakRoom}
+                              onChange={() => toggleBeanLocation(item, 'breakRoom')}
+                              className={
+                                isStudio
+                                  ? studioCheckboxClass
+                                  : 'h-4 w-4 rounded border-white/20 bg-white/5 text-green-400 focus:ring-green-400/50'
+                              }
+                            />
+                            <span className={`text-xs ${locLabelClass}`}>員休庫存</span>
+                          </label>
+                          <label className="flex cursor-pointer items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={getLocationForBean(item).dryStorage}
+                              onChange={() => toggleBeanLocation(item, 'dryStorage')}
+                              className={
+                                isStudio
+                                  ? studioCheckboxClass
+                                  : 'h-4 w-4 rounded border-white/20 bg-white/5 text-orange-400 focus:ring-orange-400/50'
+                              }
+                            />
+                            <span className={`text-xs ${locLabelClass}`}>乾倉</span>
+                          </label>
+                        </div>
+                      </div>
+                      {isStudio ? (
+                        <>
+                          <CwButton type="button" variant="ghost" className="!min-h-10 !p-2" onClick={() => startEdit(itemKey)} aria-label="編輯">
+                            <PencilIcon className="h-5 w-5" />
+                          </CwButton>
+                          <CwButton type="button" variant="ghost" className="!min-h-10 !p-2" onClick={() => deleteItem(itemKey)} aria-label="刪除">
+                            <TrashIcon className="h-5 w-5 text-red-500/90" />
+                          </CwButton>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(itemKey)}
+                            className="rounded-lg p-2 text-blue-400 transition-colors hover:bg-blue-500/20"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteItem(itemKey)}
+                            className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-500/20"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+    
+          {/* 新增品項 */}
+          {isStudio ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <CwInput
+                className="min-w-0 flex-1"
+                value={newItemValue}
+                onChange={(e) => setNewItemValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addItem()
+                }}
+                placeholder="輸入新品項名稱"
+              />
+              <CwButton type="button" variant="primary" className="w-full shrink-0 sm:w-auto" onClick={addItem}>
+                <PlusIcon className="h-5 w-5" />
+                新增
+              </CwButton>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newItemValue}
+                onChange={(e) => setNewItemValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addItem()
+                }}
+                placeholder="輸入新品項名稱"
+                className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-gray-500 focus:border-primary/50 focus:bg-white/10 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={addItem}
+                className="flex items-center gap-2 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/20 to-purple-500/20 px-4 py-2 text-primary transition-all duration-200 hover:border-primary/50 hover:from-primary/30 hover:to-purple-500/30"
+              >
+                <PlusIcon className="h-5 w-5" />
+                新增
+              </button>
+            </div>
+          )}
+        </div>
+    
+      </>
+    )}
+    </>
+  )
+
+  if (isStudio) {
+    return (
+      <CwModalFrame
+        open={isOpen}
+        onClose={onClose}
+        title="品項設定"
+        description={`管理咖啡豆品項和分類（${storeLabel}）`}
+        headerActions={
+          <CwButton type="button" variant="ghost" className="!min-h-11 !p-2" onClick={onClose} aria-label="關閉">
+            <XMarkIcon className="h-6 w-6" />
+          </CwButton>
+        }
+        footer={
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <CwButton type="button" variant="secondary" onClick={onClose}>
+              取消
+            </CwButton>
+            <CwButton type="button" variant="primary" onClick={saveSettings} disabled={isSaving}>
+              {isSaving ? '儲存中...' : '儲存設定'}
+            </CwButton>
+          </div>
+        }
+        zOverlay={10001}
+        maxWidthClass="max-w-4xl"
+        contentMaxHeightClass="max-h-[min(78dvh,720px)]"
+      >
+        {renderBody()}
+      </CwModalFrame>
+    )
+  }
 
   return (
     <AnimatePresence>
@@ -449,306 +937,49 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000]"
+            className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
 
-          <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 pointer-events-none">
+          <div className="pointer-events-none fixed inset-0 z-[10001] flex items-center justify-center p-4 py-10 sm:py-14">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl pointer-events-auto"
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="pointer-events-auto relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-white/20 bg-surface/95 shadow-2xl backdrop-blur-md"
               onClick={(e) => e.stopPropagation()}
             >
               {/* 標題欄 */}
-              <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div className="flex items-center justify-between border-b border-white/10 p-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-primary mb-1">品項設定</h2>
-                  <p className="text-sm text-text-secondary">
-                    管理咖啡豆品項和分類（{selectedStore === 'central' ? '中央店' : selectedStore === 'd7' ? 'D7 店' : 'D13 店'}）
-                  </p>
+                  <h2 className="mb-1 text-2xl font-bold text-primary">品項設定</h2>
+                  <p className="text-sm text-text-secondary">管理咖啡豆品項和分類（{storeLabel}）</p>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                >
-                  <XMarkIcon className="w-6 h-6" />
+                <button type="button" onClick={onClose} className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-500/20">
+                  <XMarkIcon className="h-6 w-6" />
                 </button>
               </div>
 
               {/* 內容區域 */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-text-secondary">載入中...</div>
-                  </div>
-                ) : (
-                  <>
-                    {/* 分類選擇 */}
-                    <div className="mb-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-1 h-6 bg-gradient-to-b from-primary to-purple-400 rounded-full"></div>
-                        <h3 className="text-lg font-bold text-primary">選擇分類</h3>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <button
-                          onClick={() => setSelectedCategory('brewing')}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            selectedCategory === 'brewing'
-                              ? 'bg-primary/20 text-primary border border-primary/50'
-                              : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-primary/30'
-                          }`}
-                        >
-                          出杯豆
-                        </button>
-                        <button
-                          onClick={() => setSelectedCategory('retail')}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            selectedCategory === 'retail'
-                              ? 'bg-primary/20 text-primary border border-primary/50'
-                              : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-primary/30'
-                          }`}
-                        >
-                          賣豆
-                        </button>
-                      </div>
-
-                      {selectedCategory === 'brewing' && (
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => setSelectedSubCategory('pourOver')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                              selectedSubCategory === 'pourOver'
-                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
-                                : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-blue-500/30'
-                            }`}
-                          >
-                            手沖豆
-                          </button>
-                          <button
-                            onClick={() => setSelectedSubCategory('espresso')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                              selectedSubCategory === 'espresso'
-                                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-                                : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-purple-500/30'
-                            }`}
-                          >
-                            義式豆
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 品項列表 */}
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1 h-6 bg-gradient-to-b from-green-400 to-emerald-400 rounded-full"></div>
-                          <h3 className="text-lg font-bold text-primary">
-                            {selectedCategory === 'brewing'
-                              ? selectedSubCategory === 'pourOver'
-                                ? '手沖豆品項'
-                                : '義式豆品項'
-                              : '賣豆品項'}
-                          </h3>
-                        </div>
-                        {/* 一鍵全開/全關按鈕 */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleAllLocations('store')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                              areAllLocationsEnabled('store')
-                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
-                                : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-blue-500/30'
-                            }`}
-                            title={areAllLocationsEnabled('store') ? '一鍵全關店面' : '一鍵全開店面'}
-                          >
-                            <div className={`w-2 h-2 rounded-full ${areAllLocationsEnabled('store') ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
-                            <span>全{areAllLocationsEnabled('store') ? '關' : '開'}店面</span>
-                          </button>
-                          <button
-                            onClick={() => toggleAllLocations('breakRoom')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                              areAllLocationsEnabled('breakRoom')
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/50'
-                                : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-green-500/30'
-                            }`}
-                            title={areAllLocationsEnabled('breakRoom') ? '一鍵全關員休庫存' : '一鍵全開員休庫存'}
-                          >
-                            <div className={`w-2 h-2 rounded-full ${areAllLocationsEnabled('breakRoom') ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                            <span>全{areAllLocationsEnabled('breakRoom') ? '關' : '開'}員休庫存</span>
-                          </button>
-                          <button
-                            onClick={() => toggleAllLocations('dryStorage')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                              areAllLocationsEnabled('dryStorage')
-                                ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
-                                : 'bg-surface/40 text-text-secondary border border-white/10 hover:border-orange-500/30'
-                            }`}
-                            title={areAllLocationsEnabled('dryStorage') ? '一鍵全關乾倉' : '一鍵全開乾倉'}
-                          >
-                            <div className={`w-2 h-2 rounded-full ${areAllLocationsEnabled('dryStorage') ? 'bg-orange-400' : 'bg-gray-400'}`}></div>
-                            <span>全{areAllLocationsEnabled('dryStorage') ? '關' : '開'}乾倉</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 mb-4">
-                        {(selectedCategory === 'retail'
-                          ? beanTypes.retail
-                          : beanTypes.brewing[selectedSubCategory]
-                        ).map((item, index) => {
-                          const itemKey = selectedCategory === 'retail'
-                            ? { category: selectedCategory, index }
-                            : { category: selectedCategory, subCategory: selectedSubCategory, index }
-                          const isEditing = editingItem && JSON.stringify(editingItem) === JSON.stringify(itemKey)
-
-                          return (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 p-3 bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl border border-white/10"
-                            >
-                              {isEditing ? (
-                                <>
-                                  <input
-                                    type="text"
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') saveEdit()
-                                      if (e.key === 'Escape') cancelEdit()
-                                    }}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/10 focus:outline-none text-white"
-                                    autoFocus
-                                  />
-                                  <button
-                                    onClick={saveEdit}
-                                    className="p-2 rounded-lg hover:bg-green-500/20 text-green-400 transition-colors"
-                                  >
-                                    <CheckIcon className="w-5 h-5" />
-                                  </button>
-                                  <button
-                                    onClick={cancelEdit}
-                                    className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                  >
-                                    <XMarkIcon className="w-5 h-5" />
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  {/* 排序按鈕 */}
-                                  <div className="flex flex-col gap-1">
-                                    <button
-                                      onClick={() => moveItem(itemKey, 'up')}
-                                      disabled={index === 0}
-                                      className="p-1 rounded-lg hover:bg-purple-500/20 text-purple-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                      title="向上移動"
-                                    >
-                                      <ArrowUpIcon className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => moveItem(itemKey, 'down')}
-                                      disabled={index === ((selectedCategory === 'retail'
-                                        ? beanTypes.retail
-                                        : beanTypes.brewing[selectedSubCategory]
-                                      ).length - 1)}
-                                      className="p-1 rounded-lg hover:bg-purple-500/20 text-purple-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                      title="向下移動"
-                                    >
-                                      <ArrowDownIcon className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                  <div className="flex-1 flex items-center gap-3">
-                                    <span className="text-primary font-medium">{item}</span>
-                                    <div className="flex items-center gap-3">
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={getLocationForBean(item).store}
-                                          onChange={() => toggleBeanLocation(item, 'store')}
-                                          className="w-4 h-4 text-blue-400 rounded border-white/20 bg-white/5 focus:ring-blue-400/50"
-                                        />
-                                        <span className="text-xs text-text-secondary">店面</span>
-                                      </label>
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={getLocationForBean(item).breakRoom}
-                                          onChange={() => toggleBeanLocation(item, 'breakRoom')}
-                                          className="w-4 h-4 text-green-400 rounded border-white/20 bg-white/5 focus:ring-green-400/50"
-                                        />
-                                        <span className="text-xs text-text-secondary">員休庫存</span>
-                                      </label>
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={getLocationForBean(item).dryStorage}
-                                          onChange={() => toggleBeanLocation(item, 'dryStorage')}
-                                          className="w-4 h-4 text-orange-400 rounded border-white/20 bg-white/5 focus:ring-orange-400/50"
-                                        />
-                                        <span className="text-xs text-text-secondary">乾倉</span>
-                                      </label>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() => startEdit(itemKey)}
-                                    className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
-                                  >
-                                    <PencilIcon className="w-5 h-5" />
-                                  </button>
-                                  <button
-                                    onClick={() => deleteItem(itemKey)}
-                                    className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                                  >
-                                    <TrashIcon className="w-5 h-5" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* 新增品項 */}
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newItemValue}
-                          onChange={(e) => setNewItemValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') addItem()
-                          }}
-                          placeholder="輸入新品項名稱"
-                          className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/10 focus:outline-none text-white placeholder-gray-500"
-                        />
-                        <button
-                          onClick={addItem}
-                          className="px-4 py-2 rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 flex items-center gap-2"
-                        >
-                          <PlusIcon className="w-5 h-5" />
-                          新增
-                        </button>
-                      </div>
-                    </div>
-
-                  </>
-                )}
+              <div className="max-h-[calc(90vh-180px)] overflow-y-auto p-6 [-webkit-overflow-scrolling:touch]">
+                {renderBody()}
               </div>
 
               {/* 底部按鈕 */}
-              <div className="flex items-center justify-end gap-3 p-6 border-t border-white/10">
+              <div className="flex items-center justify-end gap-3 border-t border-white/10 p-6">
                 <button
+                  type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-lg bg-surface/40 border border-white/10 text-text-secondary hover:border-white/30 transition-all duration-200"
+                  className="rounded-lg border border-white/10 bg-surface/40 px-4 py-2 text-text-secondary transition-all duration-200 hover:border-white/30"
                 >
                   取消
                 </button>
                 <button
+                  type="button"
                   onClick={saveSettings}
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/20 to-purple-500/20 px-4 py-2 text-primary transition-all duration-200 hover:border-primary/50 hover:from-primary/30 hover:to-purple-500/30 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSaving ? '儲存中...' : '儲存設定'}
                 </button>

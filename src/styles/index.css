@@ -6,6 +6,8 @@
 @layer base {
   body {
     @apply bg-background text-text-primary min-h-screen font-sans;
+    /* 桌面常見：直向捲軸出現／消失造成寬度跳一點像素，看起來像在「閃」 */
+    scrollbar-gutter: stable;
   }
 }
 
@@ -327,6 +329,9 @@
     /* 移動設備輸入框優化 */
     input[type="number"],
     input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"],
     select {
       font-size: 16px !important; /* 防止 iOS Safari 自動縮放 */
     }
@@ -588,4 +593,121 @@
   );
   background-size: 400% 400%;
   animation: gradient-shift 15s ease infinite;
+}
+
+/* --- Studio theme tokens (classic 不依賴此區；僅 html[data-app-theme="studio"] 生效於子樹) --- */
+html[data-app-theme='studio'] {
+  color-scheme: dark;
+  --cw-bg: #0c0c0c;
+  --cw-surface: #161616;
+  --cw-surface-elevated: #1c1c1c;
+  --cw-sidebar: #121212;
+  --cw-header-bg: #0c0c0c;
+  --cw-mega-surface: #1a1a1a;
+  --cw-border: rgba(255, 255, 255, 0.08);
+  --cw-border-strong: rgba(255, 255, 255, 0.14);
+  --cw-text: #f4f4f5;
+  --cw-text-muted: #a1a1aa;
+  /* 主互動（按鈕、選中態）：近白，對齊 studio 產品 CTA */
+  --cw-fg-emphasis: #f4f4f5;
+  --cw-fg-emphasis-contrast: #0c0c0c;
+  /* 品牌螢光：小面積點綴；--cw-accent 為向後相容別名 */
+  --cw-brand: #c8e600;
+  --cw-brand-muted: rgba(200, 230, 0, 0.12);
+  --cw-accent: var(--cw-brand);
+  --cw-accent-contrast: #0c0c0c;
+  --cw-focus-ring: rgba(255, 255, 255, 0.32);
+  --cw-success: #4ade80;
+  --cw-warning: #fbbf24;
+  --cw-danger: #f87171;
+  --cw-shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.35);
+  --cw-radius-sm: 8px;
+  --cw-radius: 10px;
+  --cw-radius-lg: 16px;
+  --cw-radius-pill: 9999px;
+  --cw-section-y: 1.5rem;
+  --cw-stack-gap: 1rem;
+  --cw-transition: 150ms ease-out;
+}
+
+html[data-app-theme='studio'] body {
+  @apply bg-[var(--cw-bg)] text-[var(--cw-text)] min-h-screen;
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'tnum' 1;
+  scrollbar-gutter: stable;
+}
+
+html[data-app-theme='studio'] .cw-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Studio：原生 date/time 在深色底需 color-scheme，並放大可點擊的日曆圖示區 */
+html[data-app-theme='studio'] input[type='date'],
+html[data-app-theme='studio'] input[type='time'],
+html[data-app-theme='studio'] input[type='datetime-local'],
+html[data-app-theme='studio'] input[type='month'],
+html[data-app-theme='studio'] input[type='week'],
+html[data-app-theme='studio'] .cw-date-input {
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+html[data-app-theme='studio'] input[type='date']:not(.cw-date-input),
+html[data-app-theme='studio'] input[type='time']:not(.cw-date-input),
+html[data-app-theme='studio'] input[type='datetime-local']:not(.cw-date-input) {
+  padding-right: 2.5rem;
+}
+
+html[data-app-theme='studio'] input[type='date']::-webkit-calendar-picker-indicator,
+html[data-app-theme='studio'] input[type='time']::-webkit-calendar-picker-indicator,
+html[data-app-theme='studio'] input[type='datetime-local']::-webkit-calendar-picker-indicator,
+html[data-app-theme='studio'] input[type='month']::-webkit-calendar-picker-indicator,
+html[data-app-theme='studio'] input[type='week']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.95;
+  filter: invert(1);
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-inline-start: 0.25rem;
+  padding: 0.125rem;
+}
+
+/* iOS Safe area helpers（Studio 殼／抽屜內可自行加 pt-safe 等） */
+@supports (padding: env(safe-area-inset-top)) {
+  .cw-pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .cw-pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .cw-pl-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .cw-pr-safe {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .cw-px-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+html[data-app-theme='studio'] .cw-shell-min-h {
+  min-height: 100dvh;
+  min-height: 100vh;
+}
+
+.cw-touch-target {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-app-theme='studio'] *,
+  html[data-app-theme='studio'] *::before,
+  html[data-app-theme='studio'] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

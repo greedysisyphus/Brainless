@@ -4,6 +4,16 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.5.0',
+    date: '2026-06-02',
+    title: 'Studio 主題測試 與電子菜單',
+    items: [
+      '新增 Studio Beta 雙主題：Classic 與 Studio 可一鍵切換',
+      '管理員設定改為分頁：跑馬燈｜電子菜單（Classic／Studio 共用）',
+      '電子菜單 Phase 1：後台可上傳 1～2 張菜單圖（第 2 張選填），自動更新到供客人使用的 https://simplekaffa-menu.vercel.app/',
+    ],
+  },
+  {
     version: '1.4.5',
     date: '2026-04-30',
     title: '報表生成器雙模式',
@@ -94,7 +104,7 @@ export const APP_CHANGELOG = [
 ]
 
 // 版號單一來源：之後發版只需改 APP_CHANGELOG 最上方一筆
-const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.4.5'
+const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.5.0'
 const CHANGELOG_STORAGE_KEY = 'appChangelogLastSeenVersion'
 
 const ChangelogContext = createContext(null)

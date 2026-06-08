@@ -1,18 +1,15 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy, useEffect, useState } from 'react'
 import Layout from './components/layout/Layout'
-import { ThemeProvider } from './contexts/ThemeContext'
+import { ThemeProvider, useTheme } from './contexts/ThemeContext'
+import { FirebaseStatusBanner } from './components/studio/FirebaseStatusBanner'
 import LoadingPage from './pages/LoadingPage'
 import ErrorPage from './pages/ErrorPage'
 import ErrorBoundary from './components/ErrorBoundary'
 import { checkFirebaseConnection } from './utils/firebase'
-import PoursteadyAdjustment from './pages/PoursteadyAdjustment'
-import AlcoholCalculator from './pages/AlcoholCalculator'
 import SandwichCalculator from './pages/SandwichCalculator'
 import CoffeeBeanManager from './pages/CoffeeBeanManager'
-import DailyReportGenerator from './pages/DailyReportGenerator'
 import ScheduleManager from './pages/ScheduleManager'
-import DataFormatTester from './pages/DataFormatTester'
 import Playground from './pages/Playground'
 import { ChangelogProvider } from './contexts/ChangelogContext'
 
@@ -20,8 +17,12 @@ import { ChangelogProvider } from './contexts/ChangelogContext'
 const CashierManagement = lazy(() => import('./pages/CashierManagement'))
 const AdminPanel = lazy(() => import('./pages/AdminPanel'))
 const FlightData = lazy(() => import('./pages/FlightData'))
+const PoursteadyAdjustment = lazy(() => import('./pages/PoursteadyAdjustment'))
+const DailyReportGenerator = lazy(() => import('./pages/DailyReportGenerator'))
+const DataFormatTester = lazy(() => import('./pages/DataFormatTester'))
 
 function AppContent() {
+  const { isStudio } = useTheme()
   const [firebaseStatus, setFirebaseStatus] = useState({
     checked: false,
     connected: false,
@@ -52,23 +53,14 @@ function AppContent() {
   return (
     <Layout>
           {firebaseStatus.checked && !firebaseStatus.connected && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 m-4">
-              <h3 className="text-amber-500 font-bold mb-2">Firebase 連接警告</h3>
-              <p className="text-sm text-text-secondary">
-                應用程序無法連接到 Firebase 服務。部分功能可能無法正常工作。
-                {firebaseStatus.error && <span className="block mt-1">錯誤: {firebaseStatus.error}</span>}
-              </p>
-              <p className="text-xs text-text-secondary mt-2">
-                您仍然可以使用應用程序，但數據將不會同步到雲端。
-              </p>
-            </div>
+            <FirebaseStatusBanner isStudio={isStudio} errorMessage={firebaseStatus.error || null} />
           )}
           <Suspense fallback={<LoadingPage />}>
             <Routes>
           <Route path="/" element={<Navigate to="/sandwich" replace />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />
               <Route path="/cashier" element={<CashierManagement />} />
-              <Route path="/alcohol" element={<AlcoholCalculator />} />
+              <Route path="/alcohol" element={<Navigate to="/playground#alcohol" replace />} />
               <Route path="/coffee-beans" element={<CoffeeBeanManager />} />
               <Route path="/daily-reports" element={<DailyReportGenerator />} />
               <Route path="/schedule" element={<ScheduleManager />} />
@@ -89,7 +81,12 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <Router>
+        <Router
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
           <ChangelogProvider>
             <AppContent />
           </ChangelogProvider>

@@ -13,8 +13,13 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import zhtw from '../locales/zh-TW'
 import { calculateSandwichPlan } from '../services/sandwichCalculator'
 import anime from 'animejs/lib/anime.es.js'
+import { useTheme } from '../contexts/ThemeContext'
+import { DualThemePage } from '../components/studio/DualThemePage'
+import SandwichStudioPanel from './sandwich/SandwichStudioPanel'
+import { CwInput } from '../components/studio/ui'
 
 function SandwichCalculator() {
+  const { isStudio } = useTheme()
   const defaultSettings = { breadPerBag: 8, targetHam: 60, targetSalami: 30 }
   const defaultValues = {
     existingHam: '',
@@ -104,9 +109,9 @@ function SandwichCalculator() {
     setAnimationKey(prev => prev + 1) // 重置動畫鍵值
   }, [selectedStore])
 
-  // 結果卡片進入動畫 - 使用 Anime.js Stagger
+  // 結果卡片進入動畫 - 使用 Anime.js Stagger（Studio 視圖無 ref 對位動畫，略過）
   useEffect(() => {
-    if (!results) return
+    if (!results || isStudio) return
 
     // 使用 requestAnimationFrame 確保在下一幀立即設置初始狀態
     requestAnimationFrame(() => {
@@ -144,7 +149,7 @@ function SandwichCalculator() {
         })
       })
     })
-  }, [results, animationKey])
+  }, [results, animationKey, isStudio])
   
   // 監聽 Firebase 設定變更（根據選中的店鋪）
   useEffect(() => {
@@ -311,8 +316,101 @@ function SandwichCalculator() {
     { value: 'd7', label: zhtw.sandwich.storeD7 },
     { value: 'd13', label: zhtw.sandwich.storeD13 }
   ]
-  
+
+  const studioSettingsModal =
+    showSettings && isStudio ? (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 cw-pb-safe cw-px-safe">
+        <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] p-6 shadow-2xl">
+          <div className="mb-6 flex justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Cog6ToothIcon className="h-8 w-8 text-[var(--cw-text)]" />
+              <div>
+                <h2 className="text-lg font-bold text-[var(--cw-text)]">{zhtw.settings.title}</h2>
+                <p className="text-sm text-[var(--cw-text-muted)]">{zhtw.settings.subtitle}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSettings(false)}
+              className="cw-touch-target rounded-[var(--cw-radius)] p-2 text-[var(--cw-text-muted)] hover:bg-white/10"
+            >
+              ×
+            </button>
+          </div>
+          <div className="space-y-4">
+            <CwInput
+              label={zhtw.settings.breadPerBag}
+              type="number"
+              min={1}
+              inputMode="numeric"
+              value={draftSettings.breadPerBag}
+              onWheel={(e) => e.target.blur()}
+              onChange={(e) =>
+                setDraftSettings((s) => ({
+                  ...s,
+                  breadPerBag: parseInt(e.target.value, 10) || 1,
+                }))
+              }
+            />
+            <CwInput
+              label={zhtw.settings.targetHam}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={draftSettings.targetHam}
+              onWheel={(e) => e.target.blur()}
+              onChange={(e) =>
+                setDraftSettings((s) => ({
+                  ...s,
+                  targetHam: parseInt(e.target.value, 10) || 0,
+                }))
+              }
+            />
+            <CwInput
+              label={zhtw.settings.targetSalami}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={draftSettings.targetSalami}
+              onWheel={(e) => e.target.blur()}
+              onChange={(e) =>
+                setDraftSettings((s) => ({
+                  ...s,
+                  targetSalami: parseInt(e.target.value, 10) || 0,
+                }))
+              }
+            />
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              className="flex-1 rounded-[var(--cw-radius)] bg-[var(--cw-fg-emphasis)] py-3 text-sm font-semibold text-[var(--cw-fg-emphasis-contrast)]"
+              onClick={saveSettings}
+            >
+              {zhtw.settings.done}
+            </button>
+            <button
+              type="button"
+              className="flex-1 rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] py-3 text-sm text-[var(--cw-text-muted)]"
+              onClick={() => setShowSettings(false)}
+            >
+              {zhtw.common.cancel}
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null
+
   return (
+    <DualThemePage
+      breadcrumbs={[
+        { label: 'Brainless', href: '#/' },
+        { label: '門市營運' },
+        { label: zhtw.sandwich.title },
+      ]}
+      title={zhtw.sandwich.title}
+      description={zhtw.sandwich.subtitle}
+      classic={
     <div className="container-custom py-4 sm:py-6 md:py-8">
       <div className="max-w-6xl mx-auto">
           {/* 頁面標題 - 超現代設計 */}
@@ -923,6 +1021,32 @@ function SandwichCalculator() {
         )}
       </div>
     </div>
+      }
+      studio={
+        <>
+          <SandwichStudioPanel
+            zhtw={zhtw}
+            selectedStore={selectedStore}
+            setSelectedStore={setSelectedStore}
+            loading={loading}
+            error={error}
+            values={values}
+            setValues={setValues}
+            preview={preview}
+            results={results}
+            distributionMethods={distributionMethods}
+            stores={stores}
+            calculate={calculate}
+            resetFields={resetFields}
+            setShowSettings={setShowSettings}
+            settings={settings}
+            showExtraBagsBubble={showExtraBagsBubble}
+            setShowExtraBagsBubble={setShowExtraBagsBubble}
+          />
+          {studioSettingsModal}
+        </>
+      }
+    />
   )
 }
 

@@ -10,7 +10,9 @@ const SHIFTS = {
   evening: { name: '晚班', start: 14 * 60, end: 22 * 60 + 30 }      // 14:00 - 22:30
 }
 
-function Clock() {
+function Clock({ visualVariant = 'classic', layout = 'inline' }) {
+  const isCraft = visualVariant === 'studio'
+  const isSidebar = layout === 'sidebar'
   const [activeShifts, setActiveShifts] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showTimeline, setShowTimeline] = useState(false)
@@ -69,7 +71,23 @@ function Clock() {
       
       // 保存所有相關的班次（最多4個）
       const relevantShifts = allShifts.slice(0, 4)
-      setActiveShifts(relevantShifts)
+      // 資料與上一瞬相同時保留原陣列參考，避免每秒觸發 Header/Navigation 整樹重繪（桌面閃爍）
+      setActiveShifts((prev) => {
+        if (prev.length !== relevantShifts.length) return relevantShifts
+        for (let i = 0; i < prev.length; i++) {
+          const a = prev[i]
+          const b = relevantShifts[i]
+          if (
+            a.key !== b.key ||
+            a.type !== b.type ||
+            a.remaining !== b.remaining ||
+            a.priority !== b.priority
+          ) {
+            return relevantShifts
+          }
+        }
+        return prev
+      })
     }, 1000)
 
     return () => clearInterval(timer)
@@ -95,7 +113,14 @@ function Clock() {
 
   // 根據剩餘時間返回樣式
   const getTimeStyle = (minutes) => {
-    if (minutes === null) return 'text-text-secondary'
+    if (minutes === null) {
+      return isCraft ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'
+    }
+    if (isCraft) {
+      if (minutes <= 30) return 'border-red-500/40 bg-red-500/15 text-red-200'
+      if (minutes <= 120) return 'border-amber-500/40 bg-amber-500/15 text-amber-200'
+      return 'border-[var(--cw-border-strong)] bg-[var(--cw-surface-elevated)] text-[var(--cw-text)]'
+    }
     if (minutes <= 30) return 'text-red-400 bg-red-400/10 ring-1 ring-red-400'
     if (minutes <= 120) return 'text-orange-400 bg-orange-400/10 ring-1 ring-orange-400'
     return 'text-primary bg-primary/10 ring-1 ring-primary'
@@ -114,44 +139,72 @@ function Clock() {
 
   // 獲取當前要顯示的班次
   const currentShift = activeShifts[currentIndex]
+  const shiftActionLabel = currentShift.type === 'workEnd' ? '離下班還有' : '離上班還有'
+
+  const rootClass =
+    isCraft && isSidebar
+      ? 'w-full rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] bg-[var(--cw-bg)] p-3 text-left transition-colors hover:bg-[var(--cw-mega-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]'
+      : 'flex min-h-[28px] cursor-pointer flex-wrap items-center justify-center gap-1 text-xs transition-opacity hover:opacity-80 sm:gap-2 sm:text-sm'
+
+  const timePillClass = isCraft
+    ? `cw-tabular inline-flex w-fit rounded-[var(--cw-radius-sm)] border px-2.5 py-1 text-sm font-semibold transition-colors duration-150 ${getTimeStyle(currentShift.remaining)}`
+    : `whitespace-nowrap rounded-full px-2 py-0.5 font-medium transition-all duration-300 sm:px-3 sm:py-1 ${getTimeStyle(currentShift.remaining)}`
 
   return (
     <>
-      <div 
-        className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm flex-wrap justify-center cursor-pointer hover:opacity-80 transition-opacity min-h-[28px]"
+      <div
+        role="button"
+        tabIndex={0}
+        className={rootClass}
         onClick={() => setShowTimeline(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setShowTimeline(true)
+          }
+        }}
         title="點擊查看完整時間軸"
       >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentShift.key}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center gap-1 sm:gap-2"
+            initial={{ opacity: 0, ...(isCraft ? {} : { y: -10 }) }}
+            animate={{ opacity: 1, ...(isCraft ? {} : { y: 0 }) }}
+            exit={{ opacity: 0, ...(isCraft ? {} : { y: 10 }) }}
+            transition={{ duration: isCraft ? 0.15 : 0.3 }}
+            className={
+              isCraft && isSidebar
+                ? 'flex w-full flex-col items-stretch gap-1.5'
+                : 'flex items-center gap-1 sm:gap-2'
+            }
           >
-            <span className="text-text-secondary whitespace-nowrap">
-              {currentShift.type === 'workEnd' 
-                ? `${currentShift.name}離下班還有` 
-                : `${currentShift.name}離上班還有`}
-            </span>
-            <span className={`
-              font-medium px-2 sm:px-3 py-0.5 sm:py-1 rounded-full
-              ${getTimeStyle(currentShift.remaining)}
-              transition-all duration-300
-              whitespace-nowrap
-            `}>
-              {formatCountdown(currentShift.remaining)}
-            </span>
+            {isCraft && isSidebar ? (
+              <>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
+                  班次倒數
+                </span>
+                <span className="text-sm font-medium text-[var(--cw-text)]">
+                  {currentShift.name}
+                  <span className="font-normal text-[var(--cw-text-muted)]"> · {shiftActionLabel}</span>
+                </span>
+                <span className={timePillClass}>{formatCountdown(currentShift.remaining)}</span>
+              </>
+            ) : (
+              <>
+                <span
+                  className={`whitespace-nowrap ${isCraft ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}`}
+                >
+                  {currentShift.name}
+                  {shiftActionLabel}
+                </span>
+                <span className={timePillClass}>{formatCountdown(currentShift.remaining)}</span>
+              </>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
-      
-      <ShiftTimelineModal 
-        isOpen={showTimeline} 
-        onClose={() => setShowTimeline(false)} 
-      />
+
+      <ShiftTimelineModal isOpen={showTimeline} onClose={() => setShowTimeline(false)} />
     </>
   )
 }

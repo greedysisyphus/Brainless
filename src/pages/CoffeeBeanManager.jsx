@@ -5,87 +5,35 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import logoCat from '../assets/logo-cat.png'
 import BeanTypesSettingsModal from '../components/BeanTypesSettingsModal'
+import { useTheme } from '../contexts/ThemeContext'
+import { DualThemePage } from '../components/studio/DualThemePage'
+import { CwButton, CwCard, CwInput, CwStack } from '../components/studio/ui'
+import {
+  DEFAULT_BEAN_TYPES,
+  DEFAULT_BEAN_LOCATIONS,
+  DEFAULT_WEIGHTS,
+  STORES,
+  convertStoreOnlyToLocations,
+  getBeanTypesDocId,
+  getBoxWeightKey,
+  getDefaultBeanLocationsForStore,
+  getInventoryStorageKey,
+  getPacksFromWeight,
+  getStoreName,
+  getWeightDocId,
+  getWeightSettingsStorageKey,
+  isIOS,
+} from './coffeeBean/coffeeBeanConstants'
+import { coffeeBeanStudioTokens, getCoffeeBeanLayoutShells, getCoffeeCellModeBtnClass } from './coffeeBean/coffeeBeanStudioStyles'
 
-// 預設咖啡豆種類定義
-const DEFAULT_BEAN_TYPES = {
-  brewing: {
-    pourOver: ['水洗', '日曬', '阿寶', '台灣豆', 'Geisha'],
-    espresso: ['ESP', '水洗']
-  },
-  retail: ['水洗', '日曬', '阿寶', '季節', '台灣豆', 'Geisha']
-}
-
-// 根據店鋪獲取預設品項位置設定
-// D7 店：所有品項的 dryStorage 預設為 true
-// 中央店和 D13 店：所有品項的 dryStorage 預設為 false
-const getDefaultBeanLocationsForStore = (store) => {
-  const dryStorageDefault = store === 'd7' ? true : false
-  return {
-    '台灣豆': { store: true, breakRoom: false, dryStorage: dryStorageDefault },
-    'Geisha': { store: true, breakRoom: false, dryStorage: dryStorageDefault }
-  }
-}
-
-// 預設品項位置設定（用於向後兼容，中央店預設）
-const DEFAULT_BEAN_LOCATIONS = getDefaultBeanLocationsForStore('central')
-
-// 將舊的 storeOnlyBeans 格式轉換為新的 beanLocations 格式
-const convertStoreOnlyToLocations = (storeOnlyBeans, allBeanNames) => {
-  const locations = {}
-  allBeanNames.forEach(beanName => {
-    locations[beanName] = {
-      store: true,
-      breakRoom: !storeOnlyBeans.includes(beanName),
-      dryStorage: false
-    }
-  })
-  return locations
-}
-
-// 預設重量設定
-const DEFAULT_WEIGHTS = {
-  bagWeight: 121,
-  ikeaBoxWeight: 365,
-  mujiBoxWeight: 365, // MUJI 盒子重量（預設與 IKEA 相同，可根據實際情況調整）
-  beanWeightPerPack: 19
-}
-
-// 店鋪常數與設定集中（優化 5）
-const STORES = [
-  { id: 'central', name: '中央店' },
-  { id: 'd7', name: 'D7 店' },
-  { id: 'd13', name: 'D13 店' }
+const COFFEE_BC = [
+  { label: 'Brainless', href: '#/sandwich' },
+  { label: '庫存與報表', href: '#/' },
+  { label: '咖啡豆管理', href: '#/coffee-beans' },
 ]
-const getStoreName = (storeId) => STORES.find((s) => s.id === storeId)?.name ?? '中央店'
-const getWeightDocId = (storeId) => `coffeeBeanWeight_${storeId}`
-const getBeanTypesDocId = (storeId) => `coffeeBeanTypes_${storeId}`
-const getInventoryStorageKey = (storeId) => `coffeeBeanInventory_${storeId}`
-const getWeightSettingsStorageKey = (storeId) => `coffeeBeanWeightSettings_${storeId}`
-const getBoxWeightKey = (storeId) => (storeId === 'd13' ? 'mujiBoxWeight' : 'ikeaBoxWeight')
-
-// iOS 偵測：關閉 modal 後若還原 body position:fixed 會導致觸控層錯位、按鈕按不到，故在 iOS 僅用 overflow 鎖定
-const isIOS = () => typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
-
-// 重量 → 包數換算單一來源（優化 6）containerType: 'bag' | 'ikea' | 'muji'
-const getPacksFromWeight = (totalG, weightSettings, containerType) => {
-  if (totalG === '' || totalG == null) return 0
-  const w = typeof totalG === 'number' ? totalG : parseFloat(totalG)
-  if (isNaN(w) || w <= 0 || !weightSettings) return 0
-  const containerWeight =
-    containerType === 'bag'
-      ? weightSettings.bagWeight
-      : containerType === 'muji'
-        ? (weightSettings.mujiBoxWeight ?? weightSettings.ikeaBoxWeight)
-        : weightSettings.ikeaBoxWeight
-  const perPack = weightSettings.beanWeightPerPack
-  if (containerWeight == null || perPack == null || perPack <= 0) return 0
-  const beanWeight = w - Number(containerWeight)
-  if (!Number.isFinite(beanWeight) || beanWeight <= 0) return 0
-  const result = beanWeight / Number(perPack)
-  return Number.isFinite(result) ? result : 0
-}
 
 function CoffeeBeanManager() {
+  const { isStudio } = useTheme()
   const [showWeightCalculator, setShowWeightCalculator] = useState(false)
   const [showBeanTypesSettings, setShowBeanTypesSettings] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
@@ -1647,156 +1595,226 @@ function CoffeeBeanManager() {
     }
   }
 
+  const { beanCellShell, calcCellShell, weightFieldShell, weightFieldShellSm } = getCoffeeBeanLayoutShells(isStudio)
+  const {
+    cwBeanTitle,
+    cwBeanDot,
+    cwInvInput,
+    cwInvInputLg,
+    cwCellModeGroup,
+    cwBeanFooterShell,
+    cwBeanFooterText,
+    cwExportModeShell,
+    cwExportLabel,
+  } = coffeeBeanStudioTokens
+  const cellModeBtnClasses = (active, m) => getCoffeeCellModeBtnClass(isStudio, active, m)
 
-
-  return (
-    <div className="coffee-bean-container container-custom py-4 sm:py-6 md:py-8">
-      
-      <div className="max-w-6xl mx-auto">
-        {/* 頁面標題 - 超現代設計 */}
-        <div className="text-center mb-6 sm:mb-8 md:mb-10 relative">
-          {/* 背景光暈（無動畫，避免閃爍） */}
-          <div className="absolute inset-0 flex justify-center -z-10">
-            <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-primary/10 rounded-full blur-3xl opacity-50"></div>
-          </div>
-          
-          {/* 圖標容器 - 3D 效果 */}
-          <div className="inline-flex items-center justify-center mb-4 sm:mb-5 md:mb-6 relative group title-icon-group">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary via-purple-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
-            <div className="relative inline-flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 bg-gradient-to-br from-primary/30 via-purple-500/30 to-blue-500/30 rounded-xl sm:rounded-2xl border-2 border-primary/50 shadow-2xl shadow-primary/30 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 overflow-hidden">
-              {/* 流動背景（無無限動畫，避免閃爍） */}
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[length:200%_100%]"></div>
-              <ClipboardDocumentListIcon className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 text-primary relative z-10 transform group-hover:scale-110 transition-transform duration-300" />
-          </div>
-        </div>
-          
-          {/* 標題 */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-2 sm:mb-3 relative px-4">
-            <span className="bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent">
-              咖啡豆管理工具
-            </span>
-            {/* 文字發光（靜態，避免閃爍） */}
-            <span className="absolute inset-0 bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent blur-xl opacity-30 -z-10">
-              咖啡豆管理工具
-            </span>
-          </h1>
-          
-          {/* 副標題 */}
-          <p className="text-gray-400 text-sm sm:text-base font-medium px-4 mb-6 sm:mb-8">所以又到星期天</p>
-        </div>
-
-        {/* 分店選擇 - 現代化分段控制器 */}
-        <div className="mb-6 sm:mb-7 md:mb-8">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
-            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg sm:rounded-xl border border-primary/20">
-              <BuildingStorefrontIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+  const coffeeInner = (
+    <div className="mx-auto w-full max-w-6xl">
+      {isStudio ? (
+        <CwStack className="mb-6 !gap-[var(--cw-stack-gap)]">
+          <CwCard title="選擇分店" className="border-[var(--cw-border-strong)]">
+            <div className="flex flex-wrap gap-2">
+              {STORES.map((store) => (
+                <CwButton
+                  key={store.id}
+                  type="button"
+                  variant={selectedStore === store.id ? 'primary' : 'secondary'}
+                  className="min-h-11"
+                  onClick={() => setSelectedStore(store.id)}
+                >
+                  {store.name}
+                </CwButton>
+              ))}
             </div>
-            <h2 className="text-base sm:text-lg font-bold text-primary">選擇分店</h2>
+          </CwCard>
+          <div className="flex flex-wrap gap-2">
+            <CwButton
+              type="button"
+              variant="secondary"
+              className="min-h-11 gap-2"
+              onClick={() => setShowWeightCalculator(true)}
+            >
+              <CalculatorIcon className="h-4 w-4 shrink-0 text-[var(--cw-text-muted)]" />
+              重量換算
+            </CwButton>
+            <CwButton
+              type="button"
+              variant="secondary"
+              className="min-h-11 gap-2"
+              onClick={() => setShowBeanTypesSettings(true)}
+            >
+              <Cog6ToothIcon className="h-4 w-4 shrink-0 text-[var(--cw-text-muted)]" />
+              品項設定
+            </CwButton>
+            <CwButton type="button" variant="danger" className="min-h-11" onClick={resetAllData}>
+              重置數據
+            </CwButton>
           </div>
-          
-          {/* 分段控制器容器 - 簡化設計，優化性能 */}
-          <div className="relative mx-auto max-w-2xl bg-surface/60 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 border border-white/10">
-            {/* 滑動指示器 - 純 CSS 動畫，極簡實現 */}
-            <div
-              className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 transition-[transform] duration-200 ease-out"
-              style={{
-                width: 'calc(33.333% - 4px)',
-                left: '4px',
-                transform: selectedStore === 'central' ? 'translateX(0%)' :
-                          selectedStore === 'd7' ? 'translateX(100%)' :
-                          'translateX(200%)'
-              }}
-            />
-            
-            {/* 選項按鈕 - 簡化動畫效果 */}
-            <div className="relative grid grid-cols-3 gap-1.5">
-              {STORES.map((store) => {
-                const isSelected = selectedStore === store.id
-                return (
+        </CwStack>
+      ) : (
+        <>
+          {/* 頁面標題（Classic） */}
+          <div className="relative mb-6 text-center sm:mb-8 md:mb-10">
+            <div className="absolute inset-0 -z-10 flex justify-center">
+              <div className="h-64 w-64 rounded-full bg-primary/10 opacity-50 blur-3xl sm:h-80 sm:w-80 md:h-96 md:w-96" />
+            </div>
+
+            <div className="title-icon-group group relative mb-4 inline-flex items-center justify-center sm:mb-5 md:mb-6">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 opacity-50 blur-xl transition-opacity duration-500 group-hover:opacity-75" />
+              <div className="relative inline-flex h-16 w-16 transform items-center justify-center overflow-hidden rounded-xl border-2 border-primary/50 bg-gradient-to-br from-primary/30 via-purple-500/30 to-blue-500/30 shadow-2xl shadow-primary/30 transition-all duration-500 group-hover:rotate-6 group-hover:scale-110 sm:h-[4.5rem] sm:w-[4.5rem] md:h-20 md:w-20 sm:rounded-2xl">
+                <div className="absolute inset-0 bg-[length:200%_100%] bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                <ClipboardDocumentListIcon className="relative z-10 h-8 w-8 transform text-primary transition-transform duration-300 group-hover:scale-110 sm:h-9 sm:w-9 md:h-10 md:w-10" />
+              </div>
+            </div>
+
+            <h1 className="relative mb-2 px-4 text-3xl font-extrabold sm:mb-3 sm:text-4xl md:text-5xl">
+              <span className="bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent">
+                咖啡豆管理工具
+              </span>
+              <span className="absolute inset-0 -z-10 bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent opacity-30 blur-xl">
+                咖啡豆管理工具
+              </span>
+            </h1>
+
+            <p className="mb-6 px-4 text-sm font-medium text-gray-400 sm:mb-8 sm:text-base">所以又到星期天</p>
+          </div>
+
+          {/* 分店選擇（Classic） */}
+          <div className="mb-6 sm:mb-7 md:mb-8">
+            <div className="mb-4 flex items-center justify-center gap-2 sm:mb-5 sm:gap-3 md:mb-6">
+              <div className="rounded-lg border border-primary/20 bg-primary/10 p-1.5 sm:rounded-xl sm:p-2">
+                <BuildingStorefrontIcon className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+              </div>
+              <h2 className="text-base font-bold text-primary sm:text-lg">選擇分店</h2>
+            </div>
+
+            <div className="relative mx-auto max-w-2xl rounded-xl border border-white/10 bg-surface/60 p-1 sm:rounded-2xl sm:p-1.5">
+              <div
+                className="absolute bottom-1.5 left-1 top-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 transition-[transform] duration-200 ease-out"
+                style={{
+                  width: 'calc(33.333% - 4px)',
+                  left: '4px',
+                  transform:
+                    selectedStore === 'central' ? 'translateX(0%)' : selectedStore === 'd7' ? 'translateX(100%)' : 'translateX(200%)',
+                }}
+              />
+              <div className="relative grid grid-cols-3 gap-1.5">
+                {STORES.map((store) => {
+                  const isSelected = selectedStore === store.id
+                  return (
+                    <button
+                      key={store.id}
+                      type="button"
+                      onClick={() => setSelectedStore(store.id)}
+                      className={`relative z-10 min-h-[44px] rounded-lg px-3 py-3 text-xs font-bold transition-colors duration-200 sm:rounded-xl sm:px-4 sm:py-4 sm:text-sm md:px-6 md:py-5 md:text-base ${
+                        isSelected ? 'text-white' : 'text-gray-300 active:text-white'
+                      }`}
+                      style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                    >
+                      <span className="relative z-10 flex items-center justify-center gap-2">
+                        {isSelected ? <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-green-400 shadow-sm" /> : null}
+                        <span className="tracking-wide">{store.name}</span>
+                      </span>
+                      {isSelected ? <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-100" /> : null}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6 flex flex-wrap justify-center gap-3 sm:mb-8">
             <button
-                    key={store.id}
-                    onClick={() => setSelectedStore(store.id)}
-                    className={`
-                      relative z-10 min-h-[44px]
-                      px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5
-                      rounded-lg sm:rounded-xl
-                      font-bold text-xs sm:text-sm md:text-base
-                      transition-colors duration-200
-                      ${isSelected 
-                        ? 'text-white' 
-                        : 'text-gray-300 active:text-white'
-                      }
-                    `}
-                    style={{
-                      WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation'
-                    }}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      {isSelected && (
-                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full shadow-sm" />
-                      )}
-                      <span className="tracking-wide">{store.name}</span>
-                    </span>
-                    
-                    {/* 選中時的背景效果 - 簡化版本 */}
-                    {isSelected && (
-                      <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-100" />
-                    )}
+              type="button"
+              onClick={() => setShowWeightCalculator(true)}
+              className="flex min-h-[44px] items-center gap-2 rounded-lg border border-amber-500/30 bg-gradient-to-r from-amber-500/20 to-orange-500/20 px-4 py-2.5 text-sm font-medium text-amber-400 transition-all duration-200 hover:border-amber-500/50 hover:from-amber-500/30 hover:to-orange-500/30"
+            >
+              <CalculatorIcon className="h-4 w-4" />
+              重量換算
             </button>
-                )
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowBeanTypesSettings(true)}
+              className="flex min-h-[44px] items-center gap-2 rounded-lg border border-purple-500/30 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-4 py-2.5 text-sm font-medium text-purple-400 transition-all duration-200 hover:border-purple-500/50 hover:from-purple-500/30 hover:to-pink-500/30"
+            >
+              <Cog6ToothIcon className="h-4 w-4" />
+              品項設定
+            </button>
+            <button
+              type="button"
+              onClick={resetAllData}
+              className="min-h-[44px] rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/20"
+            >
+              重置數據
+            </button>
           </div>
-        </div>
-
-        {/* 操作按鈕區域 */}
-        <div className="flex flex-wrap justify-center gap-3 mb-6 sm:mb-8">
-              <button
-            onClick={() => setShowWeightCalculator(true)}
-            className="min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-2"
-              >
-            <CalculatorIcon className="w-4 h-4" />
-            重量換算
-              </button>
-              <button
-            onClick={() => setShowBeanTypesSettings(true)}
-            className="min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-purple-400 hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-500/50 transition-all duration-200 flex items-center gap-2"
-              >
-            <Cog6ToothIcon className="w-4 h-4" />
-            品項設定
-              </button>
-          <button
-            onClick={resetAllData}
-            className="min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all duration-200"
-          >
-            重置數據
-          </button>
-      </div>
+        </>
+      )}
 
       {/* 一、咖啡豆盤點表 */}
-      <div className="relative group mb-6 sm:mb-8">
-        {/* 卡片背景光暈（不參與點擊） */}
-        <div className="absolute -inset-1 pointer-events-none bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-        
-        <div className="relative backdrop-blur-xl bg-gradient-to-br from-surface/90 via-surface/70 to-surface/90 border-2 border-white/20 rounded-2xl p-4 sm:p-5 md:p-6 shadow-2xl overflow-hidden" ref={inventoryRef} style={{ transform: 'none', willChange: 'auto' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.scale = '1'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.scale = '1'; }}>
-          {/* 流動背景效果：不參與點擊、無無限動畫，避免閃爍 */}
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-primary/0 via-purple-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[length:200%_100%]"></div>
+      <div className={`relative mb-6 sm:mb-8 ${isStudio ? '' : 'group'}`}>
+        <div
+          className={`pointer-events-none absolute -inset-1 rounded-2xl blur-xl transition-opacity duration-500 ${
+            isStudio ? 'hidden' : 'bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100'
+          }`}
+        />
+
+        <div
+          ref={inventoryRef}
+          className={
+            isStudio
+              ? 'relative overflow-hidden rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-surface)] p-4 shadow-sm sm:p-5 md:p-6'
+              : 'relative overflow-hidden rounded-2xl border-2 border-white/20 bg-gradient-to-br from-surface/90 via-surface/70 to-surface/90 p-4 shadow-2xl backdrop-blur-xl sm:p-5 md:p-6'
+          }
+          style={{ transform: 'none', willChange: 'auto' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'none'
+            e.currentTarget.style.scale = '1'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'none'
+            e.currentTarget.style.scale = '1'
+          }}
+        >
+          <div
+            className={`pointer-events-none absolute inset-0 bg-[length:200%_100%] bg-gradient-to-r from-primary/0 via-purple-500/5 to-blue-500/0 transition-opacity duration-500 ${
+              isStudio ? 'hidden' : 'opacity-0 group-hover:opacity-100'
+            }`}
+          />
           
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="relative group/icon">
-                <div className="absolute inset-0 bg-primary/20 rounded-lg sm:rounded-xl blur-lg group-hover/icon:bg-primary/30 transition-all duration-300"></div>
-                <div className="relative p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/40 shadow-lg">
-                  <ClipboardDocumentListIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary transform group-hover/icon:scale-110 transition-transform duration-300" />
+              {isStudio ? (
+                <div className="rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] p-2 sm:p-2.5">
+                  <ClipboardDocumentListIcon className="h-4 w-4 text-[var(--cw-text)] sm:h-5 sm:w-5 md:h-6 md:w-6" />
                 </div>
-              </div>
+              ) : (
+                <div className="group/icon relative">
+                  <div className="absolute inset-0 rounded-lg bg-primary/20 blur-lg transition-all duration-300 group-hover/icon:bg-primary/30 sm:rounded-xl" />
+                  <div className="relative rounded-lg border border-primary/40 bg-gradient-to-br from-primary/20 to-purple-500/20 p-2 shadow-lg sm:rounded-xl sm:p-2.5">
+                    <ClipboardDocumentListIcon className="h-4 w-4 transform text-primary transition-transform duration-300 group-hover/icon:scale-110 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                  </div>
+                </div>
+              )}
           <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">咖啡豆盤點表</h2>
+                <h2
+                  className={
+                    isStudio
+                      ? 'text-lg font-bold text-[var(--cw-text)] sm:text-xl md:text-2xl'
+                      : 'bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-lg font-bold text-transparent sm:text-xl md:text-2xl'
+                  }
+                >
+                  咖啡豆盤點表
+                </h2>
                 <button
                   type="button"
                   onClick={() => setShowTutorial(true)}
-                  className="p-1.5 rounded-lg hover:bg-white/10 text-text-secondary hover:text-primary transition-colors"
+                  className={
+                    isStudio
+                      ? 'rounded-lg p-1.5 text-[var(--cw-text-muted)] transition-colors hover:bg-[var(--cw-bg)] hover:text-[var(--cw-text)]'
+                      : 'rounded-lg p-1.5 text-text-secondary transition-colors hover:bg-white/10 hover:text-primary'
+                  }
                   title="使用教學"
                   aria-label="使用教學"
                 >
@@ -1806,31 +1824,31 @@ function CoffeeBeanManager() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {/* 匯出模式選擇 - 三選一 */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-surface/40 rounded-lg border border-white/10">
-                <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
+            <div className={isStudio ? cwExportModeShell : 'flex items-center gap-2 rounded-lg border border-white/10 bg-surface/40 px-3 py-2'}>
+                <label className={isStudio ? cwExportLabel : 'flex cursor-pointer items-center gap-2 text-xs text-text-secondary'}>
                 <input
                   type="radio"
                     value="cat"
                     checked={exportMode === 'cat'}
                   onChange={(e) => setExportMode(e.target.value)}
-                  className="text-blue-400 w-3 h-3"
+                  className={isStudio ? 'h-3 w-3 accent-zinc-400' : 'h-3 w-3 text-blue-400'}
                 />
-                  <span>Cat</span>
+                  <span className={isStudio ? 'text-[var(--cw-text)]' : ''}>Cat</span>
               </label>
-              <div className="w-px h-4 bg-white/20"></div>
-                <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
+              <div className={isStudio ? 'h-4 w-px bg-[var(--cw-border)]' : 'h-4 w-px bg-white/20'} />
+                <label className={isStudio ? cwExportLabel : 'flex cursor-pointer items-center gap-2 text-xs text-text-secondary'}>
                 <input
                   type="radio"
                   value="minimalist"
                   checked={exportMode === 'minimalist'}
                   onChange={(e) => setExportMode(e.target.value)}
-                  className="text-blue-400 w-3 h-3"
+                  className={isStudio ? 'h-3 w-3 accent-zinc-400' : 'h-3 w-3 text-blue-400'}
                 />
-                <span>Minimalist</span>
+                  <span className={isStudio ? 'text-[var(--cw-text)]' : ''}>Minimalist</span>
               </label>
-              <div className="w-px h-4 bg-white/20"></div>
+              <div className={isStudio ? 'h-4 w-px bg-[var(--cw-border)]' : 'h-4 w-px bg-white/20'} />
                 <label 
-                  className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer"
+                  className={isStudio ? cwExportLabel : 'flex cursor-pointer items-center gap-2 text-xs text-text-secondary'}
                   onClick={(e) => {
                     if (!customLogoBase64) {
                       // 如果沒有自訂 logo，阻止 radio 選中，觸發文件選擇
@@ -1848,23 +1866,33 @@ function CoffeeBeanManager() {
                         setExportMode('custom')
                       }
                     }}
-                    className="text-purple-400 w-3 h-3"
-                />
-                  <span className={exportMode === 'custom' ? 'text-purple-400' : ''}>自定 Logo</span>
+                    className={isStudio ? 'h-3 w-3 accent-zinc-400' : 'h-3 w-3 text-purple-400'}
+                  />
+                  <span className={exportMode === 'custom' ? (isStudio ? 'text-[var(--cw-text)]' : 'text-purple-400') : isStudio ? 'text-[var(--cw-text-muted)]' : ''}>自定 Logo</span>
               </label>
             </div>
               
               {/* Logo 預覽和移除（僅在自定 Logo 模式顯示） */}
               {exportMode === 'custom' && customLogoBase64 && (
-                <div className="relative flex items-center gap-2 px-3 py-2 bg-surface/40 rounded-lg border border-white/10">
+                <div
+                  className={
+                    isStudio
+                      ? 'relative flex items-center gap-2 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2'
+                      : 'relative flex items-center gap-2 rounded-lg border border-white/10 bg-surface/40 px-3 py-2'
+                  }
+                >
                   <img 
                     src={customLogoBase64} 
                     alt="自訂 Logo" 
-                    className="w-6 h-6 rounded-full object-cover border border-white/20"
+                    className={isStudio ? 'h-6 w-6 rounded-full border border-[var(--cw-border)] object-cover' : 'h-6 w-6 rounded-full border border-white/20 object-cover'}
                   />
                   <button
                     onClick={removeCustomLogo}
-                    className="text-xs text-text-secondary hover:text-red-400 transition-colors"
+                    className={
+                      isStudio
+                        ? 'text-xs text-[var(--cw-text-muted)] transition-colors hover:text-red-400'
+                        : 'text-xs text-text-secondary transition-colors hover:text-red-400'
+                    }
                     title="移除自訂 Logo"
                   >
                     移除
@@ -1883,8 +1911,14 @@ function CoffeeBeanManager() {
               
               {/* 更換 Logo 按鈕（僅在自定 Logo 模式且已有 logo 時顯示） */}
               {exportMode === 'custom' && customLogoBase64 && (
-                <label className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-400 hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-500/50 transition-all duration-200 flex items-center gap-2 cursor-pointer">
-                  <PhotoIcon className="w-4 h-4" />
+                <label
+                  className={
+                    isStudio
+                      ? 'flex cursor-pointer items-center gap-2 rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] px-4 py-2 text-sm font-medium text-[var(--cw-text)] transition-colors hover:bg-[var(--cw-surface-elevated)]'
+                      : 'flex cursor-pointer items-center gap-2 rounded-lg border border-purple-400/30 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-4 py-2 text-sm font-medium text-purple-400 transition-all duration-200 hover:border-purple-500/50 hover:from-purple-500/30 hover:to-pink-500/30'
+                  }
+                >
+                  <PhotoIcon className="h-4 w-4" />
                   更換 Logo
                   <input
                     type="file"
@@ -1895,46 +1929,79 @@ function CoffeeBeanManager() {
                 </label>
               )}
             
-            <button
-              onClick={exportInventoryAsImage}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 text-blue-400 hover:from-blue-500/30 hover:to-cyan-500/30 hover:border-blue-500/50 transition-all duration-200 flex items-center gap-2"
-            >
-              <ArrowDownTrayIcon className="w-4 h-4" />
-              匯出圖片
-            </button>
+            {isStudio ? (
+              <CwButton
+                type="button"
+                variant="secondary"
+                className="min-h-10 gap-2"
+                onClick={exportInventoryAsImage}
+              >
+                <ArrowDownTrayIcon className="h-4 w-4 shrink-0 text-[var(--cw-text-muted)]" />
+                匯出圖片
+              </CwButton>
+            ) : (
+              <button
+                type="button"
+                onClick={exportInventoryAsImage}
+                className="flex items-center gap-2 rounded-lg border border-blue-400/30 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 px-4 py-2 text-sm font-medium text-blue-400 transition-all duration-200 hover:border-blue-500/50 hover:from-blue-500/30 hover:to-cyan-500/30"
+              >
+                <ArrowDownTrayIcon className="h-4 w-4" />
+                匯出圖片
+              </button>
+            )}
           </div>
         </div>
         
                           {/* 出杯豆：relative z-10 確保在裝飾層之上，左側 數/袋/盒 可點擊 */}
         <div id="brewing-section" className="relative z-10 space-y-4">
-          <div id="brewing-title" className="flex items-center gap-3 mb-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-400/20 backdrop-blur-md shadow-lg">
-            <div className="w-2 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></div>
+          <div
+            id="brewing-title"
+            className={
+              isStudio
+                ? 'mb-4 flex items-center gap-3 rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] px-4 py-3'
+                : 'mb-4 flex items-center gap-3 rounded-xl border border-blue-400/20 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-4 shadow-lg backdrop-blur-md'
+            }
+          >
+            <div
+              className={
+                isStudio
+                  ? 'h-8 w-0.5 rounded-full bg-[var(--cw-text-muted)]'
+                  : 'h-8 w-2 rounded-full bg-gradient-to-b from-blue-400 to-purple-400'
+              }
+            />
             <div>
-              <h3 className="text-xl font-bold text-blue-400">出杯豆</h3>
-              <p className="text-sm text-blue-300/70">用於製作飲品的咖啡豆</p>
+              <h3 className={isStudio ? 'text-xl font-bold text-[var(--cw-text)]' : 'text-xl font-bold text-blue-400'}>出杯豆</h3>
+              <p className={isStudio ? 'text-sm text-[var(--cw-text-muted)]' : 'text-sm text-blue-300/70'}>用於製作飲品的咖啡豆</p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-              <span className="text-xs text-blue-300 font-medium">當前區域</span>
+              <div className={isStudio ? 'h-3 w-3 rounded-full bg-[var(--cw-text-muted)]' : 'h-3 w-3 rounded-full bg-blue-400'} />
+              <span className={isStudio ? 'text-xs font-medium text-[var(--cw-text-muted)]' : 'text-xs font-medium text-blue-300'}>當前區域</span>
             </div>
           </div>
             
             {/* 手沖豆 */}
             <div className="space-y-3">
-              <div id="pourOver-title" className="flex items-center gap-3 mb-3 p-3 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 rounded-lg border border-blue-400/10 backdrop-blur-sm shadow-md">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <h4 className="text-md font-semibold text-blue-300">手沖豆</h4>
-                <span className="text-xs text-blue-300/60">手沖咖啡專用</span>
+              <div
+                id="pourOver-title"
+                className={
+                  isStudio
+                    ? 'mb-3 flex items-center gap-3 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2'
+                    : 'mb-3 flex items-center gap-3 rounded-lg border border-blue-400/10 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 p-3 shadow-md backdrop-blur-sm'
+                }
+              >
+                <div className={isStudio ? 'h-2 w-2 rounded-full bg-[var(--cw-text-muted)]' : 'h-2 w-2 rounded-full bg-blue-400'} />
+                <h4 className={isStudio ? 'text-md font-semibold text-[var(--cw-text)]' : 'text-md font-semibold text-blue-300'}>手沖豆</h4>
+                <span className={isStudio ? 'text-xs text-[var(--cw-text-muted)]' : 'text-xs text-blue-300/60'}>手沖咖啡專用</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {beanTypes.brewing.pourOver.map(beanType => {
                 const location = getBeanLocation(beanType, 'brewing', 'pourOver')
                 const beanData = inventory.brewing.pourOver[beanType]
                 return (
-                  <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
+                  <div key={beanType} className={beanCellShell}>
                     <div className="flex items-center justify-between mb-3">
-                      <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
-                      <div className="w-2 h-2 rounded-full bg-primary/60"></div>
+                      <h5 className={isStudio ? cwBeanTitle : 'text-sm font-semibold text-primary'}>{beanType}</h5>
+                      <div className={isStudio ? cwBeanDot : 'h-2 w-2 rounded-full bg-primary/60'} />
                     </div>
                     
                         {/* 店面庫存 */}
@@ -1962,12 +2029,35 @@ function CoffeeBeanManager() {
                                     value={quantity}
                                     onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
                                     placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'}
-                                    className="input-field flex-1 min-w-0 text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
+                                    className={
+                                      isStudio
+                                        ? `${cwInvInputLg} transition-all`
+                                        : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-3 py-2 text-sm transition-all focus:border-blue-400/50 focus:bg-white/10'
+                                    }
                                     inputMode="decimal"
                                   />
-                                  <div className="flex items-center gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0" role="group" aria-label="填寫方式">
-                                    {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                      <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                  <div
+                                    className={
+                                      isStudio
+                                        ? `${cwCellModeGroup} flex shrink-0 items-center gap-0.5`
+                                        : 'flex shrink-0 items-center gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'
+                                    }
+                                    role="group"
+                                    aria-label="填寫方式"
+                                  >
+                                    {['quantity', 'weightBag', 'weightBox'].map((m) => (
+                                      <button
+                                        key={m}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setCellInputMode(beanType, 'brewing', 'pourOver', 'store', index, m)
+                                        }}
+                                        style={{ touchAction: 'manipulation' }}
+                                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}
+                                      >
+                                        {m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}
+                                      </button>
                                     ))}
                                   </div>
                                   {(beanData?.store || []).length > 1 && (
@@ -2002,10 +2092,12 @@ function CoffeeBeanManager() {
                                 const cellMode = getCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index)
                                 return (
                                   <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                    <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
-                                    <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0" role="group" aria-label="填寫方式">
+                                    <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-green-400/50 focus:bg-white/10'}
+                                      inputMode="decimal"
+                                    />
+                                    <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'} role="group" aria-label="填寫方式">
                                       {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                        <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                        <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                       ))}
                                     </div>
                                     {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2033,10 +2125,11 @@ function CoffeeBeanManager() {
                             const cellMode = getCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index)
                             return (
                               <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
-                                <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0" role="group" aria-label="填寫方式">
+                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-orange-400/50 focus:bg-white/10'}
+                              inputMode="decimal" />
+                                <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'} role="group" aria-label="填寫方式">
                                   {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                   ))}
                                 </div>
                                 {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2047,8 +2140,8 @@ function CoffeeBeanManager() {
                       </div>
                     )}
                         
-                        <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
-                          <span className="text-xs font-semibold text-primary">
+                        <div className={isStudio ? `${cwBeanFooterShell} pt-2` : 'mt-3 rounded-lg border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent p-2 pt-2'}>
+                          <span className={isStudio ? cwBeanFooterText : 'text-xs font-semibold text-primary'}>
                             {beanType}：總共 {Math.floor(calculateBeanTypeTotal(beanData, beanType, 'brewing', 'pourOver'))} 包
                           </span>
                         </div>
@@ -2060,20 +2153,27 @@ function CoffeeBeanManager() {
 
           {/* 義式豆 */}
           <div className="space-y-3">
-            <div id="espresso-title" className="flex items-center gap-3 mb-3 p-3 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-lg border border-purple-400/10 backdrop-blur-sm shadow-md">
-              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-              <h4 className="text-md font-semibold text-purple-300">義式豆</h4>
-              <span className="text-xs text-purple-300/60">義式咖啡專用</span>
+            <div
+              id="espresso-title"
+              className={
+                isStudio
+                  ? 'mb-3 flex items-center gap-3 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2'
+                  : 'mb-3 flex items-center gap-3 rounded-lg border border-purple-400/10 bg-gradient-to-r from-purple-500/5 to-pink-500/5 p-3 shadow-md backdrop-blur-sm'
+              }
+            >
+              <div className={isStudio ? 'h-2 w-2 rounded-full bg-[var(--cw-text-muted)]' : 'h-2 w-2 rounded-full bg-purple-400'} />
+              <h4 className={isStudio ? 'text-md font-semibold text-[var(--cw-text)]' : 'text-md font-semibold text-purple-300'}>義式豆</h4>
+              <span className={isStudio ? 'text-xs text-[var(--cw-text-muted)]' : 'text-xs text-purple-300/60'}>義式咖啡專用</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {beanTypes.brewing.espresso.map(beanType => {
                 const location = getBeanLocation(beanType, 'brewing', 'espresso')
                 const beanData = inventory.brewing.espresso[beanType]
                 return (
-                  <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
+                  <div key={beanType} className={beanCellShell}>
                     <div className="flex items-center justify-between mb-3">
-                      <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
-                      <div className="w-2 h-2 rounded-full bg-primary/60"></div>
+                      <h5 className={isStudio ? cwBeanTitle : 'text-sm font-semibold text-primary'}>{beanType}</h5>
+                      <div className={isStudio ? cwBeanDot : 'h-2 w-2 rounded-full bg-primary/60'} />
                     </div>
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-2">
@@ -2090,10 +2190,11 @@ function CoffeeBeanManager() {
                           const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'store', index)
                           return (
                             <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                              <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10" inputMode="decimal" />
-                              <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                              <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-blue-400/50 focus:bg-white/10'}
+                              inputMode="decimal" />
+                              <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
                                 {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                  <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                  <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                 ))}
                               </div>
                               {(beanData?.store || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'store', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2118,10 +2219,12 @@ function CoffeeBeanManager() {
                             const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index)
                             return (
                               <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
-                                <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-green-400/50 focus:bg-white/10'}
+                                      inputMode="decimal"
+                                    />
+                                <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
                                   {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                   ))}
                                 </div>
                                 {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2147,10 +2250,11 @@ function CoffeeBeanManager() {
                             const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index)
                             return (
                               <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
-                                <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-orange-400/50 focus:bg-white/10'}
+                              inputMode="decimal" />
+                                <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
                                   {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                   ))}
                                 </div>
                                 {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2160,8 +2264,8 @@ function CoffeeBeanManager() {
                         </div>
                       </div>
                     )}
-                        <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
-                          <span className="text-xs font-semibold text-primary">
+                        <div className={isStudio ? `${cwBeanFooterShell} pt-2` : 'mt-3 rounded-lg border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent p-2 pt-2'}>
+                          <span className={isStudio ? cwBeanFooterText : 'text-xs font-semibold text-primary'}>
                             {beanType}：總共 {Math.floor(calculateBeanTypeTotal(beanData, beanType, 'brewing', 'espresso'))} 包
                           </span>
                         </div>
@@ -2174,15 +2278,28 @@ function CoffeeBeanManager() {
 
         {/* 賣豆：relative z-10 確保在裝飾層之上，左側 數/袋/盒 可點擊 */}
         <div id="retail-section" className="relative z-10 space-y-4 mt-8">
-          <div id="retail-title" className="flex items-center gap-3 mb-4 p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-xl border border-orange-400/20 backdrop-blur-md shadow-lg">
-            <div className="w-2 h-8 bg-gradient-to-b from-orange-400 to-yellow-400 rounded-full"></div>
+          <div
+            id="retail-title"
+            className={
+              isStudio
+                ? 'mb-4 flex items-center gap-3 rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] px-4 py-3'
+                : 'mb-4 flex items-center gap-3 rounded-xl border border-orange-400/20 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 p-4 shadow-lg backdrop-blur-md'
+            }
+          >
+            <div
+              className={
+                isStudio
+                  ? 'h-8 w-0.5 rounded-full bg-[var(--cw-text-muted)]'
+                  : 'h-8 w-2 rounded-full bg-gradient-to-b from-orange-400 to-yellow-400'
+              }
+            />
             <div>
-              <h3 className="text-xl font-bold text-orange-400">賣豆</h3>
-              <p className="text-sm text-orange-300/70">用於販售的咖啡豆</p>
+              <h3 className={isStudio ? 'text-xl font-bold text-[var(--cw-text)]' : 'text-xl font-bold text-orange-400'}>賣豆</h3>
+              <p className={isStudio ? 'text-sm text-[var(--cw-text-muted)]' : 'text-sm text-orange-300/70'}>用於販售的咖啡豆</p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-orange-400"></div>
-              <span className="text-xs text-orange-300 font-medium">當前區域</span>
+              <div className={isStudio ? 'h-3 w-3 rounded-full bg-[var(--cw-text-muted)]' : 'h-3 w-3 rounded-full bg-orange-400'} />
+              <span className={isStudio ? 'text-xs font-medium text-[var(--cw-text-muted)]' : 'text-xs font-medium text-orange-300'}>當前區域</span>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -2190,10 +2307,10 @@ function CoffeeBeanManager() {
               const location = getBeanLocation(beanType, 'retail')
               const beanData = inventory.retail[beanType]
               return (
-                <div key={beanType} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-3 border border-white/10">
+                <div key={beanType} className={beanCellShell}>
                   <div className="flex items-center justify-between mb-3">
-                    <h5 className="font-semibold text-sm text-primary">{beanType}</h5>
-                    <div className="w-2 h-2 rounded-full bg-primary/60"></div>
+                    <h5 className={isStudio ? cwBeanTitle : 'text-sm font-semibold text-primary'}>{beanType}</h5>
+                    <div className={isStudio ? cwBeanDot : 'h-2 w-2 rounded-full bg-primary/60'} />
                   </div>
                   <div className="mb-3">
                     <div className="flex items-center justify-between mb-2">
@@ -2227,12 +2344,12 @@ function CoffeeBeanManager() {
                                 }))
                               }}
                               placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'}
-                              className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
+                              className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-blue-400/50 focus:bg-white/10'}
                               inputMode="decimal"
                             />
-                            <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                            <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
                               {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                               ))}
                             </div>
                             {(beanData?.store || []).length > 1 && (
@@ -2263,10 +2380,12 @@ function CoffeeBeanManager() {
                               const cellMode = getCellInputMode(beanType, 'retail', null, 'breakRoom', index)
                               return (
                                 <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                  <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10" inputMode="decimal" />
-                                  <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                                  <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-green-400/50 focus:bg-white/10'}
+                                      inputMode="decimal"
+                                    />
+                                  <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
                                     {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                      <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                      <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                     ))}
                                   </div>
                                   {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeRetailQuantityField(beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2294,10 +2413,11 @@ function CoffeeBeanManager() {
                           const cellMode = getCellInputMode(beanType, 'retail', null, 'dryStorage', index)
                           return (
                             <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                              <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], dryStorage: prev.retail[beanType]?.dryStorage?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className="input-field flex-1 min-w-0 text-sm py-1.5 px-2.5 rounded-lg bg-white/5 border-white/10 focus:border-orange-400/50 focus:bg-white/10" inputMode="decimal" />
-                              <div className="flex gap-0.5 rounded bg-white/5 border border-white/10 p-0.5 shrink-0">
+                              <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], dryStorage: prev.retail[beanType]?.dryStorage?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-orange-400/50 focus:bg-white/10'}
+                              inputMode="decimal" />
+                              <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
                                 {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                  <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cellMode === m ? (m === 'quantity' ? 'bg-primary/30 text-primary' : 'bg-amber-500/30 text-amber-400') : 'text-text-secondary hover:bg-white/10'}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
+                                  <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
                                 ))}
                               </div>
                               {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeRetailQuantityField(beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
@@ -2308,8 +2428,8 @@ function CoffeeBeanManager() {
                     </div>
                   )}
                       
-                      <div className="mt-3 pt-2 border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-2">
-                        <span className="text-xs font-semibold text-primary">
+                      <div className={isStudio ? `${cwBeanFooterShell} pt-2` : 'mt-3 rounded-lg border-t border-white/10 bg-gradient-to-r from-primary/10 to-transparent p-2 pt-2'}>
+                        <span className={isStudio ? cwBeanFooterText : 'text-xs font-semibold text-primary'}>
                           {beanType}：總共 {Math.floor(calculateBeanTypeTotal(beanData, beanType, 'retail', null))} 包
                         </span>
                       </div>
@@ -2332,344 +2452,608 @@ function CoffeeBeanManager() {
           transition: isDragging ? 'none' : 'opacity 0.2s'
         }}
       >
-        <div 
-          className="pointer-events-auto bg-surface/90 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 shadow-lg select-none"
+        <div
+          className={
+            isStudio
+              ? 'pointer-events-auto select-none rounded-full border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] px-3 py-2 shadow-lg'
+              : 'pointer-events-auto select-none rounded-full border border-white/20 bg-surface/90 px-3 py-2 shadow-lg backdrop-blur-md'
+          }
           onMouseDown={handleIndicatorDragStart}
           onTouchStart={handleIndicatorDragStart}
         >
-          <div className="flex items-center gap-2 pointer-events-none">
+          <div className="pointer-events-none flex items-center gap-2">
             <button 
               onClick={(e) => {
                 e.stopPropagation()
                 document.getElementById('brewing-section')?.scrollIntoView({ behavior: 'smooth' })
               }}
               onMouseDown={(e) => e.stopPropagation()}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 pointer-events-auto ${currentSection === 'brewing' ? 'bg-blue-400/20 text-blue-400' : 'text-gray-400 hover:text-blue-300'}`}
+              className={`pointer-events-auto flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-all duration-300 ${
+                isStudio
+                  ? currentSection === 'brewing'
+                    ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)]'
+                    : 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]'
+                  : currentSection === 'brewing'
+                    ? 'bg-blue-400/20 text-blue-400'
+                    : 'text-gray-400 hover:text-blue-300'
+              }`}
             >
-              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSection === 'brewing' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
-              <span className="text-xs sm:text-sm font-medium">出杯豆</span>
+              <div
+                className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                  isStudio
+                    ? currentSection === 'brewing'
+                      ? 'bg-[var(--cw-text)]'
+                      : 'bg-[var(--cw-border-strong)]'
+                    : currentSection === 'brewing'
+                      ? 'bg-blue-400'
+                      : 'bg-gray-400'
+                }`}
+              />
+              <span className="text-xs font-medium sm:text-sm">出杯豆</span>
             </button>
-            <div className="w-px h-4 bg-gray-600"></div>
+            <div className={isStudio ? 'h-4 w-px bg-[var(--cw-border)]' : 'h-4 w-px bg-gray-600'} />
             <button 
               onClick={(e) => {
                 e.stopPropagation()
                 document.getElementById('retail-section')?.scrollIntoView({ behavior: 'smooth' })
               }}
               onMouseDown={(e) => e.stopPropagation()}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300 pointer-events-auto ${currentSection === 'retail' ? 'bg-orange-400/20 text-orange-400' : 'text-gray-400 hover:text-orange-300'}`}
+              className={`pointer-events-auto flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-all duration-300 ${
+                isStudio
+                  ? currentSection === 'retail'
+                    ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)]'
+                    : 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]'
+                  : currentSection === 'retail'
+                    ? 'bg-orange-400/20 text-orange-400'
+                    : 'text-gray-400 hover:text-orange-300'
+              }`}
             >
-              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSection === 'retail' ? 'bg-orange-400' : 'bg-gray-400'}`}></div>
-              <span className="text-xs sm:text-sm font-medium">賣豆</span>
+              <div
+                className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                  isStudio
+                    ? currentSection === 'retail'
+                      ? 'bg-[var(--cw-text)]'
+                      : 'bg-[var(--cw-border-strong)]'
+                    : currentSection === 'retail'
+                      ? 'bg-orange-400'
+                      : 'bg-gray-400'
+                }`}
+              />
+              <span className="text-xs font-medium sm:text-sm">賣豆</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* 浮動重量換算計算器按鈕 */}
-      <button
-        onClick={() => setShowWeightCalculator(true)}
-        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 rounded-full shadow-lg hover:shadow-xl z-50 hover:scale-110 transform"
-      >
-        <CalculatorIcon className="w-6 h-6" />
-      </button>
+      {!isStudio ? (
+        <button
+          type="button"
+          onClick={() => setShowWeightCalculator(true)}
+          className="fixed bottom-6 right-6 z-50 transform rounded-full border border-primary/30 bg-gradient-to-r from-primary/20 to-purple-500/20 p-4 text-primary shadow-lg transition-all duration-200 hover:scale-110 hover:border-primary/50 hover:from-primary/30 hover:to-purple-500/30 hover:shadow-xl"
+          style={{ minWidth: '56px', minHeight: '56px' }}
+          aria-label="開啟重量換算"
+        >
+          <CalculatorIcon className="h-6 w-6" />
+        </button>
+      ) : null}
 
       {/* 重量換算計算器彈窗 */}
-              {showWeightCalculator && (
-          <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      {showWeightCalculator && (
+        <div
+          className={
+            isStudio
+              ? 'fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/70 touch-manipulation'
+              : 'fixed inset-0 z-50 bg-black/50 backdrop-blur-sm touch-manipulation'
+          }
           onClick={(e) => {
-            // 點擊背景時關閉彈窗
-            if (e.target === e.currentTarget) {
-              setShowWeightCalculator(false)
-            }
+            if (e.target === e.currentTarget) setShowWeightCalculator(false)
           }}
         >
-            <div 
-            className="bg-surface/95 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl"
-            onClick={(e) => e.stopPropagation()} // 防止點擊內容區域時關閉彈窗
+          <div
+            className={`flex min-h-[100dvh] w-full items-center justify-center px-4 py-10 sm:py-14 ${isStudio ? 'cw-pb-safe pt-[max(2.75rem,calc(env(safe-area-inset-top)+1.25rem))] pb-[max(2rem,env(safe-area-inset-bottom)+1rem)]' : 'pt-[max(2rem,calc(env(safe-area-inset-top)+0.75rem))] pb-10'}`}
           >
-            <div className="flex justify-between items-start mb-4">
+            <div
+              className={
+                isStudio
+                  ? 'w-full max-w-3xl max-h-[min(92dvh,900px)] overflow-y-auto rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] p-6 shadow-2xl [-webkit-overflow-scrolling:touch]'
+                  : 'max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/20 bg-surface/95 p-6 shadow-2xl backdrop-blur-md'
+              }
+              onClick={(e) => e.stopPropagation()}
+            >
+            <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-bold text-primary mb-1">重量換算計算器</h2>
-                <p className="text-sm text-text-secondary">估算豆包數量</p>
+                <h2 className={`mb-1 text-xl font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>重量換算計算器</h2>
+                <p className={`text-sm ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}`}>估算豆包數量</p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={resetWeightSettings}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-1"
-                >
-                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                  回復設定
-                </button>
-                <button
-                  onClick={() => setShowWeightCalculator(false)}
-                  className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                >
-                  <XMarkIcon className="w-5 h-5" />
-                </button>
+              <div className="flex shrink-0 gap-2">
+                {isStudio ? (
+                  <>
+                    <CwButton type="button" variant="secondary" className="!min-h-9 !gap-1 !px-3 !py-1.5 !text-xs" onClick={resetWeightSettings}>
+                      <span className="h-3 w-3 shrink-0 rounded-full bg-[var(--cw-text-muted)]" />
+                      回復設定
+                    </CwButton>
+                    <CwButton type="button" variant="ghost" className="!min-h-9 !p-2" onClick={() => setShowWeightCalculator(false)} aria-label="關閉">
+                      <XMarkIcon className="h-5 w-5" />
+                    </CwButton>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={resetWeightSettings}
+                      className="flex items-center gap-1 rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs font-medium text-amber-400 transition-all duration-200 hover:border-amber-500/50 hover:bg-amber-500/10"
+                    >
+                      <span className="h-3 w-3 rounded-full bg-amber-400" />
+                      回復設定
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowWeightCalculator(false)}
+                      className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-500/20"
+                    >
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
             {/* 店鋪選擇 */}
             <div className="mb-6">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <div className="p-1.5 bg-primary/10 rounded-lg border border-primary/20">
-                  <BuildingStorefrontIcon className="w-4 h-4 text-primary" />
-                </div>
-                <h3 className="text-base font-bold text-primary">選擇分店</h3>
-              </div>
-              
-              {/* 分段控制器容器 */}
-              <div className="relative mx-auto max-w-2xl bg-surface/60 rounded-xl p-1 border border-white/10">
-                {/* 滑動指示器 */}
+              <div className="mb-4 flex items-center justify-center gap-2">
                 <div
-                  className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 transition-[transform] duration-200 ease-out"
-                  style={{
-                    width: 'calc(33.333% - 4px)',
-                    left: '4px',
-                    transform: selectedWeightStore === 'central' ? 'translateX(0%)' :
-                              selectedWeightStore === 'd7' ? 'translateX(100%)' :
-                              'translateX(200%)'
-                  }}
-                />
-                
-                {/* 選項按鈕 */}
-                <div className="relative grid grid-cols-3 gap-1.5">
-                  {STORES.map((store) => {
-                    const isSelected = selectedWeightStore === store.id
-                    return (
-                      <button
-                        key={store.id}
-                        onClick={() => setSelectedWeightStore(store.id)}
-                        className={`
-                          relative z-10 min-h-[44px]
-                          px-3 py-3 sm:px-4 sm:py-4
-                          rounded-lg
-                          font-bold text-xs sm:text-sm
-                          transition-colors duration-200
-                          ${isSelected 
-                            ? 'text-white' 
-                            : 'text-gray-300 active:text-white'
-                          }
-                        `}
-                        style={{
-                          WebkitTapHighlightColor: 'transparent',
-                          touchAction: 'manipulation'
-                        }}
-                      >
-                        <span className="relative z-10 flex items-center justify-center gap-2">
-                          {isSelected && (
-                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full shadow-sm" />
-                          )}
-                          <span className="tracking-wide">{store.name}</span>
-                        </span>
-                        
-                        {isSelected && (
-                          <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-100" />
-                        )}
-                      </button>
-                    )
-                  })}
+                  className={
+                    isStudio
+                      ? 'rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] p-1.5'
+                      : 'rounded-lg border border-primary/20 bg-primary/10 p-1.5'
+                  }
+                >
+                  <BuildingStorefrontIcon className={`h-4 w-4 ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`} />
                 </div>
+                <h3 className={`text-base font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>選擇分店</h3>
               </div>
+
+              {isStudio ? (
+                <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-2">
+                  {STORES.map((store) => (
+                    <CwButton
+                      key={store.id}
+                      type="button"
+                      variant={selectedWeightStore === store.id ? 'primary' : 'secondary'}
+                      className="min-h-11 min-w-[5.5rem]"
+                      onClick={() => setSelectedWeightStore(store.id)}
+                    >
+                      {store.name}
+                    </CwButton>
+                  ))}
+                </div>
+              ) : (
+                <div className="relative mx-auto max-w-2xl rounded-xl border border-white/10 bg-surface/60 p-1">
+                  <div
+                    className="absolute bottom-1.5 left-1 top-1.5 rounded-xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 transition-[transform] duration-200 ease-out"
+                    style={{
+                      width: 'calc(33.333% - 4px)',
+                      left: '4px',
+                      transform:
+                        selectedWeightStore === 'central'
+                          ? 'translateX(0%)'
+                          : selectedWeightStore === 'd7'
+                            ? 'translateX(100%)'
+                            : 'translateX(200%)',
+                    }}
+                  />
+                  <div className="relative grid grid-cols-3 gap-1.5">
+                    {STORES.map((store) => {
+                      const isSelected = selectedWeightStore === store.id
+                      return (
+                        <button
+                          key={store.id}
+                          type="button"
+                          onClick={() => setSelectedWeightStore(store.id)}
+                          className={`
+                          relative z-10 min-h-[44px]
+                          rounded-lg px-3 py-3 text-xs font-bold transition-colors duration-200
+                          sm:px-4 sm:py-4 sm:text-sm
+                          ${isSelected ? 'text-white' : 'text-gray-300 active:text-white'}
+                        `}
+                          style={{
+                            WebkitTapHighlightColor: 'transparent',
+                            touchAction: 'manipulation',
+                          }}
+                        >
+                          <span className="relative z-10 flex items-center justify-center gap-2">
+                            {isSelected ? <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-green-400 shadow-sm" /> : null}
+                            <span className="tracking-wide">{store.name}</span>
+                          </span>
+                          {isSelected ? <span className="absolute inset-0 rounded-xl bg-primary/10 opacity-100" /> : null}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* 模式切換 */}
             <div className="mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-1 h-6 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full"></div>
-                <h3 className="text-lg font-bold text-primary">計算模式</h3>
+              <div className="mb-4 flex items-center gap-3">
+                <div
+                  className={
+                    isStudio
+                      ? 'h-6 w-1 rounded-full bg-[var(--cw-border-strong)]'
+                      : 'h-6 w-1 rounded-full bg-gradient-to-b from-amber-400 to-orange-400'
+                  }
+                />
+                <h3 className={`text-lg font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>計算模式</h3>
               </div>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-amber-400/30 transition-all duration-200 cursor-pointer bg-gradient-to-br from-surface/40 to-surface/20">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                <label
+                  className={
+                    isStudio
+                      ? `flex cursor-pointer items-center gap-3 rounded-[var(--cw-radius)] border p-3 transition-colors ${
+                          weightMode === 'bag'
+                            ? 'border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]'
+                            : 'border-[var(--cw-border)] bg-[var(--cw-bg)] hover:border-[var(--cw-border-strong)]'
+                        }`
+                      : 'flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-gradient-to-br from-surface/40 to-surface/20 p-3 transition-all duration-200 hover:border-amber-400/30'
+                  }
+                >
                   <input
                     type="radio"
                     value="bag"
                     checked={weightMode === 'bag'}
                     onChange={(e) => setWeightMode(e.target.value)}
-                    className="text-amber-400 w-4 h-4"
+                    className={isStudio ? 'h-4 w-4 accent-zinc-400' : 'h-4 w-4 text-amber-400'}
                   />
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                    <span className="font-medium">銀袋</span>
+                    <span className={`h-2 w-2 rounded-full ${isStudio ? 'bg-[var(--cw-text-muted)]' : 'bg-amber-400'}`} />
+                    <span className={`font-medium ${isStudio ? 'text-[var(--cw-text)]' : ''}`}>銀袋</span>
                   </div>
                 </label>
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-amber-400/30 transition-all duration-200 cursor-pointer bg-gradient-to-br from-surface/40 to-surface/20">
+                <label
+                  className={
+                    isStudio
+                      ? `flex cursor-pointer items-center gap-3 rounded-[var(--cw-radius)] border p-3 transition-colors ${
+                          weightMode === 'ikea'
+                            ? 'border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]'
+                            : 'border-[var(--cw-border)] bg-[var(--cw-bg)] hover:border-[var(--cw-border-strong)]'
+                        }`
+                      : 'flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-gradient-to-br from-surface/40 to-surface/20 p-3 transition-all duration-200 hover:border-amber-400/30'
+                  }
+                >
                   <input
                     type="radio"
                     value="ikea"
                     checked={weightMode === 'ikea'}
                     onChange={(e) => setWeightMode(e.target.value)}
-                    className="text-amber-400 w-4 h-4"
+                    className={isStudio ? 'h-4 w-4 accent-zinc-400' : 'h-4 w-4 text-amber-400'}
                   />
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                    <span className="font-medium">{getBoxWeightKey(selectedWeightStore) === 'mujiBoxWeight' ? 'MUJI 盒子' : 'IKEA 盒子'}</span>
+                    <span className={`h-2 w-2 rounded-full ${isStudio ? 'bg-[var(--cw-text-muted)]' : 'bg-amber-400'}`} />
+                    <span className={`font-medium ${isStudio ? 'text-[var(--cw-text)]' : ''}`}>
+                      {getBoxWeightKey(selectedWeightStore) === 'mujiBoxWeight' ? 'MUJI 盒子' : 'IKEA 盒子'}
+                    </span>
                   </div>
                 </label>
               </div>
             </div>
 
             {/* 重量設定 */}
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-1 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></div>
-                <h3 className="text-lg font-bold text-primary">重量設定</h3>
+            <div className="mb-6 space-y-4">
+              <div className="mb-4 flex items-center gap-3">
+                <div
+                  className={
+                    isStudio
+                      ? 'h-6 w-1 rounded-full bg-[var(--cw-text-muted)]'
+                      : 'h-6 w-1 rounded-full bg-gradient-to-b from-blue-400 to-purple-400'
+                  }
+                />
+                <h3 className={`text-lg font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>重量設定</h3>
               </div>
-              
-              {/* 重量輸入欄位 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
-                  <label className="block text-sm font-semibold mb-3 text-primary flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                    {weightMode === 'bag' 
-                      ? '銀袋重量' 
-                      : (getBoxWeightKey(selectedWeightStore) === 'mujiBoxWeight' ? 'MUJI 盒重量' : 'IKEA 盒重量')} (g)
-                  </label>
-                  <input
-                    type="number"
-                    value={(() => {
-                      const key = weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore)
-                      return tempInputValues[key] !== undefined ? tempInputValues[key] : (weightMode === 'bag' ? weightSettings.bagWeight : weightSettings[getBoxWeightKey(selectedWeightStore)] ?? weightSettings.ikeaBoxWeight)
-                    })()}
-                    onChange={(e) => updateWeightSetting(
-                      weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore),
-                      e.target.value,
-                      false
-                    )}
-                    onBlur={(e) => updateWeightSetting(
-                      weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore),
-                      e.target.value,
-                      true
-                    )}
-                    className="input-field w-full text-sm py-3 px-4 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10 transition-all"
-                    placeholder="輸入重量"
-                    inputMode="decimal"
-                  />
-                </div>
-                <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-xl p-4 border border-white/10">
-                  <label className="block text-sm font-semibold mb-3 text-primary flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                    每包豆子重量 (g)
-                  </label>
-                  <input
-                    type="number"
-                    value={tempInputValues.beanWeightPerPack !== undefined ? tempInputValues.beanWeightPerPack : weightSettings.beanWeightPerPack}
-                    onChange={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, false)}
-                    onBlur={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, true)}
-                    className="input-field w-full text-sm py-2.5 px-3 rounded-lg bg-white/5 border-white/10 focus:border-green-400/50 focus:bg-white/10"
-                    placeholder="輸入重量"
-                    inputMode="decimal"
-                  />
-                </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {isStudio ? (
+                  <>
+                    <div className={weightFieldShell}>
+                      <CwInput
+                        label={`${
+                          weightMode === 'bag'
+                            ? '銀袋重量'
+                            : getBoxWeightKey(selectedWeightStore) === 'mujiBoxWeight'
+                              ? 'MUJI 盒重量'
+                              : 'IKEA 盒重量'
+                        } (g)`}
+                        type="number"
+                        value={(() => {
+                          const key = weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore)
+                          return tempInputValues[key] !== undefined
+                            ? tempInputValues[key]
+                            : weightMode === 'bag'
+                              ? weightSettings.bagWeight
+                              : weightSettings[getBoxWeightKey(selectedWeightStore)] ?? weightSettings.ikeaBoxWeight
+                        })()}
+                        onChange={(e) =>
+                          updateWeightSetting(
+                            weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore),
+                            e.target.value,
+                            false
+                          )
+                        }
+                        onBlur={(e) =>
+                          updateWeightSetting(
+                            weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore),
+                            e.target.value,
+                            true
+                          )
+                        }
+                        placeholder="輸入重量"
+                        inputMode="decimal"
+                        className="!mb-0"
+                      />
+                    </div>
+                    <div className={weightFieldShell}>
+                      <CwInput
+                        label="每包豆子重量 (g)"
+                        type="number"
+                        value={
+                          tempInputValues.beanWeightPerPack !== undefined
+                            ? tempInputValues.beanWeightPerPack
+                            : weightSettings.beanWeightPerPack
+                        }
+                        onChange={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, false)}
+                        onBlur={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, true)}
+                        placeholder="輸入重量"
+                        inputMode="decimal"
+                        className="!mb-0"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface/40 to-surface/20 p-4">
+                      <span className="mb-3 flex items-center gap-2 text-sm font-semibold text-primary">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                        {`${
+                          weightMode === 'bag'
+                            ? '銀袋重量'
+                            : getBoxWeightKey(selectedWeightStore) === 'mujiBoxWeight'
+                              ? 'MUJI 盒重量'
+                              : 'IKEA 盒重量'
+                        } (g)`}
+                      </span>
+                      <input
+                        type="number"
+                        value={(() => {
+                          const key = weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore)
+                          return tempInputValues[key] !== undefined
+                            ? tempInputValues[key]
+                            : weightMode === 'bag'
+                              ? weightSettings.bagWeight
+                              : weightSettings[getBoxWeightKey(selectedWeightStore)] ?? weightSettings.ikeaBoxWeight
+                        })()}
+                        onChange={(e) =>
+                          updateWeightSetting(
+                            weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore),
+                            e.target.value,
+                            false
+                          )
+                        }
+                        onBlur={(e) =>
+                          updateWeightSetting(
+                            weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore),
+                            e.target.value,
+                            true
+                          )
+                        }
+                        className="input-field w-full rounded-lg border-white/10 bg-white/5 px-4 py-3 text-sm transition-all focus:border-blue-400/50 focus:bg-white/10"
+                        placeholder="輸入重量"
+                        inputMode="decimal"
+                      />
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface/40 to-surface/20 p-4">
+                      <span className="mb-3 flex items-center gap-2 text-sm font-semibold text-primary">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                        每包豆子重量 (g)
+                      </span>
+                      <input
+                        type="number"
+                        value={
+                          tempInputValues.beanWeightPerPack !== undefined
+                            ? tempInputValues.beanWeightPerPack
+                            : weightSettings.beanWeightPerPack
+                        }
+                        onChange={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, false)}
+                        onBlur={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, true)}
+                        className="input-field w-full rounded-lg border-white/10 bg-white/5 px-3 py-2.5 text-sm focus:border-green-400/50 focus:bg-white/10"
+                        placeholder="輸入重量"
+                        inputMode="decimal"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
-              
-              {/* 操作按鈕 */}
+
               <div className="flex justify-end">
-                <button
-                  onClick={addCalculation}
-                  className="px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30 text-primary hover:from-primary/30 hover:to-purple-500/30 hover:border-primary/50 transition-all duration-200 flex items-center gap-2"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                  新增計算欄位
-                </button>
+                {isStudio ? (
+                  <CwButton type="button" variant="primary" onClick={addCalculation}>
+                    <PlusIcon className="h-4 w-4" />
+                    新增計算欄位
+                  </CwButton>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={addCalculation}
+                    className="flex items-center gap-2 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/20 to-purple-500/20 px-4 py-2.5 text-sm font-medium text-primary transition-all duration-200 hover:border-primary/50 hover:from-primary/30 hover:to-purple-500/30"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    新增計算欄位
+                  </button>
+                )}
               </div>
             </div>
 
             {/* 計算欄位 */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                <div className="w-1 h-6 bg-gradient-to-b from-green-400 to-emerald-400 rounded-full"></div>
-                <h3 className="text-lg font-bold text-primary">計算結果</h3>
+                  <div
+                    className={
+                      isStudio
+                        ? 'h-6 w-1 rounded-full bg-[var(--cw-border-strong)]'
+                        : 'h-6 w-1 rounded-full bg-gradient-to-b from-green-400 to-emerald-400'
+                    }
+                  />
+                  <h3 className={`text-lg font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>計算結果</h3>
                 </div>
-                <button
-                  onClick={resetCalculations}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all duration-200 flex items-center gap-2"
-                  title="重置所有計算結果"
-                >
-                  <ArrowPathIcon className="w-4 h-4" />
-                  重置結果
-                </button>
+                {isStudio ? (
+                  <CwButton
+                    type="button"
+                    variant="secondary"
+                    className="!min-h-9 w-full !gap-2 !px-3 !py-1.5 !text-xs sm:w-auto"
+                    title="重置所有計算結果"
+                    onClick={resetCalculations}
+                  >
+                    <ArrowPathIcon className="h-4 w-4" />
+                    重置結果
+                  </CwButton>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={resetCalculations}
+                    className="flex w-full items-center gap-2 rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs font-medium text-amber-400 transition-all duration-200 hover:border-amber-500/50 hover:bg-amber-500/10 sm:w-auto"
+                    title="重置所有計算結果"
+                  >
+                    <ArrowPathIcon className="h-4 w-4" />
+                    重置結果
+                  </button>
+                )}
               </div>
-              
+
               {calculations.map((calc) => (
-                <div key={calc.id} className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-xl p-4 border border-white/10">
-                  <div className="flex items-center justify-between mb-4">
+                <div key={calc.id} className={calcCellShell}>
+                  <div className="mb-4 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <h5 className="font-semibold text-primary">計算欄位 #{calc.id}</h5>
-                      <div className="w-2 h-2 rounded-full bg-primary/60"></div>
+                      <h5 className={`font-semibold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>計算欄位 #{calc.id}</h5>
+                      <span className={`h-2 w-2 rounded-full ${isStudio ? 'bg-[var(--cw-text-muted)]/70' : 'bg-primary/60'}`} />
                     </div>
-                    {calculations.length > 1 && (
-                      <button
-                        onClick={() => removeCalculation(calc.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    )}
+                    {calculations.length > 1 &&
+                      (isStudio ? (
+                        <CwButton type="button" variant="ghost" className="!min-h-9 !p-1.5" onClick={() => removeCalculation(calc.id)} aria-label="刪除此計算欄位">
+                          <TrashIcon className="h-4 w-4 text-red-500/90" />
+                        </CwButton>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => removeCalculation(calc.id)}
+                          className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-500/20"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      ))}
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-lg p-3 border border-white/10">
-                      <label className="block text-sm font-semibold mb-2 text-text-secondary flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                        總重量 (g，含袋/盒)
-                      </label>
-                      <input
-                        type="number"
-                        value={calc.totalWeight}
-                        onChange={(e) => updateCalculation(calc.id, e.target.value)}
-                        placeholder="秤上總重"
-                        className="input-field w-full text-sm py-2 px-3 rounded-lg bg-white/5 border-white/10 focus:border-blue-400/50 focus:bg-white/10"
-                        inputMode="decimal"
-                      />
-                    </div>
-                    <div className="bg-gradient-to-br from-surface/40 to-surface/20 rounded-lg p-3 border border-white/10">
-                      <label className="block text-sm font-semibold mb-2 text-text-secondary flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                        估算包數
-                      </label>
-                      <div className="w-full text-sm py-3 px-4 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-center font-bold text-green-400 hover:border-green-500/50 transition-all">
-                        {calc.estimatedPacks} 包
-                      </div>
-                    </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {isStudio ? (
+                      <>
+                        <div className={weightFieldShellSm}>
+                          <CwInput
+                            label="總重量 (g，含袋/盒)"
+                            type="number"
+                            value={calc.totalWeight}
+                            onChange={(e) => updateCalculation(calc.id, e.target.value)}
+                            placeholder="秤上總重"
+                            inputMode="decimal"
+                            className="!mb-0"
+                          />
+                        </div>
+                        <div className={weightFieldShellSm}>
+                          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">估算包數</span>
+                          <div className="flex min-h-11 w-full items-center justify-center rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] px-3 py-2.5 text-center text-sm font-bold text-[var(--cw-text)]">
+                            {calc.estimatedPacks} 包
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="rounded-lg border border-white/10 bg-gradient-to-br from-surface/40 to-surface/20 p-3">
+                          <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-text-secondary">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                            總重量 (g，含袋/盒)
+                          </span>
+                          <input
+                            type="number"
+                            value={calc.totalWeight}
+                            onChange={(e) => updateCalculation(calc.id, e.target.value)}
+                            placeholder="秤上總重"
+                            className="input-field w-full rounded-lg border-white/10 bg-white/5 px-3 py-2 text-sm focus:border-blue-400/50 focus:bg-white/10"
+                            inputMode="decimal"
+                          />
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-gradient-to-br from-surface/40 to-surface/20 p-3">
+                          <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-text-secondary">
+                            <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                            估算包數
+                          </span>
+                          <div className="w-full rounded-lg border border-green-400/30 bg-gradient-to-r from-green-500/20 to-emerald-500/20 px-4 py-3 text-center text-sm font-bold text-green-400 transition-all hover:border-green-500/50">
+                            {calc.estimatedPacks} 包
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
-              
-              {/* 總計卡片 - 僅在有多個計算欄位時顯示 */}
-              {calculations.length > 1 && (
-                <div className="relative group mt-6">
-                  {/* 卡片背景光暈 */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-green-500/30 via-emerald-500/30 to-green-400/30 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
-                  
-                  <div className="relative backdrop-blur-xl bg-gradient-to-br from-green-500/20 via-emerald-500/20 to-green-400/20 border-2 border-green-400/40 rounded-2xl p-6 shadow-2xl overflow-hidden">
-                    {/* 流動背景效果（無無限動畫，避免閃爍） */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-emerald-500/10 to-green-400/0 opacity-50 bg-[length:200%_100%]"></div>
-                    
-                    <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+
+              {calculations.length > 1 &&
+                (isStudio ? (
+                  <div className="mt-6 rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-bg)] p-6">
+                    <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                       <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-green-400/30 to-emerald-400/30 border border-green-400/50 shadow-lg">
-                          <CalculatorIcon className="w-6 h-6 text-green-400" />
+                        <div className="rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-mega-surface)] p-3">
+                          <CalculatorIcon className="h-6 w-6 text-[var(--cw-text)]" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-medium text-text-secondary mb-1">總計估算包數</h4>
-                          <p className="text-xs text-text-secondary/70">所有計算欄位的加總</p>
+                          <h4 className="mb-1 text-sm font-medium text-[var(--cw-text-muted)]">總計估算包數</h4>
+                          <p className="text-xs text-[var(--cw-text-muted)]">所有計算欄位的加總</p>
                         </div>
                       </div>
                       <div className="text-center sm:text-right">
-                        <div className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-400 to-green-300 bg-clip-text text-transparent mb-1">
-                          {calculations.reduce((sum, calc) => sum + (calc.estimatedPacks || 0), 0).toFixed(1)}
+                        <div className="mb-1 text-2xl font-extrabold text-[var(--cw-text)] sm:text-3xl">
+                          {calculations.reduce((sum, c) => sum + (c.estimatedPacks || 0), 0).toFixed(1)}
                         </div>
-                        <div className="text-base font-bold text-green-400">包</div>
+                        <div className="text-base font-bold text-[var(--cw-text)]">包</div>
                       </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="group relative mt-6">
+                    <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-green-500/30 via-emerald-500/30 to-green-400/30 opacity-50 blur-xl transition-opacity duration-500 group-hover:opacity-75" />
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-green-400/40 bg-gradient-to-br from-green-500/20 via-emerald-500/20 to-green-400/20 p-6 shadow-2xl backdrop-blur-xl">
+                      <div className="absolute inset-0 bg-[length:200%_100%] bg-gradient-to-r from-green-500/0 via-emerald-500/10 to-green-400/0 opacity-50" />
+                      <div className="relative z-10 flex flex-col items-center justify-between gap-4 sm:flex-row">
+                        <div className="flex items-center gap-4">
+                          <div className="rounded-xl border border-green-400/50 bg-gradient-to-br from-green-400/30 to-emerald-400/30 p-3 shadow-lg">
+                            <CalculatorIcon className="h-6 w-6 text-green-400" />
+                          </div>
+                          <div>
+                            <h4 className="mb-1 text-sm font-medium text-text-secondary">總計估算包數</h4>
+                            <p className="text-xs text-text-secondary/70">所有計算欄位的加總</p>
+                          </div>
+                        </div>
+                        <div className="text-center sm:text-right">
+                          <div className="mb-1 bg-gradient-to-r from-green-400 via-emerald-400 to-green-300 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl">
+                            {calculations.reduce((sum, c) => sum + (c.estimatedPacks || 0), 0).toFixed(1)}
+                          </div>
+                          <div className="text-base font-bold text-green-400">包</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
-      )}
-            </div>
-          </div>
         </div>
       )}
 
@@ -2682,15 +3066,50 @@ function CoffeeBeanManager() {
 
       {/* 使用教學模態視窗 */}
       {showTutorial && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" onClick={() => setShowTutorial(false)}>
-          <div className="bg-surface border border-white/15 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/10">
-              <h3 className="text-lg font-bold text-primary">使用教學</h3>
-              <button type="button" onClick={() => setShowTutorial(false)} className="p-2 rounded-xl hover:bg-white/10 text-text-secondary hover:text-primary" aria-label="關閉">
-                <XMarkIcon className="w-5 h-5" />
+        <div
+          className={
+            isStudio
+              ? 'fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4'
+              : 'fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md'
+          }
+          onClick={() => setShowTutorial(false)}
+        >
+          <div
+            className={
+              isStudio
+                ? 'flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] shadow-2xl'
+                : 'flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/15 bg-surface shadow-2xl'
+            }
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className={
+                isStudio
+                  ? 'flex items-center justify-between border-b border-[var(--cw-border-strong)] px-6 pb-4 pt-6'
+                  : 'flex items-center justify-between border-b border-white/10 px-6 pb-4 pt-6'
+              }
+            >
+              <h3 className={isStudio ? 'text-lg font-bold text-[var(--cw-text)]' : 'text-lg font-bold text-primary'}>使用教學</h3>
+              <button
+                type="button"
+                onClick={() => setShowTutorial(false)}
+                className={
+                  isStudio
+                    ? 'rounded-[var(--cw-radius)] p-2 text-[var(--cw-text-muted)] transition-colors hover:bg-[var(--cw-bg)] hover:text-[var(--cw-text)]'
+                    : 'rounded-xl p-2 text-text-secondary transition-colors hover:bg-white/10 hover:text-primary'
+                }
+                aria-label="關閉"
+              >
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
-            <div className="px-6 py-4 overflow-y-auto flex-1 space-y-4 text-sm text-primary">
+            <div
+              className={
+                isStudio
+                  ? 'flex-1 space-y-4 overflow-y-auto px-6 py-4 text-sm text-[var(--cw-text)]'
+                  : 'flex-1 space-y-4 overflow-y-auto px-6 py-4 text-sm text-primary'
+              }
+            >
               <section>
                 <h4 className="font-semibold text-primary mb-2">填寫方式（每格右側 數／袋／盒）</h4>
                 <ul className="list-disc list-inside space-y-1 text-text-secondary">
@@ -2713,8 +3132,22 @@ function CoffeeBeanManager() {
                 <p className="text-text-secondary">可選擇 Cat／Minimalist／自定 Logo 匯出為 PNG 圖片，或複製表格用於報表。</p>
               </section>
             </div>
-            <div className="px-6 pb-6 pt-2 border-t border-white/10">
-              <button type="button" onClick={() => setShowTutorial(false)} className="w-full py-2.5 rounded-xl bg-primary/25 border border-primary/40 text-primary font-medium hover:bg-primary/35">
+            <div
+              className={
+                isStudio
+                  ? 'border-t border-[var(--cw-border-strong)] px-6 pb-6 pt-2'
+                  : 'border-t border-white/10 px-6 pb-6 pt-2'
+              }
+            >
+              <button
+                type="button"
+                onClick={() => setShowTutorial(false)}
+                className={
+                  isStudio
+                    ? 'w-full rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] py-2.5 font-medium text-[var(--cw-text)] transition-colors hover:bg-[var(--cw-mega-surface)]'
+                    : 'w-full rounded-xl border border-primary/40 bg-primary/25 py-2.5 font-medium text-primary transition-colors hover:bg-primary/35'
+                }
+              >
                 知道了
               </button>
             </div>
@@ -2722,8 +3155,17 @@ function CoffeeBeanManager() {
         </div>
       )}
       </div>
-    </div>
+  )
+
+  return (
+    <DualThemePage
+      breadcrumbs={COFFEE_BC}
+      title="咖啡豆管理工具"
+      description="所以又到星期天"
+      classic={<div className="coffee-bean-container container-custom py-4 sm:py-6 md:py-8">{coffeeInner}</div>}
+      studio={coffeeInner}
+    />
   )
 }
 
-export default CoffeeBeanManager 
+export default CoffeeBeanManager

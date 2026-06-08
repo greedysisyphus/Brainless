@@ -14,7 +14,7 @@ const TAOYUAN_AIRPORT_LON = 121.2342;
  * 當前播放歌曲跑馬燈組件
  * 顯示在網頁最上方，從左到右滾動顯示當前播放的歌曲
  */
-const NowPlayingMarquee = () => {
+const NowPlayingMarquee = ({ visualVariant = 'classic' } = {}) => {
   const [nowPlaying, setNowPlaying] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -315,8 +315,13 @@ const NowPlayingMarquee = () => {
     return null;
   }
 
+  const barClass =
+    visualVariant === 'studio'
+      ? 'fixed top-0 left-0 right-0 z-[70] cw-px-safe cw-pt-safe border-b shadow-lg bg-[var(--cw-header-bg)] border-[var(--cw-border)]'
+      : 'fixed top-0 left-0 right-0 z-[70] bg-gradient-to-r from-purple-900/95 via-blue-900/95 to-purple-900/95 backdrop-blur-md border-b border-purple-500/30 shadow-lg'
+
   return (
-    <div className="fixed top-0 left-0 right-0 z-[70] bg-gradient-to-r from-purple-900/95 via-blue-900/95 to-purple-900/95 backdrop-blur-md border-b border-purple-500/30 shadow-lg">
+    <div className={barClass}>
       <div className="relative h-6 overflow-hidden">
         <div 
           ref={marqueeRef}
@@ -326,7 +331,11 @@ const NowPlayingMarquee = () => {
             {marqueeItems.map((index) => (
               <div key={`marquee-item-${index}`} className="marquee-item">
                 <div className={`marquee-icon-container ${settings.showOnlyNowPlaying && nowPlaying ? 'flex' : 'hidden'}`}>
-                  <MusicalNoteIcon className={`w-3 h-3 text-purple-400 ${nowPlaying?.isRecent ? '' : 'animate-pulse'}`} />
+                  <MusicalNoteIcon
+                    className={`w-3 h-3 ${
+                      visualVariant === 'studio' ? 'text-[var(--cw-text-muted)]' : 'text-purple-400'
+                    } ${nowPlaying?.isRecent ? '' : 'animate-pulse'}`}
+                  />
                 </div>
                 <span className="marquee-text text-xs font-medium text-white">
                   {displayText}

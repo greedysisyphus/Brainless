@@ -1,332 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, collection, getDocs } from 'firebase/firestore';
-import { db, auth, checkAdminStatus } from '../utils/firebase';
-import { useNavigate } from 'react-router-dom';
-import ResponsiveContainer, { 
-  ResponsiveGrid, 
-  ResponsiveCard, 
-  ResponsiveButton, 
-  ResponsiveInput, 
-  ResponsiveLabel, 
-  ResponsiveTitle, 
-  ResponsiveText 
-} from '../components/common/ResponsiveContainer';
-import CustomRuleManager from '../components/CustomRuleManager';
-import CatBubbleSettings from '../components/admin/CatBubbleSettings';
-import NowPlayingMarqueeSettings from '../components/admin/NowPlayingMarqueeSettings';
-import AdminLoginForm from '../components/admin/AdminLoginForm';
+import React, { useState, useEffect } from 'react'
+import { auth, checkAdminStatus } from '../utils/firebase'
+import { useNavigate } from 'react-router-dom'
+import {
+  ResponsiveTitle,
+  ResponsiveText,
+} from '../components/common/ResponsiveContainer'
+import AdminSettingsTabs from '../components/admin/AdminSettingsTabs'
+import AdminLoginForm from '../components/admin/AdminLoginForm'
+import { DualThemePage } from '../components/studio/DualThemePage'
+import { CwCard } from '../components/studio/ui'
+
+const ADMIN_BC = [
+  { label: 'Brainless', href: '#/sandwich' },
+  { label: '系統', href: '#/' },
+  { label: '管理員設定', href: '#/admin' },
+]
 
 const AdminPanel = () => {
-  const [showBubble, setShowBubble] = useState(false);
-  const [speechTexts, setSpeechTexts] = useState([]);
-  const [intervalSeconds, setIntervalSeconds] = useState(4);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [scheduleData, setScheduleData] = useState(null);
-  const [smartMode, setSmartMode] = useState(false);
-  const [customRules, setCustomRules] = useState([]);
-  const [scheduleTemplates, setScheduleTemplates] = useState([]);
-  const [activeTab, setActiveTab] = useState('catBubble'); // 'catBubble' 或 'marquee'
-  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const navigate = useNavigate()
 
-  // 檢查管理員狀態
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
-          const adminStatus = await checkAdminStatus(user.uid);
-          setIsAdmin(adminStatus);
+          const adminStatus = await checkAdminStatus(user.uid)
+          setIsAdmin(adminStatus)
           if (!adminStatus) {
-            setError('您沒有管理員權限');
-            // 非管理員帳號登入後，3秒後自動跳轉
-            setTimeout(() => navigate('/'), 3000);
-          } else {
-            setError(''); // 清除錯誤訊息
+            setTimeout(() => navigate('/'), 3000)
           }
-        } catch (error) {
-          setError('檢查權限時發生錯誤');
-          console.error('權限檢查失敗:', error);
+        } catch {
+          setIsAdmin(false)
         }
       } else {
-        // 未登入時，不自動跳轉，顯示登入表單
-        setIsAdmin(false);
-        setError(''); // 清除錯誤訊息，讓登入表單正常顯示
+        setIsAdmin(false)
       }
-      setIsLoading(false);
-    });
+      setIsLoading(false)
+    })
 
-    return unsubscribe;
-  }, [navigate]);
+    return unsubscribe
+  }, [navigate])
 
-  // 載入班表資料
-  useEffect(() => {
-    const loadScheduleData = async () => {
-      try {
-        console.log('AdminPanel: 開始載入班表資料...');
-        // 從 schedule 集合讀取資料（ScheduleManager 使用的集合）
-        const currentMonthDoc = await getDoc(doc(db, 'schedule', 'currentMonth'));
-        const nextMonthDoc = await getDoc(doc(db, 'schedule', 'nextMonth'));
-        
-        console.log('AdminPanel: currentMonthDoc.exists():', currentMonthDoc.exists());
-        console.log('AdminPanel: nextMonthDoc.exists():', nextMonthDoc.exists());
-        
-        let scheduleData = null;
-        
-        // 優先使用當月資料，如果沒有則使用下月資料
-        if (currentMonthDoc.exists()) {
-          scheduleData = currentMonthDoc.data();
-        } else if (nextMonthDoc.exists()) {
-          scheduleData = nextMonthDoc.data();
-        }
-        
-        setScheduleData(scheduleData);
-      } catch (error) {
-        // 不顯示錯誤，因為班表資料不是必需的
-      }
-    };
-
-    if (isAdmin) {
-      loadScheduleData();
-    }
-  }, [isAdmin]);
-
-  // 監聽全域設定
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    const unsubscribe = onSnapshot(
-      doc(db, 'catSpeech', 'global'), 
-      (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          setShowBubble(data.enabled || false);
-          setSpeechTexts(data.texts || []);
-          setIntervalSeconds(data.intervalSeconds || 4);
-          setSmartMode(data.smartMode || false);
-          setCustomRules(data.customRules || []);
-          setScheduleTemplates(data.scheduleTemplates || []);
-        }
-      },
-      (error) => {
-        console.error('監聽設定失敗:', error);
-        setError('載入設定失敗');
-      }
-    );
-
-    return unsubscribe;
-  }, [isAdmin]);
-
-  // 管理員登出
   const handleAdminLogout = async () => {
     try {
-      setIsLoading(true);
-      const { signOut } = await import('firebase/auth');
-      await signOut(auth);
-      navigate('/');
-    } catch (error) {
-      console.error('登出失敗:', error);
-      setError('登出失敗');
-      setIsLoading(false);
+      setIsLoading(true)
+      const { signOut } = await import('firebase/auth')
+      await signOut(auth)
+      navigate('/')
+    } catch {
+      setIsLoading(false)
     }
-  };
-
-  // 更新全域設定
-  const updateGlobalSettings = async (newSettings) => {
-    if (!isAdmin) return;
-
-    try {
-      setIsSaving(true);
-      setError('');
-      setSuccessMessage('');
-      
-      await setDoc(doc(db, 'catSpeech', 'global'), {
-        ...newSettings,
-        lastUpdated: serverTimestamp(),
-        updatedBy: auth.currentUser?.uid
-      });
-      
-      setSuccessMessage('設定已更新');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      console.error('更新設定失敗:', error);
-      setError('更新設定失敗');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // 處理自定義規則變更
-  const handleCustomRulesChange = async (newRules) => {
-    setCustomRules(newRules);
-    await updateGlobalSettings({ 
-      texts: speechTexts, 
-      enabled: showBubble, 
-      intervalSeconds: intervalSeconds,
-      smartMode: smartMode,
-      customRules: newRules,
-      scheduleTemplates: scheduleTemplates
-    });
-  };
-
-  // 處理班表問候模板變更
-  const handleScheduleTemplatesChange = async (newTemplates) => {
-    setScheduleTemplates(newTemplates);
-    await updateGlobalSettings({ 
-      texts: speechTexts, 
-      enabled: showBubble, 
-      intervalSeconds: intervalSeconds,
-      smartMode: smartMode,
-      customRules: customRules,
-      scheduleTemplates: newTemplates
-    });
-  };
-
-
-
-  // 載入狀態
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <ResponsiveText size="lg" className="mb-2">載入中...</ResponsiveText>
-          <ResponsiveText size="sm" color="secondary">正在檢查管理員權限</ResponsiveText>
-        </div>
-      </div>
-    );
   }
 
-  // 如果未登入或非管理員，顯示登入表單
+  if (isLoading) {
+    return (
+      <DualThemePage
+        breadcrumbs={ADMIN_BC}
+        title="載入中"
+        description="正在檢查管理員權限…"
+        classic={
+          <div className="flex min-h-screen items-center justify-center bg-background">
+            <div className="text-center">
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+              <ResponsiveText size="lg" className="mb-2">
+                載入中...
+              </ResponsiveText>
+              <ResponsiveText size="sm" color="secondary">
+                正在檢查管理員權限
+              </ResponsiveText>
+            </div>
+          </div>
+        }
+        studio={
+          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 py-16">
+            <div
+              className="h-12 w-12 animate-spin rounded-full border-2 border-[var(--cw-border)] border-t-[var(--cw-text)]"
+              aria-hidden
+            />
+            <p className="text-sm text-[var(--cw-text-muted)]">正在檢查管理員權限…</p>
+          </div>
+        }
+      />
+    )
+  }
+
   if (!isAdmin) {
     return (
-      <AdminLoginForm
-        onLoginSuccess={(user) => {
-          // 登入成功後，會自動觸發 auth.onAuthStateChanged，重新檢查權限
-          console.log('登入成功:', user.email);
-        }}
-        onLoginError={(errorMessage) => {
-          setError(errorMessage);
-        }}
+      <DualThemePage
+        breadcrumbs={ADMIN_BC}
+        title="管理員登入"
+        description="登入 Firebase 並驗證管理員身分"
+        classic={<AdminLoginForm onLoginSuccess={() => {}} onLoginError={() => {}} />}
+        studio={
+          <CwCard className="mx-auto max-w-md">
+            <AdminLoginForm embedded onLoginSuccess={() => {}} onLoginError={() => {}} />
+          </CwCard>
+        }
       />
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <ResponsiveContainer>
-        {/* 頁面標題 */}
-        <div className="text-center mb-8">
-          <ResponsiveTitle level={1} gradient className="mb-2">
-            管理員設定
-          </ResponsiveTitle>
-        </div>
+    <DualThemePage
+      breadcrumbs={ADMIN_BC}
+      title="管理員設定"
+      description="跑馬燈、電子菜單"
+      classic={<AdminSettingsTabs onLogout={handleAdminLogout} isLoggingOut={isLoading} />}
+      studio={<AdminSettingsTabs onLogout={handleAdminLogout} isLoggingOut={isLoading} />}
+    />
+  )
+}
 
-        {/* 狀態訊息 */}
-        {successMessage && (
-          <div className="mb-6 bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <div className="text-green-400">✓</div>
-              <ResponsiveText color="success">{successMessage}</ResponsiveText>
-            </div>
-          </div>
-        )}
-
-        {/* 登出按鈕 */}
-        <div className="flex justify-end mb-6">
-          <ResponsiveButton
-            onClick={handleAdminLogout}
-            variant="danger"
-            disabled={isLoading}
-            loading={isLoading}
-          >
-            {isLoading ? '登出中...' : '登出管理員'}
-          </ResponsiveButton>
-        </div>
-
-        {/* Tab 切換 */}
-        <div className="flex border-b border-white/10 mb-6">
-          <button
-            onClick={() => setActiveTab('catBubble')}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'catBubble'
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            貓咪對話設定
-          </button>
-          <button
-            onClick={() => setActiveTab('marquee')}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'marquee'
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            跑馬燈設定
-          </button>
-        </div>
-
-        {/* Cat Bubble 設定 Tab */}
-        {activeTab === 'catBubble' && (
-          <CatBubbleSettings
-            showBubble={showBubble}
-            onShowBubbleChange={(newShowBubble) => updateGlobalSettings({ 
-              texts: speechTexts, 
-              enabled: newShowBubble, 
-              intervalSeconds: intervalSeconds,
-              smartMode: smartMode,
-              customRules: customRules,
-              scheduleTemplates: scheduleTemplates
-            })}
-            speechTexts={speechTexts}
-            onSpeechTextsChange={(newTexts) => updateGlobalSettings({ 
-              texts: newTexts, 
-              enabled: showBubble, 
-              intervalSeconds: intervalSeconds,
-              smartMode: smartMode,
-              customRules: customRules,
-              scheduleTemplates: scheduleTemplates
-            })}
-            intervalSeconds={intervalSeconds}
-            onIntervalSecondsChange={(newInterval) => updateGlobalSettings({ 
-              texts: speechTexts, 
-              enabled: showBubble, 
-              intervalSeconds: newInterval,
-              smartMode: smartMode,
-              customRules: customRules,
-              scheduleTemplates: scheduleTemplates
-            })}
-            smartMode={smartMode}
-            onSmartModeChange={(newSmartMode) => updateGlobalSettings({ 
-              texts: speechTexts, 
-              enabled: showBubble, 
-              intervalSeconds: intervalSeconds,
-              smartMode: newSmartMode,
-              customRules: customRules,
-              scheduleTemplates: scheduleTemplates
-            })}
-            customRules={customRules}
-            onCustomRulesChange={handleCustomRulesChange}
-            scheduleTemplates={scheduleTemplates}
-            onScheduleTemplatesChange={handleScheduleTemplatesChange}
-            scheduleData={scheduleData}
-            isSaving={isSaving}
-          />
-        )}
-
-        {/* 跑馬燈設定 Tab */}
-        {activeTab === 'marquee' && (
-          <NowPlayingMarqueeSettings />
-        )}
-
-
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-export default AdminPanel;
+export default AdminPanel

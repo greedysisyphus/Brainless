@@ -32,7 +32,7 @@ async function createAdminAccount(email, password) {
     await setDoc(doc(db, 'admins', user.uid), {
       email: email,
       role: 'admin',
-      permissions: ['catSpeech', 'globalSettings'],
+      permissions: ['globalSettings'],
       createdAt: serverTimestamp()
     });
     

@@ -38,14 +38,6 @@ async function testScheduleData() {
       console.log(`姓名文檔 ID: ${doc.id}, 資料:`, doc.data());
     });
     
-    // 檢查 catSpeech 集合
-    const catSpeechSnapshot = await getDocs(collection(db, 'catSpeech'));
-    console.log('catSpeech 集合中的文檔數量:', catSpeechSnapshot.size);
-    
-    catSpeechSnapshot.forEach((doc) => {
-      console.log(`catSpeech 文檔 ID: ${doc.id}, 存在: ${doc.exists()}`);
-    });
-    
   } catch (error) {
     console.error('測試失敗:', error);
   }

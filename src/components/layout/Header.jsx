@@ -2,14 +2,15 @@ import { Link } from 'react-router-dom'
 import { useState, memo } from 'react'
 import { motion } from 'framer-motion'
 import Clock from '../Clock'
-import CatSpeechBubble from '../CatSpeechBubble'
 import YouTubeModal from '../YouTubeModal'
 import logoCat from '../../assets/logo-cat.png'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useChangelog } from '../../contexts/ChangelogContext'
+import { useTheme } from '../../contexts/ThemeContext'
 
 function Header() {
   const { openChangelog } = useChangelog()
+  const { setTheme } = useTheme()
   const [showVideo, setShowVideo] = useState(false)
 
   return (
@@ -17,6 +18,17 @@ function Header() {
       <div className="container-custom pt-2 sm:pt-4 md:pt-6 pb-3 sm:pb-2 md:pb-4">
         <div className="flex flex-col items-center relative min-h-[70px] sm:min-h-[85px]">
           {/* 本次更新按鈕 - 左上角 */}
+          <motion.button
+            type="button"
+            onClick={() => setTheme('studio')}
+            className="absolute top-0 right-0 z-10 p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-300 touch-manipulation bg-white/10 hover:bg-white/15 border border-white/20 text-[10px] sm:text-xs font-semibold text-white/90"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title="切換 Studio Beta 主題"
+          >
+            Studio Beta
+          </motion.button>
+
           <motion.button
             onClick={openChangelog}
             className="absolute top-0 left-0 z-10 p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-300 touch-manipulation bg-primary/20 hover:bg-primary/30 border border-primary/30"
@@ -52,11 +64,6 @@ function Header() {
               </div>
             </div>
           </div>
-          
-          {/* 貓咪留言區域 - 移動設備優化 */}
-          <div className="hidden sm:block mt-1">
-          <CatSpeechBubble />
-          </div>
         </div>
       </div>
       
@@ -70,5 +77,4 @@ function Header() {
   )
 }
 
-// 使用 React.memo 包裝組件，防止 CatSpeechBubble 的狀態更新導致不必要的重新渲染
 export default memo(Header) 

@@ -1,13 +1,23 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, limit, enableIndexedDbPersistence, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  collection,
+  getDocs,
+  limit,
+  query,
+  CACHE_SIZE_UNLIMITED,
+} from 'firebase/firestore';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 import { getApps } from 'firebase/app';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBHzCLGD1E8mrp-iVaJ1P1t9cHe5QT8LN8",
   authDomain: "brainless-schedule.firebaseapp.com",
   projectId: "brainless-schedule",
-  storageBucket: "brainless-schedule.appspot.com",
+  storageBucket: "brainless-schedule.firebasestorage.app",
   messagingSenderId: "902167883215",
   appId: "1:902167883215:web:8dfc400a1035929c5bf6ba"
 };
@@ -20,29 +30,21 @@ if (!getApps().length) {
   app = getApps()[0];
 }
 
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+/** Firestore：IndexedDB 持久快取（取代已棄用之 enableIndexedDbPersistence） */
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    tabManager: persistentMultipleTabManager(),
+  }),
+});
 
-// 啟用離線支持
-try {
-  enableIndexedDbPersistence(db, {
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED
-  }).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('離線持久性在多個標籤中失敗');
-    } else if (err.code === 'unimplemented') {
-      console.warn('當前瀏覽器不支持離線持久性');
-    }
-  });
-} catch (error) {
-  console.error('啟用離線功能時出錯:', error);
-}
+export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 // 添加一個初始化檢查函數
 export async function checkFirebaseConnection() {
   try {
-    const testDoc = await getDocs(collection(db, 'forecasts'), limit(1));
-    console.log('Firebase 連接成功');
+    await getDocs(query(collection(db, 'forecasts'), limit(1)));
     return true;
   } catch (error) {
     console.error('Firebase 連接失敗:', error);

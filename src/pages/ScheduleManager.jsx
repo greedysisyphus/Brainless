@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react
 import html2canvas from 'html2canvas'
 import { DateRangePicker } from '../components/Calendar'
 import ErrorBoundary from '../components/ErrorBoundary'
+import { DualThemePage } from '../components/studio/DualThemePage'
+import { useTheme } from '../contexts/ThemeContext'
 import { LoadingOverlay, StatisticsSkeleton } from '../components/LoadingSpinner'
 import { validateScheduleData, validateNamesMapping, validateStatisticsInput, safeGet, safeArrayMap } from '../utils/validation'
 import { calculateShiftOverlap } from '../utils/statistics'
@@ -44,65 +46,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore'
 import { db } from '../utils/firebase'
-
-// 上車地點選項
-const PICKUP_LOCATIONS = [
-  '7-11 新街門市',
-  'A21 環北站',
-  '7-11 高萱門市',
-  'A18 桃園高鐵站',
-  'A16 橫山站',
-  '大園農會',
-  '不搭車'
-]
-
-// 車費方案常數
-const FARE_PLANS = {
-  'A21 環北站': {
-    name: 'A21 環北站',
-    originalPrice: 65,
-    monthlyPass: {
-      30: 1260,
-      90: 3564,
-      120: 3888
-    }
-  },
-  'A19 體育園區站': {
-    name: 'A19 體育園區站',
-    originalPrice: 40,
-    monthlyPass: {
-      30: 735,
-      90: 2079,
-      120: 2268
-    }
-  },
-  '7-11 高萱門市': {
-    name: 'A19 體育園區站',
-    originalPrice: 40,
-    monthlyPass: {
-      30: 735,
-      90: 2079,
-      120: 2268
-    }
-  },
-  'A18 桃園高鐵站': {
-    name: 'A18 桃園高鐵站',
-    originalPrice: 35,
-    monthlyPass: {
-      30: 630,
-      90: 1782,
-      120: 1944
-    }
-  }
-}
-
-// TPass 方案
-const TPASS_PLAN = {
-  name: 'TPass 799',
-  price: 799,
-  days: 30,
-  description: 'A7-A22 無限搭乘 30天'
-}
+import { FARE_PLANS, PICKUP_LOCATIONS, TPASS_PLAN } from './schedule/schedulePickupFare'
 
 // 班別代碼對應 - 舊版本（9月及之前）
 const SHIFT_CODES_OLD = {
@@ -346,6 +290,7 @@ const getImportMonthOptions = () => {
 }
 
 function ScheduleManager() {
+  const { isStudio } = useTheme()
   // 分頁狀態
   const [activeTab, setActiveTab] = useState('display')
   
@@ -1480,27 +1425,35 @@ function ScheduleManager() {
     return calendarContainer
   }
   
-  return (
-    <div className="container-custom py-8">
+  const schedulePageInner = (
+    <div className={`container-custom ${isStudio ? 'space-y-6 py-6 md:py-8' : 'py-8'}`}>
+      {!isStudio ? (
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-center mb-2">班表管理工具</h1>
         <p className="text-center text-text-secondary">早班好</p>
       </div>
+      ) : null}
       
       {/* 顯眼告示 */}
       <div className="mb-6 mx-auto max-w-4xl">
-        <div className="bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-xl p-4 md:p-5 border-2 border-orange-400/50 shadow-lg">
+        <div
+          className={
+            isStudio
+              ? 'rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] p-4 md:p-5 shadow-sm'
+              : 'bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-xl p-4 md:p-5 border-2 border-orange-400/50 shadow-lg'
+          }
+        >
           <div className="flex items-center justify-center gap-2 md:gap-3">
-            <svg className="w-6 h-6 md:w-7 md:h-7 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg className={`w-6 h-6 md:w-7 md:h-7 flex-shrink-0 ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-orange-400'}`} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <svg className="w-6 h-6 md:w-7 md:h-7 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg className={`w-6 h-6 md:w-7 md:h-7 flex-shrink-0 ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-orange-400'}`} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <svg className="w-6 h-6 md:w-7 md:h-7 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg className={`w-6 h-6 md:w-7 md:h-7 flex-shrink-0 ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-orange-400'}`} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <p className="text-lg md:text-xl font-bold text-orange-200">
+            <p className={`text-lg md:text-xl font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-orange-200'}`}>
               哭
             </p>
           </div>
@@ -1508,54 +1461,76 @@ function ScheduleManager() {
       </div>
       
       {/* 分頁切換 */}
-      <div className="flex justify-center mb-6">
-        <div className="bg-surface/40 rounded-xl p-1 border border-white/10 w-full max-w-4xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+      <div className="mb-6 flex justify-center">
+        <div
+          className={
+            isStudio
+              ? 'w-full max-w-4xl rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-bg)] p-1'
+              : 'w-full max-w-4xl rounded-xl border border-white/10 bg-surface/40 p-1'
+          }
+        >
+          <div className="grid grid-cols-2 gap-1 md:grid-cols-4">
             <button
               onClick={() => setActiveTab('display')}
-              className={`px-3 py-3 md:px-6 rounded-lg transition-all text-sm md:text-base ${
+              className={`rounded-lg px-3 py-3 text-sm transition-all md:px-6 md:text-base ${
                 activeTab === 'display'
-                  ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400 border border-blue-400/30'
-                  : 'text-text-secondary hover:text-white hover:bg-white/5'
+                  ? isStudio
+                    ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)]'
+                    : 'border border-blue-400/30 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400'
+                  : isStudio
+                    ? 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]'
+                    : 'text-text-secondary hover:bg-white/5 hover:text-white'
               }`}
             >
-              <CalendarIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <CalendarIcon className="mr-1 inline h-4 w-4 md:mr-2 md:h-5 md:w-5" />
               <span className="hidden sm:inline">顯示班表</span>
               <span className="sm:hidden">班表</span>
             </button>
             <button
               onClick={() => setActiveTab('transport')}
-              className={`px-3 py-3 md:px-6 rounded-lg transition-all text-sm md:text-base ${
+              className={`rounded-lg px-3 py-3 text-sm transition-all md:px-6 md:text-base ${
                 activeTab === 'transport'
-                  ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 border border-yellow-400/30'
-                  : 'text-text-secondary hover:text-white hover:bg-white/5'
+                  ? isStudio
+                    ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)]'
+                    : 'border border-yellow-400/30 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400'
+                  : isStudio
+                    ? 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]'
+                    : 'text-text-secondary hover:bg-white/5 hover:text-white'
               }`}
             >
-              <TruckIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <TruckIcon className="mr-1 inline h-4 w-4 md:mr-2 md:h-5 md:w-5" />
               <span className="hidden sm:inline">交通及車費試算</span>
               <span className="sm:hidden">交通</span>
             </button>
             <button
               onClick={() => setActiveTab('statistics')}
-              className={`px-3 py-3 md:px-6 rounded-lg transition-all text-sm md:text-base ${
+              className={`rounded-lg px-3 py-3 text-sm transition-all md:px-6 md:text-base ${
                 activeTab === 'statistics'
-                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-400/30'
-                  : 'text-text-secondary hover:text-white hover:bg-white/5'
+                  ? isStudio
+                    ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)]'
+                    : 'border border-purple-400/30 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400'
+                  : isStudio
+                    ? 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]'
+                    : 'text-text-secondary hover:bg-white/5 hover:text-white'
               }`}
             >
-              <ChartBarIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <ChartBarIcon className="mr-1 inline h-4 w-4 md:mr-2 md:h-5 md:w-5" />
               <span className="hidden sm:inline">統計功能</span>
               <span className="sm:hidden">統計</span>
             </button>
             <button
               onClick={() => setActiveTab('import')}
-              className={`px-3 py-3 md:px-6 rounded-lg transition-all text-sm md:text-base ${
+              className={`rounded-lg px-3 py-3 text-sm transition-all md:px-6 md:text-base ${
                 activeTab === 'import'
-                  ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-400/30'
-                  : 'text-text-secondary hover:text-white hover:bg-white/5'
+                  ? isStudio
+                    ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)]'
+                    : 'border border-green-400/30 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400'
+                  : isStudio
+                    ? 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]'
+                    : 'text-text-secondary hover:bg-white/5 hover:text-white'
               }`}
             >
-              <DocumentArrowUpIcon className="w-4 h-4 md:w-5 md:h-5 inline mr-1 md:mr-2" />
+              <DocumentArrowUpIcon className="mr-1 inline h-4 w-4 md:mr-2 md:h-5 md:w-5" />
               <span className="hidden sm:inline">匯入與轉換班表</span>
               <span className="sm:hidden">匯入</span>
             </button>
@@ -1567,7 +1542,13 @@ function ScheduleManager() {
       {activeTab === 'display' && (
         <div className="space-y-6">
                       {/* 控制面板 */}
-            <div className="bg-gradient-to-br from-surface/60 to-surface/40 rounded-2xl p-4 md:p-6 lg:p-8 border border-white/20 shadow-xl backdrop-blur-sm">
+            <div
+              className={
+                isStudio
+                  ? 'rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-surface)] p-4 shadow-sm md:p-6 lg:p-8'
+                  : 'rounded-2xl border border-white/20 bg-gradient-to-br from-surface/60 to-surface/40 p-4 shadow-xl backdrop-blur-sm md:p-6 lg:p-8'
+              }
+            >
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {/* 月份選擇 */}
                 <div className="group">
@@ -2816,6 +2797,20 @@ function ScheduleManager() {
         </div>
       )}
     </div>
+  )
+
+  return (
+    <DualThemePage
+      breadcrumbs={[
+        { label: 'Brainless', href: '#/sandwich' },
+        { label: '人事與航班', href: '#/' },
+        { label: '班表管理', href: '#/schedule' },
+      ]}
+      title="班表管理工具"
+      description="早班好。編輯、統計與匯出一站式。"
+      classic={schedulePageInner}
+      studio={schedulePageInner}
+    />
   )
 }
 
