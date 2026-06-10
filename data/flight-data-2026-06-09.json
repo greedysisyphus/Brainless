@@ -311,14 +311,14 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "CA5512",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
-        },
-        {
           "flight_code": "B77016",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "CA5512",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
         }
       ]
     },
@@ -650,5 +650,5 @@
     "17:15 : D17 : CI150 (中華航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-06-10T04:21:23.728046"
+  "updated_at": "2026-06-10T08:54:57.499568"
 }
