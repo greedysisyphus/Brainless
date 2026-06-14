@@ -379,7 +379,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-900",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -395,7 +395,7 @@
       "type": "departure",
       "airport_code": "SZX",
       "city": "Shenzhen",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Shenzhen (SZX)",
@@ -417,7 +417,7 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
@@ -454,7 +454,7 @@
       "type": "departure",
       "airport_code": "PVG",
       "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Shanghai/Pudong (PVG)",
@@ -481,7 +481,7 @@
       "type": "departure",
       "airport_code": "MFM",
       "city": "Macau",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Macau (MFM)",
@@ -496,7 +496,7 @@
     {
       "time": "20:45",
       "datetime": "2026-06-14T20:45:00",
-      "gate": "D15R",
+      "gate": "D16",
       "flight_code": "BR205",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -552,7 +552,7 @@
     "16:25 : D13 : BR186 (長榮航空)",
     "16:30 : D12 : CI503 (中華航空)",
     "16:40 : D17 : BR805 (長榮航空)",
-    "20:45 : D15R : BR205 (長榮航空)"
+    "20:45 : D16 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-06-14T05:57:05.125733"
+  "updated_at": "2026-06-14T09:51:48.370361"
 }
