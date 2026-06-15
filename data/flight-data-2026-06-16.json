@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "SIN",
       "city": "Singapore",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Singapore (SIN)",
@@ -92,11 +92,6 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4944",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6364",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -110,6 +105,11 @@
           "flight_code": "AC6536",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "NZ4944",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -208,7 +208,7 @@
     {
       "time": "09:30",
       "datetime": "2026-06-16T09:30:00",
-      "gate": "D13",
+      "gate": "D17",
       "flight_code": "BR227",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -453,7 +453,7 @@
     "08:55 : D12 : JX741 (星宇航空)",
     "09:00 : D14R : BR237 (長榮航空)",
     "09:10 : D15R : BR716 (長榮航空)",
-    "09:30 : D13 : BR227 (長榮航空)",
+    "09:30 : D17 : BR227 (長榮航空)",
     "09:50 : D11 : BR255 (長榮航空)",
     "10:05 : D18 : BR867 (長榮航空)",
     "10:10 : D16 : BR116 (長榮航空)",
@@ -465,5 +465,5 @@
     "17:15 : D12 : CI150 (中華航空)",
     "20:10 : D11 : JX26 (星宇航空)"
   ],
-  "updated_at": "2026-06-15T21:14:39.551915"
+  "updated_at": "2026-06-15T23:51:39.672314"
 }
