@@ -65,9 +65,9 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4924",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
+          "flight_code": "TK9456",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         },
         {
           "flight_code": "NH5838",
@@ -75,14 +75,14 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "TK9456",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "TG6366",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4924",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -134,9 +134,9 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
+          "flight_code": "AC6535",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         },
         {
           "flight_code": "TG6396",
@@ -154,9 +154,9 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "AC6535",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -192,6 +192,11 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5850",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "AC6536",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
@@ -205,11 +210,6 @@
           "flight_code": "NZ4944",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "NH5850",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -229,6 +229,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5812",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "NZ4914",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -237,11 +242,6 @@
           "flight_code": "TG6356",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NH5812",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -288,6 +288,21 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "TG6346",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
@@ -296,21 +311,6 @@
           "flight_code": "NZ4934",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "AC6543",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "TG6346",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -384,6 +384,11 @@
       "destination": "Sendai (SDJ)",
       "codeshare_flights": [
         {
+          "flight_code": "NH5818",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
+        },
+        {
           "flight_code": "NZ4910",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -397,11 +402,6 @@
           "flight_code": "TG6372",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NH5818",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -415,7 +415,7 @@
       "type": "departure",
       "airport_code": "PUS",
       "city": "Busan",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Busan (PUS)",
@@ -437,20 +437,20 @@
       "type": "departure",
       "airport_code": "FUK",
       "city": "Fukuoka",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
-          "flight_code": "KL4971",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        },
-        {
           "flight_code": "JL5174",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4971",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -464,7 +464,7 @@
       "type": "departure",
       "airport_code": "PQC",
       "city": "Phu Quoc",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Phu Quoc (PQC)",
@@ -480,7 +480,7 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
@@ -510,14 +510,14 @@
     {
       "time": "16:25",
       "datetime": "2026-06-19T16:25:00",
-      "gate": "D13",
+      "gate": "D16",
       "flight_code": "B7187",
       "airline_code": "B7",
       "airline_name": "立榮航空",
       "type": "departure",
       "airport_code": "SZX",
       "city": "Shenzhen",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Shenzhen (SZX)",
@@ -526,38 +526,6 @@
           "flight_code": "ZH3402",
           "airline_code": "ZH",
           "airline_name": "深圳航空"
-        }
-      ]
-    },
-    {
-      "time": "17:05",
-      "datetime": "2026-06-19T17:05:00",
-      "gate": "D17",
-      "flight_code": "CI122",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "OKA",
-      "city": "Okinawa",
-      "status": "準時ON TIME",
-      "aircraft": "A321-271",
-      "terminal": "2",
-      "destination": "Okinawa (OKA)",
-      "codeshare_flights": [
-        {
-          "flight_code": "KL4980",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        },
-        {
-          "flight_code": "MH5596",
-          "airline_code": "MH",
-          "airline_name": "馬來西亞"
-        },
-        {
-          "flight_code": "JL5136",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
         }
       ]
     },
@@ -571,7 +539,7 @@
       "type": "departure",
       "airport_code": "PHX",
       "city": "Phoenix",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Phoenix (PHX)",
@@ -587,7 +555,7 @@
       "type": "departure",
       "airport_code": "PVG",
       "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Shanghai/Pudong (PVG)",
@@ -615,6 +583,11 @@
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
         {
+          "flight_code": "TK9458",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        },
+        {
           "flight_code": "AI7063",
           "airline_code": "AI",
           "airline_name": "印度航空"
@@ -623,19 +596,14 @@
           "flight_code": "TG6307",
           "airline_code": "TG",
           "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "TK9458",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
         }
       ]
     }
   ],
   "summary": {
-    "total_flights": 25,
+    "total_flights": 24,
     "before_17:00": 21,
-    "after_17:00": 4
+    "after_17:00": 3
   },
   "formatted_display": [
     "00:05 : D11 : JX12 (星宇航空)",
@@ -658,11 +626,10 @@
     "14:50 : D14R : CI128 (中華航空)",
     "15:00 : D11 : JX705 (星宇航空)",
     "16:25 : D15R : BR186 (長榮航空)",
-    "16:25 : D13 : B7187 (立榮航空)",
-    "17:05 : D17 : CI122 (中華航空)",
+    "16:25 : D16 : B7187 (立榮航空)",
     "17:30 : D12 : CI36 (中華航空)",
     "17:30 : D11 : CI505 (中華航空)",
     "20:45 : D14R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-06-19T05:05:15.881188"
+  "updated_at": "2026-06-19T10:48:59.602886"
 }
