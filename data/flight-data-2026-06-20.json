@@ -102,14 +102,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "TK9456",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "NH5838",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TK9456",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         },
         {
           "flight_code": "NZ4924",
@@ -396,7 +396,7 @@
       "type": "departure",
       "airport_code": "CNX",
       "city": "Chiang Mai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Chiang Mai (CNX)",
@@ -412,7 +412,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -428,7 +428,7 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
@@ -455,7 +455,7 @@
       "type": "departure",
       "airport_code": "FUK",
       "city": "Fukuoka",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Fukuoka (FUK)",
@@ -482,7 +482,7 @@
       "type": "departure",
       "airport_code": "FUK",
       "city": "Fukuoka",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-9",
       "terminal": "2",
       "destination": "Fukuoka (FUK)",
@@ -498,14 +498,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "TK9452",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "NH5848",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TK9452",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         }
       ]
     },
@@ -565,6 +565,33 @@
           "flight_code": "NH5810",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        }
+      ]
+    },
+    {
+      "time": "16:40",
+      "datetime": "2026-06-20T16:40:00",
+      "gate": "D18",
+      "flight_code": "CI116",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "FUK",
+      "city": "Fukuoka",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Fukuoka (FUK)",
+      "codeshare_flights": [
+        {
+          "flight_code": "KL4988",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5128",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -662,8 +689,8 @@
     }
   ],
   "summary": {
-    "total_flights": 28,
-    "before_17:00": 25,
+    "total_flights": 29,
+    "before_17:00": 26,
     "after_17:00": 3
   },
   "formatted_display": [
@@ -691,10 +718,11 @@
     "15:10 : D16 : BR102 (長榮航空)",
     "16:25 : D13 : CI106 (中華航空)",
     "16:25 : D12 : BR186 (長榮航空)",
+    "16:40 : D18 : CI116 (中華航空)",
     "16:40 : D17 : BR871 (長榮航空)",
     "18:10 : D14R : BR857 (長榮航空)",
     "20:10 : D11 : JX26 (星宇航空)",
     "20:45 : D16 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-06-20T04:18:10.569044"
+  "updated_at": "2026-06-20T08:24:46.560572"
 }
