@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "SFO",
       "city": "San Francisco",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "San Francisco (SFO)",
@@ -27,7 +27,7 @@
       "type": "departure",
       "airport_code": "LAX",
       "city": "Los Angeles",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Los Angeles (LAX)",
@@ -52,7 +52,7 @@
     {
       "time": "06:30",
       "datetime": "2026-06-26T06:30:00",
-      "gate": "D14R",
+      "gate": "D17",
       "flight_code": "BR217",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -259,14 +259,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "CZ7973",
-          "airline_code": "CZ",
-          "airline_name": "南方航空"
-        },
-        {
           "flight_code": "MU8901",
           "airline_code": "MU",
           "airline_name": "東方航空"
+        },
+        {
+          "flight_code": "CZ7973",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
         }
       ]
     },
@@ -571,14 +571,14 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "OZ6872",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
+        },
+        {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         },
         {
           "flight_code": "NZ4922",
@@ -737,7 +737,7 @@
     "00:05 : D16 : JX12 (星宇航空)",
     "00:10 : D15R : JX2 (星宇航空)",
     "06:20 : D13 : BR134 (長榮航空)",
-    "06:30 : D14R : BR217 (長榮航空)",
+    "06:30 : D17 : BR217 (長榮航空)",
     "06:55 : D18 : JX761 (星宇航空)",
     "07:00 : D15R : BR891 (長榮航空)",
     "07:30 : D13 : CI154 (中華航空)",
@@ -767,5 +767,5 @@
     "20:10 : D12 : JX32 (星宇航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-06-25T17:18:37.277621"
+  "updated_at": "2026-06-25T20:11:09.751823"
 }
