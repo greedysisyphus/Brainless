@@ -470,6 +470,11 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
+          "flight_code": "B77018",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "CA5522",
           "airline_code": "CA",
           "airline_name": "中國國際"
@@ -478,11 +483,6 @@
           "flight_code": "HO3188",
           "airline_code": "HO",
           "airline_name": "吉祥航空"
-        },
-        {
-          "flight_code": "B77018",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         }
       ]
     },
@@ -647,5 +647,5 @@
     "20:30 : D14R : BR261 (長榮航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-06-26T20:01:49.312558"
+  "updated_at": "2026-06-26T22:19:15.441591"
 }
