@@ -389,7 +389,7 @@
       "type": "departure",
       "airport_code": "CNX",
       "city": "Chiang Mai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Chiang Mai (CNX)",
@@ -405,7 +405,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -421,7 +421,7 @@
       "type": "departure",
       "airport_code": "TAK",
       "city": "Takamatsu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Takamatsu (TAK)",
@@ -448,7 +448,7 @@
       "type": "departure",
       "airport_code": "MNL",
       "city": "Manila",
-      "status": "準時ON TIME",
+      "status": "時間更改SCHEDULE CHANGE",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Manila (MNL)",
@@ -470,6 +470,11 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
+          "flight_code": "B77018",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "CA5522",
           "airline_code": "CA",
           "airline_name": "中國國際"
@@ -478,11 +483,6 @@
           "flight_code": "HO3188",
           "airline_code": "HO",
           "airline_name": "吉祥航空"
-        },
-        {
-          "flight_code": "B77018",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
         }
       ]
     },
@@ -565,7 +565,7 @@
     {
       "time": "20:45",
       "datetime": "2026-06-27T20:45:00",
-      "gate": "D13",
+      "gate": "D14R",
       "flight_code": "BR205",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -628,7 +628,7 @@
     "19:35 : D18 : BR381 (長榮航空)",
     "20:05 : D12 : JX10 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)",
-    "20:45 : D13 : BR205 (長榮航空)"
+    "20:45 : D14R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-06-27T04:57:39.764552"
+  "updated_at": "2026-06-27T07:54:18.003780"
 }
