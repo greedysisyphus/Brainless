@@ -43,7 +43,7 @@
       "type": "departure",
       "airport_code": "UKB",
       "city": "KOBE",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "KOBE (UKB)",
@@ -59,7 +59,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -91,7 +91,7 @@
       "type": "departure",
       "airport_code": "MYJ",
       "city": "Matsuyama",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Matsuyama (MYJ)",
@@ -128,7 +128,7 @@
       "type": "departure",
       "airport_code": "MNL",
       "city": "Manila",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Manila (MNL)",
@@ -144,7 +144,7 @@
       "type": "departure",
       "airport_code": "CEB",
       "city": "Cebu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Cebu (CEB)",
@@ -160,7 +160,7 @@
       "type": "departure",
       "airport_code": "NGO",
       "city": "Nagoya",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Nagoya (NGO)",
@@ -182,7 +182,7 @@
       "type": "departure",
       "airport_code": "ICN",
       "city": "Incheon",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Incheon (ICN)",
@@ -224,7 +224,7 @@
       "type": "departure",
       "airport_code": "SIN",
       "city": "Singapore",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Singapore (SIN)",
@@ -423,14 +423,14 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "B77016",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "CA5512",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "B77016",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -661,5 +661,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:45 : D13 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-06-30T22:22:48.326246"
+  "updated_at": "2026-07-01T00:14:21.109267"
 }
