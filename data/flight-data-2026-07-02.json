@@ -49,6 +49,11 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4928",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "TG6354",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -57,11 +62,6 @@
           "flight_code": "NH5834",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "NZ4928",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -81,6 +81,11 @@
       "destination": "Matsuyama (MYJ)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4942",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "NH6611",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -94,11 +99,6 @@
           "flight_code": "TK9545",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
-        },
-        {
-          "flight_code": "NZ4942",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -150,6 +150,16 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
+        },
+        {
+          "flight_code": "B77028",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
+        },
+        {
           "flight_code": "TG6396",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -163,16 +173,6 @@
           "flight_code": "AC6535",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
-        },
-        {
-          "flight_code": "B77028",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
         }
       ]
     },
@@ -284,6 +284,11 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "NZ4934",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -294,19 +299,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "AC6543",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
         },
         {
-          "flight_code": "NZ4934",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         }
       ]
     },
@@ -456,14 +456,14 @@
       "destination": "Takamatsu (TAK)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5124",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4985",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5124",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -559,6 +559,11 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
+          "flight_code": "MH5596",
+          "airline_code": "MH",
+          "airline_name": "馬來西亞"
+        },
+        {
           "flight_code": "JL5136",
           "airline_code": "JL",
           "airline_name": "日本航空"
@@ -567,11 +572,6 @@
           "flight_code": "KL4980",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
-        },
-        {
-          "flight_code": "MH5596",
-          "airline_code": "MH",
-          "airline_name": "馬來西亞"
         }
       ]
     },
@@ -607,7 +607,7 @@
       "type": "departure",
       "airport_code": "MEL",
       "city": "Melbourne",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Melbourne (MEL)",
@@ -655,5 +655,5 @@
     "19:00 : D14R : BR809 (長榮航空)",
     "23:30 : D11 : CI57 (中華航空)"
   ],
-  "updated_at": "2026-07-02T14:19:25.870984"
+  "updated_at": "2026-07-02T16:55:42.287713"
 }
