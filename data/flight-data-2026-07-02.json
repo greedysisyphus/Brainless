@@ -165,14 +165,14 @@
           "airline_name": "加拿大航空"
         },
         {
-          "flight_code": "OZ6874",
-          "airline_code": "OZ",
-          "airline_name": "韓亞航空"
-        },
-        {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "OZ6874",
+          "airline_code": "OZ",
+          "airline_name": "韓亞航空"
         }
       ]
     },
@@ -655,5 +655,5 @@
     "19:00 : D14R : BR809 (長榮航空)",
     "23:30 : D11 : CI57 (中華航空)"
   ],
-  "updated_at": "2026-07-02T11:38:52.910755"
+  "updated_at": "2026-07-02T14:19:25.870984"
 }
