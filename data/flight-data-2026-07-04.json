@@ -126,41 +126,31 @@
       "codeshare_flights": []
     },
     {
-      "time": "08:00",
-      "datetime": "2026-07-04T08:00:00",
-      "gate": "D14R",
-      "flight_code": "CI120",
+      "time": "07:30",
+      "datetime": "2026-07-04T07:30:00",
+      "gate": "D12",
+      "flight_code": "CI154",
       "airline_code": "CI",
       "airline_name": "中華航空",
       "type": "departure",
-      "airport_code": "OKA",
-      "city": "Okinawa",
+      "airport_code": "NGO",
+      "city": "Nagoya",
       "status": "準時ON TIME",
-      "aircraft": "A330-300",
+      "aircraft": "A321-271",
       "terminal": "2",
-      "destination": "Okinawa (OKA)",
+      "destination": "Nagoya (NGO)",
       "codeshare_flights": [
         {
-          "flight_code": "MH5604",
-          "airline_code": "MH",
-          "airline_name": "馬來西亞"
-        },
-        {
-          "flight_code": "JL5134",
+          "flight_code": "JL5112",
           "airline_code": "JL",
           "airline_name": "日本航空"
-        },
-        {
-          "flight_code": "KL4997",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
         }
       ]
     },
     {
       "time": "08:00",
       "datetime": "2026-07-04T08:00:00",
-      "gate": "D12",
+      "gate": "D14R",
       "flight_code": "JX771",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -308,9 +298,9 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "CA5512",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
+          "flight_code": "B77016",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         },
         {
           "flight_code": "HO3182",
@@ -318,46 +308,31 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "B77016",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
+          "flight_code": "CA5512",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
         }
       ]
     },
     {
-      "time": "10:10",
-      "datetime": "2026-07-04T10:10:00",
+      "time": "10:05",
+      "datetime": "2026-07-04T10:05:00",
       "gate": "D15R",
-      "flight_code": "BR116",
+      "flight_code": "BR867",
       "airline_code": "BR",
       "airline_name": "長榮航空",
       "type": "departure",
-      "airport_code": "CTS",
-      "city": "Sapporo/CTS",
+      "airport_code": "HKG",
+      "city": "Hong Kong",
       "status": "準時ON TIME",
-      "aircraft": "B787-10",
+      "aircraft": "B787-9",
       "terminal": "2",
-      "destination": "Sapporo/CTS (CTS)",
+      "destination": "Hong Kong (HKG)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6336",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
-          "flight_code": "NZ4908",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TK9450",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
-          "flight_code": "NH5816",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
+          "flight_code": "HX1823",
+          "airline_code": "HX",
+          "airline_name": "香港航空"
         }
       ]
     },
@@ -623,8 +598,8 @@
     "06:45 : D18 : JX789 (星宇航空)",
     "06:55 : D16 : JX761 (星宇航空)",
     "07:10 : D17 : JX785 (星宇航空)",
-    "08:00 : D14R : CI120 (中華航空)",
-    "08:00 : D12 : JX771 (星宇航空)",
+    "07:30 : D12 : CI154 (中華航空)",
+    "08:00 : D14R : JX771 (星宇航空)",
     "08:20 : D16 : BR211 (長榮航空)",
     "08:20 : D18 : BR1194 (長榮航空)",
     "08:35 : D17 : CI130 (中華航空)",
@@ -632,7 +607,7 @@
     "09:00 : D13 : BR237 (長榮航空)",
     "09:50 : D12 : BR255 (長榮航空)",
     "09:55 : D14R : BR712 (長榮航空)",
-    "10:10 : D15R : BR116 (長榮航空)",
+    "10:05 : D15R : BR867 (長榮航空)",
     "11:15 : D11 : JX725 (星宇航空)",
     "13:20 : D12 : JX751 (星宇航空)",
     "14:20 : D13 : CI172 (中華航空)",
@@ -647,5 +622,5 @@
     "20:30 : D14R : BR261 (長榮航空)",
     "20:45 : D17 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-07-03T20:18:37.383429"
+  "updated_at": "2026-07-03T22:10:16.504448"
 }
