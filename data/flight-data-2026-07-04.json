@@ -223,14 +223,14 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5100",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4978",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5100",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -298,11 +298,6 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "B77016",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "HO3182",
           "airline_code": "HO",
           "airline_name": "吉祥航空"
@@ -311,6 +306,11 @@
           "flight_code": "CA5512",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "B77016",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -432,7 +432,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -454,7 +454,7 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
@@ -545,7 +545,7 @@
     {
       "time": "20:30",
       "datetime": "2026-07-04T20:30:00",
-      "gate": "D14R",
+      "gate": "D15R",
       "flight_code": "BR261",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -619,8 +619,8 @@
     "19:35 : D13 : BR381 (長榮航空)",
     "20:10 : D12 : JX26 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)",
-    "20:30 : D14R : BR261 (長榮航空)",
+    "20:30 : D15R : BR261 (長榮航空)",
     "20:45 : D17 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-07-04T07:51:22.939004"
+  "updated_at": "2026-07-04T10:18:40.079667"
 }
