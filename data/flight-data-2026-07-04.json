@@ -61,14 +61,14 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4928",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "NH5834",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "NZ4928",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "TG6354",
@@ -223,14 +223,14 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5100",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4978",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5100",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -298,9 +298,9 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "B77016",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
+          "flight_code": "HO3182",
+          "airline_code": "HO",
+          "airline_name": "吉祥航空"
         },
         {
           "flight_code": "CA5512",
@@ -308,9 +308,9 @@
           "airline_name": "中國國際"
         },
         {
-          "flight_code": "HO3182",
-          "airline_code": "HO",
-          "airline_name": "吉祥航空"
+          "flight_code": "B77016",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -622,5 +622,5 @@
     "20:30 : D15R : BR261 (長榮航空)",
     "20:45 : D17 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-07-05T13:55:02.549082"
+  "updated_at": "2026-07-05T15:18:25.831479"
 }
