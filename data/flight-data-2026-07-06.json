@@ -463,7 +463,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -479,7 +479,7 @@
       "type": "departure",
       "airport_code": "KMJ",
       "city": "Kumamoto",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Kumamoto (KMJ)",
@@ -501,7 +501,7 @@
       "type": "departure",
       "airport_code": "PQC",
       "city": "Phu Quoc",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Phu Quoc (PQC)",
@@ -517,7 +517,7 @@
       "type": "departure",
       "airport_code": "ICN",
       "city": "Incheon",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Incheon (ICN)",
@@ -552,14 +552,14 @@
     {
       "time": "16:30",
       "datetime": "2026-07-06T16:30:00",
-      "gate": "D14R",
+      "gate": "D15R",
       "flight_code": "BR722",
       "airline_code": "BR",
       "airline_name": "長榮航空",
       "type": "departure",
       "airport_code": "PVG",
       "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Shanghai/Pudong (PVG)",
@@ -570,14 +570,14 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "B77018",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "CA5522",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "B77018",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -591,7 +591,7 @@
       "type": "departure",
       "airport_code": "MFM",
       "city": "Macau",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Macau (MFM)",
@@ -672,7 +672,7 @@
     {
       "time": "20:45",
       "datetime": "2026-07-06T20:45:00",
-      "gate": "D18",
+      "gate": "D14R",
       "flight_code": "BR205",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -726,12 +726,12 @@
     "14:30 : D14R : CI194 (中華航空)",
     "14:50 : D13 : JX705 (星宇航空)",
     "15:15 : D11 : BR160 (長榮航空)",
-    "16:30 : D14R : BR722 (長榮航空)",
+    "16:30 : D15R : BR722 (長榮航空)",
     "16:40 : D12 : BR805 (長榮航空)",
     "18:10 : D11 : BR857 (長榮航空)",
     "19:00 : D13 : BR809 (長榮航空)",
     "19:35 : D12 : BR381 (長榮航空)",
-    "20:45 : D18 : BR205 (長榮航空)"
+    "20:45 : D14R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-07-06T04:12:33.446448"
+  "updated_at": "2026-07-06T09:04:50.737910"
 }
