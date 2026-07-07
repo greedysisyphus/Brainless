@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "SFO",
       "city": "San Francisco",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "San Francisco (SFO)",
@@ -33,7 +33,7 @@
       "type": "departure",
       "airport_code": "LAX",
       "city": "Los Angeles",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Los Angeles (LAX)",
@@ -77,11 +77,6 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5834",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "TG6354",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -90,6 +85,11 @@
           "flight_code": "NZ4928",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "NH5834",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -206,11 +206,6 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5802",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "TG6362",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -219,6 +214,11 @@
           "flight_code": "NZ4906",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "NH5802",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -365,7 +365,7 @@
     {
       "time": "09:55",
       "datetime": "2026-07-08T09:55:00",
-      "gate": "D15R",
+      "gate": "D16",
       "flight_code": "BR712",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -475,14 +475,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "CZ7975",
-          "airline_code": "CZ",
-          "airline_name": "南方航空"
-        },
-        {
           "flight_code": "MU8903",
           "airline_code": "MU",
           "airline_name": "東方航空"
+        },
+        {
+          "flight_code": "CZ7975",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
         }
       ]
     },
@@ -585,7 +585,7 @@
     "09:00 : D13 : BR237 (長榮航空)",
     "09:25 : D11 : BR215 (長榮航空)",
     "09:50 : D17 : BR255 (長榮航空)",
-    "09:55 : D15R : BR712 (長榮航空)",
+    "09:55 : D16 : BR712 (長榮航空)",
     "10:20 : D18 : BR201 (長榮航空)",
     "14:15 : D14R : JX713 (星宇航空)",
     "14:40 : D11 : BR164 (長榮航空)",
@@ -595,5 +595,5 @@
     "20:05 : D11 : JX10 (星宇航空)",
     "20:30 : D12 : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-07-07T15:08:11.726928"
+  "updated_at": "2026-07-07T18:05:48.103858"
 }
