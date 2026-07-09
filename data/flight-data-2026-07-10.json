@@ -55,7 +55,7 @@
       "type": "departure",
       "airport_code": "UKB",
       "city": "KOBE",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "KOBE (UKB)",
@@ -119,16 +119,11 @@
       "type": "departure",
       "airport_code": "KMQ",
       "city": "Komatsu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Komatsu (KMQ)",
       "codeshare_flights": [
-        {
-          "flight_code": "NH5820",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
         {
           "flight_code": "TK9543",
           "airline_code": "TK",
@@ -143,6 +138,11 @@
           "flight_code": "TG6376",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NH5820",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -216,11 +216,6 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6364",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NH5850",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -234,6 +229,11 @@
           "flight_code": "NZ4944",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "TG6364",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -253,14 +253,14 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5100",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4978",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5100",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -466,22 +466,6 @@
       ]
     },
     {
-      "time": "16:15",
-      "datetime": "2026-07-10T16:15:00",
-      "gate": "D13",
-      "flight_code": "JX783",
-      "airline_code": "JX",
-      "airline_name": "星宇航空",
-      "type": "departure",
-      "airport_code": "CEB",
-      "city": "Cebu",
-      "status": "準時ON TIME",
-      "aircraft": "A321-252",
-      "terminal": "2",
-      "destination": "Cebu (CEB)",
-      "codeshare_flights": []
-    },
-    {
       "time": "16:25",
       "datetime": "2026-07-10T16:25:00",
       "gate": "D11",
@@ -521,8 +505,8 @@
     }
   ],
   "summary": {
-    "total_flights": 24,
-    "before_17:00": 23,
+    "total_flights": 23,
+    "before_17:00": 22,
     "after_17:00": 1
   },
   "formatted_display": [
@@ -547,9 +531,8 @@
     "14:25 : D11 : CI194 (中華航空)",
     "14:35 : D17 : CI108 (中華航空)",
     "16:05 : D15R : BR716 (長榮航空)",
-    "16:15 : D13 : JX783 (星宇航空)",
     "16:25 : D11 : B7187 (立榮航空)",
     "20:05 : D11 : JX10 (星宇航空)"
   ],
-  "updated_at": "2026-07-09T20:51:32.593388"
+  "updated_at": "2026-07-09T22:36:29.314604"
 }
