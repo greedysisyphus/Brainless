@@ -4,6 +4,15 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.0',
+    date: '2026-07-11',
+    title: '咖啡豆盤點同步優化',
+    items: [
+      '咖啡豆管理：解決爛網絡／填寫中回逆問題',
+      'Firebase較新時可選擇保留本機、使用雲端或合併',
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-06-08',
     title: 'Studio 主題測試 與電子菜單',
@@ -104,7 +113,7 @@ export const APP_CHANGELOG = [
 ]
 
 // 版號單一來源：之後發版只需改 APP_CHANGELOG 最上方一筆
-const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.5.0'
+const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.6.0'
 const CHANGELOG_STORAGE_KEY = 'appChangelogLastSeenVersion'
 
 const ChangelogContext = createContext(null)

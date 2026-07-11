@@ -24,6 +24,15 @@ import {
   getWeightSettingsStorageKey,
   isIOS,
 } from './coffeeBean/coffeeBeanConstants'
+import {
+  createInventorySyncMeta,
+  getInventoryUpdatedAt,
+  INVENTORY_SYNC_DEBOUNCE_MS,
+  mergeInventoryData,
+  resolveInventorySnapshot,
+  stripInventorySyncMeta,
+} from './coffeeBean/coffeeBeanInventorySync'
+import { InventoryConflictModal, InventorySyncBanner } from './coffeeBean/InventorySyncUI'
 import { coffeeBeanStudioTokens, getCoffeeBeanLayoutShells, getCoffeeCellModeBtnClass } from './coffeeBean/coffeeBeanStudioStyles'
 
 const COFFEE_BC = [
@@ -292,19 +301,73 @@ function CoffeeBeanManager() {
   }, [selectedStore, inventoryCentral, inventoryD7, inventoryD13])
   
   // 更新當前店鋪的盤點表（支持函數式更新）
+  const applyRemoteInventoryRef = useRef(false)
+  const skipInventorySyncEffectRef = useRef(false)
+  const inventoryLatestRef = useRef(null)
+  const inventorySyncMetaRef = useRef({
+    central: createInventorySyncMeta(),
+    d7: createInventorySyncMeta(),
+    d13: createInventorySyncMeta(),
+  })
+  const [inventorySyncStatus, setInventorySyncStatus] = useState('idle')
+  const [inventoryConflict, setInventoryConflict] = useState(null)
+
+  const getInventorySyncMeta = (storeId) => {
+    if (!inventorySyncMetaRef.current[storeId]) {
+      inventorySyncMetaRef.current[storeId] = createInventorySyncMeta()
+    }
+    return inventorySyncMetaRef.current[storeId]
+  }
+
+  const markInventoryEdited = () => {
+    const meta = getInventorySyncMeta(selectedStore)
+    meta.isDirty = true
+    meta.lastLocalEditAt = Date.now()
+    setInventorySyncStatus('syncing')
+  }
+
+  const applyInventoryToStore = (storeId, data) => {
+    const clean = stripInventorySyncMeta(data)
+    applyRemoteInventoryRef.current = true
+    skipInventorySyncEffectRef.current = true
+    if (storeId === 'd7') setInventoryD7(clean)
+    else if (storeId === 'd13') setInventoryD13(clean)
+    else setInventoryCentral(clean)
+    applyRemoteInventoryRef.current = false
+  }
+
   const setInventory = (newInventory) => {
+    if (!applyRemoteInventoryRef.current) {
+      markInventoryEdited()
+    }
     if (typeof newInventory === 'function') {
-      // 函數式更新
       if (selectedStore === 'd7') setInventoryD7(newInventory)
       else if (selectedStore === 'd13') setInventoryD13(newInventory)
       else setInventoryCentral(newInventory)
     } else {
-      // 直接設置值
       if (selectedStore === 'd7') setInventoryD7(newInventory)
       else if (selectedStore === 'd13') setInventoryD13(newInventory)
       else setInventoryCentral(newInventory)
     }
   }
+
+  /** 僅調整結構（品項位置變更），不標記為使用者盤點編輯 */
+  const setInventoryStructure = (updater) => {
+    applyRemoteInventoryRef.current = true
+    skipInventorySyncEffectRef.current = true
+    if (selectedStore === 'd7') setInventoryD7(updater)
+    else if (selectedStore === 'd13') setInventoryD13(updater)
+    else setInventoryCentral(updater)
+    applyRemoteInventoryRef.current = false
+  }
+
+  useEffect(() => {
+    inventoryLatestRef.current = inventory
+  }, [inventory])
+
+  useEffect(() => {
+    setInventoryConflict(null)
+  }, [selectedStore])
 
   // 重量換算狀態
   const [weightMode, setWeightMode] = useState('bag') // 'bag' 或 'ikea'
@@ -405,92 +468,193 @@ function CoffeeBeanManager() {
   const inventoryUnsubscribeRef = useRef(null)
   // 用於追蹤當前同步操作的店鋪，避免店鋪切換時造成衝突
   const inventorySyncStoreRef = useRef(null)
+  const prevInventoryStoreRef = useRef(selectedStore)
+
+  const flushInventorySync = async (storeId = selectedStore, inventoryOverride = null) => {
+    const fromState =
+      storeId === 'd7' ? inventoryD7 : storeId === 'd13' ? inventoryD13 : inventoryCentral
+    const fromLatest =
+      storeId === selectedStore && inventoryLatestRef.current
+        ? inventoryLatestRef.current
+        : null
+    const inv = inventoryOverride ?? fromLatest ?? fromState
+    const firebaseDocId = getInventoryStorageKey(storeId)
+    const payload = {
+      ...stripInventorySyncMeta(inv),
+      _clientUpdatedAt: Date.now(),
+    }
+    await setDoc(doc(db, 'settings', firebaseDocId), payload)
+    const meta = getInventorySyncMeta(storeId)
+    meta.lastSyncedToCloudAt = payload._clientUpdatedAt
+    meta.isDirty = false
+    meta.hasReceivedInitialRemote = true
+    if (storeId === selectedStore) setInventorySyncStatus('synced')
+  }
+
+  // 切店前先把上一店 dirty 盤點寫出，避免中央店填一半切走後資料卡在本機
+  useEffect(() => {
+    const prevStore = prevInventoryStoreRef.current
+    if (prevStore && prevStore !== selectedStore) {
+      const prevMeta = getInventorySyncMeta(prevStore)
+      if (prevMeta.isDirty) {
+        const prevInv =
+          prevStore === 'd7'
+            ? inventoryD7
+            : prevStore === 'd13'
+              ? inventoryD13
+              : inventoryCentral
+        flushInventorySync(prevStore, prevInv).catch((error) => {
+          console.error('切店時同步上一店庫存失敗:', error)
+        })
+      }
+    }
+    prevInventoryStoreRef.current = selectedStore
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 只在切店時 flush 上一店
+  }, [selectedStore])
   
   // 監聽 Firebase 庫存變更（根據選中的店鋪）
   useEffect(() => {
-    // 清理舊的訂閱
     if (inventoryUnsubscribeRef.current) {
       inventoryUnsubscribeRef.current()
       inventoryUnsubscribeRef.current = null
     }
-    
-    const firebaseDocId = getInventoryStorageKey(selectedStore)
+
+    const storeId = selectedStore
+    const firebaseDocId = getInventoryStorageKey(storeId)
     let unsubscribe
     let isMounted = true
-    let timeoutId
-    
-    try {
-      // 根據當前店鋪選擇對應的設定更新函數
-      const updateInventoryForStore = (data) => {
-        if (!isMounted) return
-        // 確保數據結構正確
-        const validData = {
-          brewing: data?.brewing || { pourOver: {}, espresso: {} },
-          retail: data?.retail || {}
-        }
-        if (selectedStore === 'd7') {
-          setInventoryD7(validData)
-        } else if (selectedStore === 'd13') {
-          setInventoryD13(validData)
-        } else {
-          setInventoryCentral(validData)
-        }
+
+    const handleRemoteInventory = (rawData, metadata) => {
+      if (!isMounted) return
+
+      const meta = getInventorySyncMeta(storeId)
+      const remoteUpdatedAt = getInventoryUpdatedAt(rawData)
+      const decision = resolveInventorySnapshot({
+        meta,
+        remoteUpdatedAt,
+        fromCache: metadata?.fromCache ?? false,
+        hasPendingWrites: metadata?.hasPendingWrites ?? false,
+      })
+
+      // 無論套用與否，都標記「已接觸過遠端」，避免之後每次都走「初次」分支
+      meta.hasReceivedInitialRemote = true
+
+      if (decision === 'ignore') {
+        return
       }
-      
-      // 設置超時機制，5秒後如果還沒有回應就使用本地設定
-      timeoutId = setTimeout(() => {
-        if (isMounted) {
-          console.warn('Firebase 庫存連接超時，使用本地庫存')
-        }
-      }, 5000)
-      
+
+      if (decision === 'conflict') {
+        setInventoryConflict({
+          storeId,
+          storeName: getStoreName(storeId),
+          remoteData: rawData,
+          remoteUpdatedAt,
+          localSnapshot: inventoryLatestRef.current,
+        })
+        setInventorySyncStatus('conflict')
+        return
+      }
+
+      applyInventoryToStore(storeId, rawData)
+      meta.lastAppliedRemoteAt = remoteUpdatedAt
+      if (!meta.isDirty) {
+        meta.lastSyncedToCloudAt = Math.max(meta.lastSyncedToCloudAt, remoteUpdatedAt)
+        if (storeId === selectedStore) setInventorySyncStatus('synced')
+      }
+    }
+
+    try {
       unsubscribe = onSnapshot(
         doc(db, 'settings', firebaseDocId),
         (docSnapshot) => {
           if (!isMounted) return
-          if (timeoutId) clearTimeout(timeoutId)
-          
+
           if (docSnapshot.exists()) {
-            updateInventoryForStore(docSnapshot.data())
+            handleRemoteInventory(docSnapshot.data(), docSnapshot.metadata)
           } else {
-            // 如果文件不存在，使用預設值創建
             const defaultInventoryData = {
               brewing: { pourOver: {}, espresso: {} },
-              retail: {}
+              retail: {},
+              _clientUpdatedAt: Date.now(),
             }
-            setDoc(docSnapshot.ref, defaultInventoryData)
-              .then(() => {
-                if (isMounted) {
-                  updateInventoryForStore(defaultInventoryData)
-                }
-              })
-              .catch(error => {
-                console.error('創建庫存文件失敗:', error)
-              })
+            setDoc(docSnapshot.ref, defaultInventoryData).catch((error) => {
+              console.error('創建庫存文件失敗:', error)
+            })
+            handleRemoteInventory(defaultInventoryData, { fromCache: false, hasPendingWrites: true })
           }
         },
         (error) => {
           console.error('讀取庫存錯誤:', error)
-          if (timeoutId) clearTimeout(timeoutId)
-          // 如果 Firebase 連接失敗，使用本地設定
+          if (isMounted && getInventorySyncMeta(storeId).isDirty) {
+            setInventorySyncStatus('error')
+          }
         }
       )
-      
+
       inventoryUnsubscribeRef.current = unsubscribe
     } catch (error) {
       console.error('Firebase 庫存初始化錯誤:', error)
-      if (timeoutId) clearTimeout(timeoutId)
     }
 
     return () => {
       isMounted = false
-      if (timeoutId) clearTimeout(timeoutId)
       if (inventoryUnsubscribeRef.current) {
         inventoryUnsubscribeRef.current()
         inventoryUnsubscribeRef.current = null
       }
     }
-  }, [selectedStore]) // 只需要在 selectedStore 改變時重新訂閱
+  }, [selectedStore])
+
+  const handleInventoryConflictKeepLocal = () => {
+    const conflict = inventoryConflict
+    setInventoryConflict(null)
+    if (!conflict) return
+    const meta = getInventorySyncMeta(conflict.storeId)
+    meta.isDirty = true
+    meta.lastLocalEditAt = Date.now()
+    setInventorySyncStatus('syncing')
+    const localData = conflict.localSnapshot ?? inventoryLatestRef.current
+    flushInventorySync(conflict.storeId, localData).catch(() => {
+      if (conflict.storeId === selectedStore) setInventorySyncStatus('error')
+    })
+  }
+
+  const handleInventoryConflictUseRemote = () => {
+    const conflict = inventoryConflict
+    setInventoryConflict(null)
+    if (!conflict) return
+    const meta = getInventorySyncMeta(conflict.storeId)
+    applyInventoryToStore(conflict.storeId, conflict.remoteData)
+    if (conflict.storeId === selectedStore) {
+      inventoryLatestRef.current = stripInventorySyncMeta(conflict.remoteData)
+    }
+    meta.isDirty = false
+    meta.lastAppliedRemoteAt = conflict.remoteUpdatedAt
+    meta.lastSyncedToCloudAt = conflict.remoteUpdatedAt
+    meta.hasReceivedInitialRemote = true
+    if (conflict.storeId === selectedStore) setInventorySyncStatus('synced')
+  }
+
+  const handleInventoryConflictMerge = () => {
+    const conflict = inventoryConflict
+    setInventoryConflict(null)
+    if (!conflict) return
+    const localData = conflict.localSnapshot ?? inventoryLatestRef.current
+    const merged = mergeInventoryData(localData, conflict.remoteData)
+    applyInventoryToStore(conflict.storeId, merged)
+    if (conflict.storeId === selectedStore) {
+      inventoryLatestRef.current = stripInventorySyncMeta(merged)
+    }
+    const meta = getInventorySyncMeta(conflict.storeId)
+    meta.isDirty = true
+    meta.lastLocalEditAt = Date.now()
+    meta.hasReceivedInitialRemote = true
+    setInventorySyncStatus('syncing')
+    // 必須傳 merged：React setState 尚未生效，不可讀舊 state
+    flushInventorySync(conflict.storeId, merged).catch(() => {
+      if (conflict.storeId === selectedStore) setInventorySyncStatus('error')
+    })
+  }
 
   // 監聽 Firebase 重量設定變更（根據選中的店鋪）
   useEffect(() => {
@@ -724,7 +888,7 @@ function CoffeeBeanManager() {
     prevBeanLocationsRef.current = currentBeanLocationsStr
     prevBeanTypesRef.current = currentBeanTypesStr
 
-    setInventory(prev => {
+    setInventoryStructure(prev => {
       const updated = { ...prev }
       let hasChanges = false
 
@@ -813,21 +977,29 @@ function CoffeeBeanManager() {
 
   // 同步盤點表到 Firebase（根據選中的店鋪）
   useEffect(() => {
-    // 使用 ref 追蹤當前要同步的店鋪
-    inventorySyncStoreRef.current = selectedStore
-    const firebaseDocId = getInventoryStorageKey(selectedStore)
-    // 使用防抖來避免過於頻繁的寫入
+    if (skipInventorySyncEffectRef.current) {
+      skipInventorySyncEffectRef.current = false
+      return
+    }
+    if (applyRemoteInventoryRef.current) return
+
+    const storeId = selectedStore
+    const meta = getInventorySyncMeta(storeId)
+    if (!meta.isDirty) return
+
+    inventorySyncStoreRef.current = storeId
+    setInventorySyncStatus('syncing')
+
     const timeoutId = setTimeout(() => {
-      // 確保店鋪沒有改變才進行同步（避免在快速切換店鋪時造成衝突）
-      if (inventorySyncStoreRef.current === selectedStore) {
-        setDoc(doc(db, 'settings', firebaseDocId), inventory).catch(error => {
-          console.error('同步庫存到 Firebase 失敗:', error)
-        })
-      }
-    }, 500)
-    
+      if (inventorySyncStoreRef.current !== storeId) return
+      flushInventorySync(storeId).catch((error) => {
+        console.error('同步庫存到 Firebase 失敗:', error)
+        if (storeId === selectedStore) setInventorySyncStatus('error')
+      })
+    }, INVENTORY_SYNC_DEBOUNCE_MS)
+
     return () => clearTimeout(timeoutId)
-  }, [inventory, selectedStore])
+  }, [inventory, selectedStore, inventoryCentral, inventoryD7, inventoryD13])
 
   // 儲存計算欄位到 localStorage
   useEffect(() => {
@@ -956,24 +1128,43 @@ function CoffeeBeanManager() {
     }))
   }
 
-  // 更新數量
+  // 更新數量（單次 setInventory，避免與 snapshot 競態）
   const updateQuantity = (category, subCategory, beanType, location, index, value) => {
-    initializeBeanType(category, subCategory, beanType)
-    setInventory(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [subCategory]: {
-          ...prev[category][subCategory],
-          [beanType]: {
-            ...prev[category][subCategory]?.[beanType],
-            [location]: prev[category][subCategory]?.[beanType]?.[location]?.map((q, i) => 
-              i === index ? value : q
-            ) || ['']
-          }
+    setInventory((prev) => {
+      let base = prev
+      if (!prev[category]?.[subCategory]?.[beanType]) {
+        const beanLocation = getBeanLocation(beanType, category, subCategory)
+        const initialStructure = {}
+        if (beanLocation.store) initialStructure.store = ['']
+        if (beanLocation.breakRoom) initialStructure.breakRoom = ['']
+        if (beanLocation.dryStorage) initialStructure.dryStorage = ['']
+        base = {
+          ...prev,
+          [category]: {
+            ...prev[category],
+            [subCategory]: {
+              ...prev[category]?.[subCategory],
+              [beanType]: initialStructure,
+            },
+          },
         }
       }
-    }))
+      return {
+        ...base,
+        [category]: {
+          ...base[category],
+          [subCategory]: {
+            ...base[category][subCategory],
+            [beanType]: {
+              ...base[category][subCategory]?.[beanType],
+              [location]: base[category][subCategory]?.[beanType]?.[location]?.map((q, i) =>
+                i === index ? value : q
+              ) || [''],
+            },
+          },
+        },
+      }
+    })
   }
 
   // 賣豆：新增一列（同步 mode 陣列）
@@ -1611,6 +1802,22 @@ function CoffeeBeanManager() {
 
   const coffeeInner = (
     <div className="mx-auto w-full max-w-6xl">
+      <InventorySyncBanner
+        status={inventorySyncStatus}
+        isStudio={isStudio}
+        onRetry={() => {
+          setInventorySyncStatus('syncing')
+          flushInventorySync().catch(() => setInventorySyncStatus('error'))
+        }}
+      />
+      <InventoryConflictModal
+        open={Boolean(inventoryConflict)}
+        isStudio={isStudio}
+        storeName={inventoryConflict?.storeName ?? getStoreName(selectedStore)}
+        onKeepLocal={handleInventoryConflictKeepLocal}
+        onUseRemote={handleInventoryConflictUseRemote}
+        onMerge={handleInventoryConflictMerge}
+      />
       {isStudio ? (
         <CwStack className="mb-6 !gap-[var(--cw-stack-gap)]">
           <CwCard title="選擇分店" className="border-[var(--cw-border-strong)]">
