@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "KMQ",
       "city": "Komatsu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Komatsu (KMQ)",
@@ -454,5 +454,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D14R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-07-11T21:58:38.699381"
+  "updated_at": "2026-07-11T23:01:09.532099"
 }
