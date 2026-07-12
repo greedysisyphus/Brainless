@@ -370,7 +370,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -385,7 +385,7 @@
     {
       "time": "20:10",
       "datetime": "2026-07-12T20:10:00",
-      "gate": "D12",
+      "gate": "D16",
       "flight_code": "JX26",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -461,9 +461,9 @@
     "15:50 : D11 : JX703 (星宇航空)",
     "16:50 : D12 : BR186 (長榮航空)",
     "18:10 : D13 : BR857 (長榮航空)",
-    "20:10 : D12 : JX26 (星宇航空)",
+    "20:10 : D16 : JX26 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D15R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-07-12T09:07:21.691880"
+  "updated_at": "2026-07-12T11:16:41.695179"
 }
