@@ -392,7 +392,7 @@
       "type": "departure",
       "airport_code": "PHX",
       "city": "Phoenix",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-100",
       "terminal": "2",
       "destination": "Phoenix (PHX)",
@@ -408,7 +408,7 @@
       "type": "departure",
       "airport_code": "SEA",
       "city": "Seattle",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Seattle (SEA)",
@@ -430,7 +430,7 @@
       "type": "departure",
       "airport_code": "MNL",
       "city": "Manila",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Manila (MNL)",
@@ -465,5 +465,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D15R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-07-12T11:16:41.695179"
+  "updated_at": "2026-07-12T13:41:55.643471"
 }
