@@ -38,7 +38,7 @@ export function CocktailIcon(props) {
 export const BASE_NAV_ITEMS = [
   {
     path: '/sandwich',
-    label: '三明治計算器',
+    label: '厚片計算器',
     section: '門市營運',
     accentColor: '#facc15',
     Icon: CalculatorIcon,

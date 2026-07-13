@@ -12,7 +12,7 @@ import {
 import { studioSurfaces } from '../../components/studio/studioSurfaceClasses'
 
 /**
- * Studio 專用 UI；state 全部由父組件 SandboxCalculator 提供。
+ * Studio 專用 UI；state 全部由父組件 SandwichCalculator 提供。
  */
 export default function SandwichStudioPanel({
   zhtw,
@@ -30,8 +30,6 @@ export default function SandwichStudioPanel({
   resetFields,
   setShowSettings,
   settings,
-  showExtraBagsBubble,
-  setShowExtraBagsBubble,
 }) {
   return (
     <CwStack className="!gap-[var(--cw-stack-gap)]">
@@ -95,25 +93,36 @@ export default function SandwichStudioPanel({
 
             <CwStack gap="sm">
               <CwInput
-                label={zhtw.sandwich.existingHam}
+                label={zhtw.sandwich.existingSignature}
                 type="number"
                 min={0}
                 inputMode="numeric"
-                value={values.existingHam}
+                value={values.existingSignature}
                 onWheel={(e) => e.target.blur()}
                 onChange={(e) =>
-                  setValues({ ...values, existingHam: e.target.value })
+                  setValues({ ...values, existingSignature: e.target.value })
                 }
               />
               <CwInput
-                label={zhtw.sandwich.existingSalami}
+                label={zhtw.sandwich.existingDark}
                 type="number"
                 min={0}
                 inputMode="numeric"
-                value={values.existingSalami}
+                value={values.existingDark}
                 onWheel={(e) => e.target.blur()}
                 onChange={(e) =>
-                  setValues({ ...values, existingSalami: e.target.value })
+                  setValues({ ...values, existingDark: e.target.value })
+                }
+              />
+              <CwInput
+                label={zhtw.sandwich.existingLight}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={values.existingLight}
+                onWheel={(e) => e.target.blur()}
+                onChange={(e) =>
+                  setValues({ ...values, existingLight: e.target.value })
                 }
               />
 
@@ -121,7 +130,7 @@ export default function SandwichStudioPanel({
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
                   {zhtw.sandwich.distribution}
                 </div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="radiogroup">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup">
                   {distributionMethods.map((method) => {
                     const isSelected = values.distribution === method.value
                     return (
@@ -141,42 +150,41 @@ export default function SandwichStudioPanel({
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
-                  {zhtw.sandwich.extraBagsLabel}:{' '}
-                  <CwBadge tone="accent" className="ml-2 align-middle">
-                    {values.extraBags}
-                  </CwBadge>
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="5"
-                  step="1"
-                  aria-label={zhtw.sandwich.extraBagsLabel}
-                  value={values.extraBags}
-                  onMouseEnter={() => setShowExtraBagsBubble(true)}
-                  onMouseLeave={() => setShowExtraBagsBubble(false)}
-                  onTouchStart={() => setShowExtraBagsBubble(true)}
-                  onTouchEnd={() => setShowExtraBagsBubble(false)}
-                  onChange={(e) =>
-                    setValues((v) => ({
-                      ...v,
-                      extraBags: parseInt(e.target.value, 10) || 0,
-                    }))
-                  }
-                  className="w-full accent-zinc-400"
-                />
-                {showExtraBagsBubble ? (
-                  <div
-                    className="relative -top-7 text-xs font-semibold text-[var(--cw-text)]"
-                    style={{
-                      left: `${(values.extraBags / 5) * 100}%`,
-                      transform: 'translateX(-50%)',
-                      position: 'relative',
-                    }}
-                  >
-                    {values.extraBags}
-                  </div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
+                  {zhtw.sandwich.packModeLabel}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    {
+                      value: 'up',
+                      label: `${zhtw.sandwich.packModeUp}（${preview.packUpSlices}${zhtw.sandwichUi.unitPiece}／${preview.bagsCeil}${zhtw.sandwichUi.unitBag}）`,
+                      disabled: preview.baseTotalNeeded === 0,
+                    },
+                    {
+                      value: 'down',
+                      label: `${zhtw.sandwich.packModeDown}（${preview.packDownSlices}${zhtw.sandwichUi.unitPiece}／${preview.bagsFloor}${zhtw.sandwichUi.unitBag}）`,
+                      disabled: !preview.canPackDown,
+                    },
+                  ].map((opt) => {
+                    const isSelected = values.packMode === opt.value
+                    return (
+                      <CwButton
+                        key={opt.value}
+                        type="button"
+                        variant={isSelected ? 'primary' : 'secondary'}
+                        disabled={opt.disabled}
+                        onClick={() => setValues({ ...values, packMode: opt.value })}
+                      >
+                        {opt.label}
+                      </CwButton>
+                    )
+                  })}
+                </div>
+                {preview.baseTotalNeeded > 0 && preview.canPackDown ? (
+                  <p className="mt-2 text-xs text-[var(--cw-text-muted)]">
+                    需求 {preview.baseTotalNeeded} 片：可多做成 {preview.packUpSlices} 片，或少做成{' '}
+                    {preview.packDownSlices} 片
+                  </p>
                 ) : null}
               </div>
 
@@ -196,18 +204,26 @@ export default function SandwichStudioPanel({
               <CwStack gap="sm">
                 <div className="rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] p-4">
                   <div className="text-3xl font-bold text-[var(--cw-text)]">
-                    {results.totalHamNeeded}
+                    {results.totalSignatureNeeded}
                   </div>
                   <div className="text-sm text-[var(--cw-text-muted)]">
-                    {zhtw.sandwich.needHam}（{zhtw.sandwichUi.unitPiece}）
+                    {zhtw.sandwich.needSignature}（{zhtw.sandwichUi.unitPiece}）
                   </div>
                 </div>
                 <div className="rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] p-4">
                   <div className="text-3xl font-bold text-[var(--cw-text)]">
-                    {results.totalSalamiNeeded}
+                    {results.totalDarkNeeded}
                   </div>
                   <div className="text-sm text-[var(--cw-text-muted)]">
-                    {zhtw.sandwich.needSalami}（{zhtw.sandwichUi.unitPiece}）
+                    {zhtw.sandwich.needDark}（{zhtw.sandwichUi.unitPiece}）
+                  </div>
+                </div>
+                <div className="rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] p-4">
+                  <div className="text-3xl font-bold text-[var(--cw-text)]">
+                    {results.totalLightNeeded}
+                  </div>
+                  <div className="text-sm text-[var(--cw-text-muted)]">
+                    {zhtw.sandwich.needLight}（{zhtw.sandwichUi.unitPiece}）
                   </div>
                 </div>
                 <div className="rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] p-4">
@@ -220,7 +236,9 @@ export default function SandwichStudioPanel({
                 </div>
                 <div className="rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] p-4">
                   <div className="text-4xl font-bold text-[var(--cw-text)]">
-                    {results.totalHamNeeded + results.totalSalamiNeeded}
+                    {results.totalSignatureNeeded +
+                      results.totalDarkNeeded +
+                      results.totalLightNeeded}
                   </div>
                   <div className="text-sm text-[var(--cw-text-muted)]">
                     {zhtw.sandwich.totalNeed}（{zhtw.sandwichUi.unitPiece}）
@@ -231,30 +249,35 @@ export default function SandwichStudioPanel({
                     {zhtw.sandwichUi.capacityTitle}
                   </div>
                   <div>
-                    {zhtw.sandwichUi.capacityFormula}：<span className="text-[var(--cw-text)]">{results.bagsNeeded}</span>{' '}
-                    ×{' '}
-                    <span className="text-[var(--cw-text)]">{settings.breadPerBag}</span> ={' '}
-                    <span className="text-[var(--cw-text)] font-bold">{results.totalSlices}</span>
+                    {zhtw.sandwichUi.capacityFormula}：
+                    <span className="text-[var(--cw-text)]">{results.bagsNeeded}</span> ×{' '}
+                    <span className="text-[var(--cw-text)]">{settings.slicesPerLoaf}</span> ={' '}
+                    <span className="font-bold text-[var(--cw-text)]">{results.totalSlices}</span>
                   </div>
-                  <div className="mt-2">
-                    {zhtw.sandwichUi.capacityLeftover}：{' '}
-                    <span className="font-semibold text-[var(--cw-text)]">{results.extraSlices}</span>
-                  </div>
+                  {results.shortfall > 0 ? (
+                    <div className="mt-2">
+                      {zhtw.sandwichUi.capacityShortfall}：{' '}
+                      <span className="font-semibold text-[var(--cw-text)]">{results.shortfall}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                      {zhtw.sandwichUi.capacityLeftover}：{' '}
+                      <span className="font-semibold text-[var(--cw-text)]">{results.extraSlices}</span>
+                    </div>
+                  )}
                   <div className="mt-2 border-t border-[var(--cw-border)] pt-2">
                     {zhtw.sandwichUi.capacityDistributionTitle}
                     {' — '}
                     {values.distribution === 'even' && zhtw.sandwichUi.capacityEvenDetail}
-                    {values.distribution === 'ham' && zhtw.sandwichUi.capacityHamDetail}
-                    {values.distribution === 'salami' && zhtw.sandwichUi.capacitySalamiDetail}
+                    {values.distribution === 'signature' && zhtw.sandwichUi.capacitySignatureDetail}
+                    {values.distribution === 'dark' && zhtw.sandwichUi.capacityDarkDetail}
+                    {values.distribution === 'light' && zhtw.sandwichUi.capacityLightDetail}
                   </div>
-                  <div className="mt-2 border-t border-[var(--cw-border)] pt-2">
-                    <span>{zhtw.sandwichUi.capacityActual}</span>{' '}
-                    <CwBadge tone="neutral" className="ml-2">
-                      火腿 +{results.extraHam}
-                    </CwBadge>
-                    <CwBadge tone="neutral" className="ml-2">
-                      臘腸 +{results.extraSalami}
-                    </CwBadge>
+                  <div className="mt-2 flex flex-wrap gap-2 border-t border-[var(--cw-border)] pt-2">
+                    <span>{zhtw.sandwichUi.capacityActual}</span>
+                    <CwBadge tone="neutral">招牌 +{results.extraSignature}</CwBadge>
+                    <CwBadge tone="neutral">深焙 +{results.extraDark}</CwBadge>
+                    <CwBadge tone="neutral">淺焙 +{results.extraLight}</CwBadge>
                   </div>
                 </div>
               </CwStack>

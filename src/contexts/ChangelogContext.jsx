@@ -4,6 +4,17 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.5',
+    date: '2026-07-13',
+    title: '厚片計算器',
+    items: [
+      '厚片計算器已穢土轉生',
+      '一條吐司預設 10 片（可在設定調整），各店雲端同步',
+      '製作量可選多做／少做（例如需求 44 片 → 50 或 40）',
+      '多出片數分配：平均 → 優先招牌 → 深焙 → 淺焙',
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-07-11',
     title: '咖啡豆盤點同步優化',
@@ -113,7 +124,7 @@ export const APP_CHANGELOG = [
 ]
 
 // 版號單一來源：之後發版只需改 APP_CHANGELOG 最上方一筆
-const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.6.0'
+const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.6.5'
 const CHANGELOG_STORAGE_KEY = 'appChangelogLastSeenVersion'
 
 const ChangelogContext = createContext(null)

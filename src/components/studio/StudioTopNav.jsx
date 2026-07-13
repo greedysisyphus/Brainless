@@ -5,7 +5,7 @@ import { studioSurfaces } from './studioSurfaceClasses'
 
 /** 窄螢幕 pill 用短標，避免直欄堆疊＋超小字 */
 const MOBILE_LABEL = {
-  '/sandwich': '三明治',
+  '/sandwich': '厚片',
   '/cashier': '收銀',
   '/coffee-beans': '咖啡豆',
   '/daily-reports': '報表',

@@ -9,7 +9,7 @@ const navigation = [
     icon: BeakerIcon
   },
   {
-    name: '三明治計算',
+    name: '厚片計算',
     href: '/sandwich',
     icon: CalculatorIcon
   }

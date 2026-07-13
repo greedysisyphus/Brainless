@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import zhtw from '../locales/zh-TW'
-import { calculateSandwichPlan } from '../services/sandwichCalculator'
+import { calculateSandwichPlan, normalizeThickSettings, normalizeThickValues } from '../services/sandwichCalculator'
 import anime from 'animejs/lib/anime.es.js'
 import { useTheme } from '../contexts/ThemeContext'
 import { DualThemePage } from '../components/studio/DualThemePage'
@@ -20,12 +20,18 @@ import { CwInput } from '../components/studio/ui'
 
 function SandwichCalculator() {
   const { isStudio } = useTheme()
-  const defaultSettings = { breadPerBag: 8, targetHam: 60, targetSalami: 30 }
+  const defaultSettings = {
+    slicesPerLoaf: 10,
+    targetSignature: 60,
+    targetDark: 30,
+    targetLight: 30,
+  }
   const defaultValues = {
-    existingHam: '',
-    existingSalami: '',
-    extraBags: 0,
-    distribution: 'even'
+    existingSignature: '',
+    existingDark: '',
+    existingLight: '',
+    packMode: 'up',
+    distribution: 'even',
   }
   
   // 店鋪選擇
@@ -79,7 +85,16 @@ function SandwichCalculator() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [showExtraBagsBubble, setShowExtraBagsBubble] = useState(false)
+  // 正規化從 localStorage 讀出的舊格式
+  useEffect(() => {
+    setSettingsCentral((s) => normalizeThickSettings(s, defaultSettings))
+    setSettingsD7((s) => normalizeThickSettings(s, defaultSettings))
+    setSettingsD13((s) => normalizeThickSettings(s, defaultSettings))
+    setValuesCentral((v) => normalizeThickValues(v, defaultValues))
+    setValuesD7((v) => normalizeThickValues(v, defaultValues))
+    setValuesD13((v) => normalizeThickValues(v, defaultValues))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 僅掛載時遷移一次
+  }, [])
 
   // 用於追蹤 Firebase 訂閱
   const unsubscribeRef = useRef(null)
@@ -171,12 +186,13 @@ function SandwichCalculator() {
       // 根據當前店鋪選擇對應的設定更新函數
       const updateSettingsForStore = (data) => {
         if (!isMounted) return
+        const normalized = normalizeThickSettings(data, defaultSettings)
         if (selectedStore === 'd7') {
-          setSettingsD7(data)
+          setSettingsD7(normalized)
         } else if (selectedStore === 'd13') {
-          setSettingsD13(data)
+          setSettingsD13(normalized)
         } else {
-          setSettingsCentral(data)
+          setSettingsCentral(normalized)
         }
         if (isMounted) {
           setLoading(false)
@@ -293,12 +309,20 @@ function SandwichCalculator() {
   // 預覽用（摘要條）：即時根據當前輸入與設定顯示總結
   const preview = useMemo(() => calculateSandwichPlan(values, settings), [values, settings])
 
+  // 無法少做時自動回到多做
+  useEffect(() => {
+    if (values.packMode === 'down' && !preview.canPackDown) {
+      setValues((v) => ({ ...v, packMode: 'up' }))
+    }
+  }, [preview.canPackDown, values.packMode])
+
   const resetFields = () => {
     setValues({
-      existingHam: '',
-      existingSalami: '',
-      extraBags: 0,
-      distribution: 'even'
+      existingSignature: '',
+      existingDark: '',
+      existingLight: '',
+      packMode: 'up',
+      distribution: 'even',
     })
     setResults(null)
   }
@@ -306,8 +330,9 @@ function SandwichCalculator() {
   // 分配方式選項
   const distributionMethods = [
     { value: 'even', label: zhtw.sandwich.distributionEven },
-    { value: 'ham', label: zhtw.sandwich.distributionHam },
-    { value: 'salami', label: zhtw.sandwich.distributionSalami }
+    { value: 'signature', label: zhtw.sandwich.distributionSignature },
+    { value: 'dark', label: zhtw.sandwich.distributionDark },
+    { value: 'light', label: zhtw.sandwich.distributionLight },
   ]
   
   // 店鋪選項
@@ -339,44 +364,58 @@ function SandwichCalculator() {
           </div>
           <div className="space-y-4">
             <CwInput
-              label={zhtw.settings.breadPerBag}
+              label={zhtw.settings.slicesPerLoaf}
               type="number"
               min={1}
               inputMode="numeric"
-              value={draftSettings.breadPerBag}
+              value={draftSettings.slicesPerLoaf}
               onWheel={(e) => e.target.blur()}
               onChange={(e) =>
                 setDraftSettings((s) => ({
                   ...s,
-                  breadPerBag: parseInt(e.target.value, 10) || 1,
+                  slicesPerLoaf: parseInt(e.target.value, 10) || 1,
                 }))
               }
             />
             <CwInput
-              label={zhtw.settings.targetHam}
+              label={zhtw.settings.targetSignature}
               type="number"
               min={0}
               inputMode="numeric"
-              value={draftSettings.targetHam}
+              value={draftSettings.targetSignature}
               onWheel={(e) => e.target.blur()}
               onChange={(e) =>
                 setDraftSettings((s) => ({
                   ...s,
-                  targetHam: parseInt(e.target.value, 10) || 0,
+                  targetSignature: parseInt(e.target.value, 10) || 0,
                 }))
               }
             />
             <CwInput
-              label={zhtw.settings.targetSalami}
+              label={zhtw.settings.targetDark}
               type="number"
               min={0}
               inputMode="numeric"
-              value={draftSettings.targetSalami}
+              value={draftSettings.targetDark}
               onWheel={(e) => e.target.blur()}
               onChange={(e) =>
                 setDraftSettings((s) => ({
                   ...s,
-                  targetSalami: parseInt(e.target.value, 10) || 0,
+                  targetDark: parseInt(e.target.value, 10) || 0,
+                }))
+              }
+            />
+            <CwInput
+              label={zhtw.settings.targetLight}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={draftSettings.targetLight}
+              onWheel={(e) => e.target.blur()}
+              onChange={(e) =>
+                setDraftSettings((s) => ({
+                  ...s,
+                  targetLight: parseInt(e.target.value, 10) || 0,
                 }))
               }
             />
@@ -598,10 +637,9 @@ function SandwichCalculator() {
                  <div className="relative z-10">
                    <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-                     {zhtw.sandwich.existingHam}
+                     {zhtw.sandwich.existingSignature}
                    </label>
                    <div className="relative group">
-                     {/* 輸入框光暈 */}
                      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-400/20 to-pink-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
                      <input
                        type="number"
@@ -611,10 +649,10 @@ function SandwichCalculator() {
                        inputMode="numeric"
                        pattern="[0-9]*"
                        onWheel={e => e.target.blur()}
-                       value={values.existingHam}
+                       value={values.existingSignature}
                        onChange={e => setValues({
                          ...values,
-                         existingHam: e.target.value
+                         existingSignature: e.target.value
                        })}
                      />
                      <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400 text-sm font-medium">{zhtw.sandwichUi.unitPiece}</span>
@@ -624,10 +662,9 @@ function SandwichCalculator() {
                  <div className="relative z-10">
                    <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-                     {zhtw.sandwich.existingSalami}
+                     {zhtw.sandwich.existingDark}
                    </label>
                    <div className="relative group">
-                     {/* 輸入框光暈 */}
                      <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-400/20 to-blue-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
                      <input
                        type="number"
@@ -637,10 +674,35 @@ function SandwichCalculator() {
                        inputMode="numeric"
                        pattern="[0-9]*"
                        onWheel={e => e.target.blur()}
-                       value={values.existingSalami}
+                       value={values.existingDark}
                        onChange={e => setValues({
                          ...values,
-                         existingSalami: e.target.value
+                         existingDark: e.target.value
+                       })}
+                     />
+                     <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400 text-sm font-medium">{zhtw.sandwichUi.unitPiece}</span>
+                   </div>
+                </div>
+
+                 <div className="relative z-10">
+                   <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                     {zhtw.sandwich.existingLight}
+                   </label>
+                   <div className="relative group">
+                     <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-400/20 to-orange-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                     <input
+                       type="number"
+                       className="relative w-full pl-4 pr-12 py-2.5 bg-surface/60 border-2 border-white/10 focus:border-amber-400/50 focus:bg-surface/80 rounded-xl transition-all duration-300 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-400/30 shadow-lg hover:shadow-xl hover:shadow-amber-500/10"
+                       placeholder={zhtw.sandwichUi.inputPlaceholderNumber}
+                       min={0}
+                       inputMode="numeric"
+                       pattern="[0-9]*"
+                       onWheel={e => e.target.blur()}
+                       value={values.existingLight}
+                       onChange={e => setValues({
+                         ...values,
+                         existingLight: e.target.value
                        })}
                      />
                      <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400 text-sm font-medium">{zhtw.sandwichUi.unitPiece}</span>
@@ -652,15 +714,23 @@ function SandwichCalculator() {
                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
                      {zhtw.sandwich.distribution}
                    </label>
-                   <div role="radiogroup" aria-label={zhtw.sandwich.distribution} className="grid grid-cols-3 gap-2.5">
+                   <div role="radiogroup" aria-label={zhtw.sandwich.distribution} className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                      {distributionMethods.map((method) => {
                        const isSelected = values.distribution === method.value
+                       const tip =
+                         method.value === 'even'
+                           ? zhtw.sandwichUi.tooltipEven
+                           : method.value === 'signature'
+                             ? zhtw.sandwichUi.tooltipSignature
+                             : method.value === 'dark'
+                               ? zhtw.sandwichUi.tooltipDark
+                               : zhtw.sandwichUi.tooltipLight
                        return (
                      <button
                        key={method.value}
                        role="radio"
                            aria-checked={isSelected}
-                        title={method.value === 'even' ? zhtw.sandwichUi.tooltipEven : method.value === 'ham' ? zhtw.sandwichUi.tooltipHam : zhtw.sandwichUi.tooltipSalami}
+                        title={tip}
                        onClick={() => setValues({
                          ...values,
                          distribution: method.value
@@ -671,7 +741,6 @@ function SandwichCalculator() {
                                : 'bg-gradient-to-br from-surface/40 to-surface/30 text-gray-300 border-white/10 hover:border-primary/40 hover:bg-surface/60 hover:scale-[1.02] hover:text-white'
                            }`}
                          >
-                           {/* 選中時的發光效果 */}
                            {isSelected && (
                              <>
                                <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-50 animate-pulse-glow"></div>
@@ -690,67 +759,47 @@ function SandwichCalculator() {
                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {zhtw.sandwich.extraBagsLabel}：<span className="text-primary font-bold">{values.extraBags}</span>
+                <div className="relative z-10">
+                  <label className="block text-sm font-medium text-gray-300 mb-2.5 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    {zhtw.sandwich.packModeLabel}
                   </label>
-                  <div className="relative">
-                    <input
-                      type="range"
-                      min="0"
-                      max="5"
-                      step="1"
-                      value={values.extraBags}
-                      aria-label={zhtw.sandwich.extraBagsLabel}
-                      onMouseEnter={() => setShowExtraBagsBubble(true)}
-                      onMouseLeave={() => setShowExtraBagsBubble(false)}
-                      onTouchStart={() => setShowExtraBagsBubble(true)}
-                      onTouchEnd={() => setShowExtraBagsBubble(false)}
-                      onChange={e => setValues(v => ({
-                        ...v,
-                        extraBags: parseInt(e.target.value, 10) || 0
-                      }))}
-                      className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer
-                                touch-manipulation
-                                [&::-webkit-slider-thumb]:appearance-none
-                                [&::-webkit-slider-thumb]:w-6
-                                [&::-webkit-slider-thumb]:h-6
-                                [&::-webkit-slider-thumb]:rounded-full
-                                [&::-webkit-slider-thumb]:bg-primary
-                                [&::-webkit-slider-thumb]:cursor-pointer
-                                [&::-webkit-slider-thumb]:hover:bg-primary/80
-                                [&::-webkit-slider-thumb]:transition-all
-                                [&::-webkit-slider-thumb]:shadow-lg
-                                [&::-moz-range-thumb]:appearance-none
-                                [&::-moz-range-thumb]:border-0
-                                [&::-moz-range-thumb]:w-6
-                                [&::-moz-range-thumb]:h-6
-                                [&::-moz-range-thumb]:rounded-full
-                                [&::-moz-range-thumb]:bg-primary
-                                [&::-moz-range-thumb]:cursor-pointer
-                                [&::-moz-range-thumb]:hover:bg-primary/80
-                                [&::-moz-range-thumb]:transition-all
-                                [&::-moz-range-thumb]:shadow-lg"
-                    />
-                    {showExtraBagsBubble && (
-                      <div
-                        className="absolute -top-7"
-                        style={{ left: `${(values.extraBags / 5) * 100}%`, transform: 'translateX(-50%)' }}
-                      >
-                        <div className="px-2 py-0.5 rounded bg-primary/80 text-white text-xs shadow">
-                          {values.extraBags}
-                        </div>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      {
+                        value: 'up',
+                        label: `${zhtw.sandwich.packModeUp}（${preview.packUpSlices}${zhtw.sandwichUi.unitPiece}／${preview.bagsCeil}${zhtw.sandwichUi.unitBag}）`,
+                        disabled: preview.baseTotalNeeded === 0,
+                      },
+                      {
+                        value: 'down',
+                        label: `${zhtw.sandwich.packModeDown}（${preview.packDownSlices}${zhtw.sandwichUi.unitPiece}／${preview.bagsFloor}${zhtw.sandwichUi.unitBag}）`,
+                        disabled: !preview.canPackDown,
+                      },
+                    ].map((opt) => {
+                      const isSelected = values.packMode === opt.value
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          disabled={opt.disabled}
+                          onClick={() => setValues({ ...values, packMode: opt.value })}
+                          className={`relative px-3 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
+                            isSelected
+                              ? 'bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-cyan-400/60 text-white'
+                              : 'bg-surface/40 border-white/10 text-gray-300 hover:border-cyan-400/40'
+                          } ${opt.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
                   </div>
-                  <div className="flex justify-between text-xs text-text-secondary mt-2 px-1">
-                    <span>0</span>
-                    <span>1</span>
-                    <span>2</span>
-                    <span>3</span>
-                    <span>4</span>
-                    <span>5</span>
-                  </div>
+                  {preview.baseTotalNeeded > 0 && preview.canPackDown ? (
+                    <p className="mt-2 text-xs text-text-secondary">
+                      需求 {preview.baseTotalNeeded} 片：可多做成 {preview.packUpSlices} 片，或少做成 {preview.packDownSlices} 片
+                    </p>
+                  ) : null}
                 </div>
 
                                  <div className="space-y-3 pt-6">
@@ -804,7 +853,6 @@ function SandwichCalculator() {
 
             {results ? (
               <div className="space-y-4 relative z-10">
-                  {/* 火腿卡片 - 超現代設計 */}
                   <div 
                     ref={(el) => { 
                       if (el) {
@@ -815,15 +863,13 @@ function SandwichCalculator() {
                     }}
                     className="group/card relative rounded-2xl bg-gradient-to-br from-purple-600/20 via-pink-500/15 to-purple-700/20 border-2 border-purple-400/30 p-6 shadow-xl hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-500 backdrop-blur-md transform hover:scale-105 hover:-translate-y-1 overflow-hidden"
                   >
-                    {/* 發光背景 */}
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-white/10 to-pink-500/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
                     <div className="relative z-10">
-                      <div className="text-3xl sm:text-4xl font-extrabold text-purple-200 mb-2 drop-shadow-lg">{results.totalHamNeeded}</div>
-                      <div className="text-sm text-purple-300/90 font-semibold">{zhtw.sandwich.needHam}（{zhtw.sandwichUi.unitPiece}）</div>
+                      <div className="text-3xl sm:text-4xl font-extrabold text-purple-200 mb-2 drop-shadow-lg">{results.totalSignatureNeeded}</div>
+                      <div className="text-sm text-purple-300/90 font-semibold">{zhtw.sandwich.needSignature}（{zhtw.sandwichUi.unitPiece}）</div>
                     </div>
                   </div>
                  
-                  {/* 臘腸卡片 - 超現代設計 */}
                   <div 
                     ref={(el) => { 
                       if (el) {
@@ -836,16 +882,32 @@ function SandwichCalculator() {
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-white/10 to-blue-500/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
                     <div className="relative z-10">
-                      <div className="text-3xl sm:text-4xl font-extrabold text-indigo-200 mb-2 drop-shadow-lg">{results.totalSalamiNeeded}</div>
-                      <div className="text-sm text-indigo-300/90 font-semibold">{zhtw.sandwich.needSalami}（{zhtw.sandwichUi.unitPiece}）</div>
+                      <div className="text-3xl sm:text-4xl font-extrabold text-indigo-200 mb-2 drop-shadow-lg">{results.totalDarkNeeded}</div>
+                      <div className="text-sm text-indigo-300/90 font-semibold">{zhtw.sandwich.needDark}（{zhtw.sandwichUi.unitPiece}）</div>
                     </div>
                   </div>
-                 
-                  {/* 麵包卡片 - 超現代設計 */}
+
                   <div 
                     ref={(el) => { 
                       if (el) {
                         resultCardsRef.current[2] = el
+                        el.style.opacity = '0'
+                        el.style.transform = 'translateY(30px) scale(0.9)'
+                      }
+                    }}
+                    className="group/card relative rounded-2xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-amber-600/20 border-2 border-amber-400/30 p-6 shadow-xl hover:shadow-2xl hover:shadow-amber-500/30 transition-all duration-500 backdrop-blur-md transform hover:scale-105 hover:-translate-y-1 overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-white/10 to-orange-500/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                      <div className="text-3xl sm:text-4xl font-extrabold text-amber-200 mb-2 drop-shadow-lg">{results.totalLightNeeded}</div>
+                      <div className="text-sm text-amber-300/90 font-semibold">{zhtw.sandwich.needLight}（{zhtw.sandwichUi.unitPiece}）</div>
+                    </div>
+                  </div>
+                 
+                  <div 
+                    ref={(el) => { 
+                      if (el) {
+                        resultCardsRef.current[3] = el
                         el.style.opacity = '0'
                         el.style.transform = 'translateY(30px) scale(0.9)'
                       }
@@ -859,32 +921,28 @@ function SandwichCalculator() {
                     </div>
                   </div>
 
-                  {/* 總計卡片 - 超現代設計 */}
                   <div 
                     ref={(el) => { 
                       if (el) {
-                        resultCardsRef.current[3] = el
+                        resultCardsRef.current[4] = el
                         el.style.opacity = '0'
                         el.style.transform = 'translateY(30px) scale(0.9)'
                       }
                     }}
                     className="group/card relative rounded-2xl bg-gradient-to-br from-primary/30 via-purple-500/25 to-blue-500/30 border-2 border-primary/50 p-6 shadow-2xl hover:shadow-primary/40 transition-all duration-500 backdrop-blur-md transform hover:scale-110 hover:-translate-y-1 overflow-hidden"
                   >
-                    {/* 發光背景 */}
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 opacity-50 group-hover/card:opacity-75 transition-opacity duration-500 animate-pulse-glow"></div>
-                    {/* 背景光暈 */}
                     <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-lg opacity-50 group-hover/card:opacity-100 transition-opacity duration-500"></div>
                     <div className="relative z-10">
-                      <div className="text-4xl sm:text-5xl font-extrabold text-primary mb-2 drop-shadow-lg">{results.totalHamNeeded + results.totalSalamiNeeded}</div>
+                      <div className="text-4xl sm:text-5xl font-extrabold text-primary mb-2 drop-shadow-lg">{results.totalSignatureNeeded + results.totalDarkNeeded + results.totalLightNeeded}</div>
                       <div className="text-sm text-primary/90 font-semibold">{zhtw.sandwich.totalNeed}（{zhtw.sandwichUi.unitPiece}）</div>
                     </div>
                   </div>
 
-                  {/* 容量與分配資訊 */}
                   <div 
                     ref={(el) => { 
                       if (el) {
-                        resultCardsRef.current[4] = el
+                        resultCardsRef.current[5] = el
                         el.style.opacity = '0'
                         el.style.transform = 'translateY(30px) scale(0.9)'
                       }
@@ -896,27 +954,35 @@ function SandwichCalculator() {
                       <span className="font-medium text-gray-400">{zhtw.sandwichUi.capacityFormula}：</span>
                       <span className="text-white font-semibold">{results.bagsNeeded}</span>
                       <span className="mx-1">×</span>
-                      <span className="text-white font-semibold">{settings.breadPerBag}</span>
+                      <span className="text-white font-semibold">{settings.slicesPerLoaf}</span>
                       <span className="mx-1">=</span>
                       <span className="text-primary font-bold text-base">{results.totalSlices}</span>
                     </div>
-                    <div className="text-sm text-gray-300">
-                      <span className="font-medium text-gray-400">{zhtw.sandwichUi.capacityLeftover}：</span>
-                      <span className="text-primary font-bold text-base">{results.extraSlices}</span>
-                    </div>
+                    {results.shortfall > 0 ? (
+                      <div className="text-sm text-gray-300">
+                        <span className="font-medium text-gray-400">{zhtw.sandwichUi.capacityShortfall}：</span>
+                        <span className="text-amber-300 font-bold text-base">{results.shortfall}</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-300">
+                        <span className="font-medium text-gray-400">{zhtw.sandwichUi.capacityLeftover}：</span>
+                        <span className="text-primary font-bold text-base">{results.extraSlices}</span>
+                      </div>
+                    )}
                     <div className="text-sm text-gray-300 pt-2 border-t border-white/5">
                       <span className="font-medium text-gray-400">{zhtw.sandwichUi.capacityDistributionTitle}：</span>
                       <span className="ml-2 text-gray-200">
                         {values.distribution === 'even' && zhtw.sandwichUi.capacityEvenDetail}
-                        {values.distribution === 'ham' && zhtw.sandwichUi.capacityHamDetail}
-                        {values.distribution === 'salami' && zhtw.sandwichUi.capacitySalamiDetail}
+                        {values.distribution === 'signature' && zhtw.sandwichUi.capacitySignatureDetail}
+                        {values.distribution === 'dark' && zhtw.sandwichUi.capacityDarkDetail}
+                        {values.distribution === 'light' && zhtw.sandwichUi.capacityLightDetail}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-300 pt-2 border-t border-white/5">
+                    <div className="text-sm text-gray-300 pt-2 border-t border-white/5 flex flex-wrap gap-2 items-center">
                       <span className="font-medium text-gray-400">{zhtw.sandwichUi.capacityActual}：</span>
-                      <span className="ml-2 px-2 py-1 rounded bg-purple-500/20 text-purple-200 font-semibold">火腿 +{results.extraHam}</span>
-                      <span className="mx-2 text-gray-500">/</span>
-                      <span className="px-2 py-1 rounded bg-indigo-500/20 text-indigo-200 font-semibold">臘腸 +{results.extraSalami}</span>
+                      <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-200 font-semibold">招牌 +{results.extraSignature}</span>
+                      <span className="px-2 py-1 rounded bg-indigo-500/20 text-indigo-200 font-semibold">深焙 +{results.extraDark}</span>
+                      <span className="px-2 py-1 rounded bg-amber-500/20 text-amber-200 font-semibold">淺焙 +{results.extraLight}</span>
                     </div>
                   </div>
               </div>
@@ -957,7 +1023,7 @@ function SandwichCalculator() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm text-text-secondary mb-2">
-                    {zhtw.settings.breadPerBag}
+                    {zhtw.settings.slicesPerLoaf}
                   </label>
                   <input
                     type="number"
@@ -966,13 +1032,13 @@ function SandwichCalculator() {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     onWheel={e => e.target.blur()}
-                    value={draftSettings.breadPerBag}
-                    onChange={e => setDraftSettings(s => ({ ...s, breadPerBag: parseInt(e.target.value, 10) || 1 }))}
+                    value={draftSettings.slicesPerLoaf}
+                    onChange={e => setDraftSettings(s => ({ ...s, slicesPerLoaf: parseInt(e.target.value, 10) || 1 }))}
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-text-secondary mb-2">
-                    {zhtw.settings.targetHam}
+                    {zhtw.settings.targetSignature}
                   </label>
                   <input
                     type="number"
@@ -981,13 +1047,13 @@ function SandwichCalculator() {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     onWheel={e => e.target.blur()}
-                    value={draftSettings.targetHam}
-                    onChange={e => setDraftSettings(s => ({ ...s, targetHam: parseInt(e.target.value, 10) || 0 }))}
+                    value={draftSettings.targetSignature}
+                    onChange={e => setDraftSettings(s => ({ ...s, targetSignature: parseInt(e.target.value, 10) || 0 }))}
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-text-secondary mb-2">
-                    {zhtw.settings.targetSalami}
+                    {zhtw.settings.targetDark}
                   </label>
                   <input
                     type="number"
@@ -996,8 +1062,23 @@ function SandwichCalculator() {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     onWheel={e => e.target.blur()}
-                    value={draftSettings.targetSalami}
-                    onChange={e => setDraftSettings(s => ({ ...s, targetSalami: parseInt(e.target.value, 10) || 0 }))}
+                    value={draftSettings.targetDark}
+                    onChange={e => setDraftSettings(s => ({ ...s, targetDark: parseInt(e.target.value, 10) || 0 }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-secondary mb-2">
+                    {zhtw.settings.targetLight}
+                  </label>
+                  <input
+                    type="number"
+                    className="input-field w-full"
+                    min={0}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    onWheel={e => e.target.blur()}
+                    value={draftSettings.targetLight}
+                    onChange={e => setDraftSettings(s => ({ ...s, targetLight: parseInt(e.target.value, 10) || 0 }))}
                   />
                 </div>
               </div>
@@ -1040,8 +1121,6 @@ function SandwichCalculator() {
             resetFields={resetFields}
             setShowSettings={setShowSettings}
             settings={settings}
-            showExtraBagsBubble={showExtraBagsBubble}
-            setShowExtraBagsBubble={setShowExtraBagsBubble}
           />
           {studioSettingsModal}
         </>
