@@ -630,6 +630,47 @@ html[data-app-theme='studio'] {
   --cw-transition: 150ms ease-out;
 }
 
+/* Club 是第三套介面；內容沿用 Studio 的元件契約，但使用暖白與珊瑚橘視覺。 */
+html[data-app-theme='club'] {
+  color-scheme: light;
+  --cw-bg: #f7f6f2;
+  --cw-surface: #ffffff;
+  --cw-surface-elevated: #ffffff;
+  --cw-sidebar: #f0efe9;
+  --cw-header-bg: #f7f6f2;
+  --cw-mega-surface: #ffffff;
+  --cw-border: rgba(23, 23, 23, 0.10);
+  --cw-border-strong: rgba(23, 23, 23, 0.16);
+  --cw-text: #171717;
+  --cw-text-muted: #6b6b66;
+  --cw-fg-emphasis: #171717;
+  --cw-fg-emphasis-contrast: #ffffff;
+  --cw-brand: #ec5836;
+  --cw-brand-muted: rgba(236, 88, 54, 0.12);
+  --cw-accent: var(--cw-brand);
+  --cw-accent-contrast: #ffffff;
+  --cw-focus-ring: rgba(236, 88, 54, 0.38);
+  --cw-success: #15803d;
+  --cw-warning: #b45309;
+  --cw-danger: #dc2626;
+  --cw-shadow-sm: 0 1px 0 rgba(23, 23, 23, 0.08);
+  --cw-radius-sm: 8px;
+  --cw-radius: 10px;
+  --cw-radius-lg: 16px;
+  --cw-radius-pill: 9999px;
+  --cw-section-y: 1.5rem;
+  --cw-stack-gap: 1rem;
+  --cw-transition: 150ms ease-out;
+  --club-border: #dedbd3;
+  --club-text: #171717;
+  --club-muted: #6b6b66;
+}
+
+html[data-app-theme='club'] body {
+  @apply bg-[var(--cw-bg)] text-[var(--cw-text)] min-h-screen;
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
 html[data-app-theme='studio'] body {
   @apply bg-[var(--cw-bg)] text-[var(--cw-text)] min-h-screen;
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;

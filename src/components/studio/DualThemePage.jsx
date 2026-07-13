@@ -14,8 +14,8 @@ export function DualThemePage({
   studio,
   hideStudioHeader = false,
 }) {
-  const { isStudio } = useTheme()
-  if (!isStudio) return classic
+  const { isModern, isClub } = useTheme()
+  if (!isModern) return classic
   if (hideStudioHeader) {
     return (
       <StudioPageChrome breadcrumbs={[]} title={undefined} description={undefined}>
@@ -24,7 +24,7 @@ export function DualThemePage({
     )
   }
   return (
-    <StudioPageChrome breadcrumbs={breadcrumbs} title={title} description={description}>
+    <StudioPageChrome breadcrumbs={isClub ? [] : breadcrumbs} title={title} description={description}>
       {studio}
     </StudioPageChrome>
   )

@@ -1,11 +1,12 @@
 /** ECharts 主題：對齊 studio `--cw-*` Token（字面與 CSS 保持一致） */
 
 export const CW_ECHARTS_THEME_NAME = 'studioCw'
+let studioThemeRegistered = false
 
 /** @param {typeof import('echarts')} echarts */
 export function registerStudioEchartsTheme(echarts) {
   if (!echarts?.registerTheme) return
-  if (echarts.__cwStudioThemeRegistered) return
+  if (studioThemeRegistered) return
   const border = 'rgba(255, 255, 255, 0.12)'
   const faint = 'rgba(255, 255, 255, 0.08)'
   const series = ['#71717a', '#a1a1aa', '#d4d4d8', '#52525b', '#3f3f46']
@@ -52,5 +53,7 @@ export function registerStudioEchartsTheme(echarts) {
     timeline: { lineStyle: { color: border }, itemStyle: { color: '#a3a3a3' } },
     visualMap: { textStyle: { color: '#a3a3a3' } },
   })
-  echarts.__cwStudioThemeRegistered = true
+  // ECharts is imported as an ES module in development, so its namespace object is read-only.
+  // Keep this guard in our module instead of writing a custom property onto ECharts.
+  studioThemeRegistered = true
 }

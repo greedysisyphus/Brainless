@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { ArrowsRightLeftIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import StudioTopNav from './StudioTopNav'
 import logoCat from '../../assets/logo-cat.png'
 import { useChangelog } from '../../contexts/ChangelogContext'
-import { useTheme } from '../../contexts/ThemeContext'
+import ThemeSwitcher from '../ThemeSwitcher'
 import {
   ADMIN_NAV_META,
   getNavSections,
@@ -36,7 +36,6 @@ function MegaMenuItem({ item, close }) {
 export default function StudioHeader({ isAdmin }) {
   const wrapRef = useRef(null)
   const { openChangelog } = useChangelog()
-  const { setTheme } = useTheme()
   const [megaSection, setMegaSection] = useState(null)
   const sections = getNavSections()
 
@@ -118,16 +117,7 @@ export default function StudioHeader({ isAdmin }) {
             >
               <DocumentTextIcon className="h-5 w-5" />
             </button>
-            <button
-              type="button"
-              onClick={() => setTheme('classic')}
-              className="cw-touch-target inline-flex items-center gap-1 rounded-[var(--cw-radius)] border border-[var(--cw-border)] px-2 py-2 text-xs font-semibold text-[var(--cw-text-muted)] hover:border-[var(--cw-border-strong)] hover:text-[var(--cw-text)] sm:px-2.5"
-              title="切換為 Classic 主題"
-              aria-label="切換為 Classic 主題"
-            >
-              <ArrowsRightLeftIcon className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
-              <span className="hidden sm:inline">Classic</span>
-            </button>
+            <ThemeSwitcher />
             {isAdmin ? (
               <NavLink
                 to={ADMIN_NAV_META.path}

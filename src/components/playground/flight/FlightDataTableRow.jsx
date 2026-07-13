@@ -2,7 +2,14 @@ import { memo } from 'react'
 import { parseHHMMToMinutes } from '../../../utils/flightData/flightTime'
 import { gateToD11D18Family, isNightSupportTargetGate } from '../../../utils/flightData/nightShiftSupport'
 
-function getStatusColor(status) {
+function getStatusColor(status, isClub) {
+  if (isClub) {
+    if (status.includes('DEPARTED') || status.includes('已出發')) return 'bg-emerald-100 text-emerald-800 border-emerald-300'
+    if (status.includes('BOARDING') || status.includes('登機中')) return 'bg-blue-100 text-blue-800 border-blue-300'
+    if (status.includes('DELAYED') || status.includes('延誤')) return 'bg-amber-100 text-amber-800 border-amber-300'
+    if (status.includes('CANCELLED') || status.includes('取消')) return 'bg-red-100 text-red-800 border-red-300'
+    return 'bg-slate-100 text-slate-700 border-slate-300'
+  }
   if (status.includes('DEPARTED') || status.includes('已出發')) {
     return 'bg-green-500/25 text-green-300 border-green-400/40'
   }
@@ -26,13 +33,14 @@ function FlightDataTableRow({
   keepStoreUntil,
   isLastDefining,
   onSelectFlight,
-  isStudio = false
+  isStudio = false,
+  isClub = false
 }) {
   const codeshareFlights = flight.codeshare_flights || []
   const allFlights = [flight.flight_code, ...codeshareFlights.map((cf) => cf.flight_code)]
   const flightDisplay = allFlights.join(' / ')
   const status = flight.status || ''
-  const statusColorClass = getStatusColor(status)
+  const statusColorClass = getStatusColor(status, isClub)
 
   const flightMinutes = parseHHMMToMinutes(flight.time)
   const showNightSupportHint =
@@ -70,7 +78,7 @@ function FlightDataTableRow({
           className={`font-bold text-base sm:text-lg tracking-tight drop-shadow-sm ${
             isStudio
               ? isUpcoming
-                ? 'text-amber-300'
+                ? isClub ? 'text-amber-700' : 'text-amber-300'
                 : 'text-[var(--cw-text)]'
               : isUpcoming
                 ? 'text-yellow-300'

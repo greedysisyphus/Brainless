@@ -43,12 +43,14 @@ import StressSlotShiftPanel from './flight/StressSlotShiftPanel'
 
 const CLASSIC_CHART_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#3b82f6', '#f97316', '#10b981', '#ef4444', '#6366f1']
 const STUDIO_CHART_COLORS = ['#71717a', '#a1a1aa', '#d4d4d8', '#52525b', '#3f3f46', '#e4e4e7', '#94a3b8', '#64748b']
+// Club：以珊瑚橘、磚紅、暖棕與炭黑為核心，避免與整體介面無關的彩虹色。
+const CLUB_CHART_COLORS = ['#ec5836', '#c84629', '#9f3d28', '#7c4a3d', '#f09a84', '#b86a55', '#5b4a45', '#9a857d']
 
 function FlightDataContent() {
-  const { isStudio } = useTheme()
-  const echartsTheme = isStudio ? CW_ECHARTS_THEME_NAME : 'dark'
-  const CHART_COLORS = isStudio ? STUDIO_CHART_COLORS : CLASSIC_CHART_COLORS
-  const chartEmphasisBorder = isStudio ? '#f4f4f5' : '#8b5cf6'
+  const { isStudio, isClub } = useTheme()
+  const echartsTheme = isClub ? undefined : isStudio ? CW_ECHARTS_THEME_NAME : 'dark'
+  const CHART_COLORS = isClub ? CLUB_CHART_COLORS : isStudio ? STUDIO_CHART_COLORS : CLASSIC_CHART_COLORS
+  const chartEmphasisBorder = isClub ? '#171717' : isStudio ? '#f4f4f5' : '#8b5cf6'
 
   const getLocalDateString = (date) => {
     const year = date.getFullYear()
@@ -997,16 +999,24 @@ function FlightDataContent() {
 
   // 每小時航班數熱力圖（ECharts），與統計分析其他圖表風格一致
   const CHART_BG = 'transparent'
-  const AXIS_COLOR = 'rgba(255,255,255,0.6)'
-  const AXIS_LINE = 'rgba(255,255,255,0.15)'
-  const SPLIT_LINE = 'rgba(255,255,255,0.08)'
-  const TITLE_COLOR = 'rgba(255,255,255,0.9)'
+  const CHART_SPLIT_AREAS = isClub
+    ? ['rgba(236, 88, 54, 0.025)', 'rgba(124, 74, 61, 0.045)']
+    : ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)']
+  const HEATMAP_COLORS = isClub
+    ? ['#fbf4f1', '#f5d2c6', '#efab96', '#e67a5d', '#d65435', '#9f3d28']
+    : isStudio
+      ? ['#18181b', '#27272a', '#3f3f46', '#71717a', '#a1a1aa', '#e4e4e7']
+      : ['#312e81', '#4f46e5', '#7c3aed', '#a855f7', '#ec4899', '#f97316']
+  const AXIS_COLOR = isClub ? '#4d4d48' : 'rgba(255,255,255,0.6)'
+  const AXIS_LINE = isClub ? 'rgba(23,23,23,0.22)' : 'rgba(255,255,255,0.15)'
+  const SPLIT_LINE = isClub ? 'rgba(23,23,23,0.10)' : 'rgba(255,255,255,0.08)'
+  const TITLE_COLOR = isClub ? '#171717' : 'rgba(255,255,255,0.9)'
   const TOOLTIP_STYLE_HEATMAP = {
-    backgroundColor: 'rgba(30, 30, 30, 0.95)',
-    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: isClub ? 'rgba(255, 255, 255, 0.98)' : 'rgba(30, 30, 30, 0.95)',
+    borderColor: isClub ? 'rgba(23,23,23,0.18)' : 'rgba(255,255,255,0.2)',
     borderWidth: 1,
     borderRadius: 8,
-    textStyle: { color: 'rgba(255,255,255,0.9)' }
+    textStyle: { color: isClub ? '#171717' : 'rgba(255,255,255,0.9)' }
   }
   const TOOLTIP_STYLE_AXIS = { ...TOOLTIP_STYLE_HEATMAP }
 
@@ -1124,7 +1134,7 @@ function FlightDataContent() {
           data: Array.from({ length: 24 }, (_, i) => `${i}`),
           axisLabel: { color: AXIS_COLOR, fontSize: 10, interval: 2 },
           axisLine: { lineStyle: { color: AXIS_LINE } },
-          splitArea: { areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)'] } }
+          splitArea: { areaStyle: { color: CHART_SPLIT_AREAS } }
         },
         yAxis: {
           type: 'category',
@@ -1135,7 +1145,7 @@ function FlightDataContent() {
           data: yAxisLabels,
           axisLabel: { color: AXIS_COLOR, fontSize: 10 },
           axisLine: { lineStyle: { color: AXIS_LINE } },
-          splitArea: { areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)'] } }
+          splitArea: { areaStyle: { color: CHART_SPLIT_AREAS } }
         },
         visualMap: {
           type: 'continuous',
@@ -1152,13 +1162,13 @@ function FlightDataContent() {
           text: ['多', '少'],
           textStyle: { color: AXIS_COLOR, fontSize: 10 },
           inRange: {
-            color: ['#0f172a', '#0e7490', '#06b6d4', '#10b981', '#eab308', '#f97316', '#ef4444']
+            color: HEATMAP_COLORS
           }
         },
         series: [{
           type: 'heatmap',
           data: heatmapSeriesData,
-          itemStyle: { borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1 },
+          itemStyle: { borderColor: isClub ? 'rgba(124,74,61,0.16)' : 'rgba(255,255,255,0.06)', borderWidth: 1 },
           emphasis: { itemStyle: { borderColor: chartEmphasisBorder, borderWidth: 2 } }
         }]
       }
@@ -1190,7 +1200,7 @@ function FlightDataContent() {
       cancelAnimationFrame(rafId)
       if (cleanup) cleanup()
     }
-  }, [heatmapDataFromMultiDay, activeTab, echartsTheme])
+  }, [heatmapDataFromMultiDay, activeTab, echartsTheme, isClub])
 
   // 每日總航班數（柱狀圖 + 趨勢線）
   useEffect(() => {
@@ -2184,11 +2194,11 @@ function FlightDataContent() {
       else if (item.metric > q3) level = 4
 
       const colorClassByLevel = {
-        0: 'bg-white/5',
-        1: 'bg-sky-500/25',
-        2: 'bg-cyan-500/35',
-        3: 'bg-emerald-500/50',
-        4: 'bg-amber-500/70'
+        0: isClub ? 'bg-[#f3eeea]' : 'bg-white/5',
+        1: isClub ? 'bg-[#efd4ca]' : 'bg-sky-500/25',
+        2: isClub ? 'bg-[#e8ad99]' : 'bg-cyan-500/35',
+        3: isClub ? 'bg-[#d97a60]' : 'bg-emerald-500/50',
+        4: isClub ? 'bg-[#b84b31]' : 'bg-amber-500/70'
       }
       return {
         ...item,
@@ -2203,7 +2213,7 @@ function FlightDataContent() {
       q2,
       q3
     }
-  }, [gateHeatmapData, gateHeatmapSortMode, gateHeatmapValueMode])
+  }, [gateHeatmapData, gateHeatmapSortMode, gateHeatmapValueMode, isClub])
 
   // Gate × 日期（ECharts 熱力圖）：作為登機門使用熱度的第二視圖
   useEffect(() => {
@@ -2254,14 +2264,14 @@ function FlightDataContent() {
           data: dateLabels,
           axisLabel: { color: AXIS_COLOR, fontSize: 10, interval: 0, rotate: 35 },
           axisLine: { lineStyle: { color: AXIS_LINE } },
-          splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)'] } }
+          splitArea: { show: true, areaStyle: { color: CHART_SPLIT_AREAS } }
         },
         yAxis: {
           type: 'category',
           data: gates,
           axisLabel: { color: AXIS_COLOR, fontSize: 10 },
           axisLine: { lineStyle: { color: AXIS_LINE } },
-          splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)'] } }
+          splitArea: { show: true, areaStyle: { color: CHART_SPLIT_AREAS } }
         },
         visualMap: {
           min: 0,
@@ -2272,12 +2282,12 @@ function FlightDataContent() {
           calculable: true,
           text: ['高', '低'],
           textStyle: { color: AXIS_COLOR, fontSize: 10 },
-          inRange: { color: ['#0f172a', '#0ea5e9', '#22c55e', '#f59e0b'] }
+          inRange: { color: HEATMAP_COLORS }
         },
         series: [{
           type: 'heatmap',
           data: seriesData,
-          itemStyle: { borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 },
+          itemStyle: { borderColor: isClub ? 'rgba(124,74,61,0.16)' : 'rgba(255,255,255,0.08)', borderWidth: 1 },
           emphasis: { itemStyle: { borderColor: chartEmphasisBorder, borderWidth: 2 } }
         }]
       }
@@ -2305,7 +2315,7 @@ function FlightDataContent() {
       cancelAnimationFrame(rafId)
       if (cleanup) cleanup()
     }
-  }, [activeTab, gateHeatmapViewMode, gateHeatmapData, handleChartClick, echartsTheme])
+  }, [activeTab, gateHeatmapViewMode, gateHeatmapData, handleChartClick, echartsTheme, isClub])
 
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const nightSupportPlan = useMemo(() => {
@@ -2925,6 +2935,22 @@ function FlightDataContent() {
     'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text-muted)] hover:bg-white/5 hover:text-[var(--cw-text)] transition-colors'
   const statsStressCardShellStudio =
     'rounded-lg border border-[var(--cw-border)] bg-[var(--cw-mega-surface)] p-3 sm:p-4 flex-1 min-h-0'
+  const statsControlActive = isStudio ? studioSurfaces.chipActive : 'bg-white/15 text-primary'
+  const statsControlIdle = isStudio ? studioSurfaces.chip : 'bg-white/5 text-text-secondary hover:bg-white/10'
+  const rechartsGrid = isClub ? '#eadbd5' : 'rgba(255,255,255,0.1)'
+  const rechartsAxis = isClub ? '#5b4a45' : 'rgba(255,255,255,0.6)'
+  const rechartsTooltip = isClub
+    ? { backgroundColor: '#fffdfb', border: '1px solid #d8b8ad', borderRadius: '8px', color: '#171717' }
+    : { backgroundColor: 'rgba(30, 30, 30, 0.95)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }
+  const historyCard = isStudio
+    ? 'rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] p-4 border-l-4'
+    : 'bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4'
+  const historyText = isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'
+  const historyTitle = isStudio ? 'text-[var(--cw-text)]' : 'text-primary'
+  const historyAction = isStudio ? studioSurfaces.chipActive : 'bg-white/10 text-primary hover:bg-white/15'
+  const historyWarning = isClub ? 'text-[#9f3d28]' : 'text-amber-400/90'
+  const historyIncrease = isClub ? 'text-[#9f3d28]' : 'text-green-400'
+  const historyDecrease = isClub ? 'text-[#b84b31]' : 'text-red-400'
   const hasStatusPanelContent = (
     (loading && loadingProgress > 0) ||
     Boolean(status.message) ||
@@ -3475,9 +3501,9 @@ function FlightDataContent() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="peak" groupLabel="高峰時段" value={stressPeakShift} onChange={setStressPeakShift} />
-                  <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 sm:p-4 flex-1 min-h-0">
-                    <h4 className="text-sm font-semibold text-amber-200 mb-2">
+                  <StressSlotShiftPanel variant="peak" groupLabel="高峰時段" value={stressPeakShift} onChange={setStressPeakShift} isClub={isClub} />
+                  <div className={`rounded-lg border p-3 sm:p-4 flex-1 min-h-0 ${isClub ? 'border-amber-500/35 bg-amber-50/80' : 'border-amber-500/25 bg-amber-500/5'}`}>
+                    <h4 className={`text-sm font-semibold mb-2 ${isClub ? 'text-amber-800' : 'text-amber-200'}`}>
                       高峰（{formatStressShiftSpan(stressPeakShift)}，分數最高）
                     </h4>
                     <ol className="space-y-2 text-sm">
@@ -3494,8 +3520,8 @@ function FlightDataContent() {
                             </span>{' '}
                             {row.label}
                           </span>
-                          <span className="text-right shrink-0 text-amber-100/90">
-                            {row.score.toFixed(2)} <span className="text-text-secondary text-xs">（{row.flightCount} 班）</span>
+                          <span className={`text-right shrink-0 ${isClub ? 'text-amber-800' : 'text-amber-100/90'}`}>
+                            {row.score.toFixed(2)} <span className={`text-xs ${isClub ? 'text-amber-700' : 'text-text-secondary'}`}>（{row.flightCount} 班）</span>
                           </span>
                         </li>
                       ))}
@@ -3503,9 +3529,9 @@ function FlightDataContent() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} />
-                  <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 sm:p-4 flex-1 min-h-0">
-                    <h4 className="text-sm font-semibold text-cyan-200 mb-2">
+                  <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} isClub={isClub} />
+                  <div className={`rounded-lg border p-3 sm:p-4 flex-1 min-h-0 ${isClub ? 'border-[#d9b9ad] bg-[#f8eeea]' : 'border-cyan-500/25 bg-cyan-500/5'}`}>
+                    <h4 className={`text-sm font-semibold mb-2 ${isClub ? 'text-[#76564b]' : 'text-cyan-200'}`}>
                       離峰（{formatStressShiftSpan(stressLowShift)}，分數最低）
                     </h4>
                     <ol className="space-y-2 text-sm">
@@ -3528,13 +3554,13 @@ function FlightDataContent() {
                               </span>{' '}
                               {row.label}
                               {inSupportPeriod && (
-                                <span className="ml-2 inline-flex items-center rounded-full border border-indigo-300/35 bg-indigo-400/10 px-2 py-0.5 text-[10px] text-indigo-200 align-middle">
+                                <span className={`ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] align-middle ${isClub ? 'border-[#d9b9ad] bg-[#fff8f5] text-[#9f3d28]' : 'border-indigo-300/35 bg-indigo-400/10 text-indigo-200'}`}>
                                   在支援期間
                                 </span>
                               )}
                             </span>
-                            <span className="text-right shrink-0 text-cyan-100/90">
-                              {row.score.toFixed(2)} <span className="text-text-secondary text-xs">（{row.flightCount} 班）</span>
+                            <span className={`text-right shrink-0 ${isClub ? 'text-[#76564b]' : 'text-cyan-100/90'}`}>
+                              {row.score.toFixed(2)} <span className={`text-xs ${isClub ? 'text-[#9a7265]' : 'text-text-secondary'}`}>（{row.flightCount} 班）</span>
                             </span>
                           </li>
                         )
@@ -3675,6 +3701,7 @@ function FlightDataContent() {
                           nightSupportLastRowKeys.has(flightRowKey(flight))
                         }
                         isStudio={isStudio}
+                        isClub={isClub}
                         onSelectFlight={setSelectedFlight}
                       />
                     ))}
@@ -4470,22 +4497,18 @@ function FlightDataContent() {
                     }}
                     style={{ cursor: 'pointer' }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={rechartsGrid} />
                     <XAxis 
                       dataKey="name" 
-                      stroke="rgba(255,255,255,0.6)"
+                      stroke={rechartsAxis}
                       style={{ fontSize: '12px' }}
                     />
                     <YAxis 
-                      stroke="rgba(255,255,255,0.6)"
+                      stroke={rechartsAxis}
                       style={{ fontSize: '12px' }}
                     />
                     <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(30, 30, 30, 0.95)', 
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        borderRadius: '8px'
-                      }}
+                      contentStyle={rechartsTooltip}
                     />
                     <Bar dataKey="value" fill={isStudio ? '#71717a' : '#8b5cf6'} radius={[8, 8, 0, 0]}>
                       {statistics.gateDistribution.map((entry, index) => (
@@ -4650,7 +4673,7 @@ function FlightDataContent() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="peak" groupLabel="高峰時段" value={stressPeakShift} onChange={setStressPeakShift} />
+                  <StressSlotShiftPanel variant="peak" groupLabel="高峰時段" value={stressPeakShift} onChange={setStressPeakShift} isClub={isClub} />
                   <div
                     className={
                       isStudio
@@ -4697,7 +4720,7 @@ function FlightDataContent() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} />
+                  <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} isClub={isClub} />
                   <div
                     className={
                       isStudio
@@ -4867,20 +4890,20 @@ function FlightDataContent() {
 
           {/* 目的地航班數 Top 10 — ECharts 柱狀圖 / Bar Race */}
           {(statsByDestination.length > 0 || statsDestRaceFrames.length > 0) && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
-              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">目的地航班數 Top 10</h3>
+            <div className={statsPanelShell}>
+              <h3 className={statsTitleClass}>目的地航班數 Top 10</h3>
               <div className="flex gap-2 mb-2">
                 <button
                   type="button"
                   onClick={() => setDestChartMode('bar')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'bar' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'bar' ? statsControlActive : statsControlIdle}`}
                 >
                   柱狀圖
                 </button>
                 <button
                   type="button"
                   onClick={() => setDestChartMode('race')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'race' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${destChartMode === 'race' ? statsControlActive : statsControlIdle}`}
                 >
                   Bar Race
                 </button>
@@ -4891,16 +4914,16 @@ function FlightDataContent() {
 
           {/* 航空公司航班數 Top 10 — ECharts */}
           {statsByAirline.length > 0 && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
-              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">航空公司航班數 Top 10</h3>
+            <div className={statsPanelShell}>
+              <h3 className={statsTitleClass}>航空公司航班數 Top 10</h3>
               <div ref={airlineTop10Ref} className="w-full h-[320px]" />
             </div>
           )}
 
           {/* 登機門使用熱度熱力圖 */}
           {gateHeatmapData && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
-              <h3 className="text-lg sm:text-xl font-bold text-primary mb-3 sm:mb-4">
+            <div className={statsPanelShell}>
+              <h3 className={statsTitleClass}>
                 登機門使用熱度
                 {multiDayData.length > 0 && (
                   <span className="text-sm font-normal text-text-secondary ml-2">
@@ -4912,44 +4935,44 @@ function FlightDataContent() {
                 <button
                   type="button"
                   onClick={() => setGateHeatmapViewMode('cards')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapViewMode === 'cards' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapViewMode === 'cards' ? statsControlActive : statsControlIdle}`}
                 >
                   卡片視圖
                 </button>
                 <button
                   type="button"
                   onClick={() => setGateHeatmapViewMode('matrix')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapViewMode === 'matrix' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapViewMode === 'matrix' ? statsControlActive : statsControlIdle}`}
                 >
                   Gate × 日期
                 </button>
-                <span className="w-px h-6 bg-white/10 mx-1 hidden sm:inline-block" />
+                <span className={`w-px h-6 mx-1 hidden sm:inline-block ${isStudio ? 'bg-[var(--cw-border)]' : 'bg-white/10'}`} />
                 <button
                   type="button"
                   onClick={() => setGateHeatmapValueMode('average')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapValueMode === 'average' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapValueMode === 'average' ? statsControlActive : statsControlIdle}`}
                 >
                   平均
                 </button>
                 <button
                   type="button"
                   onClick={() => setGateHeatmapValueMode('total')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapValueMode === 'total' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapValueMode === 'total' ? statsControlActive : statsControlIdle}`}
                 >
                   總計
                 </button>
-                <span className="w-px h-6 bg-white/10 mx-1 hidden sm:inline-block" />
+                <span className={`w-px h-6 mx-1 hidden sm:inline-block ${isStudio ? 'bg-[var(--cw-border)]' : 'bg-white/10'}`} />
                 <button
                   type="button"
                   onClick={() => setGateHeatmapSortMode('fixed')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapSortMode === 'fixed' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapSortMode === 'fixed' ? statsControlActive : statsControlIdle}`}
                 >
                   固定順序
                 </button>
                 <button
                   type="button"
                   onClick={() => setGateHeatmapSortMode('value')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapSortMode === 'value' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gateHeatmapSortMode === 'value' ? statsControlActive : statsControlIdle}`}
                 >
                   熱度排序
                 </button>
@@ -4965,26 +4988,26 @@ function FlightDataContent() {
                         title={`${item.gate}: 總 ${item.count} 班 / 平均 ${Number(item.average || 0).toFixed(1)} 班/天`}
                         onClick={() => handleChartClick('gate', item.gate, item)}
                       >
-                        <div className="text-xs sm:text-sm font-bold text-white mb-1">{item.gate}</div>
-                        <div className="text-lg sm:text-xl font-bold text-white">
+                        <div className={`text-xs sm:text-sm font-bold mb-1 ${isClub && item.quantileLevel < 3 ? 'text-[#3d2b25]' : 'text-white'}`}>{item.gate}</div>
+                        <div className={`text-lg sm:text-xl font-bold ${isClub && item.quantileLevel < 3 ? 'text-[#3d2b25]' : 'text-white'}`}>
                           {gateHeatmapValueMode === 'average'
                             ? Number(item.metric || 0).toFixed(1)
                             : item.metric}
                         </div>
-                        <div className="text-xs text-white/70 mt-1">
+                        <div className={`text-xs mt-1 ${isClub && item.quantileLevel < 3 ? 'text-[#6e5045]' : 'text-white/70'}`}>
                           {gateHeatmapValueMode === 'average' ? `總 ${item.count}` : `平均 ${Number(item.average || 0).toFixed(1)}`}
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-4 pt-4 border-t border-white/10">
+                  <div className={`mt-4 pt-4 border-t ${isStudio ? 'border-[var(--cw-border)]' : 'border-white/10'}`}>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-text-secondary">
                       <span>分位數色階</span>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-white/5"></div><span>0</span></div>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-sky-500/25"></div><span>Q1</span></div>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-cyan-500/35"></div><span>Q2</span></div>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-emerald-500/50"></div><span>Q3</span></div>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-amber-500/70"></div><span>Q4</span></div>
+                      <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded ${isClub ? 'bg-[#f3eeea]' : 'bg-white/5'}`}></div><span>0</span></div>
+                      <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded ${isClub ? 'bg-[#efd4ca]' : 'bg-sky-500/25'}`}></div><span>Q1</span></div>
+                      <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded ${isClub ? 'bg-[#e8ad99]' : 'bg-cyan-500/35'}`}></div><span>Q2</span></div>
+                      <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded ${isClub ? 'bg-[#d97a60]' : 'bg-emerald-500/50'}`}></div><span>Q3</span></div>
+                      <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded ${isClub ? 'bg-[#b84b31]' : 'bg-amber-500/70'}`}></div><span>Q4</span></div>
                     </div>
                   </div>
                 </>
@@ -4999,62 +5022,62 @@ function FlightDataContent() {
 
           {/* 歷史趨勢對比 */}
           {historicalComparison && (
-            <div className="bg-surface/40 backdrop-blur-md border border-white/10 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className={statsPanelShell}>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <h3 className="text-lg sm:text-xl font-bold text-primary">歷史趨勢對比</h3>
+                <h3 className={statsTitleClass}>歷史趨勢對比</h3>
                 <button
                   type="button"
                   onClick={() => loadHistoricalComparisonData()}
                   disabled={loadingHistorical}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/10 text-primary hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed ${historyAction}`}
                 >
                   {loadingHistorical ? '載入中…' : '重新載入對比'}
                 </button>
               </div>
-              <p className="text-xs text-text-secondary mb-3">
+              <p className={`text-xs mb-3 ${historyText}`}>
                 上週／上月／去年同期 = 與當前期間相同天數，整體往前移 7／30／365 天
               </p>
               {loadingHistorical && (
-                <p className="text-xs text-text-secondary mb-3">正在載入上週／上月／去年同期…</p>
+                <p className={`text-xs mb-3 ${historyText}`}>正在載入上週／上月／去年同期…</p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* 當前期間 */}
-                <div className="bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4 border-l-violet-400">
-                  <div className="text-sm text-text-secondary mb-2">當前期間</div>
-                  <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.current.averagePerDay)}</div>
-                  <div className="text-xs text-text-secondary">平均 {historicalComparison.current.days} 天</div>
+                <div className={`${historyCard} ${isClub ? 'border-l-[#ec5836]' : 'border-l-violet-400'}`}>
+                  <div className={`text-sm mb-2 ${historyText}`}>當前期間</div>
+                  <div className={`text-2xl font-bold mb-1 ${historyTitle}`}>{Math.round(historicalComparison.current.averagePerDay)}</div>
+                  <div className={`text-xs ${historyText}`}>平均 {historicalComparison.current.days} 天</div>
                   {historicalComparison.current.dateRange && (
-                    <div className="text-xs text-text-secondary/80 mt-0.5">{historicalComparison.current.dateRange}</div>
+                    <div className={`text-xs mt-0.5 ${historyText}`}>{historicalComparison.current.dateRange}</div>
                   )}
-                  <div className="text-sm text-primary mt-2">總計 {historicalComparison.current.totalFlights} 班</div>
+                  <div className={`text-sm mt-2 ${historyTitle}`}>總計 {historicalComparison.current.totalFlights} 班</div>
                 </div>
 
                 {/* 上週同期 */}
-                <div className="bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4 border-l-sky-400">
-                  <div className="text-sm text-text-secondary mb-2">上週同期</div>
+                <div className={`${historyCard} ${isClub ? 'border-l-[#d97a60]' : 'border-l-sky-400'}`}>
+                  <div className={`text-sm mb-2 ${historyText}`}>上週同期</div>
                   {historicalComparison.lastWeek.totalFlights !== null && historicalComparison.lastWeek.days > 0 ? (
                     <>
-                      <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.lastWeek.averagePerDay)}</div>
-                      <div className="text-xs text-text-secondary">
+                      <div className={`text-2xl font-bold mb-1 ${historyTitle}`}>{Math.round(historicalComparison.lastWeek.averagePerDay)}</div>
+                      <div className={`text-xs ${historyText}`}>
                         平均 {historicalComparison.lastWeek.days} 天
                         {historicalComparison.lastWeek.days < historicalComparison.current.days && (
-                          <span className="text-amber-400/90">（共 {historicalComparison.lastWeek.days} 天有資料）</span>
+                          <span className={historyWarning}>（共 {historicalComparison.lastWeek.days} 天有資料）</span>
                         )}
                       </div>
                       {historicalComparison.lastWeek.dateRange && (
-                        <div className="text-xs text-text-secondary/80 mt-0.5">{historicalComparison.lastWeek.dateRange}</div>
+                        <div className={`text-xs mt-0.5 ${historyText}`}>{historicalComparison.lastWeek.dateRange}</div>
                       )}
-                      <div className="text-sm text-primary mt-1">總計 {historicalComparison.lastWeek.totalFlights} 班</div>
+                      <div className={`text-sm mt-1 ${historyTitle}`}>總計 {historicalComparison.lastWeek.totalFlights} 班</div>
                       {historicalComparison.lastWeek.sampleSufficient && historicalComparison.lastWeek.change !== null ? (
                         <div className={`text-sm mt-2 ${
-                          historicalComparison.lastWeek.change > 0 ? 'text-green-400' :
-                          historicalComparison.lastWeek.change < 0 ? 'text-red-400' : 'text-text-secondary'
+                          historicalComparison.lastWeek.change > 0 ? historyIncrease :
+                          historicalComparison.lastWeek.change < 0 ? historyDecrease : historyText
                         }`}>
                           {historicalComparison.lastWeek.change > 0 ? '↑' : historicalComparison.lastWeek.change < 0 ? '↓' : '='}
                           {Math.abs(historicalComparison.lastWeek.change)}% 較當期
                         </div>
                       ) : historicalComparison.lastWeek.days > 0 && !historicalComparison.lastWeek.sampleSufficient && (
-                        <div className="text-amber-400/90 text-sm mt-2">樣本不足，不比較</div>
+                        <div className={`text-sm mt-2 ${historyWarning}`}>樣本不足，不比較</div>
                       )}
                     </>
                   ) : (
@@ -5066,31 +5089,31 @@ function FlightDataContent() {
                 </div>
 
                 {/* 上月同期 */}
-                <div className="bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4 border-l-emerald-400">
-                  <div className="text-sm text-text-secondary mb-2">上月同期</div>
+                <div className={`${historyCard} ${isClub ? 'border-l-[#b86a55]' : 'border-l-emerald-400'}`}>
+                  <div className={`text-sm mb-2 ${historyText}`}>上月同期</div>
                   {historicalComparison.lastMonth.totalFlights !== null && historicalComparison.lastMonth.days > 0 ? (
                     <>
-                      <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.lastMonth.averagePerDay)}</div>
-                      <div className="text-xs text-text-secondary">
+                      <div className={`text-2xl font-bold mb-1 ${historyTitle}`}>{Math.round(historicalComparison.lastMonth.averagePerDay)}</div>
+                      <div className={`text-xs ${historyText}`}>
                         平均 {historicalComparison.lastMonth.days} 天
                         {historicalComparison.lastMonth.days < historicalComparison.current.days && (
-                          <span className="text-amber-400/90">（共 {historicalComparison.lastMonth.days} 天有資料）</span>
+                          <span className={historyWarning}>（共 {historicalComparison.lastMonth.days} 天有資料）</span>
                         )}
                       </div>
                       {historicalComparison.lastMonth.dateRange && (
-                        <div className="text-xs text-text-secondary/80 mt-0.5">{historicalComparison.lastMonth.dateRange}</div>
+                        <div className={`text-xs mt-0.5 ${historyText}`}>{historicalComparison.lastMonth.dateRange}</div>
                       )}
-                      <div className="text-sm text-primary mt-1">總計 {historicalComparison.lastMonth.totalFlights} 班</div>
+                      <div className={`text-sm mt-1 ${historyTitle}`}>總計 {historicalComparison.lastMonth.totalFlights} 班</div>
                       {historicalComparison.lastMonth.sampleSufficient && historicalComparison.lastMonth.change !== null ? (
                         <div className={`text-sm mt-2 ${
-                          historicalComparison.lastMonth.change > 0 ? 'text-green-400' :
-                          historicalComparison.lastMonth.change < 0 ? 'text-red-400' : 'text-text-secondary'
+                          historicalComparison.lastMonth.change > 0 ? historyIncrease :
+                          historicalComparison.lastMonth.change < 0 ? historyDecrease : historyText
                         }`}>
                           {historicalComparison.lastMonth.change > 0 ? '↑' : historicalComparison.lastMonth.change < 0 ? '↓' : '='}
                           {Math.abs(historicalComparison.lastMonth.change)}% 較當期
                         </div>
                       ) : historicalComparison.lastMonth.days > 0 && !historicalComparison.lastMonth.sampleSufficient && (
-                        <div className="text-amber-400/90 text-sm mt-2">樣本不足，不比較</div>
+                        <div className={`text-sm mt-2 ${historyWarning}`}>樣本不足，不比較</div>
                       )}
                     </>
                   ) : (
@@ -5102,31 +5125,31 @@ function FlightDataContent() {
                 </div>
 
                 {/* 去年同期 */}
-                <div className="bg-white/[0.06] rounded-lg p-4 border border-white/10 border-l-4 border-l-amber-400">
-                  <div className="text-sm text-text-secondary mb-2">去年同期</div>
+                <div className={`${historyCard} ${isClub ? 'border-l-[#9a857d]' : 'border-l-amber-400'}`}>
+                  <div className={`text-sm mb-2 ${historyText}`}>去年同期</div>
                   {historicalComparison.lastYear.totalFlights !== null && historicalComparison.lastYear.days > 0 ? (
                     <>
-                      <div className="text-2xl font-bold text-primary mb-1">{Math.round(historicalComparison.lastYear.averagePerDay)}</div>
-                      <div className="text-xs text-text-secondary">
+                      <div className={`text-2xl font-bold mb-1 ${historyTitle}`}>{Math.round(historicalComparison.lastYear.averagePerDay)}</div>
+                      <div className={`text-xs ${historyText}`}>
                         平均 {historicalComparison.lastYear.days} 天
                         {historicalComparison.lastYear.days < historicalComparison.current.days && (
-                          <span className="text-amber-400/90">（共 {historicalComparison.lastYear.days} 天有資料）</span>
+                          <span className={historyWarning}>（共 {historicalComparison.lastYear.days} 天有資料）</span>
                         )}
                       </div>
                       {historicalComparison.lastYear.dateRange && (
-                        <div className="text-xs text-text-secondary/80 mt-0.5">{historicalComparison.lastYear.dateRange}</div>
+                        <div className={`text-xs mt-0.5 ${historyText}`}>{historicalComparison.lastYear.dateRange}</div>
                       )}
-                      <div className="text-sm text-primary mt-1">總計 {historicalComparison.lastYear.totalFlights} 班</div>
+                      <div className={`text-sm mt-1 ${historyTitle}`}>總計 {historicalComparison.lastYear.totalFlights} 班</div>
                       {historicalComparison.lastYear.sampleSufficient && historicalComparison.lastYear.change !== null ? (
                         <div className={`text-sm mt-2 ${
-                          historicalComparison.lastYear.change > 0 ? 'text-green-400' :
-                          historicalComparison.lastYear.change < 0 ? 'text-red-400' : 'text-text-secondary'
+                          historicalComparison.lastYear.change > 0 ? historyIncrease :
+                          historicalComparison.lastYear.change < 0 ? historyDecrease : historyText
                         }`}>
                           {historicalComparison.lastYear.change > 0 ? '↑' : historicalComparison.lastYear.change < 0 ? '↓' : '='}
                           {Math.abs(historicalComparison.lastYear.change)}% 較當期
                         </div>
                       ) : historicalComparison.lastYear.days > 0 && !historicalComparison.lastYear.sampleSufficient && (
-                        <div className="text-amber-400/90 text-sm mt-2">樣本不足，不比較</div>
+                        <div className={`text-sm mt-2 ${historyWarning}`}>樣本不足，不比較</div>
                       )}
                     </>
                   ) : (

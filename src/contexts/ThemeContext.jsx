@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 export const STORAGE_KEY_APP_THEME = 'app-theme'
 
-const VALID_THEMES = ['classic', 'studio']
+const VALID_THEMES = ['classic', 'studio', 'club']
 
 const ThemeContext = createContext(null)
 
@@ -13,6 +13,7 @@ export function ThemeProvider({ children }) {
         ? localStorage.getItem(STORAGE_KEY_APP_THEME)
         : null
       if (saved === 'studio') return 'studio'
+      if (saved === 'club') return 'club'
       if (saved === 'craftwork') {
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem(STORAGE_KEY_APP_THEME, 'studio')
@@ -40,7 +41,7 @@ export function ThemeProvider({ children }) {
     // Theme-color for mobile browser chrome while in studio
     const meta = document.querySelector('meta[name="theme-color"]')
     if (meta) {
-      meta.setAttribute('content', theme === 'studio' ? '#0a0a0a' : '#8b5cf6')
+      meta.setAttribute('content', theme === 'studio' ? '#0a0a0a' : theme === 'club' ? '#f7f6f2' : '#8b5cf6')
     }
   }, [theme])
 
@@ -51,7 +52,7 @@ export function ThemeProvider({ children }) {
   }, [])
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => (prev === 'classic' ? 'studio' : 'classic'))
+    setThemeState((prev) => (prev === 'classic' ? 'studio' : prev === 'studio' ? 'club' : 'classic'))
   }, [])
 
   const value = useMemo(
@@ -59,7 +60,10 @@ export function ThemeProvider({ children }) {
       theme,
       setTheme,
       toggleTheme,
-      isStudio: theme === 'studio',
+      // Club reuses the responsive page components created for Studio, with its own shell and tokens.
+      isStudio: theme === 'studio' || theme === 'club',
+      isClub: theme === 'club',
+      isModern: theme === 'studio' || theme === 'club',
       isClassic: theme === 'classic',
     }),
     [theme, setTheme, toggleTheme]
