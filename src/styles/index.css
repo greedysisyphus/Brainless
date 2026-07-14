@@ -671,6 +671,56 @@ html[data-app-theme='club'] body {
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Club 導覽：手機固定小尺寸；平板／桌機依視窗寬度流暢縮放 */
+html[data-app-theme='club'] {
+  --club-nav-w: 3.5rem;
+  --club-nav-min-h: 3rem;
+  --club-nav-gap: 0.125rem;
+  --club-nav-pad: 0.25rem;
+  --club-nav-icon-box: 1.5rem;
+  --club-nav-icon: 0.875rem;
+  --club-nav-label: 9px;
+  --club-nav-row-gap: 0.25rem;
+}
+
+@media (min-width: 640px) {
+  html[data-app-theme='club'] {
+    --club-nav-w: clamp(4.25rem, 6.4vw, 7.25rem);
+    --club-nav-min-h: clamp(3.75rem, 5.6vw, 6.5rem);
+    --club-nav-gap: clamp(0.25rem, 0.45vw, 0.5rem);
+    --club-nav-pad: clamp(0.35rem, 0.55vw, 0.65rem);
+    --club-nav-icon-box: clamp(1.75rem, 2.7vw, 2.5rem);
+    --club-nav-icon: clamp(0.95rem, 1.5vw, 1.35rem);
+    --club-nav-label: clamp(10px, 0.95vw, 12px);
+    --club-nav-row-gap: clamp(0.35rem, 0.55vw, 0.75rem);
+  }
+}
+
+.club-nav-item {
+  width: var(--club-nav-w);
+  min-height: var(--club-nav-min-h);
+  gap: var(--club-nav-gap);
+  padding: var(--club-nav-pad);
+}
+
+.club-nav-icon-box {
+  width: var(--club-nav-icon-box);
+  height: var(--club-nav-icon-box);
+}
+
+.club-nav-icon {
+  width: var(--club-nav-icon);
+  height: var(--club-nav-icon);
+}
+
+.club-nav-label {
+  font-size: var(--club-nav-label);
+}
+
+.club-nav-row {
+  gap: var(--club-nav-row-gap);
+}
+
 html[data-app-theme='studio'] body {
   @apply bg-[var(--cw-bg)] text-[var(--cw-text)] min-h-screen;
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
