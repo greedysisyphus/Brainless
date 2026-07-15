@@ -441,7 +441,7 @@
       "type": "departure",
       "airport_code": "CNX",
       "city": "Chiang Mai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Chiang Mai (CNX)",
@@ -626,5 +626,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:45 : D16 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-07-15T03:12:18.723783"
+  "updated_at": "2026-07-15T06:21:10.428918"
 }
