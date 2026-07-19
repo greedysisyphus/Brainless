@@ -1717,74 +1717,75 @@ function CoffeeBeanManager() {
     }
   }
 
-  // 創建 Cat 風格表格 HTML（帶 logo）
+  // 創建盤點表匯出 HTML（Editorial Receipt 版型；可帶自訂 logo）
   const createCatStyleTableHTML = (logoBase64 = null, store = 'central') => {
     const tableData = createSummaryTable()
     const date = new Date().toLocaleDateString('zh-TW')
     const storeName = getStoreName(store)
-    
-    // 按分類分組
-    const groupedData = {}
-    tableData.forEach(row => {
-      if (!groupedData[row.category]) {
-        groupedData[row.category] = []
-      }
-      groupedData[row.category].push(row)
-    })
-    
-    const logoUrl = logoBase64 || logoCat
-    
-    return `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; background: #fafafa; color: #1d1d1f; min-height: 100vh;">
-        <div style="background: white; border-radius: 20px; padding: 50px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); position: relative;">
-          <!-- Logo 水印背景 -->
-          ${logoUrl ? `<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.03; pointer-events: none; background-image: url('${logoUrl}'); background-repeat: repeat; background-size: 200px 200px; background-position: center;"></div>` : ''}
-          
-          <div style="text-align: center; margin-bottom: 50px; position: relative; z-index: 1;">
-            <!-- Logo 和標題 -->
-            <div style="display: inline-flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-              ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #e5e5e7; flex-shrink: 0; transform: translateY(16px);" />` : ''}
-              <h1 style="color: #1d1d1f; margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1;">咖啡豆盤點表</h1>
-            </div>
-            <p style="color: #86868b; margin: 8px 0 0 0; font-size: 17px; font-weight: 400;">${storeName} | 盤點日期：${date}</p>
+    const groupedData = tableData.reduce((groups, row) => {
+      groups[row.category] = groups[row.category] || []
+      groups[row.category].push(row)
+      return groups
+    }, {})
+    const categoryMeta = {
+      出杯豆: 'DRIP BEANS',
+      義式豆: 'ESPRESSO BEANS',
+      賣豆: 'RETAIL BEANS',
+    }
+    const categoryOrder = ['出杯豆', '義式豆', '賣豆']
+    const logoUrl = logoBase64 || null
+
+    const renderCategory = (category) => {
+      const rows = groupedData[category] || []
+      if (!rows.length) return ''
+      const hasAnyDryStorage = rows.some((row) => row.hasDryStorage)
+      const cellStyle = 'padding: 15px 16px; border-bottom: 1px solid #ebe5de; font-size: 16px;'
+      return `
+        <section style="margin: 0 0 52px;">
+          <div style="display: flex; align-items: end; justify-content: space-between; margin: 0 0 18px; padding: 0 0 13px; border-bottom: 1.5px solid #a99180;">
+            <h2 style="margin: 0; color: #493a31; font-family: 'PingFang TC', 'Noto Sans TC', -apple-system, sans-serif; font-size: 25px; font-weight: 700; line-height: 1;">${category}</h2>
+            <span style="color: #9b8879; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 2px;">${categoryMeta[category] || ''}</span>
           </div>
-          
-          ${Object.entries(groupedData).map(([category, rows]) => {
-            const hasAnyDryStorage = rows.some(row => row.hasDryStorage)
-            return `
-            <div style="margin-bottom: 40px;">
-              <h2 style="color: #1d1d1f; background: #f5f5f7; padding: 16px 24px; border-radius: 12px; margin: 0 0 24px 0; font-size: 20px; font-weight: 600; text-align: center; border: none;">
-                ${category}
-              </h2>
-              
-              <div style="background: white; border-radius: 16px; overflow: hidden; border: 1px solid #e5e5e7;">
-                <table style="width: 100%; border-collapse: collapse; background: white;">
-                  <thead>
-                    <tr style="background: #f5f5f7; height: 48px;">
-                      <th style="padding: 0 20px; text-align: left; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">豆種</th>
-                      <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">店面庫存</th>
-                      <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">員休室庫存</th>
-                      ${hasAnyDryStorage ? '<th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">乾倉</th>' : ''}
-                      <th style="padding: 0 20px; text-align: center; vertical-align: middle; font-weight: 600; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">總計</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${rows.map((row, index) => `
-                      <tr style="background: ${index % 2 === 0 ? '#fafafa' : 'white'};">
-                        <td style="padding: 16px 20px; text-align: left; font-weight: 500; color: #1d1d1f; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.beanType}</td>
-                        <td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.storeTotal}</td>
-                        <td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.breakRoomTotal}</td>
-                        ${hasAnyDryStorage ? `<td style="padding: 16px 20px; text-align: center; color: #515154; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.hasDryStorage ? (row.dryStorageTotal || 0) : ''}</td>` : ''}
-                        <td style="padding: 16px 20px; text-align: center; font-weight: 600; color: #007aff; font-size: 15px; border-bottom: 1px solid #e5e5e7;">${row.grandTotal}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            `
-          }).join('')}
-        </div>
+          <table style="width: 100%; border-collapse: collapse; color: #403731; font-family: 'PingFang TC', 'Noto Sans TC', -apple-system, sans-serif;">
+            <thead>
+              <tr style="background: #faf7f3; color: #76675e; font-size: 13px;">
+                <th style="padding: 11px 16px; text-align: left; font-weight: 700;">豆種</th>
+                <th style="padding: 11px 12px; text-align: center; font-weight: 700;">店面庫存</th>
+                <th style="padding: 11px 12px; text-align: center; font-weight: 700;">倉庫庫存</th>
+                ${hasAnyDryStorage ? '<th style="padding: 11px 12px; text-align: center; font-weight: 700;">乾倉</th>' : ''}
+                <th style="padding: 11px 16px; text-align: right; font-weight: 700;">總計</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((row) => `
+                <tr>
+                  <td style="${cellStyle} text-align: left; font-weight: 500;">${row.beanType}</td>
+                  <td style="${cellStyle} text-align: center;">${row.storeTotal}</td>
+                  <td style="${cellStyle} text-align: center;">${row.breakRoomTotal}</td>
+                  ${hasAnyDryStorage ? `<td style="${cellStyle} text-align: center;">${row.hasDryStorage ? row.dryStorageTotal : ''}</td>` : ''}
+                  <td style="${cellStyle} text-align: right; color: ${row.grandTotal === 0 ? '#a89d94' : '#a94d36'}; font-weight: 700;">${row.grandTotal}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </section>
+      `
+    }
+
+    return `
+      <div style="box-sizing: border-box; width: 900px; min-height: 100vh; padding: 42px 62px; background: #e8e1d7; color: #403731;">
+        <main style="box-sizing: border-box; min-height: calc(100vh - 84px); padding: 58px 48px 88px; border: 1px solid #c9bcae; background: #fffdf8;">
+          <header style="margin: 0 0 62px; text-align: center;">
+            ${logoUrl ? `
+              <div style="display: grid; width: 112px; height: 112px; margin: 0 auto 27px; place-items: center; border: 1px solid #e1d6cb; border-radius: 50%; background: #f3ece3; box-shadow: inset 0 0 0 6px #fffdf8, inset 0 0 0 8px #80695a;">
+                <img src="${logoUrl}" alt="Logo" style="width: 76px; height: 76px; border-radius: 50%; object-fit: cover; mix-blend-mode: multiply;" />
+              </div>` : ''}
+            <div style="margin: 0 0 25px; padding: 0 0 22px; border-bottom: 1px solid #aa9686; color: #74645a; font-family: Georgia, serif; font-size: 16px; font-weight: 700; letter-spacing: 4px;">BEHIND THE COUNTER</div>
+            <h1 style="margin: 0; color: #342a25; font-family: 'Songti TC', 'Noto Serif TC', Georgia, serif; font-size: 48px; font-weight: 700; line-height: 1.2;">咖啡豆盤點表</h1>
+            <p style="margin: 17px 0 0; color: #817167; font-family: 'PingFang TC', 'Noto Sans TC', -apple-system, sans-serif; font-size: 18px;">${storeName} · 盤點日期：${date}</p>
+          </header>
+          ${categoryOrder.map(renderCategory).join('')}
+        </main>
       </div>
     `
   }
@@ -1822,7 +1823,7 @@ function CoffeeBeanManager() {
       } else {
         const preset = EXPORT_LOGO_PRESETS.find((p) => p.id === exportMode)
         if (!preset || preset.kind === 'none') {
-          htmlContent = createMinimalistTableHTML(selectedStore)
+          htmlContent = createCatStyleTableHTML(null, selectedStore)
         } else {
           let logoBase64 = null
           try {
