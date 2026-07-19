@@ -1739,7 +1739,7 @@ function CoffeeBeanManager() {
       const rows = groupedData[category] || []
       if (!rows.length) return ''
       const hasAnyDryStorage = rows.some((row) => row.hasDryStorage)
-      const cellStyle = 'padding: 15px 16px; border-bottom: 1px solid #ebe5de; font-size: 16px;'
+      const cellStyle = 'padding: 15px 16px; border-bottom: 1px solid #eee9e3; font-size: 16px;'
       return `
         <section style="margin: 0 0 52px;">
           <div style="display: flex; align-items: end; justify-content: space-between; margin: 0 0 18px; padding: 0 0 13px; border-bottom: 1.5px solid #a99180;">
@@ -1748,7 +1748,7 @@ function CoffeeBeanManager() {
           </div>
           <table style="width: 100%; border-collapse: collapse; color: #403731; font-family: 'PingFang TC', 'Noto Sans TC', -apple-system, sans-serif;">
             <thead>
-              <tr style="background: #faf7f3; color: #76675e; font-size: 13px;">
+              <tr style="background: #f8f7f5; color: #76675e; font-size: 13px;">
                 <th style="padding: 11px 16px; text-align: left; font-weight: 700;">豆種</th>
                 <th style="padding: 11px 12px; text-align: center; font-weight: 700;">店面庫存</th>
                 <th style="padding: 11px 12px; text-align: center; font-weight: 700;">倉庫庫存</th>
@@ -1773,12 +1773,12 @@ function CoffeeBeanManager() {
     }
 
     return `
-      <div style="box-sizing: border-box; width: 900px; min-height: 100vh; padding: 42px 62px; background: #e8e1d7; color: #403731;">
-        <main style="box-sizing: border-box; min-height: calc(100vh - 84px); padding: 58px 48px 88px; border: 1px solid #c9bcae; background: #fffdf8;">
+      <div style="box-sizing: border-box; width: 900px; min-height: 100vh; padding: 42px 62px; background: #f2f0ed; color: #403731;">
+        <main style="box-sizing: border-box; min-height: calc(100vh - 84px); padding: 58px 48px 88px; border: 1px solid #d8d0c8; background: #ffffff;">
           <header style="margin: 0 0 62px; text-align: center;">
             ${logoUrl ? `
-              <div style="display: grid; width: 112px; height: 112px; margin: 0 auto 27px; place-items: center; border: 1px solid #e1d6cb; border-radius: 50%; background: #f3ece3; box-shadow: inset 0 0 0 6px #fffdf8, inset 0 0 0 8px #80695a;">
-                <img src="${logoUrl}" alt="Logo" style="width: 76px; height: 76px; border-radius: 50%; object-fit: cover; mix-blend-mode: multiply;" />
+              <div style="display: grid; width: 112px; height: 112px; margin: 0 auto 27px; place-items: center; border: 1px solid #e1d6cb; border-radius: 50%; background: #f7f3ee; box-shadow: inset 0 0 0 6px #ffffff, inset 0 0 0 8px #80695a;">
+                <img src="${logoUrl}" alt="Logo" style="width: 76px; height: 76px; border-radius: 50%; object-fit: cover;" />
               </div>` : ''}
             <div style="margin: 0 0 25px; padding: 0 0 22px; border-bottom: 1px solid #aa9686; color: #74645a; font-family: Georgia, serif; font-size: 16px; font-weight: 700; letter-spacing: 4px;">BEHIND THE COUNTER</div>
             <h1 style="margin: 0; color: #342a25; font-family: 'Songti TC', 'Noto Serif TC', Georgia, serif; font-size: 48px; font-weight: 700; line-height: 1.2;">咖啡豆盤點表</h1>
