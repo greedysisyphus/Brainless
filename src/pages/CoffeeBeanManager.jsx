@@ -1611,7 +1611,7 @@ function CoffeeBeanManager() {
             <div class="mark"><img src="${logoCat}" alt="Brainless 貓 Logo" /></div>
             <p class="eyebrow">BRAINLESS · COFFEE BEANS</p>
             <h1>正在準備你的盤點表</h1>
-            <p>正在整理庫存、建立高畫質圖片。</p>
+            <p>Loading…</p>
             <div class="track" aria-label="圖片產生中"><div class="bar"></div></div>
             <p class="hint">完成後會自動顯示儲存選項</p>
           </main>
