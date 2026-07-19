@@ -18,9 +18,6 @@ export const coffeeBeanStudioTokens = {
     'rounded-[var(--cw-radius-sm)] border border-transparent px-2 py-1 text-[11px] font-medium text-[var(--cw-text-muted)] hover:border-[var(--cw-border)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]',
   cwBeanFooterShell: 'mt-3 rounded-lg border border-[var(--cw-border)] bg-[var(--cw-mega-surface)] p-2',
   cwBeanFooterText: 'text-xs font-semibold text-[var(--cw-text)]',
-  cwExportModeShell:
-    'flex items-center gap-2 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2',
-  cwExportLabel: 'flex cursor-pointer items-center gap-2 text-xs text-[var(--cw-text-muted)]',
 }
 
 export function getCoffeeBeanLayoutShells(isStudio) {
