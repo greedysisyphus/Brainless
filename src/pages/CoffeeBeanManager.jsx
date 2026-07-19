@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon, ArrowPathIcon, PhotoIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon, CalculatorIcon, ClipboardDocumentListIcon, ArrowDownTrayIcon, XMarkIcon, BuildingStorefrontIcon, Cog6ToothIcon, ArrowPathIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 import { db } from '../utils/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import logoCat from '../assets/logo-cat.png'
 import BeanTypesSettingsModal from '../components/BeanTypesSettingsModal'
+import ExportLogoPicker, { EXPORT_LOGO_PRESETS } from './coffeeBean/ExportLogoPicker'
 import { useTheme } from '../contexts/ThemeContext'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwButton, CwCard, CwInput, CwStack } from '../components/studio/ui'
@@ -1529,6 +1530,49 @@ function CoffeeBeanManager() {
     }
   }
 
+  // iPad Safari 對非同步完成後的 data: URL 自動下載並不穩定。
+  // 先在使用者點擊當下開啟預覽頁，完成後提供真正的 Blob 檔案與手動下載／分享入口。
+  const openIOSImageExportPreview = (previewWindow, imageUrl, fileName) => {
+    if (!previewWindow) return false
+
+    const safeFileName = fileName.replace(/[<>:"/\\|?*]/g, '_')
+    const safeTitle = safeFileName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const previewHtml = `
+      <!doctype html>
+      <html lang="zh-Hant">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>${safeTitle}</title>
+          <style>
+            :root { color-scheme: light; }
+            body { margin: 0; min-height: 100vh; box-sizing: border-box; padding: 24px 16px 40px; background: #f5f5f7; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: center; }
+            main { max-width: 960px; margin: 0 auto; }
+            h1 { margin: 0 0 8px; font-size: 20px; }
+            p { margin: 0 0 18px; color: #515154; line-height: 1.5; }
+            a { display: inline-block; margin: 0 0 20px; padding: 12px 18px; border-radius: 10px; background: #007aff; color: white; font-weight: 600; text-decoration: none; }
+            img { display: block; width: 100%; height: auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+          </style>
+        </head>
+        <body>
+          <main>
+            <h1>咖啡豆盤點表已產生</h1>
+            <p>點「下載 PNG」；若 Safari 沒有下載，請點瀏覽器的分享按鈕，再選「儲存影像」。</p>
+            <a href="${imageUrl}" download="${safeFileName}">下載 PNG</a>
+            <img src="${imageUrl}" alt="咖啡豆盤點表" />
+          </main>
+        </body>
+      </html>
+    `
+    const previewUrl = URL.createObjectURL(new Blob([previewHtml], { type: 'text/html' }))
+    previewWindow.location.replace(previewUrl)
+    window.setTimeout(() => {
+      URL.revokeObjectURL(previewUrl)
+      URL.revokeObjectURL(imageUrl)
+    }, 5 * 60 * 1000)
+    return true
+  }
+
   // 處理 logo 上傳
   const handleLogoUpload = (event) => {
     const file = event.target.files[0]
@@ -1658,6 +1702,16 @@ function CoffeeBeanManager() {
 
   // 匯出盤點表為圖片
   const exportInventoryAsImage = async () => {
+    // 必須在同步點擊事件中先開新頁，才能避開 iPad Safari 對 await 後自動下載的限制。
+    const iosPreviewWindow = isIOS() ? window.open('', '_blank') : null
+    if (iosPreviewWindow) {
+      iosPreviewWindow.document.title = '正在產生圖片…'
+      iosPreviewWindow.document.body.innerHTML = '<p style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px; color: #1d1d1f;">正在產生圖片，請稍候…</p>'
+    }
+    const closeIOSPreview = () => {
+      if (iosPreviewWindow && !iosPreviewWindow.closed) iosPreviewWindow.close()
+    }
+
     try {
       // 先檢查模組是否可用
       let html2canvas
@@ -1665,6 +1719,7 @@ function CoffeeBeanManager() {
         html2canvas = (await import('html2canvas')).default
       } catch (importError) {
         console.error('html2canvas 載入失敗:', importError)
+        closeIOSPreview()
         alert('匯出功能暫時無法使用，請重新整理頁面後再試')
         return
       }
@@ -1672,24 +1727,26 @@ function CoffeeBeanManager() {
       // 根據模式選擇HTML模板
       let htmlContent
       if (exportMode === 'custom') {
-        // 自定 Logo 模式：必須使用自訂 logo
         if (!customLogoBase64) {
+          closeIOSPreview()
           alert('請先上傳自訂 Logo')
           return
         }
         htmlContent = createCatStyleTableHTML(customLogoBase64, selectedStore)
-      } else if (exportMode === 'cat') {
-        // Cat 模式：使用預設 logo
-        let logoBase64 = null
-        try {
-          logoBase64 = await imageToBase64(logoCat)
-        } catch (error) {
-          console.warn('Logo 轉換失敗，將使用原始路徑:', error)
-        }
-        htmlContent = createCatStyleTableHTML(logoBase64, selectedStore)
       } else {
-        // Minimalist 模式：無 logo
-        htmlContent = createMinimalistTableHTML(selectedStore)
+        const preset = EXPORT_LOGO_PRESETS.find((p) => p.id === exportMode)
+        if (!preset || preset.kind === 'none') {
+          htmlContent = createMinimalistTableHTML(selectedStore)
+        } else {
+          let logoBase64 = null
+          try {
+            logoBase64 = await imageToBase64(preset.src)
+          } catch (error) {
+            console.warn('Logo 轉換失敗，將使用原始路徑:', error)
+            logoBase64 = preset.src
+          }
+          htmlContent = createCatStyleTableHTML(logoBase64, selectedStore)
+        }
       }
       
       // 創建臨時容器
@@ -1706,8 +1763,10 @@ function CoffeeBeanManager() {
       // 等待渲染完成
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      // Minimalist 模式：移除所有可能的 logo 相關元素和圓形陰影
-      if (exportMode === 'minimalist') {
+      // Minimalist／無 Logo 預設：移除所有可能的 logo 相關元素和圓形陰影
+      const exportPreset = EXPORT_LOGO_PRESETS.find((p) => p.id === exportMode)
+      const isNoLogoExport = exportMode !== 'custom' && (!exportPreset || exportPreset.kind === 'none')
+      if (isNoLogoExport) {
         // 移除所有圖片元素
         const images = tempContainer.querySelectorAll('img')
         images.forEach(img => img.remove())
@@ -1748,8 +1807,8 @@ function CoffeeBeanManager() {
         windowWidth: 900,
         windowHeight: tempContainer.firstElementChild.scrollHeight,
         ignoreElements: (element) => {
-          // Minimalist 模式：忽略所有可能的 logo 相關元素
-          if (exportMode === 'minimalist') {
+          // 無 Logo 模式：忽略所有可能的 logo 相關元素
+          if (isNoLogoExport) {
             if (element.tagName === 'IMG') return true
             const style = element.style
             const computedStyle = window.getComputedStyle(element)
@@ -1774,13 +1833,34 @@ function CoffeeBeanManager() {
         throw new Error('Canvas 渲染失敗')
       }
       
-      // 創建下載連結
+      // 以 Blob 匯出，避免 iPad Safari 無法可靠下載大型 data: URL。
+      const modeText =
+        exportMode === 'custom'
+          ? '自定Logo'
+          : EXPORT_LOGO_PRESETS.find((p) => p.id === exportMode)?.label?.replace(/\s+/g, '') || exportMode
+      const dateText = new Date().toLocaleDateString('zh-TW').replace(/[\\/]/g, '-')
+      const fileName = `咖啡豆盤點表_${modeText}_${dateText}.png`
+      const imageBlob = await new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob)
+          else reject(new Error('PNG 圖片轉檔失敗'))
+        }, 'image/png')
+      })
+      const imageUrl = URL.createObjectURL(imageBlob)
+
+      if (isIOS() && openIOSImageExportPreview(iosPreviewWindow, imageUrl, fileName)) {
+        return
+      }
+
       const link = document.createElement('a')
-      const modeText = exportMode === 'custom' ? '自定Logo' : (exportMode === 'cat' ? 'Cat' : 'Minimalist')
-      link.download = `咖啡豆盤點表_${modeText}_${new Date().toLocaleDateString('zh-TW')}.png`
-      link.href = canvas.toDataURL('image/png', 1.0)
+      link.download = fileName
+      link.href = imageUrl
+      document.body.appendChild(link)
       link.click()
+      document.body.removeChild(link)
+      window.setTimeout(() => URL.revokeObjectURL(imageUrl), 60 * 1000)
     } catch (error) {
+      closeIOSPreview()
       console.error('匯出圖片失敗:', error)
       alert(`匯出圖片失敗：${error.message}`)
     }
@@ -1795,8 +1875,6 @@ function CoffeeBeanManager() {
     cwCellModeGroup,
     cwBeanFooterShell,
     cwBeanFooterText,
-    cwExportModeShell,
-    cwExportLabel,
   } = coffeeBeanStudioTokens
   const cellModeBtnClasses = (active, m) => getCoffeeCellModeBtnClass(isStudio, active, m)
 
@@ -2030,112 +2108,16 @@ function CoffeeBeanManager() {
           </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {/* 匯出模式選擇 - 三選一 */}
-            <div className={isStudio ? cwExportModeShell : 'flex items-center gap-2 rounded-lg border border-white/10 bg-surface/40 px-3 py-2'}>
-                <label className={isStudio ? cwExportLabel : 'flex cursor-pointer items-center gap-2 text-xs text-text-secondary'}>
-                <input
-                  type="radio"
-                    value="cat"
-                    checked={exportMode === 'cat'}
-                  onChange={(e) => setExportMode(e.target.value)}
-                  className={isStudio ? 'h-3 w-3 accent-zinc-400' : 'h-3 w-3 text-blue-400'}
-                />
-                  <span className={isStudio ? 'text-[var(--cw-text)]' : ''}>Cat</span>
-              </label>
-              <div className={isStudio ? 'h-4 w-px bg-[var(--cw-border)]' : 'h-4 w-px bg-white/20'} />
-                <label className={isStudio ? cwExportLabel : 'flex cursor-pointer items-center gap-2 text-xs text-text-secondary'}>
-                <input
-                  type="radio"
-                  value="minimalist"
-                  checked={exportMode === 'minimalist'}
-                  onChange={(e) => setExportMode(e.target.value)}
-                  className={isStudio ? 'h-3 w-3 accent-zinc-400' : 'h-3 w-3 text-blue-400'}
-                />
-                  <span className={isStudio ? 'text-[var(--cw-text)]' : ''}>Minimalist</span>
-              </label>
-              <div className={isStudio ? 'h-4 w-px bg-[var(--cw-border)]' : 'h-4 w-px bg-white/20'} />
-                <label 
-                  className={isStudio ? cwExportLabel : 'flex cursor-pointer items-center gap-2 text-xs text-text-secondary'}
-                  onClick={(e) => {
-                    if (!customLogoBase64) {
-                      // 如果沒有自訂 logo，阻止 radio 選中，觸發文件選擇
-                      e.preventDefault()
-                      document.getElementById('custom-logo-upload').click()
-                    }
-                  }}
-                >
-                <input
-                  type="radio"
-                    value="custom"
-                    checked={exportMode === 'custom'}
-                    onChange={(e) => {
-                      if (customLogoBase64) {
-                        setExportMode('custom')
-                      }
-                    }}
-                    className={isStudio ? 'h-3 w-3 accent-zinc-400' : 'h-3 w-3 text-purple-400'}
-                  />
-                  <span className={exportMode === 'custom' ? (isStudio ? 'text-[var(--cw-text)]' : 'text-purple-400') : isStudio ? 'text-[var(--cw-text-muted)]' : ''}>自定 Logo</span>
-              </label>
-            </div>
-              
-              {/* Logo 預覽和移除（僅在自定 Logo 模式顯示） */}
-              {exportMode === 'custom' && customLogoBase64 && (
-                <div
-                  className={
-                    isStudio
-                      ? 'relative flex items-center gap-2 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2'
-                      : 'relative flex items-center gap-2 rounded-lg border border-white/10 bg-surface/40 px-3 py-2'
-                  }
-                >
-                  <img 
-                    src={customLogoBase64} 
-                    alt="自訂 Logo" 
-                    className={isStudio ? 'h-6 w-6 rounded-full border border-[var(--cw-border)] object-cover' : 'h-6 w-6 rounded-full border border-white/20 object-cover'}
-                  />
-                  <button
-                    onClick={removeCustomLogo}
-                    className={
-                      isStudio
-                        ? 'text-xs text-[var(--cw-text-muted)] transition-colors hover:text-red-400'
-                        : 'text-xs text-text-secondary transition-colors hover:text-red-400'
-                    }
-                    title="移除自訂 Logo"
-                  >
-                    移除
-                  </button>
-                </div>
-              )}
-              
-              {/* 隱藏的檔案上傳 input */}
-              <input
-                id="custom-logo-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                className="hidden"
+              <ExportLogoPicker
+                isStudio={isStudio}
+                exportMode={exportMode}
+                setExportMode={setExportMode}
+                customLogoBase64={customLogoBase64}
+                onLogoUpload={handleLogoUpload}
+                onRemoveCustomLogo={removeCustomLogo}
+                storeName={getStoreName(selectedStore)}
               />
-              
-              {/* 更換 Logo 按鈕（僅在自定 Logo 模式且已有 logo 時顯示） */}
-              {exportMode === 'custom' && customLogoBase64 && (
-                <label
-                  className={
-                    isStudio
-                      ? 'flex cursor-pointer items-center gap-2 rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] px-4 py-2 text-sm font-medium text-[var(--cw-text)] transition-colors hover:bg-[var(--cw-surface-elevated)]'
-                      : 'flex cursor-pointer items-center gap-2 rounded-lg border border-purple-400/30 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-4 py-2 text-sm font-medium text-purple-400 transition-all duration-200 hover:border-purple-500/50 hover:from-purple-500/30 hover:to-pink-500/30'
-                  }
-                >
-                  <PhotoIcon className="h-4 w-4" />
-                  更換 Logo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            
+
             {isStudio ? (
               <CwButton
                 type="button"
@@ -3336,7 +3318,7 @@ function CoffeeBeanManager() {
               </section>
               <section>
                 <h4 className="font-semibold text-primary mb-2">匯出</h4>
-                <p className="text-text-secondary">可選擇 Cat／Minimalist／自定 Logo 匯出為 PNG 圖片，或複製表格用於報表。</p>
+                <p className="text-text-secondary">點工具列圓形 Logo 開啟設定，可選預設樣式或上傳自定 Logo，再匯出為 PNG，或複製表格用於報表。</p>
               </section>
             </div>
             <div
