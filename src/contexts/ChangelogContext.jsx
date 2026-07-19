@@ -4,6 +4,15 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.8',
+    date: '2026-07-19',
+    title: '點豆報表修正',
+    items: [
+      '點豆匯出圖片優化：iPad 產生後會開啟預覽頁，修正部分裝置無法下載圖片的問題。',
+      '盤點表匯出改為新的排版',
+    ],
+  },
+  {
     version: '1.6.5',
     date: '2026-07-13',
     title: '厚片計算器',
