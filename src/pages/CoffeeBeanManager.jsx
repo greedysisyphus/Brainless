@@ -43,7 +43,7 @@ const COFFEE_BC = [
 ]
 
 function CoffeeBeanManager() {
-  const { isStudio } = useTheme()
+  const { isStudio, isClub } = useTheme()
   const [showWeightCalculator, setShowWeightCalculator] = useState(false)
   const [showBeanTypesSettings, setShowBeanTypesSettings] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
@@ -1532,6 +1532,95 @@ function CoffeeBeanManager() {
 
   // iPad Safari 對非同步完成後的 data: URL 自動下載並不穩定。
   // 先在使用者點擊當下開啟預覽頁，完成後提供真正的 Blob 檔案與手動下載／分享入口。
+  const writeIOSExportLoadingPage = (previewWindow, clubMode) => {
+    if (!previewWindow) return
+    const palette = clubMode
+      ? {
+          colorScheme: 'light',
+          page: '#f7f6f2',
+          text: '#2e211e',
+          card: 'rgba(255, 253, 251, .95)',
+          border: 'rgba(124, 74, 61, .16)',
+          shadow: 'rgba(90, 54, 42, .18)',
+          purpleGlow: '#e9b9a8',
+          amberGlow: '#f0ce83',
+          logoStart: '#d97a60',
+          logoEnd: '#a84b36',
+          logoShadow: 'rgba(184, 75, 49, .26)',
+          ring: 'rgba(184, 75, 49, .28)',
+          eyebrow: '#9f3d28',
+          secondary: '#76564b',
+          track: '#eaded8',
+          progressStart: '#b84b31',
+          progressMid: '#efad84',
+          hint: '#9a776b',
+        }
+      : {
+          colorScheme: 'dark',
+          page: '#1e1f22',
+          text: '#f2f3f5',
+          card: 'rgba(49, 51, 56, .92)',
+          border: 'rgba(255,255,255,.09)',
+          shadow: 'rgba(0,0,0,.42)',
+          purpleGlow: '#7b61ff',
+          amberGlow: '#f2b04d',
+          logoStart: '#5865f2',
+          logoEnd: '#3e47b8',
+          logoShadow: 'rgba(88,101,242,.38)',
+          ring: 'rgba(153,164,255,.45)',
+          eyebrow: '#b5baf9',
+          secondary: '#b5bac1',
+          track: '#202225',
+          progressStart: '#5865f2',
+          progressMid: '#a6b0ff',
+          hint: '#949ba4',
+        }
+    previewWindow.document.open()
+    previewWindow.document.write(`
+      <!doctype html>
+      <html lang="zh-Hant">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>正在準備盤點表…</title>
+          <style>
+            :root { color-scheme: ${palette.colorScheme}; }
+            * { box-sizing: border-box; }
+            body { display: grid; min-height: 100vh; margin: 0; place-items: center; overflow: hidden; background: ${palette.page}; color: ${palette.text}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+            body::before, body::after { position: fixed; width: 340px; height: 340px; border-radius: 50%; content: ""; filter: blur(44px); opacity: .34; pointer-events: none; }
+            body::before { top: -130px; left: -90px; background: ${palette.purpleGlow}; animation: drift 7s ease-in-out infinite alternate; }
+            body::after { right: -120px; bottom: -140px; background: ${palette.amberGlow}; animation: drift 8s ease-in-out infinite alternate-reverse; }
+            main { position: relative; z-index: 1; width: min(88vw, 390px); padding: 34px 28px 30px; border: 1px solid ${palette.border}; border-radius: 24px; background: ${palette.card}; box-shadow: 0 28px 80px ${palette.shadow}; text-align: center; }
+            .mark { position: relative; display: grid; width: 96px; height: 96px; margin: 0 auto 22px; place-items: center; border-radius: 28px; background: linear-gradient(145deg, ${palette.logoStart}, ${palette.logoEnd}); box-shadow: 0 12px 30px ${palette.logoShadow}; }
+            .mark::after { position: absolute; inset: -7px; border: 1px solid ${palette.ring}; border-radius: 33px; content: ""; animation: pulse 1.8s ease-out infinite; }
+            .mark img { width: 78px; height: 78px; border-radius: 22px; object-fit: cover; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+            .eyebrow { margin: 0 0 8px; color: ${palette.eyebrow}; font-size: 11px; font-weight: 800; letter-spacing: .15em; }
+            h1 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
+            p { margin: 10px 0 24px; color: ${palette.secondary}; font-size: 15px; line-height: 1.55; }
+            .track { height: 7px; overflow: hidden; border-radius: 999px; background: ${palette.track}; }
+            .bar { width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, ${palette.progressStart}, ${palette.progressMid}, ${palette.progressStart}); background-size: 200% 100%; animation: progress 1.35s ease-in-out infinite; }
+            .hint { margin: 15px 0 0; color: ${palette.hint}; font-size: 12px; }
+            @keyframes progress { 0% { transform: translateX(-110%); background-position: 0 0; } 100% { transform: translateX(310%); background-position: 200% 0; } }
+            @keyframes pulse { 0% { transform: scale(.94); opacity: .9; } 100% { transform: scale(1.22); opacity: 0; } }
+            @keyframes drift { to { transform: translate(42px, 28px) scale(1.12); } }
+            @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+          </style>
+        </head>
+        <body>
+          <main>
+            <div class="mark"><img src="${logoCat}" alt="Brainless 貓 Logo" /></div>
+            <p class="eyebrow">BRAINLESS · COFFEE BEANS</p>
+            <h1>正在準備你的盤點表</h1>
+            <p>正在整理庫存、建立高畫質圖片。</p>
+            <div class="track" aria-label="圖片產生中"><div class="bar"></div></div>
+            <p class="hint">完成後會自動顯示儲存選項</p>
+          </main>
+        </body>
+      </html>
+    `)
+    previewWindow.document.close()
+  }
+
   const openIOSImageExportPreview = (previewWindow, imageUrl, fileName) => {
     if (!previewWindow) return false
 
@@ -1704,10 +1793,7 @@ function CoffeeBeanManager() {
   const exportInventoryAsImage = async () => {
     // 必須在同步點擊事件中先開新頁，才能避開 iPad Safari 對 await 後自動下載的限制。
     const iosPreviewWindow = isIOS() ? window.open('', '_blank') : null
-    if (iosPreviewWindow) {
-      iosPreviewWindow.document.title = '正在產生圖片…'
-      iosPreviewWindow.document.body.innerHTML = '<p style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px; color: #1d1d1f;">正在產生圖片，請稍候…</p>'
-    }
+    writeIOSExportLoadingPage(iosPreviewWindow, isClub)
     const closeIOSPreview = () => {
       if (iosPreviewWindow && !iosPreviewWindow.closed) iosPreviewWindow.close()
     }
