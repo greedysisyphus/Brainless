@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import logoCat from '../../assets/logo-cat.png'
+import exportLogoCat from '../../assets/logo-cat-export.png'
 
 /** 預設 Logo；之後加新款只需往此陣列塞一筆（kind: 'image' | 'none'） */
 export const EXPORT_LOGO_PRESETS = [
@@ -10,7 +11,7 @@ export const EXPORT_LOGO_PRESETS = [
     label: 'Cat',
     hint: '預設圓形',
     kind: 'image',
-    src: logoCat,
+    src: exportLogoCat,
   },
   {
     id: 'minimalist',
