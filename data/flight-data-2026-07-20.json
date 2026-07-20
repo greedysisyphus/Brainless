@@ -55,7 +55,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -87,7 +87,7 @@
       "type": "departure",
       "airport_code": "ICN",
       "city": "Incheon",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Incheon (ICN)",
@@ -129,7 +129,7 @@
       "type": "departure",
       "airport_code": "SIN",
       "city": "Singapore",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Singapore (SIN)",
@@ -151,7 +151,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-900",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -226,6 +226,28 @@
       "terminal": "2",
       "destination": "Bangkok (BKK)",
       "codeshare_flights": []
+    },
+    {
+      "time": "09:00",
+      "datetime": "2026-07-20T09:00:00",
+      "gate": "D17",
+      "flight_code": "CI152",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "KIX",
+      "city": "Osaka Kansai",
+      "status": "準時ON TIME",
+      "aircraft": "A330-300",
+      "terminal": "2",
+      "destination": "Osaka Kansai (KIX)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5104",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        }
+      ]
     },
     {
       "time": "09:00",
@@ -670,8 +692,8 @@
     }
   ],
   "summary": {
-    "total_flights": 30,
-    "before_17:00": 26,
+    "total_flights": 31,
+    "before_17:00": 27,
     "after_17:00": 4
   },
   "formatted_display": [
@@ -685,6 +707,7 @@
     "08:00 : D12 : JX771 (星宇航空)",
     "08:20 : D14R : BR211 (長榮航空)",
     "08:55 : D11 : JX741 (星宇航空)",
+    "09:00 : D17 : CI152 (中華航空)",
     "09:00 : D15R : BR198 (長榮航空)",
     "09:10 : D13 : BR315 (長榮航空)",
     "09:25 : D18 : BR215 (長榮航空)",
@@ -706,5 +729,5 @@
     "20:10 : D14R : JX32 (星宇航空)",
     "20:30 : D15R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-07-19T22:02:34.762589"
+  "updated_at": "2026-07-20T00:02:37.124645"
 }
