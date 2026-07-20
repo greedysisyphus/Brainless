@@ -490,6 +490,33 @@
       ]
     },
     {
+      "time": "14:35",
+      "datetime": "2026-07-21T14:35:00",
+      "gate": "D18",
+      "flight_code": "CI108",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "NRT",
+      "city": "Tokyo",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Tokyo (NRT)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5048",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "QF8740",
+          "airline_code": "QF",
+          "airline_name": "澳洲航空"
+        }
+      ]
+    },
+    {
       "time": "14:40",
       "datetime": "2026-07-21T14:40:00",
       "gate": "D15R",
@@ -696,8 +723,8 @@
     }
   ],
   "summary": {
-    "total_flights": 29,
-    "before_17:00": 26,
+    "total_flights": 30,
+    "before_17:00": 27,
     "after_17:00": 3
   },
   "formatted_display": [
@@ -721,6 +748,7 @@
     "13:50 : D14R : JX745 (星宇航空)",
     "14:10 : D17 : CI521 (中華航空)",
     "14:30 : D13 : CI194 (中華航空)",
+    "14:35 : D18 : CI108 (中華航空)",
     "14:40 : D15R : BR164 (長榮航空)",
     "14:50 : D16 : CI128 (中華航空)",
     "15:15 : D14R : BR160 (長榮航空)",
@@ -731,5 +759,5 @@
     "19:00 : D18 : BR809 (長榮航空)",
     "20:30 : D14R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-07-20T20:35:32.654324"
+  "updated_at": "2026-07-20T22:06:02.982441"
 }
