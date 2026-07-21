@@ -70,7 +70,6 @@ export const BASE_NAV_ITEMS = [
     section: '人事與航班',
     accentColor: '#4ade80',
     Icon: QrCodeIcon,
-    adminOnly: true,
   },
   {
     path: '/flight-data',

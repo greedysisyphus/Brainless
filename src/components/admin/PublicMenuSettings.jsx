@@ -116,6 +116,7 @@ function MenuPageSlot({
   onPick,
   onRemove,
   canRemove,
+  readOnly = false,
 }) {
   const uploadLabel = image ? `更換${label}` : `上傳${label}`
 
@@ -134,7 +135,7 @@ function MenuPageSlot({
   const progressText =
     isBusy && uploadProgress != null ? `上傳中… ${uploadProgress}%` : isBusy ? '上傳中…' : uploadLabel
 
-  const actions = (
+  const actions = readOnly ? null : (
     <div className="flex flex-wrap gap-2">
       {isStudio ? (
         <>
@@ -180,6 +181,39 @@ function MenuPageSlot({
   )
 }
 
+function MenuLoginHint({ isStudio }) {
+  const loginLink = (
+    <a
+      href="#/admin"
+      className={
+        isStudio
+          ? 'font-semibold text-[var(--cw-text)] underline underline-offset-2 hover:opacity-90'
+          : 'font-semibold text-primary underline underline-offset-2 hover:text-primary/90'
+      }
+    >
+      登入管理員
+    </a>
+  )
+
+  if (isStudio) {
+    return (
+      <CwAlert variant="neutral">
+        如需修改菜單圖片或顯示版面，請先 {loginLink}。
+      </CwAlert>
+    )
+  }
+
+  return (
+    <ResponsiveText
+      size="sm"
+      color="secondary"
+      className="block rounded-lg border border-white/10 bg-surface/40 px-4 py-3"
+    >
+      如需修改菜單圖片或顯示版面，請先 {loginLink}。
+    </ResponsiveText>
+  )
+}
+
 function MenuSection({ title, description, children }) {
   return (
     <section className="space-y-3">
@@ -197,7 +231,7 @@ function MenuSection({ title, description, children }) {
 /**
  * 電子菜單 Phase 1：最多 2 張圖，上傳 Storage menu/page-*，寫入 Firestore publicMenu/current
  */
-export default function PublicMenuSettings({ embedded = false }) {
+export default function PublicMenuSettings({ embedded = false, canEdit = true }) {
   const { isStudio } = useTheme()
   const fileInputRef = useRef(null)
   const pendingPageRef = useRef(0)
@@ -367,9 +401,15 @@ export default function PublicMenuSettings({ embedded = false }) {
         )
       ) : null}
 
+      {!canEdit ? <MenuLoginHint isStudio={isStudio} /> : null}
+
       <MenuSection
         title="菜單圖片"
-        description="最多 2 張；可只上傳第 1 頁，第 2 頁選填。更新後客人 QR 站會自動同步。"
+        description={
+          canEdit
+            ? '最多 2 張；可只上傳第 1 頁，第 2 頁選填。更新後客人 QR 站會自動同步。'
+            : '目前上架中的菜單圖片。'
+        }
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {PAGE_LABELS.map((label, index) => (
@@ -381,6 +421,7 @@ export default function PublicMenuSettings({ embedded = false }) {
               isBusy={busyPage === index}
               uploadProgress={busyPage === index ? uploadProgress : null}
               isStudio={isStudio}
+              readOnly={!canEdit}
               onPick={() => handlePickFile(index)}
               onRemove={() => handleRemovePage(index)}
               canRemove={index === 1 && Boolean(slots[1])}
@@ -391,7 +432,11 @@ export default function PublicMenuSettings({ embedded = false }) {
 
       <MenuSection
         title="顯示設定"
-        description="選擇客人掃 QR 後的排版。換圖會立即生效；「左右／分頁」需 menu-site 已部署到 Vercel 新版後才會在客人頁顯示。"
+        description={
+          canEdit
+            ? '選擇客人掃 QR 後的排版。換圖會立即生效；「左右／分頁」需 menu-site 已部署到 Vercel 新版後才會在客人頁顯示。'
+            : '目前客人頁使用的排版。'
+        }
       >
         <div className="rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] bg-[var(--cw-bg)] p-4 lg:p-5">
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,320px)_1fr] xl:items-start">
@@ -402,7 +447,7 @@ export default function PublicMenuSettings({ embedded = false }) {
               <MenuLayoutSelector
                 layout={layout}
                 onChange={handleLayoutChange}
-                disabled={layoutSaving || busyPage != null}
+                disabled={!canEdit || layoutSaving || busyPage != null}
                 variant="grid"
               />
               {layoutSaving ? (

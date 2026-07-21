@@ -17,17 +17,6 @@ function normalizeMenuImages(data) {
   return []
 }
 
-function MenuHeader() {
-  return (
-    <header className="menu-header">
-      <span className="menu-header-mark" aria-hidden>
-        B
-      </span>
-      <span className="menu-header-title">brainless menu</span>
-    </header>
-  )
-}
-
 function MenuImage({ url, index, total }) {
   const alt = total > 1 ? `菜單第 ${index + 1} 頁` : '菜單'
   return <img src={url} alt={alt} className="menu-image" loading={index === 0 ? 'eager' : 'lazy'} />
@@ -150,7 +139,6 @@ export default function App() {
   return (
     <main className="page menu">
       <div className="menu-shell">
-        <MenuHeader />
         <MenuBody layout={layout} imageUrls={imageUrls} />
       </div>
     </main>
