@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { DocumentTextIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { auth, checkAdminStatus } from '../../utils/firebase'
-import { BASE_NAV_ITEMS, ADMIN_NAV_META } from '../../config/navigation.jsx'
+import { getNavItems } from '../../config/navigation.jsx'
 import { useChangelog } from '../../contexts/ChangelogContext'
 import logoCat from '../../assets/logo-cat.png'
 import ThemeSwitcher from '../ThemeSwitcher'
@@ -51,7 +51,7 @@ export default function ClubShell({ children }) {
     })
     return () => { mounted = false; unsub() }
   }, [])
-  const navigationItems = useMemo(() => [...BASE_NAV_ITEMS, ...(isAdmin ? [ADMIN_NAV_META] : [])], [isAdmin])
+  const navigationItems = useMemo(() => getNavItems(isAdmin), [isAdmin])
   return (
     <div className="club-shell cw-shell-min-h overflow-x-hidden bg-[#f7f6f2] text-[#171717]">
       <header className="sticky top-0 z-[70] border-b border-black/10 bg-[#f7f6f2]/95 backdrop-blur-xl">

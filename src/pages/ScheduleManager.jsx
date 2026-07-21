@@ -289,7 +289,7 @@ const getImportMonthOptions = () => {
   return options
 }
 
-function ScheduleManager() {
+function ScheduleManager({ embedded = false }) {
   const { isStudio } = useTheme()
   // 分頁狀態
   const [activeTab, setActiveTab] = useState('display')
@@ -2799,12 +2799,16 @@ function ScheduleManager() {
     </div>
   )
 
+  if (embedded) {
+    return schedulePageInner
+  }
+
   return (
     <DualThemePage
       breadcrumbs={[
         { label: 'Brainless', href: '#/sandwich' },
-        { label: '人事與航班', href: '#/' },
-        { label: '班表管理', href: '#/schedule' },
+        { label: 'Playground', href: '#/playground' },
+        { label: '班表管理', href: '#/playground#schedule-manager' },
       ]}
       title="班表管理工具"
       description="早班好。編輯、統計與匯出一站式。"

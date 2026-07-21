@@ -9,7 +9,6 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { checkFirebaseConnection } from './utils/firebase'
 import SandwichCalculator from './pages/SandwichCalculator'
 import CoffeeBeanManager from './pages/CoffeeBeanManager'
-import ScheduleManager from './pages/ScheduleManager'
 import Playground from './pages/Playground'
 import { ChangelogProvider } from './contexts/ChangelogContext'
 
@@ -19,6 +18,7 @@ const AdminPanel = lazy(() => import('./pages/AdminPanel'))
 const FlightData = lazy(() => import('./pages/FlightData'))
 const PoursteadyAdjustment = lazy(() => import('./pages/PoursteadyAdjustment'))
 const DailyReportGenerator = lazy(() => import('./pages/DailyReportGenerator'))
+const PublicMenuPage = lazy(() => import('./pages/PublicMenuPage'))
 const DataFormatTester = lazy(() => import('./pages/DataFormatTester'))
 
 function AppContent() {
@@ -63,7 +63,8 @@ function AppContent() {
               <Route path="/alcohol" element={<Navigate to="/playground#alcohol" replace />} />
               <Route path="/coffee-beans" element={<CoffeeBeanManager />} />
               <Route path="/daily-reports" element={<DailyReportGenerator />} />
-              <Route path="/schedule" element={<ScheduleManager />} />
+              <Route path="/menu" element={<PublicMenuPage />} />
+              <Route path="/schedule" element={<Navigate to="/playground#schedule-manager" replace />} />
               <Route path="/data-tester" element={<DataFormatTester />} />
               <Route path="/poursteady" element={<PoursteadyAdjustment />} />
               <Route path="/flight-data" element={<FlightData />} />

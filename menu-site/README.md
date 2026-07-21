@@ -34,6 +34,7 @@ firebase deploy --only storage,firestore:rules
 ## 資料流
 
 ```
-Admin /admin 上傳 → Storage menu/current.* → Firestore publicMenu/current.imageUrl
-客人 Vercel 站 → onSnapshot(publicMenu/current) → 顯示圖片
+Admin /admin 上傳 → Storage menu/page-* → Firestore publicMenu/current
+  · images[]、display.layout (stack | row | tabs)
+客人 Vercel 站 → onSnapshot(publicMenu/current) → 依 layout 顯示
 ```

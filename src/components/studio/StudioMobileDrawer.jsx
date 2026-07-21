@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import Clock from '../Clock'
-import { BASE_NAV_ITEMS, ADMIN_NAV_META, getNavSections, itemsForSection } from '../../config/navigation.jsx'
+import { ADMIN_NAV_META, getNavSections, getNavItems, itemsForSection } from '../../config/navigation.jsx'
 import { CwButton } from './ui/CwButton'
 
 export default function StudioMobileDrawer({ open, onClose, isAdmin }) {
@@ -16,7 +16,8 @@ export default function StudioMobileDrawer({ open, onClose, isAdmin }) {
 
   if (!open) return null
 
-  const sections = getNavSections()
+  const navItems = getNavItems(isAdmin, { includeAdmin: false })
+  const sections = getNavSections(navItems)
 
   return (
     <div className="fixed inset-0 z-[100] md:hidden" role="dialog" aria-modal="true">
@@ -50,7 +51,7 @@ export default function StudioMobileDrawer({ open, onClose, isAdmin }) {
                 {sec}
               </div>
               <ul className="space-y-1">
-                {itemsForSection(sec).map(({ path, label, Icon }) => (
+                {itemsForSection(sec, navItems).map(({ path, label, Icon }) => (
                   <li key={path}>
                     <NavLink
                       to={path}

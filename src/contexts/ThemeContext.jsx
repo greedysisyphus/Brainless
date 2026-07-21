@@ -1,44 +1,48 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react'
 
 export const STORAGE_KEY_APP_THEME = 'app-theme'
 
 const VALID_THEMES = ['classic', 'studio', 'club']
+const DEFAULT_THEME = 'club'
+
+function readInitialTheme() {
+  try {
+    const saved = typeof localStorage !== 'undefined'
+      ? localStorage.getItem(STORAGE_KEY_APP_THEME)
+      : null
+    if (saved === 'classic') return 'classic'
+    if (saved === 'studio') return 'studio'
+    if (saved === 'club') return 'club'
+    if (saved === 'craftwork') {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_APP_THEME, 'studio')
+      }
+      return 'studio'
+    }
+    if (saved === 'linear') {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_APP_THEME, DEFAULT_THEME)
+      }
+      return DEFAULT_THEME
+    }
+    return DEFAULT_THEME
+  } catch {
+    return DEFAULT_THEME
+  }
+}
 
 const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(() => {
-    try {
-      const saved = typeof localStorage !== 'undefined'
-        ? localStorage.getItem(STORAGE_KEY_APP_THEME)
-        : null
-      if (saved === 'studio') return 'studio'
-      if (saved === 'club') return 'club'
-      if (saved === 'craftwork') {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(STORAGE_KEY_APP_THEME, 'studio')
-        }
-        return 'studio'
-      }
-      if (saved === 'linear') {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(STORAGE_KEY_APP_THEME, 'classic')
-        }
-      }
-      return 'classic'
-    } catch {
-      return 'classic'
-    }
-  })
+  const [theme, setThemeState] = useState(readInitialTheme)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.setAttribute('data-app-theme', theme)
     try {
       localStorage.setItem(STORAGE_KEY_APP_THEME, theme)
     } catch {
       /* ignore */
     }
-    // Theme-color for mobile browser chrome while in studio
     const meta = document.querySelector('meta[name="theme-color"]')
     if (meta) {
       meta.setAttribute('content', theme === 'studio' ? '#0a0a0a' : theme === 'club' ? '#f7f6f2' : '#8b5cf6')

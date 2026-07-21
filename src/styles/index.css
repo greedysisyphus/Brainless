@@ -4,10 +4,14 @@
 @tailwind utilities;
 
 @layer base {
+  /* 預設跟 Club 對齊，避免 CSS 載入瞬間先套 Classic 深色底 */
   body {
-    @apply bg-background text-text-primary min-h-screen font-sans;
-    /* 桌面常見：直向捲軸出現／消失造成寬度跳一點像素，看起來像在「閃」 */
+    @apply min-h-screen font-sans bg-[#f7f6f2] text-[#171717];
     scrollbar-gutter: stable;
+  }
+
+  html[data-app-theme='classic'] body {
+    @apply bg-background text-text-primary;
   }
 }
 
@@ -618,8 +622,11 @@ html[data-app-theme='studio'] {
   --cw-accent-contrast: #0c0c0c;
   --cw-focus-ring: rgba(255, 255, 255, 0.32);
   --cw-success: #4ade80;
+  --cw-success-muted: rgba(74, 222, 128, 0.12);
   --cw-warning: #fbbf24;
+  --cw-warning-muted: rgba(251, 191, 36, 0.12);
   --cw-danger: #f87171;
+  --cw-danger-muted: rgba(248, 113, 113, 0.12);
   --cw-shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.35);
   --cw-radius-sm: 8px;
   --cw-radius: 10px;
@@ -651,8 +658,11 @@ html[data-app-theme='club'] {
   --cw-accent-contrast: #ffffff;
   --cw-focus-ring: rgba(236, 88, 54, 0.38);
   --cw-success: #15803d;
+  --cw-success-muted: rgba(21, 128, 61, 0.12);
   --cw-warning: #b45309;
+  --cw-warning-muted: rgba(180, 83, 9, 0.12);
   --cw-danger: #dc2626;
+  --cw-danger-muted: rgba(220, 38, 38, 0.12);
   --cw-shadow-sm: 0 1px 0 rgba(23, 23, 23, 0.08);
   --cw-radius-sm: 8px;
   --cw-radius: 10px;

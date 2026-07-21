@@ -5,10 +5,10 @@ import {
   BeakerIcon,
   ClipboardDocumentListIcon,
   DocumentTextIcon,
-  CalendarIcon,
   Cog6ToothIcon,
   MusicalNoteIcon,
   PaperAirplaneIcon,
+  QrCodeIcon,
 } from '@heroicons/react/24/outline'
 
 /** SVG 雞尾酒圖示（與 Navigation 原版一致） */
@@ -65,11 +65,12 @@ export const BASE_NAV_ITEMS = [
     Icon: DocumentTextIcon,
   },
   {
-    path: '/schedule',
-    label: '班表管理',
+    path: '/menu',
+    label: '電子菜單',
     section: '人事與航班',
     accentColor: '#4ade80',
-    Icon: CalendarIcon,
+    Icon: QrCodeIcon,
+    adminOnly: true,
   },
   {
     path: '/flight-data',
@@ -117,4 +118,11 @@ export function getNavSections(items = BASE_NAV_ITEMS) {
 
 export function itemsForSection(sectionName, items = BASE_NAV_ITEMS) {
   return items.filter((i) => i.section === sectionName)
+}
+
+/** Classic / Studio / Club 導覽列共用（含 adminOnly 過濾） */
+export function getNavItems(isAdmin = false, { includeAdmin = true } = {}) {
+  const items = BASE_NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
+  if (isAdmin && includeAdmin) items.push(ADMIN_NAV_META)
+  return items
 }

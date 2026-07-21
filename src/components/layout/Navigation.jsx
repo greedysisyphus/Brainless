@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import React from 'react'
 import { auth, checkAdminStatus } from '../../utils/firebase'
 import anime from 'animejs/lib/anime.es.js'
-import { BASE_NAV_ITEMS, ADMIN_NAV_META } from '../../config/navigation.jsx'
+import { getNavItems } from '../../config/navigation.jsx'
 
 function Navigation() {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -13,26 +13,13 @@ function Navigation() {
   const navItemsRef = useRef([])
   const navRef = useRef(null)
 
-  const allMenuItems = [
-    ...BASE_NAV_ITEMS.map(({ path, label, Icon, section, accentColor }) => ({
+  const allMenuItems = getNavItems(isAdmin).map(({ path, label, Icon, section, accentColor }) => ({
       path,
       label,
       section,
       accentColor,
       icon: React.createElement(Icon, { className: 'w-5 h-5' }),
-    })),
-    ...(isAdmin
-      ? [
-          {
-            path: ADMIN_NAV_META.path,
-            label: ADMIN_NAV_META.label,
-            section: ADMIN_NAV_META.section,
-            accentColor: ADMIN_NAV_META.accentColor,
-            icon: React.createElement(ADMIN_NAV_META.Icon, { className: 'w-5 h-5' }),
-          },
-        ]
-      : []),
-  ]
+    }))
 
   useEffect(() => {
     let isMounted = true
@@ -153,7 +140,7 @@ function Navigation() {
       >
         <div className="container-custom py-2 sm:py-4">
           <div className="flex justify-center gap-2 sm:gap-4 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8">
-            {[...BASE_NAV_ITEMS, { path: '__admin__' }].map(({ path }) => (
+            {[...getNavItems(false), { path: '__admin__' }].map(({ path }) => (
               <div
                 key={path}
                 className="flex flex-col items-center w-[5.5rem] sm:w-28 min-h-[4.5rem] sm:min-h-20 p-2 sm:p-3 rounded-lg animate-pulse"

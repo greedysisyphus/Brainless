@@ -1,15 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import StudioTopNav from './StudioTopNav'
 import logoCat from '../../assets/logo-cat.png'
 import { useChangelog } from '../../contexts/ChangelogContext'
 import ThemeSwitcher from '../ThemeSwitcher'
-import {
-  ADMIN_NAV_META,
-  getNavSections,
-  itemsForSection,
-} from '../../config/navigation.jsx'
+import { ADMIN_NAV_META, getNavSections, getNavItems, itemsForSection } from '../../config/navigation.jsx'
 
 function MegaMenuItem({ item, close }) {
   const { path, label, Icon } = item
@@ -36,8 +32,9 @@ function MegaMenuItem({ item, close }) {
 export default function StudioHeader({ isAdmin }) {
   const wrapRef = useRef(null)
   const { openChangelog } = useChangelog()
+  const navItems = useMemo(() => getNavItems(isAdmin, { includeAdmin: false }), [isAdmin])
+  const sections = useMemo(() => getNavSections(navItems), [navItems])
   const [megaSection, setMegaSection] = useState(null)
-  const sections = getNavSections()
 
   useEffect(() => {
     function onDocDown(e) {
@@ -60,7 +57,7 @@ export default function StudioHeader({ isAdmin }) {
     setMegaSection((prev) => (prev === sectionName ? null : sectionName))
   }
 
-  const megaItems = megaSection ? itemsForSection(megaSection) : []
+  const megaItems = megaSection ? itemsForSection(megaSection, navItems) : []
 
   return (
     <div ref={wrapRef} className="sticky top-6 z-[60] cw-px-safe">

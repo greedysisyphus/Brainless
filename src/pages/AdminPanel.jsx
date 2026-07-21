@@ -105,7 +105,7 @@ const AdminPanel = () => {
     <DualThemePage
       breadcrumbs={ADMIN_BC}
       title="管理員設定"
-      description="跑馬燈、電子菜單"
+      description="跑馬燈"
       classic={<AdminSettingsTabs onLogout={handleAdminLogout} isLoggingOut={isLoading} />}
       studio={<AdminSettingsTabs onLogout={handleAdminLogout} isLoggingOut={isLoading} />}
     />

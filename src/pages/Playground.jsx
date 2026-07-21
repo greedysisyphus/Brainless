@@ -9,7 +9,8 @@ import { CwBadge, CwButton, CwCard, CwInput, CwStack } from '../components/studi
 
 const MusicContent = lazy(() => import('../components/playground/MusicContent'))
 const WeatherContent = lazy(() => import('../components/playground/WeatherContent'))
-const ScheduleManager = lazy(() => import('../components/playground/ScheduleManager'))
+const ScheduleExport = lazy(() => import('../components/playground/ScheduleManager'))
+const ScheduleManagerPage = lazy(() => import('../pages/ScheduleManager'))
 const EchartsDemo = lazy(() => import('./EchartsDemo'))
 const AlcoholContent = lazy(() => import('../components/playground/AlcoholContent'))
 
@@ -30,6 +31,11 @@ const PAGE_META = {
     crumb: '班表匯出',
     title: '班表匯出',
     description: 'Playground 內輕量班表輸出介面。',
+  },
+  'schedule-manager': {
+    crumb: '班表管理',
+    title: '班表管理工具',
+    description: '編輯、統計與匯出一站式。',
   },
   charts: {
     crumb: 'Charts Testing',
@@ -57,6 +63,7 @@ function Playground() {
     const hash = location.hash
     if (hash.includes('#music')) setCurrentPage('music')
     else if (hash.includes('#weather')) setCurrentPage('weather')
+    else if (hash.includes('#schedule-manager')) setCurrentPage('schedule-manager')
     else if (hash.includes('#schedule')) setCurrentPage('schedule')
     else if (hash.includes('#charts')) setCurrentPage('charts')
     else if (hash.includes('#studio-ui') || hash.includes('#craft-ui')) setCurrentPage('studioui')
@@ -112,14 +119,32 @@ function Playground() {
         </button>
         <button
           type="button"
-          onClick={() => navigate('/playground#schedule')}
+          onClick={() => navigate('/playground#schedule-manager')}
           className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-green-500/30"
         >
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-3 transition-transform group-hover:scale-110">
               <CalendarIcon className="h-6 w-6 text-green-400" />
             </div>
-            <h3 className="text-xl font-bold text-primary">班表匯出</h3>
+            <div className="text-left">
+              <h3 className="text-xl font-bold text-primary">班表管理</h3>
+              <p className="mt-1 text-sm text-text-secondary">編輯、統計、車資與匯出</p>
+            </div>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/playground#schedule')}
+          className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-teal-500/30"
+        >
+          <div className="flex items-center gap-4">
+            <div className="rounded-lg bg-gradient-to-br from-teal-500/20 to-cyan-500/20 p-3 transition-transform group-hover:scale-110">
+              <CalendarIcon className="h-6 w-6 text-teal-400" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-xl font-bold text-primary">班表匯出</h3>
+              <p className="mt-1 text-sm text-text-secondary">月曆輸入並匯出 Apple Calendar</p>
+            </div>
           </div>
         </button>
         <button
@@ -168,7 +193,8 @@ function Playground() {
       {[
         { id: 'music', icon: MusicalNoteIcon, label: '音樂', sub: '#music', accent: 'text-purple-300' },
         { id: 'weather', icon: CloudIcon, label: '天氣', sub: '#weather', accent: 'text-cyan-300' },
-        { id: 'schedule', icon: CalendarIcon, label: '班表匯出', sub: '#schedule', accent: 'text-emerald-300' },
+        { id: 'schedule-manager', icon: CalendarIcon, label: '班表管理', sub: '#schedule-manager', accent: 'text-emerald-300' },
+        { id: 'schedule', icon: CalendarIcon, label: '班表匯出', sub: '#schedule', accent: 'text-teal-300' },
         { id: 'charts', icon: ChartBarIcon, label: 'Charts Testing', sub: '#charts', accent: 'text-amber-300' },
         { id: 'alcohol', icon: CocktailIcon, label: '酒精計算', sub: '#alcohol', accent: 'text-pink-300' },
         {
@@ -214,7 +240,8 @@ function Playground() {
       <Suspense fallback={<LoadingPage />}>
         {currentPage === 'music' && <MusicContent />}
         {currentPage === 'weather' && <WeatherContent />}
-        {currentPage === 'schedule' && <ScheduleManager />}
+        {currentPage === 'schedule' && <ScheduleExport />}
+        {currentPage === 'schedule-manager' && <ScheduleManagerPage embedded />}
         {currentPage === 'charts' && <EchartsDemo />}
         {currentPage === 'alcohol' && <AlcoholContent />}
         {currentPage === 'studioui' && (
@@ -273,7 +300,8 @@ function Playground() {
       <Suspense fallback={<LoadingPage />}>
         {currentPage === 'music' && <MusicContent />}
         {currentPage === 'weather' && <WeatherContent />}
-        {currentPage === 'schedule' && <ScheduleManager />}
+        {currentPage === 'schedule' && <ScheduleExport />}
+        {currentPage === 'schedule-manager' && <ScheduleManagerPage embedded />}
         {currentPage === 'charts' && <EchartsDemo />}
         {currentPage === 'alcohol' && <AlcoholContent />}
         {currentPage === 'studioui' && studioUiShowcase}

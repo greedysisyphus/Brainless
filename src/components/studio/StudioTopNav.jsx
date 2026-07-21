@@ -1,6 +1,6 @@
 import { Fragment, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
-import { BASE_NAV_ITEMS, ADMIN_NAV_META, getNavSections } from '../../config/navigation.jsx'
+import { getNavSections, getNavItems } from '../../config/navigation.jsx'
 import { studioSurfaces } from './studioSurfaceClasses'
 
 /** 窄螢幕 pill 用短標，避免直欄堆疊＋超小字 */
@@ -9,7 +9,7 @@ const MOBILE_LABEL = {
   '/cashier': '收銀',
   '/coffee-beans': '咖啡豆',
   '/daily-reports': '報表',
-  '/schedule': '班表',
+  '/menu': '菜單',
   '/flight-data': '航班',
   '/poursteady': '手沖機',
   '/playground': 'Playground',
@@ -25,19 +25,7 @@ function mobileLabel(path, fallback) {
  */
 export default function StudioTopNav({ isAdmin }) {
   const groups = useMemo(() => {
-    const items = [
-      ...BASE_NAV_ITEMS,
-      ...(isAdmin
-        ? [
-            {
-              path: ADMIN_NAV_META.path,
-              label: ADMIN_NAV_META.label,
-              section: ADMIN_NAV_META.section,
-              Icon: ADMIN_NAV_META.Icon,
-            },
-          ]
-        : []),
-    ]
+    const items = getNavItems(isAdmin)
     const secs = getNavSections(items)
     const map = secs.map((sec) => ({
       section: sec,

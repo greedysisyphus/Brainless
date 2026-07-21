@@ -2446,7 +2446,7 @@ function FlightDataContent() {
                 className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${
                   nightSupportPlan?.needSupport
                     ? isStudio
-                      ? 'border border-emerald-500/35 bg-emerald-500/15 text-emerald-200'
+                      ? 'border border-[var(--cw-success)] bg-[var(--cw-success-muted)] text-[var(--cw-success)]'
                       : 'bg-emerald-300/25 text-emerald-100 border border-emerald-200/40'
                     : isStudio
                       ? 'border border-[var(--cw-border)] bg-[var(--cw-bg)] text-[var(--cw-text-muted)]'

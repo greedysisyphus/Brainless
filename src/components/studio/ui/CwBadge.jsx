@@ -5,9 +5,9 @@ export function CwBadge({ children, tone = 'neutral', className = '' }) {
     brand: 'border-[var(--cw-brand)]/35 bg-[var(--cw-brand-muted)] text-[var(--cw-brand)]',
     /** @deprecated 請改用 brand */
     accent: 'border-[var(--cw-brand)]/35 bg-[var(--cw-brand-muted)] text-[var(--cw-brand)]',
-    success: 'border-emerald-500/35 bg-emerald-950/30 text-emerald-200',
-    warning: 'border-amber-500/35 bg-amber-950/30 text-amber-200',
-    danger: 'border-red-500/35 bg-red-950/30 text-red-200',
+    success: 'border-[var(--cw-success)] bg-[var(--cw-success-muted)] text-[var(--cw-success)]',
+    warning: 'border-[var(--cw-warning)] bg-[var(--cw-warning-muted)] text-[var(--cw-warning)]',
+    danger: 'border-[var(--cw-danger)] bg-[var(--cw-danger-muted)] text-[var(--cw-danger)]',
   }
   return (
     <span

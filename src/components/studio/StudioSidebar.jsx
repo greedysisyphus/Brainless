@@ -1,25 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import Clock from '../Clock'
-import { BASE_NAV_ITEMS, ADMIN_NAV_META } from '../../config/navigation.jsx'
+import { getNavItems } from '../../config/navigation.jsx'
 
 /** 桌面／平板：側欄捷徑（與 Mega 同源資料） */
 export default function StudioSidebar({ isAdmin }) {
   const { pathname } = useLocation()
 
-  const items = [
-    ...BASE_NAV_ITEMS,
-    ...(isAdmin
-      ? [
-          {
-            path: ADMIN_NAV_META.path,
-            label: ADMIN_NAV_META.label,
-            section: ADMIN_NAV_META.section,
-            accentColor: ADMIN_NAV_META.accentColor,
-            Icon: ADMIN_NAV_META.Icon,
-          },
-        ]
-      : []),
-  ]
+  const items = getNavItems(isAdmin)
 
   const bySection = items.reduce((acc, it) => {
     if (!acc[it.section]) acc[it.section] = []
