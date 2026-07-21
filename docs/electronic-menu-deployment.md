@@ -4,15 +4,19 @@
 
 ## 兩個 repo、兩條線
 
-| 項目 | Brainless | 客人菜單站 |
-|------|-----------|------------|
+| 項目 | Brainless 主站 | 客人菜單站 |
+|------|----------------|------------|
 | GitHub | [greedysisyphus/Brainless](https://github.com/greedysisyphus/Brainless) | [greedysisyphus/simplekaffa-menu](https://github.com/greedysisyphus/simplekaffa-menu) |
 | 用途 | 後台、上傳、版面設定 | 客人掃 QR 看到的頁面 |
-| 部署 | GitHub Pages（整包 Brainless） | **Vercel** |
-| 線上 URL | （Brainless 主站） | https://simplekaffa-menu.vercel.app/ |
-| 原始碼目錄 | `menu-site/`（開發用副本） | repo 根目錄 = `menu-site/` 內容 |
+| 部署 | **GitHub Pages**（`main` → `/docs`） | **Vercel** |
+| 線上 URL | https://greedysisyphus.github.io/Brainless/ | https://simplekaffa-menu.vercel.app/ |
+| 原始碼目錄 | 整包 repo；後台在 `src/` | repo 根目錄 = `menu-site/` 內容 |
 
-**重要：** 在 Brainless push **不會**更新 Vercel 客人站。Vercel 只連 `simplekaffa-menu` repo。
+**重要：**
+
+- 改 `agent/*` 分支或只 push feature branch → **主站不會更新**；需 **merge 到 `main`** 並通過 [Deploy to GitHub Pages](https://github.com/greedysisyphus/Brainless/actions/workflows/deploy.yml) workflow。
+- 若 workflow 因「僅 data/ 變更」被 skip，在 Actions 手動 **Run workflow**，或 commit 訊息含「實質變化」。
+- 在 Brainless push **不會**更新 Vercel 客人站；Vercel 只連 `simplekaffa-menu` repo。
 
 ## 資料流
 
