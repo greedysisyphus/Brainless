@@ -1,5 +1,5 @@
 /**
- * Studio-only page chrome — Classic routes must not wrap with this component.
+ * Club 頁面 chrome — Classic routes must not wrap with this component.
  */
 export function StudioPageChrome({ breadcrumbs = [], title, description, children }) {
   return (

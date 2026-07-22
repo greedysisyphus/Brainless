@@ -30,18 +30,17 @@
         try {
           var saved = localStorage.getItem('app-theme');
           var theme = 'club';
-          if (saved === 'classic' || saved === 'studio' || saved === 'club') {
-            theme = saved;
-          } else if (saved === 'craftwork') {
-            theme = 'studio';
+          if (saved === 'classic') {
+            theme = 'classic';
+          } else if (saved === 'club') {
+            theme = 'club';
+          } else if (saved === 'studio' || saved === 'craftwork' || saved === 'linear') {
+            theme = 'club';
           }
           document.documentElement.setAttribute('data-app-theme', theme);
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) {
-            meta.setAttribute(
-              'content',
-              theme === 'studio' ? '#0a0a0a' : theme === 'club' ? '#f7f6f2' : '#8b5cf6'
-            );
+            meta.setAttribute('content', theme === 'club' ? '#f7f6f2' : '#8b5cf6');
           }
         } catch (e) {
           document.documentElement.setAttribute('data-app-theme', 'club');
@@ -56,12 +55,6 @@
         background: #f7f6f2;
         color: #171717;
       }
-      html[data-app-theme='studio'],
-      html[data-app-theme='studio'] body,
-      html[data-app-theme='studio'] #root {
-        background: #0c0c0c;
-        color: #f4f4f5;
-      }
       html[data-app-theme='classic'],
       html[data-app-theme='classic'] body,
       html[data-app-theme='classic'] #root {
@@ -70,7 +63,7 @@
       }
     </style>
     
-    <!-- Studio theme: Plus Jakarta Sans (applied when data-app-theme=studio on html) -->
+    <!-- Club / Cw UI：Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

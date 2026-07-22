@@ -2,9 +2,10 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { StudioPageChrome } from './StudioPageChrome'
 
 /**
- * @param classic — Classic 視圖（整頁 JSX，不包含 Studio Shell）
- * @param studio — 僅在 studio theme 渲染，已由 PageChrome 包裹內緣 content
- * @param hideStudioHeader — 為 true 時不顯示麵包屑／標題／描述（頁面自管標題時使用）
+ * Classic 與 Club（現代）雙視圖切換。
+ * @param classic — Classic 視圖
+ * @param studio — Club 現代視圖（Cw* 元件區塊；prop 名保留向後相容）
+ * @param hideStudioHeader — 為 true 時不顯示麵包屑／標題／描述
  */
 export function DualThemePage({
   breadcrumbs = [],

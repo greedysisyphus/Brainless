@@ -2,30 +2,29 @@ import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useSt
 
 export const STORAGE_KEY_APP_THEME = 'app-theme'
 
-const VALID_THEMES = ['classic', 'studio', 'club']
+const VALID_THEMES = ['classic', 'club']
 const DEFAULT_THEME = 'club'
+
+function normalizeTheme(saved) {
+  if (saved === 'classic') return 'classic'
+  if (saved === 'club') return 'club'
+  // 已移除 Studio 主題：舊設定一律遷移到 Club
+  if (saved === 'studio' || saved === 'craftwork' || saved === 'linear') {
+    return 'club'
+  }
+  return DEFAULT_THEME
+}
 
 function readInitialTheme() {
   try {
     const saved = typeof localStorage !== 'undefined'
       ? localStorage.getItem(STORAGE_KEY_APP_THEME)
       : null
-    if (saved === 'classic') return 'classic'
-    if (saved === 'studio') return 'studio'
-    if (saved === 'club') return 'club'
-    if (saved === 'craftwork') {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY_APP_THEME, 'studio')
-      }
-      return 'studio'
+    const theme = normalizeTheme(saved)
+    if (saved !== theme && typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_APP_THEME, theme)
     }
-    if (saved === 'linear') {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY_APP_THEME, DEFAULT_THEME)
-      }
-      return DEFAULT_THEME
-    }
-    return DEFAULT_THEME
+    return theme
   } catch {
     return DEFAULT_THEME
   }
@@ -45,7 +44,7 @@ export function ThemeProvider({ children }) {
     }
     const meta = document.querySelector('meta[name="theme-color"]')
     if (meta) {
-      meta.setAttribute('content', theme === 'studio' ? '#0a0a0a' : theme === 'club' ? '#f7f6f2' : '#8b5cf6')
+      meta.setAttribute('content', theme === 'club' ? '#f7f6f2' : '#8b5cf6')
     }
   }, [theme])
 
@@ -56,7 +55,7 @@ export function ThemeProvider({ children }) {
   }, [])
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => (prev === 'classic' ? 'studio' : prev === 'studio' ? 'club' : 'classic'))
+    setThemeState((prev) => (prev === 'classic' ? 'club' : 'classic'))
   }, [])
 
   const value = useMemo(
@@ -64,10 +63,10 @@ export function ThemeProvider({ children }) {
       theme,
       setTheme,
       toggleTheme,
-      // Club reuses the responsive page components created for Studio, with its own shell and tokens.
-      isStudio: theme === 'studio' || theme === 'club',
+      // Club 沿用 Cw* 元件契約（原 Studio UI kit）
+      isStudio: theme === 'club',
       isClub: theme === 'club',
-      isModern: theme === 'studio' || theme === 'club',
+      isModern: theme === 'club',
       isClassic: theme === 'classic',
     }),
     [theme, setTheme, toggleTheme]

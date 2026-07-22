@@ -32,7 +32,7 @@ export function CocktailIcon(props) {
 }
 
 /**
- * Studio Mega / Sidebar 共用；Classic Navigation 可依此組 icon。
+ * Club / Classic 導覽列共用；Classic Navigation 可依此組 icon。
  * section：頂部分組；accentColor：squircle 邊框色
  */
 export const BASE_NAV_ITEMS = [
@@ -119,7 +119,7 @@ export function itemsForSection(sectionName, items = BASE_NAV_ITEMS) {
   return items.filter((i) => i.section === sectionName)
 }
 
-/** Classic / Studio / Club 導覽列共用（含 adminOnly 過濾） */
+/** Classic / Club 導覽列共用（含 adminOnly 過濾） */
 export function getNavItems(isAdmin = false, { includeAdmin = true } = {}) {
   const items = BASE_NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
   if (isAdmin && includeAdmin) items.push(ADMIN_NAV_META)

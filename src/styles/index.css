@@ -599,45 +599,7 @@
   animation: gradient-shift 15s ease infinite;
 }
 
-/* --- Studio theme tokens (classic 不依賴此區；僅 html[data-app-theme="studio"] 生效於子樹) --- */
-html[data-app-theme='studio'] {
-  color-scheme: dark;
-  --cw-bg: #0c0c0c;
-  --cw-surface: #161616;
-  --cw-surface-elevated: #1c1c1c;
-  --cw-sidebar: #121212;
-  --cw-header-bg: #0c0c0c;
-  --cw-mega-surface: #1a1a1a;
-  --cw-border: rgba(255, 255, 255, 0.08);
-  --cw-border-strong: rgba(255, 255, 255, 0.14);
-  --cw-text: #f4f4f5;
-  --cw-text-muted: #a1a1aa;
-  /* 主互動（按鈕、選中態）：近白，對齊 studio 產品 CTA */
-  --cw-fg-emphasis: #f4f4f5;
-  --cw-fg-emphasis-contrast: #0c0c0c;
-  /* 品牌螢光：小面積點綴；--cw-accent 為向後相容別名 */
-  --cw-brand: #c8e600;
-  --cw-brand-muted: rgba(200, 230, 0, 0.12);
-  --cw-accent: var(--cw-brand);
-  --cw-accent-contrast: #0c0c0c;
-  --cw-focus-ring: rgba(255, 255, 255, 0.32);
-  --cw-success: #4ade80;
-  --cw-success-muted: rgba(74, 222, 128, 0.12);
-  --cw-warning: #fbbf24;
-  --cw-warning-muted: rgba(251, 191, 36, 0.12);
-  --cw-danger: #f87171;
-  --cw-danger-muted: rgba(248, 113, 113, 0.12);
-  --cw-shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.35);
-  --cw-radius-sm: 8px;
-  --cw-radius: 10px;
-  --cw-radius-lg: 16px;
-  --cw-radius-pill: 9999px;
-  --cw-section-y: 1.5rem;
-  --cw-stack-gap: 1rem;
-  --cw-transition: 150ms ease-out;
-}
-
-/* Club 是第三套介面；內容沿用 Studio 的元件契約，但使用暖白與珊瑚橘視覺。 */
+/* --- Club theme tokens（Cw* 元件契約） --- */
 html[data-app-theme='club'] {
   color-scheme: light;
   --cw-bg: #f7f6f2;
@@ -731,49 +693,26 @@ html[data-app-theme='club'] {
   gap: var(--club-nav-row-gap);
 }
 
-html[data-app-theme='studio'] body {
-  @apply bg-[var(--cw-bg)] text-[var(--cw-text)] min-h-screen;
-  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  font-feature-settings: 'tnum' 1;
-  scrollbar-gutter: stable;
-}
-
-html[data-app-theme='studio'] .cw-tabular {
+html[data-app-theme='club'] .cw-tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* Studio：原生 date/time 在深色底需 color-scheme，並放大可點擊的日曆圖示區 */
-html[data-app-theme='studio'] input[type='date'],
-html[data-app-theme='studio'] input[type='time'],
-html[data-app-theme='studio'] input[type='datetime-local'],
-html[data-app-theme='studio'] input[type='month'],
-html[data-app-theme='studio'] input[type='week'],
-html[data-app-theme='studio'] .cw-date-input {
-  color-scheme: dark;
+html[data-app-theme='club'] input[type='date'],
+html[data-app-theme='club'] input[type='time'],
+html[data-app-theme='club'] input[type='datetime-local'],
+html[data-app-theme='club'] input[type='month'],
+html[data-app-theme='club'] input[type='week'],
+html[data-app-theme='club'] .cw-date-input {
+  color-scheme: light;
   cursor: pointer;
 }
 
-html[data-app-theme='studio'] input[type='date']:not(.cw-date-input),
-html[data-app-theme='studio'] input[type='time']:not(.cw-date-input),
-html[data-app-theme='studio'] input[type='datetime-local']:not(.cw-date-input) {
-  padding-right: 2.5rem;
+html[data-app-theme='club'] .cw-shell-min-h {
+  min-height: 100dvh;
+  min-height: 100vh;
 }
 
-html[data-app-theme='studio'] input[type='date']::-webkit-calendar-picker-indicator,
-html[data-app-theme='studio'] input[type='time']::-webkit-calendar-picker-indicator,
-html[data-app-theme='studio'] input[type='datetime-local']::-webkit-calendar-picker-indicator,
-html[data-app-theme='studio'] input[type='month']::-webkit-calendar-picker-indicator,
-html[data-app-theme='studio'] input[type='week']::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 0.95;
-  filter: invert(1);
-  width: 1.125rem;
-  height: 1.125rem;
-  margin-inline-start: 0.25rem;
-  padding: 0.125rem;
-}
-
-/* iOS Safe area helpers（Studio 殼／抽屜內可自行加 pt-safe 等） */
+/* iOS Safe area helpers（Club 殼內可自行加 pt-safe 等） */
 @supports (padding: env(safe-area-inset-top)) {
   .cw-pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
@@ -793,20 +732,15 @@ html[data-app-theme='studio'] input[type='week']::-webkit-calendar-picker-indica
   }
 }
 
-html[data-app-theme='studio'] .cw-shell-min-h {
-  min-height: 100dvh;
-  min-height: 100vh;
-}
-
 .cw-touch-target {
   min-width: 2.75rem;
   min-height: 2.75rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-app-theme='studio'] *,
-  html[data-app-theme='studio'] *::before,
-  html[data-app-theme='studio'] *::after {
+  html[data-app-theme='club'] *,
+  html[data-app-theme='club'] *::before,
+  html[data-app-theme='club'] *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;

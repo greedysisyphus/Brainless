@@ -1,20 +1,13 @@
 import { memo } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
 import ClassicLayoutInner from './ClassicLayoutInner'
-import StudioShell from '../studio/StudioShell'
 import ClubShell from '../club/ClubShell'
 
-/**
- * Routes always render inside this wrapper: Classic uses existing Layout visuals;
- * Studio uses StudioShell (no AnimatedBackground).
- */
+/** Classic 或 Club 殼層；已移除 Studio 主題。 */
 function AppLayoutSwitcher({ children }) {
-  const { isStudio, isClub } = useTheme()
+  const { isClub } = useTheme()
   if (isClub) {
     return <ClubShell>{children}</ClubShell>
-  }
-  if (isStudio) {
-    return <StudioShell>{children}</StudioShell>
   }
   return <ClassicLayoutInner>{children}</ClassicLayoutInner>
 }

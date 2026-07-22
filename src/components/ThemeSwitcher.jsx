@@ -4,7 +4,6 @@ import { useTheme } from '../contexts/ThemeContext'
 
 const THEMES = [
   { value: 'classic', label: 'Classic' },
-  { value: 'studio', label: 'Studio' },
   { value: 'club', label: 'Club' },
 ]
 
