@@ -134,7 +134,7 @@
     {
       "time": "08:10",
       "datetime": "2026-07-24T08:10:00",
-      "gate": "D16",
+      "gate": "D14R",
       "flight_code": "BR106",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -182,7 +182,7 @@
     {
       "time": "08:20",
       "datetime": "2026-07-24T08:20:00",
-      "gate": "D14R",
+      "gate": "D16",
       "flight_code": "BR132",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -271,14 +271,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "AC6543",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         },
         {
           "flight_code": "TG6346",
@@ -683,9 +683,9 @@
     "06:30 : D16 : BR178 (長榮航空)",
     "06:55 : D13 : CI278 (中華航空)",
     "07:40 : D12 : JX711 (星宇航空)",
-    "08:10 : D16 : BR106 (長榮航空)",
+    "08:10 : D14R : BR106 (長榮航空)",
     "08:10 : D11 : JX771 (星宇航空)",
-    "08:20 : D14R : BR132 (長榮航空)",
+    "08:20 : D16 : BR132 (長榮航空)",
     "08:20 : D15R : BR1194 (長榮航空)",
     "09:00 : D18 : CI152 (中華航空)",
     "09:00 : D17 : BR198 (長榮航空)",
@@ -708,5 +708,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:45 : D16 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-07-23T19:35:11.745249"
+  "updated_at": "2026-07-23T21:11:57.522997"
 }
