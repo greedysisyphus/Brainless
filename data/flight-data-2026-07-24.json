@@ -11,7 +11,7 @@
       "type": "departure",
       "airport_code": "SFO",
       "city": "San Francisco",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "San Francisco (SFO)",
@@ -33,7 +33,7 @@
       "type": "departure",
       "airport_code": "LAX",
       "city": "Los Angeles",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Los Angeles (LAX)",
@@ -286,14 +286,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "AC6543",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         }
       ]
     },
@@ -708,5 +708,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:45 : D16 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-07-23T15:14:54.854192"
+  "updated_at": "2026-07-23T17:37:41.839044"
 }
