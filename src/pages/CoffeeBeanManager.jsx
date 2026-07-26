@@ -6,6 +6,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import logoCat from '../assets/logo-cat.png'
 import BeanTypesSettingsModal from '../components/BeanTypesSettingsModal'
 import ExportLogoPicker, { EXPORT_LOGO_PRESETS } from './coffeeBean/ExportLogoPicker'
+import ClubWeightCalculatorModal from './coffeeBean/ClubWeightCalculatorModal'
 import { useTheme } from '../contexts/ThemeContext'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwButton, CwCard, CwInput, CwStack } from '../components/studio/ui'
@@ -374,6 +375,12 @@ function CoffeeBeanManager() {
   
   // 重量計算器店鋪選擇
   const [selectedWeightStore, setSelectedWeightStore] = useState('central') // 'central', 'd7', 'd13'
+
+  /** 來源分店優先：每次打開都對齊目前盤點分店 */
+  const openWeightCalculator = () => {
+    setSelectedWeightStore(selectedStore)
+    setShowWeightCalculator(true)
+  }
   
   // 區域指示器狀態
   const [currentSection, setCurrentSection] = useState('brewing')
@@ -2046,7 +2053,7 @@ function CoffeeBeanManager() {
               type="button"
               variant="secondary"
               className="min-h-11 gap-2"
-              onClick={() => setShowWeightCalculator(true)}
+              onClick={openWeightCalculator}
             >
               <CalculatorIcon className="h-4 w-4 shrink-0 text-[var(--cw-text-muted)]" />
               重量換算
@@ -2146,7 +2153,7 @@ function CoffeeBeanManager() {
           <div className="mb-6 flex flex-wrap justify-center gap-3 sm:mb-8">
             <button
               type="button"
-              onClick={() => setShowWeightCalculator(true)}
+              onClick={openWeightCalculator}
               className="flex min-h-[44px] items-center gap-2 rounded-lg border border-amber-500/30 bg-gradient-to-r from-amber-500/20 to-orange-500/20 px-4 py-2.5 text-sm font-medium text-amber-400 transition-all duration-200 hover:border-amber-500/50 hover:from-amber-500/30 hover:to-orange-500/30"
             >
               <CalculatorIcon className="h-4 w-4" />
@@ -2849,11 +2856,11 @@ function CoffeeBeanManager() {
         </div>
       </div>
 
-      {/* 浮動重量換算計算器按鈕 */}
+      {/* Classic 浮動重量換算捷徑 */}
       {!isStudio ? (
         <button
           type="button"
-          onClick={() => setShowWeightCalculator(true)}
+          onClick={openWeightCalculator}
           className="fixed bottom-6 right-6 z-50 transform rounded-full border border-primary/30 bg-gradient-to-r from-primary/20 to-purple-500/20 p-4 text-primary shadow-lg transition-all duration-200 hover:scale-110 hover:border-primary/50 hover:from-primary/30 hover:to-purple-500/30 hover:shadow-xl"
           style={{ minWidth: '56px', minHeight: '56px' }}
           aria-label="開啟重量換算"
@@ -2862,8 +2869,41 @@ function CoffeeBeanManager() {
         </button>
       ) : null}
 
-      {/* 重量換算計算器彈窗 */}
-      {showWeightCalculator && (
+      {/* Club 重量換算捷徑：白底珊瑚圖示；彈窗開啟時隱藏；手機／iPad／電腦尺寸不同 */}
+      {isClub && !showWeightCalculator ? (
+        <button
+          type="button"
+          onClick={openWeightCalculator}
+          className="fixed z-50 inline-flex items-center justify-center rounded-full border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-brand)] shadow-[var(--cw-shadow-sm)] transition-[transform,box-shadow,border-color] hover:border-[var(--cw-brand)]/35 hover:shadow-md active:scale-95 h-11 w-11 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] md:h-12 md:w-12 md:right-5 md:bottom-[max(1.25rem,env(safe-area-inset-bottom))] lg:h-11 lg:w-11 lg:right-6 lg:bottom-[max(1.5rem,env(safe-area-inset-bottom))]"
+          aria-label="開啟重量換算"
+          title="重量換算"
+        >
+          <CalculatorIcon className="h-5 w-5 md:h-6 md:w-6 lg:h-5 lg:w-5" />
+        </button>
+      ) : null}
+
+      {/* Club 重量換算彈窗（計算優先） */}
+      {showWeightCalculator && isClub ? (
+        <ClubWeightCalculatorModal
+          selectedWeightStore={selectedWeightStore}
+          setSelectedWeightStore={setSelectedWeightStore}
+          weightMode={weightMode}
+          setWeightMode={setWeightMode}
+          weightSettings={weightSettings}
+          tempInputValues={tempInputValues}
+          updateWeightSetting={updateWeightSetting}
+          resetWeightSettings={resetWeightSettings}
+          calculations={calculations}
+          updateCalculation={updateCalculation}
+          addCalculation={addCalculation}
+          removeCalculation={removeCalculation}
+          resetCalculations={resetCalculations}
+          onClose={() => setShowWeightCalculator(false)}
+        />
+      ) : null}
+
+      {/* Classic／Studio 重量換算計算器彈窗 */}
+      {showWeightCalculator && !isClub && (
         <div
           className={
             isStudio
