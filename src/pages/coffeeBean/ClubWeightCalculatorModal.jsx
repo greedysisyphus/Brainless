@@ -62,7 +62,7 @@ export default function ClubWeightCalculatorModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/45 touch-manipulation"
+      className="fixed inset-0 z-[10000] overflow-y-auto overscroll-contain bg-black/45 touch-manipulation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -86,7 +86,13 @@ export default function ClubWeightCalculatorModal({
               >
                 回復設定
               </CwButton>
-              <CwButton type="button" variant="ghost" className="!min-h-9 !p-2" onClick={onClose} aria-label="關閉">
+              <CwButton
+                type="button"
+                variant="ghost"
+                className="!min-h-11 !min-w-11 !p-2"
+                onClick={onClose}
+                aria-label="關閉"
+              >
                 <XMarkIcon className="h-5 w-5" />
               </CwButton>
             </div>

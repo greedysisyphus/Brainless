@@ -4,6 +4,14 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.13',
+    date: '2026-07-26',
+    title: 'Club 重量換算關閉修正',
+    items: [
+      '修正手機版重量換算右上角關閉鈕被頂欄擋住、按不到的問題。',
+    ],
+  },
+  {
     version: '1.6.12',
     date: '2026-07-26',
     title: 'Club 容器類型外層切換',
