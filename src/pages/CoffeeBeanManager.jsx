@@ -22,7 +22,6 @@ import {
   getPacksFromWeight,
   getStoreName,
   getWeightDocId,
-  getWeightSettingsStorageKey,
   isIOS,
 } from './coffeeBean/coffeeBeanConstants'
 import {
@@ -1358,24 +1357,69 @@ function CoffeeBeanManager() {
             }
   }
 
-  // 重置所有數據
-  const resetAllData = () => {
-    if (confirm('確定要重置所有數據嗎？此操作無法復原。')) {
-      // 重置當前店鋪的庫存
-      setInventory(defaultInventory)
-      setCalculations([{ id: 1, totalWeight: '', estimatedPacks: 0 }])
-      // 重置所有店鋪的重量設定
-      setWeightSettingsCentral(DEFAULT_WEIGHTS)
-      setWeightSettingsD7(DEFAULT_WEIGHTS)
-      setWeightSettingsD13(DEFAULT_WEIGHTS)
-      setWeightMode('bag')
-      // 清除所有店鋪的庫存 localStorage
+  // 重置所有數據（本機＋Firebase；雲端同步後不可只清 localStorage）
+  const resetAllData = async () => {
+    if (!confirm('確定要重置所有數據嗎？此操作無法復原。')) return
+
+    const createEmptyInventory = () => ({
+      brewing: { pourOver: {}, espresso: {} },
+      retail: {},
+    })
+    const emptyInventory = createEmptyInventory()
+    const now = Date.now()
+
+    // 略過 debounce 同步 effect，改由下方直接寫入雲端，避免舊資料回灌
+    skipInventorySyncEffectRef.current = true
+    applyRemoteInventoryRef.current = true
+    setInventoryCentral(emptyInventory)
+    setInventoryD7(createEmptyInventory())
+    setInventoryD13(createEmptyInventory())
+    applyRemoteInventoryRef.current = false
+    inventoryLatestRef.current = emptyInventory
+
+    // 先標 dirty，寫雲成功前忽略較舊的 remote snapshot
+    STORES.forEach((s) => {
+      const meta = getInventorySyncMeta(s.id)
+      meta.isDirty = true
+      meta.lastLocalEditAt = now
+      meta.hasReceivedInitialRemote = true
+    })
+
+    setCalculations([{ id: 1, totalWeight: '', estimatedPacks: 0 }])
+    setWeightSettingsCentral(DEFAULT_WEIGHTS)
+    setWeightSettingsD7(DEFAULT_WEIGHTS)
+    setWeightSettingsD13(DEFAULT_WEIGHTS)
+    setWeightMode('bag')
+    setBeanInputModes({})
+    setInventoryConflict(null)
+    setInventorySyncStatus('syncing')
+
+    try {
+      await Promise.all([
+        ...STORES.map((s) =>
+          setDoc(doc(db, 'settings', getInventoryStorageKey(s.id)), {
+            ...createEmptyInventory(),
+            _clientUpdatedAt: now,
+          })
+        ),
+        ...STORES.map((s) => setDoc(doc(db, 'settings', getWeightDocId(s.id)), DEFAULT_WEIGHTS)),
+      ])
       STORES.forEach((s) => {
-        localStorage.removeItem(getInventoryStorageKey(s.id))
-        localStorage.removeItem(getWeightSettingsStorageKey(s.id))
+        const meta = getInventorySyncMeta(s.id)
+        meta.isDirty = false
+        meta.lastSyncedToCloudAt = now
+        meta.lastAppliedRemoteAt = now
       })
-      localStorage.removeItem('coffeeBeanCalculations')
-      localStorage.removeItem('coffeeBeanWeightMode')
+      setInventorySyncStatus('synced')
+    } catch (error) {
+      console.error('重置數據同步到 Firebase 失敗:', error)
+      // 本機已清空；保留 dirty，可按「重試同步」或切店時再寫雲端
+      STORES.forEach((s) => {
+        const meta = getInventorySyncMeta(s.id)
+        meta.isDirty = true
+        meta.lastLocalEditAt = Date.now()
+      })
+      setInventorySyncStatus('error')
     }
   }
 
@@ -1972,7 +2016,11 @@ function CoffeeBeanManager() {
         isStudio={isStudio}
         onRetry={() => {
           setInventorySyncStatus('syncing')
-          flushInventorySync().catch(() => setInventorySyncStatus('error'))
+          const dirtyStores = STORES.filter((s) => getInventorySyncMeta(s.id).isDirty)
+          const targets = dirtyStores.length > 0 ? dirtyStores : [{ id: selectedStore }]
+          Promise.all(targets.map((s) => flushInventorySync(s.id))).catch(() =>
+            setInventorySyncStatus('error')
+          )
         }}
       />
       <InventoryConflictModal
