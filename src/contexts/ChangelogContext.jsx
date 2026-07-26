@@ -4,6 +4,14 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.12',
+    date: '2026-07-26',
+    title: 'Club 容器類型外層切換',
+    items: [
+      'Club 重量換算：銀袋／盒子改在外層計算區直接點選切換，不必再進設定。',
+    ],
+  },
+  {
     version: '1.6.11',
     date: '2026-07-26',
     title: 'Club 重量換算捷徑',
