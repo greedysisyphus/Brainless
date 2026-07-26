@@ -921,7 +921,6 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
         }
         zOverlay={10001}
         maxWidthClass="max-w-4xl"
-        contentMaxHeightClass="max-h-[min(78dvh,720px)]"
       >
         {renderBody()}
       </CwModalFrame>
