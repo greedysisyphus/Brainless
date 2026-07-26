@@ -4,11 +4,19 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.10',
+    date: '2026-07-26',
+    title: '點豆分店獨立重置',
+    items: [
+      '「重置此店」改為只清空目前選中的分店盤點與重量設定，不會動到其他分店。',
+    ],
+  },
+  {
     version: '1.6.9',
     date: '2026-07-26',
     title: '點豆重置修正',
     items: [
-      '修正「重置數據」只清本機、雲端舊盤點會自動回灌的問題；現會同步清空各分店庫存與重量設定。',
+      '修正「重置數據」只清本機、雲端舊盤點會自動回灌的問題。',
     ],
   },
   {

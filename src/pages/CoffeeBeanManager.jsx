@@ -1357,9 +1357,13 @@ function CoffeeBeanManager() {
             }
   }
 
-  // 重置所有數據（本機＋Firebase；雲端同步後不可只清 localStorage）
+  // 重置當前分店數據（本機＋Firebase；不影響其他分店）
   const resetAllData = async () => {
-    if (!confirm('確定要重置所有數據嗎？此操作無法復原。')) return
+    const storeId = selectedStore
+    const storeName = getStoreName(storeId)
+    if (!confirm(`確定要重置「${storeName}」的盤點數據嗎？此操作無法復原，不會影響其他分店。`)) {
+      return
+    }
 
     const createEmptyInventory = () => ({
       brewing: { pourOver: {}, espresso: {} },
@@ -1371,55 +1375,44 @@ function CoffeeBeanManager() {
     // 略過 debounce 同步 effect，改由下方直接寫入雲端，避免舊資料回灌
     skipInventorySyncEffectRef.current = true
     applyRemoteInventoryRef.current = true
-    setInventoryCentral(emptyInventory)
-    setInventoryD7(createEmptyInventory())
-    setInventoryD13(createEmptyInventory())
+    if (storeId === 'd7') setInventoryD7(emptyInventory)
+    else if (storeId === 'd13') setInventoryD13(emptyInventory)
+    else setInventoryCentral(emptyInventory)
     applyRemoteInventoryRef.current = false
     inventoryLatestRef.current = emptyInventory
 
     // 先標 dirty，寫雲成功前忽略較舊的 remote snapshot
-    STORES.forEach((s) => {
-      const meta = getInventorySyncMeta(s.id)
-      meta.isDirty = true
-      meta.lastLocalEditAt = now
-      meta.hasReceivedInitialRemote = true
-    })
+    const meta = getInventorySyncMeta(storeId)
+    meta.isDirty = true
+    meta.lastLocalEditAt = now
+    meta.hasReceivedInitialRemote = true
 
     setCalculations([{ id: 1, totalWeight: '', estimatedPacks: 0 }])
-    setWeightSettingsCentral(DEFAULT_WEIGHTS)
-    setWeightSettingsD7(DEFAULT_WEIGHTS)
-    setWeightSettingsD13(DEFAULT_WEIGHTS)
+    if (storeId === 'd7') setWeightSettingsD7(DEFAULT_WEIGHTS)
+    else if (storeId === 'd13') setWeightSettingsD13(DEFAULT_WEIGHTS)
+    else setWeightSettingsCentral(DEFAULT_WEIGHTS)
     setWeightMode('bag')
-    setBeanInputModes({})
-    setInventoryConflict(null)
+    if (inventoryConflict?.storeId === storeId) setInventoryConflict(null)
     setInventorySyncStatus('syncing')
 
     try {
       await Promise.all([
-        ...STORES.map((s) =>
-          setDoc(doc(db, 'settings', getInventoryStorageKey(s.id)), {
-            ...createEmptyInventory(),
-            _clientUpdatedAt: now,
-          })
-        ),
-        ...STORES.map((s) => setDoc(doc(db, 'settings', getWeightDocId(s.id)), DEFAULT_WEIGHTS)),
+        setDoc(doc(db, 'settings', getInventoryStorageKey(storeId)), {
+          ...createEmptyInventory(),
+          _clientUpdatedAt: now,
+        }),
+        setDoc(doc(db, 'settings', getWeightDocId(storeId)), DEFAULT_WEIGHTS),
       ])
-      STORES.forEach((s) => {
-        const meta = getInventorySyncMeta(s.id)
-        meta.isDirty = false
-        meta.lastSyncedToCloudAt = now
-        meta.lastAppliedRemoteAt = now
-      })
-      setInventorySyncStatus('synced')
+      meta.isDirty = false
+      meta.lastSyncedToCloudAt = now
+      meta.lastAppliedRemoteAt = now
+      if (selectedStore === storeId) setInventorySyncStatus('synced')
     } catch (error) {
-      console.error('重置數據同步到 Firebase 失敗:', error)
+      console.error(`重置「${storeName}」數據同步到 Firebase 失敗:`, error)
       // 本機已清空；保留 dirty，可按「重試同步」或切店時再寫雲端
-      STORES.forEach((s) => {
-        const meta = getInventorySyncMeta(s.id)
-        meta.isDirty = true
-        meta.lastLocalEditAt = Date.now()
-      })
-      setInventorySyncStatus('error')
+      meta.isDirty = true
+      meta.lastLocalEditAt = Date.now()
+      if (selectedStore === storeId) setInventorySyncStatus('error')
     }
   }
 
@@ -2067,8 +2060,14 @@ function CoffeeBeanManager() {
               <Cog6ToothIcon className="h-4 w-4 shrink-0 text-[var(--cw-text-muted)]" />
               品項設定
             </CwButton>
-            <CwButton type="button" variant="danger" className="min-h-11" onClick={resetAllData}>
-              重置數據
+            <CwButton
+              type="button"
+              variant="danger"
+              className="min-h-11"
+              onClick={resetAllData}
+              title={`只重置「${getStoreName(selectedStore)}」盤點，不影響其他分店`}
+            >
+              重置此店
             </CwButton>
           </div>
         </CwStack>
@@ -2164,9 +2163,10 @@ function CoffeeBeanManager() {
             <button
               type="button"
               onClick={resetAllData}
+              title={`只重置「${getStoreName(selectedStore)}」盤點，不影響其他分店`}
               className="min-h-[44px] rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/20"
             >
-              重置數據
+              重置此店
             </button>
           </div>
         </>
