@@ -31,7 +31,7 @@ export function CwModalFrame({
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
-          className={`pointer-events-auto relative flex max-h-[min(90dvh,880px)] w-full ${maxWidthClass} flex-col overflow-hidden rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] shadow-2xl`}
+          className={`pointer-events-auto relative flex max-h-[min(100%,880px)] w-full ${maxWidthClass} flex-col overflow-hidden rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] shadow-2xl`}
           onClick={(e) => e.stopPropagation()}
         >
           {(title || description || headerActions) && (
