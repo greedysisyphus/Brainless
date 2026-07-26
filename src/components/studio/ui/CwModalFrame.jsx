@@ -55,7 +55,7 @@ export function CwModalFrame({
             {children}
           </div>
           {footer ? (
-            <div className="shrink-0 border-t border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
+            <div className="shrink-0 border-t border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] p-6">
               {footer}
             </div>
           ) : null}
