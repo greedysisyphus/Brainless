@@ -4,6 +4,16 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.11',
+    date: '2026-07-26',
+    title: 'Club 重量換算捷徑',
+    items: [
+      'Club：盤點表右下角補回重量換算圖示捷徑（手機／iPad／電腦尺寸不同；開啟彈窗時隱藏）。',
+      'Club：重量換算改為計算優先，設定收進摘要列；容器類型用點選芯片。',
+      '打開重量換算時會對齊目前盤點分店。',
+    ],
+  },
+  {
     version: '1.6.10',
     date: '2026-07-26',
     title: '點豆分店獨立重置',
