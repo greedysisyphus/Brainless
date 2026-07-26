@@ -1279,6 +1279,24 @@ function CoffeeBeanManager() {
     return rounded
   }
 
+  // 切換銀袋／盒子、分店或重量參數後，重算已輸入總重的估算包數
+  useEffect(() => {
+    setCalculations((prev) => {
+      let changed = false
+      const next = prev.map((c) => {
+        const packs = calculateEstimatedPacks(c.totalWeight)
+        if (packs !== c.estimatedPacks) {
+          changed = true
+          return { ...c, estimatedPacks: packs }
+        }
+        return c
+      })
+      return changed ? next : prev
+    })
+    // calculateEstimatedPacks 隨下列依賴變動；刻意不把函式本身放入 deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weightMode, selectedWeightStore, weightSettings])
+
   // 臨時存儲輸入值（用於解決輸入框問題）
   const [tempInputValues, setTempInputValues] = useState({})
 
