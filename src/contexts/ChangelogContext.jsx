@@ -4,6 +4,14 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.14',
+    date: '2026-07-26',
+    title: '重量換算切換重算',
+    items: [
+      '修正先輸入總重再切換銀袋／盒子時，估算包數不會更新的問題。',
+    ],
+  },
+  {
     version: '1.6.13',
     date: '2026-07-26',
     title: 'Club 重量換算關閉修正',
