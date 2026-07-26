@@ -50,15 +50,14 @@ export default function ClubWeightCalculatorModal({
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const boxLabel = getBoxWeightKey(selectedWeightStore) === 'mujiBoxWeight' ? 'MUJI 盒子' : 'IKEA 盒子'
-  const containerLabel = weightMode === 'bag' ? '銀袋' : boxLabel
   const storeName = getStoreName(selectedWeightStore)
-  const containerWeightKey = weightMode === 'bag' ? 'bagWeight' : getBoxWeightKey(selectedWeightStore)
-  const containerWeightValue =
-    tempInputValues[containerWeightKey] !== undefined
-      ? tempInputValues[containerWeightKey]
-      : weightMode === 'bag'
-        ? weightSettings.bagWeight
-        : weightSettings[getBoxWeightKey(selectedWeightStore)] ?? weightSettings.ikeaBoxWeight
+  const boxWeightKey = getBoxWeightKey(selectedWeightStore)
+  const bagWeightValue =
+    tempInputValues.bagWeight !== undefined ? tempInputValues.bagWeight : weightSettings.bagWeight
+  const boxWeightValue =
+    tempInputValues[boxWeightKey] !== undefined
+      ? tempInputValues[boxWeightKey]
+      : weightSettings[boxWeightKey] ?? weightSettings.ikeaBoxWeight
   const totalPacks = calculations.reduce((sum, c) => sum + (c.estimatedPacks || 0), 0)
 
   return (
@@ -93,8 +92,8 @@ export default function ClubWeightCalculatorModal({
             </div>
           </div>
 
-          {/* 設定摘要列 */}
-          <div className="mb-5 rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-bg)]">
+          {/* 設定摘要列：分店與重量參數（容器類型改在外層快速切換） */}
+          <div className="mb-4 rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-bg)]">
             <button
               type="button"
               className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
@@ -103,8 +102,7 @@ export default function ClubWeightCalculatorModal({
             >
               <span className="text-sm font-semibold text-[var(--cw-text)]">
                 {storeName}
-                <span className="mx-1.5 text-[var(--cw-text-muted)]">·</span>
-                {containerLabel}
+                <span className="mx-1.5 font-normal text-[var(--cw-text-muted)]">設定</span>
               </span>
               <ChevronDownIcon
                 className={`h-5 w-5 shrink-0 text-[var(--cw-text-muted)] transition-transform ${
@@ -131,27 +129,23 @@ export default function ClubWeightCalculatorModal({
                   </div>
                 </div>
 
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
-                    容器類型
-                  </p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <ClubChoiceChip selected={weightMode === 'bag'} onClick={() => setWeightMode('bag')}>
-                      銀袋
-                    </ClubChoiceChip>
-                    <ClubChoiceChip selected={weightMode === 'ikea'} onClick={() => setWeightMode('ikea')}>
-                      {boxLabel}
-                    </ClubChoiceChip>
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <CwInput
-                    label={`${weightMode === 'bag' ? '銀袋重量' : `${boxLabel}重量`} (g)`}
+                    label="銀袋重量 (g)"
                     type="number"
-                    value={containerWeightValue}
-                    onChange={(e) => updateWeightSetting(containerWeightKey, e.target.value, false)}
-                    onBlur={(e) => updateWeightSetting(containerWeightKey, e.target.value, true)}
+                    value={bagWeightValue}
+                    onChange={(e) => updateWeightSetting('bagWeight', e.target.value, false)}
+                    onBlur={(e) => updateWeightSetting('bagWeight', e.target.value, true)}
+                    placeholder="輸入重量"
+                    inputMode="decimal"
+                    className="!mb-0"
+                  />
+                  <CwInput
+                    label={`${boxLabel}重量 (g)`}
+                    type="number"
+                    value={boxWeightValue}
+                    onChange={(e) => updateWeightSetting(boxWeightKey, e.target.value, false)}
+                    onBlur={(e) => updateWeightSetting(boxWeightKey, e.target.value, true)}
                     placeholder="輸入重量"
                     inputMode="decimal"
                     className="!mb-0"
@@ -168,11 +162,24 @@ export default function ClubWeightCalculatorModal({
                     onBlur={(e) => updateWeightSetting('beanWeightPerPack', e.target.value, true)}
                     placeholder="輸入重量"
                     inputMode="decimal"
-                    className="!mb-0"
+                    className="!mb-0 md:col-span-2"
                   />
                 </div>
               </div>
             ) : null}
+          </div>
+
+          {/* 外層快速切換容器類型：計算時常用，不必進設定 */}
+          <div className="mb-5">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">容器類型</p>
+            <div className="flex gap-2">
+              <ClubChoiceChip selected={weightMode === 'bag'} onClick={() => setWeightMode('bag')}>
+                銀袋
+              </ClubChoiceChip>
+              <ClubChoiceChip selected={weightMode === 'ikea'} onClick={() => setWeightMode('ikea')}>
+                {boxLabel}
+              </ClubChoiceChip>
+            </div>
           </div>
 
           {/* 計算優先 */}
