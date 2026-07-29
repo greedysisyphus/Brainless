@@ -741,22 +741,22 @@
       ]
     },
     {
-      "time": "23:55",
-      "datetime": "2026-07-30T23:55:00",
+      "time": "23:30",
+      "datetime": "2026-07-30T23:30:00",
       "gate": "D13",
-      "flight_code": "CI53",
+      "flight_code": "CI57",
       "airline_code": "CI",
       "airline_name": "中華航空",
       "type": "departure",
-      "airport_code": "BNE",
-      "city": "Brisbane",
+      "airport_code": "MEL",
+      "city": "Melbourne",
       "status": "準時ON TIME",
       "aircraft": "A350-900",
       "terminal": "2",
-      "destination": "Brisbane (BNE)",
+      "destination": "Melbourne (MEL)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8726",
+          "flight_code": "QF8728",
           "airline_code": "QF",
           "airline_name": "澳洲航空"
         }
@@ -801,7 +801,7 @@
     "19:00 : D17 : BR809 (長榮航空)",
     "20:10 : D12 : JX32 (星宇航空)",
     "20:45 : D15R : BR205 (長榮航空)",
-    "23:55 : D13 : CI53 (中華航空)"
+    "23:30 : D13 : CI57 (中華航空)"
   ],
-  "updated_at": "2026-07-29T17:21:04.204156"
+  "updated_at": "2026-07-29T19:26:42.851753"
 }
