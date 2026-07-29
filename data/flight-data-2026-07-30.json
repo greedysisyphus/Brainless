@@ -227,11 +227,6 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6356",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4914",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -240,6 +235,11 @@
           "flight_code": "NH5812",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TG6356",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -335,11 +335,6 @@
       "destination": "Aomori (AOJ)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6296",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "NZ4946",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -353,6 +348,11 @@
           "flight_code": "TK9541",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "TG6296",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -389,9 +389,31 @@
       ]
     },
     {
+      "time": "10:05",
+      "datetime": "2026-07-30T10:05:00",
+      "gate": "D11",
+      "flight_code": "BR867",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "HKG",
+      "city": "Hong Kong",
+      "status": "準時ON TIME",
+      "aircraft": "A321-200",
+      "terminal": "2",
+      "destination": "Hong Kong (HKG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HX1823",
+          "airline_code": "HX",
+          "airline_name": "香港航空"
+        }
+      ]
+    },
+    {
       "time": "10:10",
       "datetime": "2026-07-30T10:10:00",
-      "gate": "D15R",
+      "gate": "D18",
       "flight_code": "BR116",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -428,7 +450,7 @@
     {
       "time": "10:20",
       "datetime": "2026-07-30T10:20:00",
-      "gate": "D18",
+      "gate": "D15R",
       "flight_code": "BR201",
       "airline_code": "BR",
       "airline_name": "長榮航空",
@@ -441,14 +463,14 @@
       "destination": "Bangkok (BKK)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6317",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "TK9473",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "TG6317",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -764,8 +786,8 @@
     }
   ],
   "summary": {
-    "total_flights": 33,
-    "before_17:00": 28,
+    "total_flights": 34,
+    "before_17:00": 29,
     "after_17:00": 5
   },
   "formatted_display": [
@@ -785,8 +807,9 @@
     "09:10 : D17 : BR315 (長榮航空)",
     "09:55 : D14R : BR122 (長榮航空)",
     "09:55 : D12 : BR712 (長榮航空)",
-    "10:10 : D15R : BR116 (長榮航空)",
-    "10:20 : D18 : BR201 (長榮航空)",
+    "10:05 : D11 : BR867 (長榮航空)",
+    "10:10 : D18 : BR116 (長榮航空)",
+    "10:20 : D15R : BR201 (長榮航空)",
     "13:20 : D11 : JX751 (星宇航空)",
     "13:50 : D15R : JX745 (星宇航空)",
     "14:20 : D13 : JX713 (星宇航空)",
@@ -803,5 +826,5 @@
     "20:45 : D15R : BR205 (長榮航空)",
     "23:30 : D13 : CI57 (中華航空)"
   ],
-  "updated_at": "2026-07-29T19:26:42.851753"
+  "updated_at": "2026-07-29T21:03:13.087742"
 }
