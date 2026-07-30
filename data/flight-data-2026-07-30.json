@@ -641,7 +641,7 @@
       "type": "departure",
       "airport_code": "MFM",
       "city": "Macau",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Macau (MFM)",
@@ -663,7 +663,7 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
@@ -679,7 +679,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -761,34 +761,12 @@
           "airline_name": "泰國航空"
         }
       ]
-    },
-    {
-      "time": "23:30",
-      "datetime": "2026-07-30T23:30:00",
-      "gate": "D13",
-      "flight_code": "CI57",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "MEL",
-      "city": "Melbourne",
-      "status": "準時ON TIME",
-      "aircraft": "A350-900",
-      "terminal": "2",
-      "destination": "Melbourne (MEL)",
-      "codeshare_flights": [
-        {
-          "flight_code": "QF8728",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
-        }
-      ]
     }
   ],
   "summary": {
-    "total_flights": 34,
+    "total_flights": 33,
     "before_17:00": 29,
-    "after_17:00": 5
+    "after_17:00": 4
   },
   "formatted_display": [
     "00:05 : D12 : JX12 (星宇航空)",
@@ -823,8 +801,7 @@
     "18:10 : D11 : BR857 (長榮航空)",
     "19:00 : D17 : BR809 (長榮航空)",
     "20:10 : D12 : JX32 (星宇航空)",
-    "20:45 : D15R : BR205 (長榮航空)",
-    "23:30 : D13 : CI57 (中華航空)"
+    "20:45 : D15R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-07-30T08:39:05.611724"
+  "updated_at": "2026-07-30T11:14:00.233305"
 }
