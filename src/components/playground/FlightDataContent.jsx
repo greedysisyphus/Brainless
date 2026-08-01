@@ -2592,65 +2592,113 @@ function FlightDataContent() {
   const FlightItem = ({ flight }) => {
     const codeshareCount = flight.codeshare_flights ? flight.codeshare_flights.length : 0
     const isUpcoming = isUpcomingFlight(flight)
+    const labelCls = isClub ? 'text-[#9a7265]' : isStudio ? 'text-[var(--cw-text-muted)]' : 'text-primary'
+    const valueCls = isClub ? 'text-[#3d2b25]' : isStudio ? 'text-[var(--cw-text)]' : 'text-text-secondary'
 
     return (
-      <div className={`bg-surface/40 backdrop-blur-md border rounded-lg p-4 transition-all ${
-        isUpcoming 
-          ? 'border-yellow-500/50 bg-yellow-500/10 shadow-lg shadow-yellow-500/20' 
-          : 'border-white/10 hover:border-purple-500/30'
-      }`}>
+      <div
+        className={`border rounded-lg p-4 transition-all ${
+          isClub
+            ? isUpcoming
+              ? 'border-amber-500/35 bg-amber-50/80 shadow-sm'
+              : 'border-[#d9b9ad] bg-[#fff8f5]'
+            : isStudio
+              ? isUpcoming
+                ? 'border-amber-400/60 bg-amber-50 shadow-sm'
+                : 'border-[var(--cw-border)] bg-[var(--cw-surface-elevated)]'
+              : isUpcoming
+                ? 'border-yellow-500/50 bg-yellow-500/10 shadow-lg shadow-yellow-500/20 backdrop-blur-md'
+                : 'border-white/10 bg-surface/40 backdrop-blur-md hover:border-purple-500/30'
+        }`}
+      >
         {isUpcoming && (
           <div className="mb-2 flex items-center gap-2">
-            <span className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-bold">
+            <span
+              className={`px-2 py-1 rounded text-xs font-bold ${
+                isClub ? 'bg-amber-700 text-white' : isStudio ? 'bg-amber-500 text-white' : 'bg-yellow-500 text-white'
+              }`}
+            >
               即將出發（1小時內）
             </span>
           </div>
         )}
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-purple-400">{flight.time}</span>
+            <span
+              className={`text-2xl font-bold ${
+                isClub ? 'text-[#ec5836]' : isStudio ? 'text-[var(--cw-text)]' : 'text-purple-400'
+              }`}
+            >
+              {flight.time}
+            </span>
             {codeshareCount > 0 && (
-              <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded-full text-xs font-semibold">
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                  isClub
+                    ? 'border border-[#d9b9ad] bg-[#f8eeea] text-[#9f3d28]'
+                    : isStudio
+                      ? 'border border-amber-200 bg-amber-50 text-amber-800'
+                      : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+                }`}
+              >
                 共掛班號 {codeshareCount} 個
               </span>
             )}
           </div>
-          <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-semibold ${
+              isClub
+                ? 'bg-[#76564b] text-white'
+                : isStudio
+                  ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-bg)] text-[var(--cw-text)]'
+                  : 'bg-purple-500 text-white'
+            }`}
+          >
             {flight.gate}
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-text-secondary">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm ${valueCls}`}>
           <div className="flex items-center gap-2">
-            <strong className="text-primary">航班：</strong>
+            <strong className={labelCls}>航班：</strong>
             <span>{flight.flight_code}</span>
           </div>
           <div className="flex items-center gap-2">
-            <strong className="text-primary">航空公司：</strong>
+            <strong className={labelCls}>航空公司：</strong>
             <span>{flight.airline_name || flight.airline_code}</span>
           </div>
           <div className="flex items-center gap-2">
-            <strong className="text-primary">目的地：</strong>
+            <strong className={labelCls}>目的地：</strong>
             <span>{flight.destination}</span>
           </div>
           <div className="flex items-center gap-2">
-            <strong className="text-primary">狀態：</strong>
+            <strong className={labelCls}>狀態：</strong>
             <span>{flight.status}</span>
           </div>
           {flight.aircraft && (
             <div className="flex items-center gap-2">
-              <strong className="text-primary">機型：</strong>
+              <strong className={labelCls}>機型：</strong>
               <span>{flight.aircraft}</span>
             </div>
           )}
         </div>
         {codeshareCount > 0 && (
-          <div className="mt-3 pt-3 border-t border-white/10">
-            <strong className="text-purple-400 text-sm block mb-2">共掛班號：</strong>
+          <div
+            className={`mt-3 pt-3 border-t ${
+              isClub ? 'border-[#d9b9ad]' : isStudio ? 'border-[var(--cw-border)]' : 'border-white/10'
+            }`}
+          >
+            <strong className={`text-sm block mb-2 ${labelCls}`}>共掛班號：</strong>
             <div className="flex flex-wrap gap-2">
               {flight.codeshare_flights.map((cf, idx) => (
                 <span
                   key={idx}
-                  className="bg-white/10 px-2 py-1 rounded text-xs"
+                  className={`px-2 py-1 rounded text-xs ${
+                    isClub
+                      ? 'border border-[#d9b9ad] bg-[#f8eeea] text-[#76564b]'
+                      : isStudio
+                        ? 'border border-[var(--cw-border)] bg-[var(--cw-bg)] text-[var(--cw-text)]'
+                        : 'bg-white/10'
+                  }`}
                 >
                   {cf.flight_code} ({cf.airline_name})
                 </span>

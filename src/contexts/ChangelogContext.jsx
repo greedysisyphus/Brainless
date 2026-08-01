@@ -4,6 +4,16 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.6.15',
+    date: '2026-08-01',
+    title: '移除 Studio 主題與航班 Club 樣式',
+    items: [
+      '移除 Studio 主題；保留 Classic 與 Club，舊 Studio 設定自動遷移至 Club。',
+      'Club 航班列表：晚班支援／留店提示改用暖色系，提升可讀性。',
+      'Club 航班詳細資料彈窗：卡片與文字對齊 Club 配色（珊瑚橘、暖棕、杏色底）。',
+    ],
+  },
+  {
     version: '1.6.14',
     date: '2026-07-26',
     title: '重量換算切換重算',

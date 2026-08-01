@@ -51,6 +51,8 @@ function FlightDataTableRow({
   const gateFamily = gateToD11D18Family(flight.gate)
   const isExcludedFromNightSupport = Boolean(gateFamily && !nsCfg.gateIncluded[gateFamily])
   const isAfterSupportStart = flightMinutes !== null && flightMinutes >= nsCfg.supportStartMin
+  const excludedHintCls = isClub ? 'text-[#9f3d28]' : isStudio ? 'text-amber-800' : 'text-amber-200'
+  const keepStoreHintCls = isClub ? 'text-[#76564b]' : isStudio ? 'text-indigo-700' : 'text-indigo-200'
 
   return (
     <tr
@@ -115,10 +117,10 @@ function FlightDataTableRow({
       </td>
       <td className="px-3 sm:px-5 py-3 sm:py-4">
         {isExcludedFromNightSupport && isAfterSupportStart ? (
-          <span className="text-xs font-semibold text-amber-200 sm:text-sm">{gateFamily} 不列入考慮</span>
+          <span className={`text-xs font-semibold sm:text-sm ${excludedHintCls}`}>{gateFamily} 不列入考慮</span>
         ) : showNightSupportHint && isLastDefining ? (
           <span
-            className="text-xs font-semibold text-indigo-200 sm:text-sm"
+            className={`text-xs font-semibold sm:text-sm ${keepStoreHintCls}`}
             title={`彙總與本列一致，留店至 ${keepStoreUntil || '--:--'}`}
           >
             {`留店至 ${keepStoreUntil || '--:--'}`}
