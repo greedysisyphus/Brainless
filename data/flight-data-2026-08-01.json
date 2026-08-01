@@ -589,7 +589,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -718,5 +718,5 @@
     "20:30 : D14R : BR261 (長榮航空)",
     "20:45 : D15R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-01T10:04:48.422616"
+  "updated_at": "2026-08-01T12:05:21.762634"
 }
