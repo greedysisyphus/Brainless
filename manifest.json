@@ -1,0 +1,40 @@
+{
+  "name": "桃園機場 D11-D18 航班資料",
+  "short_name": "航班資料",
+  "description": "桃園機場 D11-D18 登機門航班即時資訊與統計分析",
+  "start_url": "/Brainless/",
+  "display": "standalone",
+  "background_color": "#1e1e2e",
+  "theme_color": "#8b5cf6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/Brainless/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Brainless/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["travel", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "今天航班",
+      "short_name": "今天",
+      "description": "查看今天的航班資料",
+      "url": "/Brainless/?date=today",
+      "icons": [
+        {
+          "src": "/Brainless/favicon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
