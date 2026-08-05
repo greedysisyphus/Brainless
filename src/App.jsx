@@ -9,6 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { checkFirebaseConnection } from './utils/firebase'
 import SandwichCalculator from './pages/SandwichCalculator'
 import CoffeeBeanManager from './pages/CoffeeBeanManager'
+import GoodsOrderManager from './pages/GoodsOrderManager'
 import Playground from './pages/Playground'
 import { ChangelogProvider } from './contexts/ChangelogContext'
 
@@ -62,6 +63,7 @@ function AppContent() {
               <Route path="/cashier" element={<CashierManagement />} />
               <Route path="/alcohol" element={<Navigate to="/playground#alcohol" replace />} />
               <Route path="/coffee-beans" element={<CoffeeBeanManager />} />
+              <Route path="/goods-order-test" element={<GoodsOrderManager />} />
               <Route path="/daily-reports" element={<DailyReportGenerator />} />
               <Route path="/menu" element={<PublicMenuPage />} />
               <Route path="/schedule" element={<Navigate to="/playground#schedule-manager" replace />} />

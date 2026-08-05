@@ -13,6 +13,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'docs',
+    // 保留 docs/adr、docs/data 等非構建產物，避免每次 build 清空
+    emptyOutDir: false,
     rollupOptions: {
       output: {
         // 自動在文件名中加入 hash，這樣每次構建文件名都會改變
