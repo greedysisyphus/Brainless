@@ -215,7 +215,7 @@
       "type": "departure",
       "airport_code": "SIN",
       "city": "Singapore",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Singapore (SIN)",
@@ -231,7 +231,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -253,7 +253,7 @@
       "type": "departure",
       "airport_code": "PUS",
       "city": "Busan",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Busan (PUS)",
@@ -275,7 +275,7 @@
       "type": "departure",
       "airport_code": "PVG",
       "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Shanghai/Pudong (PVG)",
@@ -302,7 +302,7 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
@@ -323,14 +323,14 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "AC6543",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
+        },
+        {
+          "flight_code": "AC6543",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         }
       ]
     },
@@ -344,7 +344,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -360,7 +360,7 @@
       "type": "departure",
       "airport_code": "DPS",
       "city": "Bali",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Bali (DPS)",
@@ -376,7 +376,7 @@
       "type": "departure",
       "airport_code": "PVG",
       "city": "Shanghai/Pudong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Shanghai/Pudong (PVG)",
@@ -408,7 +408,7 @@
       "type": "departure",
       "airport_code": "CAN",
       "city": "Guangzhou",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B777-300",
       "terminal": "2",
       "destination": "Guangzhou (CAN)",
@@ -430,7 +430,7 @@
       "type": "departure",
       "airport_code": "MFM",
       "city": "Macau",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Macau (MFM)",
@@ -452,7 +452,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-9",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -731,5 +731,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:45 : D14R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-07T00:07:53.956387"
+  "updated_at": "2026-08-07T03:54:02.047973"
 }
