@@ -161,6 +161,15 @@ function GoodsOrderManager() {
   const quantityInputRefs = useRef({})
   const orderInputRefs = useRef({})
 
+  const getVisibleInputRef = (refs, itemId) => {
+    const candidates = [refs.current[`mobile:${itemId}`], refs.current[`table:${itemId}`]]
+    return (
+      candidates.find((node) => node && node.getClientRects().length > 0) ||
+      candidates.find(Boolean) ||
+      null
+    )
+  }
+
   useEffect(() => {
     const previousTitle = document.title
     document.title = '貨物叫貨｜Brainless'
@@ -503,10 +512,18 @@ function GoodsOrderManager() {
       ({ item, status }) => item.id !== itemId && (status === 'uncounted' || status === 'invalid')
     )
     if (!next) return
+    const input = getVisibleInputRef(quantityInputRefs, next.item.id)
+    if (!input) return
+
+    // iOS Safari 只允許在使用者事件的同步呼叫堆疊裡移動輸入焦點。
+    // focus 若延後到 requestAnimationFrame，按鈕看似有按下但鍵盤與下一格都不會移動。
+    try {
+      input.focus({ preventScroll: true })
+    } catch {
+      input.focus()
+    }
     requestAnimationFrame(() => {
-      const input = quantityInputRefs.current[next.item.id]
-      input?.focus()
-      input?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
   }
 
@@ -559,7 +576,7 @@ function GoodsOrderManager() {
       ...(rawOrderQty === undefined ? {} : { orderQty: rawOrderQty }),
     }
     if (getOrderQuantityError(item, candidate)) {
-      orderInputRefs.current[item.id]?.focus()
+      getVisibleInputRef(orderInputRefs, item.id)?.focus()
       return
     }
     focusNextUnresolved(item.id)
@@ -915,7 +932,7 @@ function GoodsOrderManager() {
                     </span>
                     <input
                       ref={(node) => {
-                        quantityInputRefs.current[item.id] = node
+                        quantityInputRefs.current[`mobile:${item.id}`] = node
                       }}
                       name={`goods-current-${item.id}`}
                       type="text"
@@ -948,8 +965,15 @@ function GoodsOrderManager() {
                           key={quantity}
                           type="button"
                           className="cw-touch-target rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-mega-surface)] px-2 text-sm font-semibold tabular-nums text-[var(--cw-text)] hover:border-[var(--cw-border-strong)] hover:bg-[var(--cw-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cw-focus-ring)]"
-                          onPointerDown={(event) => event.preventDefault()}
-                          onClick={() => applyCurrentQuick(item, quantity)}
+                          onPointerDown={(event) => {
+                            // 在按鈕取得焦點、快捷鍵區被卸載前完成輸入。
+                            event.preventDefault()
+                            applyCurrentQuick(item, quantity)
+                          }}
+                          onClick={(event) => {
+                            // 鍵盤觸發的 click.detail 為 0；滑鼠／觸控已在上方處理。
+                            if (event.detail === 0) applyCurrentQuick(item, quantity)
+                          }}
                         >
                           {quantity}
                         </button>
@@ -971,7 +995,7 @@ function GoodsOrderManager() {
                             aria-label={`${item.name} 叫貨量`}
                             error={orderError}
                             ref={(node) => {
-                              orderInputRefs.current[item.id] = node
+                              orderInputRefs.current[`mobile:${item.id}`] = node
                             }}
                             onChange={(event) => handleOrderQtyChange(item, event.target.value)}
                             onKeyDown={(event) => handleOrderQtyKeyDown(event, item)}
@@ -980,7 +1004,15 @@ function GoodsOrderManager() {
                             type="button"
                             variant="primary"
                             className="mt-2 w-full"
-                            onClick={() => confirmOrderQuantity(item)}
+                            onPointerDown={(event) => {
+                              // 在按鈕預設取得焦點前，把焦點交給下一個數量欄位。
+                              event.preventDefault()
+                              confirmOrderQuantity(item)
+                            }}
+                            onClick={(event) => {
+                              // 保留 Enter／Space 的鍵盤操作；指標操作已在上方完成。
+                              if (event.detail === 0) confirmOrderQuantity(item)
+                            }}
                           >
                             確認叫貨量，下一項
                           </CwButton>
@@ -1048,7 +1080,7 @@ function GoodsOrderManager() {
                   <div className="min-w-0 py-1">
                     <input
                       ref={(node) => {
-                        quantityInputRefs.current[item.id] = node
+                        quantityInputRefs.current[`table:${item.id}`] = node
                       }}
                       name={`goods-current-${item.id}`}
                       type="text"
@@ -1079,7 +1111,7 @@ function GoodsOrderManager() {
                       <>
                         <input
                           ref={(node) => {
-                            orderInputRefs.current[item.id] = node
+                            orderInputRefs.current[`table:${item.id}`] = node
                           }}
                           name={`goods-order-${item.id}`}
                           type="text"
