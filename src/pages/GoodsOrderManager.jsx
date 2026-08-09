@@ -1,27 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { DualThemePage } from '../components/studio/DualThemePage'
-import { CwAlert, CwBadge, CwButton, CwInput } from '../components/studio/ui'
+import { CwAlert, CwBadge, CwButton, CwInput, CwModalFrame } from '../components/studio/ui'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { db } from '../utils/firebase'
 import {
   FILTERS,
+  STATUS_LABELS,
   STORES,
   createDefaultCatalog,
   createEmptyCounts,
+  displayCurrentInput,
   formatQuantity,
   getCatalogDocId,
   getCatalogStorageKey,
   getCountsDocId,
   getCountsStorageKey,
   getDefaultOrderStoreName,
+  getCurrentQuantityError,
   getEffectiveOrderQty,
   getItemStatus,
+  getOrderQuantityError,
   getSnapshotDocId,
   getStoreName,
+  normalizeCurrentInput,
   parseQuantity,
   quantityInputToStored,
+  validateCatalog,
 } from './goodsOrder/goodsOrderConstants'
 import { GoodsOrderPreviewModal } from './goodsOrder/GoodsOrderPreviewModal'
 import { GoodsOrderSettingsSheet } from './goodsOrder/GoodsOrderSettingsSheet'
@@ -43,17 +49,21 @@ const BC = [
   { label: '貨物叫貨（測試）', href: '#/goods-order-test' },
 ]
 
+/** iPad 表：品名 | 現有 | 最低 | 叫貨 | 狀態 | 操作 — 表頭與列共用 */
+const TABLE_GRID =
+  'grid-cols-[minmax(0,1fr)_6.25rem_4rem_6.25rem_6.5rem_5rem] gap-x-2'
+
+const tableInputClass =
+  'box-border h-11 w-full rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-2 text-center text-base tabular-nums text-[var(--cw-text)] focus:border-[var(--cw-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--cw-focus-ring)] disabled:opacity-40'
+
 function statusLabel(status) {
-  if (status === 'uncounted') return '未盤點'
-  if (status === 'order') return '建議叫'
-  if (status === 'later') return '下次'
-  return '無效'
+  return STATUS_LABELS[status] || STATUS_LABELS.invalid
 }
 
 function statusBadgeTone(status) {
   if (status === 'order') return 'brand'
   if (status === 'uncounted') return 'neutral'
-  if (status === 'later') return 'warning'
+  if (status === 'later') return 'success'
   return 'danger'
 }
 
@@ -62,10 +72,18 @@ function GoodsOrderManager() {
   const [filter, setFilter] = useState('all')
   const [showSettings, setShowSettings] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showIncompleteConfirm, setShowIncompleteConfirm] = useState(false)
+  const [previewWarning, setPreviewWarning] = useState('')
   const [copyMessage, setCopyMessage] = useState('')
+  const [copyMessageVariant, setCopyMessageVariant] = useState('success')
+  const [snapshotRetryPayload, setSnapshotRetryPayload] = useState(null)
+  const [isCopying, setIsCopying] = useState(false)
   const [syncStatus, setSyncStatus] = useState('idle')
+  const [catalogSaveStatus, setCatalogSaveStatus] = useState('idle')
+  const [catalogCanUndo, setCatalogCanUndo] = useState(false)
   const [conflict, setConflict] = useState(null)
   const [localVersionAt, setLocalVersionAt] = useState(0)
+  const [focusedItemId, setFocusedItemId] = useState(null)
 
   const [catalogCentral, setCatalogCentral] = useLocalStorage(
     getCatalogStorageKey('central'),
@@ -134,11 +152,42 @@ function GoodsOrderManager() {
   const countsUnsubRef = useRef(null)
   const countsDebounceRef = useRef(null)
   const prevStoreRef = useRef(selectedStore)
+  const selectedStoreRef = useRef(selectedStore)
   const catalogDebounceRef = useRef(null)
+  const catalogLatestRef = useRef(catalog)
+  const catalogUndoRef = useRef({})
+  const catalogEditGroupRef = useRef({})
+  const catalogDirtyRef = useRef({})
+  const quantityInputRefs = useRef({})
+  const orderInputRefs = useRef({})
+
+  useEffect(() => {
+    const previousTitle = document.title
+    document.title = '貨物叫貨｜Brainless'
+    return () => {
+      document.title = previousTitle
+    }
+  }, [])
 
   useEffect(() => {
     countsLatestRef.current = countsDoc
   }, [countsDoc])
+
+  useEffect(() => {
+    catalogLatestRef.current = catalog
+  }, [catalog])
+
+  useEffect(() => {
+    selectedStoreRef.current = selectedStore
+    setCatalogCanUndo(Boolean(catalogUndoRef.current[selectedStore]))
+    setCatalogSaveStatus(
+      validateCatalog(catalog).count > 0
+        ? 'invalid'
+        : catalogDirtyRef.current[selectedStore]
+          ? 'saving'
+          : 'idle'
+    )
+  }, [selectedStore])
 
   const getCountsMeta = (storeId) => {
     if (!countsMetaRef.current[storeId]) {
@@ -286,6 +335,7 @@ function GoodsOrderManager() {
       doc(db, 'settings', getCatalogDocId(storeId)),
       (snap) => {
         if (!mounted) return
+        if (catalogDirtyRef.current[storeId]) return
         if (!snap.exists()) {
           const created = createDefaultCatalog(storeId)
           setDoc(snap.ref, created).catch(() => {})
@@ -309,46 +359,105 @@ function GoodsOrderManager() {
   }, [selectedStore, setCatalogForStore])
 
   const persistCatalog = useCallback(
-    (storeId, nextCatalog) => {
-      const normalized = {
-        ...nextCatalog,
-        items: (nextCatalog.items || []).map((it) => ({
-          ...it,
-          minStock: Number(it.minStock) || 0,
-          defaultOrderQty: Number(it.defaultOrderQty) || 0,
-          allowFraction: !!it.allowFraction,
-          disabled: !!it.disabled,
-        })),
+    (storeId, nextCatalog, { captureUndo = true } = {}) => {
+      if (captureUndo && !catalogEditGroupRef.current[storeId]) {
+        catalogUndoRef.current[storeId] = catalogLatestRef.current
+        catalogEditGroupRef.current[storeId] = true
+        if (storeId === selectedStoreRef.current) setCatalogCanUndo(true)
       }
-      setCatalogForStore(storeId, normalized)
+
+      catalogDirtyRef.current[storeId] = true
+      catalogLatestRef.current = nextCatalog
+      setCatalogForStore(storeId, nextCatalog)
       if (catalogDebounceRef.current) clearTimeout(catalogDebounceRef.current)
-      catalogDebounceRef.current = setTimeout(() => {
+
+      const validation = validateCatalog(nextCatalog)
+      if (validation.count > 0) {
+        if (storeId === selectedStoreRef.current) setCatalogSaveStatus('invalid')
+        return
+      }
+
+      if (storeId === selectedStoreRef.current) setCatalogSaveStatus('saving')
+      catalogDebounceRef.current = setTimeout(async () => {
+        const normalized = {
+          ...nextCatalog,
+          orderStoreName: String(nextCatalog.orderStoreName).trim(),
+          items: (nextCatalog.items || []).map((it) => ({
+            ...it,
+            minStock: parseQuantity(it.minStock).value,
+            defaultOrderQty: parseQuantity(it.defaultOrderQty).value,
+            allowFraction: !!it.allowFraction,
+            disabled: !!it.disabled,
+          })),
+        }
         const payload = {
           ...stripCatalogMeta(normalized),
           _clientUpdatedAt: Date.now(),
         }
-        setDoc(doc(db, 'settings', getCatalogDocId(storeId)), payload).catch((err) =>
+        try {
+          await setDoc(doc(db, 'settings', getCatalogDocId(storeId)), payload)
+          catalogDirtyRef.current[storeId] = false
+          catalogEditGroupRef.current[storeId] = false
+          if (storeId === selectedStoreRef.current) setCatalogSaveStatus('saved')
+        } catch (err) {
           console.error('[goodsOrder] catalog sync', err)
-        )
+          if (storeId === selectedStoreRef.current) setCatalogSaveStatus('error')
+        }
       }, 600)
     },
     [setCatalogForStore]
   )
+
+  const undoCatalogChange = () => {
+    const previous = catalogUndoRef.current[selectedStore]
+    if (!previous) return
+    delete catalogUndoRef.current[selectedStore]
+    catalogEditGroupRef.current[selectedStore] = false
+    setCatalogCanUndo(false)
+    persistCatalog(selectedStore, previous, { captureUndo: false })
+  }
+
+  const retryCatalogSave = () => {
+    persistCatalog(selectedStore, catalogLatestRef.current, { captureUndo: false })
+  }
 
   const activeItems = useMemo(
     () => (catalog.items || []).filter((it) => !it.disabled),
     [catalog.items]
   )
 
-  const rows = useMemo(() => {
-    return activeItems
-      .map((item) => {
-        const entry = countsDoc.counts?.[item.id] || {}
-        const status = getItemStatus(item, entry)
-        return { item, entry, status }
-      })
-      .filter(({ status }) => (filter === 'all' ? true : status === filter))
-  }, [activeItems, countsDoc.counts, filter])
+  const allRows = useMemo(() => {
+    return activeItems.map((item) => {
+      const entry = countsDoc.counts?.[item.id] || {}
+      const status = getItemStatus(item, entry)
+      const currentError = getCurrentQuantityError(item, entry)
+      const orderError = status === 'order' ? getOrderQuantityError(item, entry) : ''
+      return { item, entry, status, currentError, orderError }
+    })
+  }, [activeItems, countsDoc.counts])
+
+  const rows = useMemo(
+    () => allRows.filter(({ status }) => (filter === 'all' ? true : status === filter)),
+    [allRows, filter]
+  )
+
+  const progress = useMemo(() => {
+    const counts = { uncounted: 0, order: 0, later: 0, invalid: 0, orderInvalid: 0 }
+    allRows.forEach(({ status, orderError }) => {
+      counts[status] = (counts[status] || 0) + 1
+      if (orderError) counts.orderInvalid += 1
+    })
+    const total = allRows.length
+    const completed = counts.order + counts.later
+    const unresolved = counts.uncounted + counts.invalid + counts.orderInvalid
+    return {
+      ...counts,
+      total,
+      completed,
+      unresolved,
+      percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+    }
+  }, [allRows])
 
   const orderPreview = useMemo(
     () =>
@@ -359,6 +468,8 @@ function GoodsOrderManager() {
       ),
     [catalog.items, catalog.orderStoreName, countsDoc.counts, selectedStore]
   )
+
+  const catalogValidation = useMemo(() => validateCatalog(catalog), [catalog])
 
   const patchCount = (itemId, patch) => {
     const prev = countsLatestRef.current || countsDoc
@@ -378,13 +489,48 @@ function GoodsOrderManager() {
   }
 
   const handleCurrentChange = (item, raw) => {
-    const stored = quantityInputToStored(raw, item.allowFraction)
-    if (stored === null) {
-      // 允許打到一半（如 "1/"），先以字串暫存
-      patchCount(item.id, { current: raw })
+    // 現有貨量一律保留字串，支援份數（1/2）與點數（0.5）；打字中不強制正規化
+    patchCount(item.id, { current: normalizeCurrentInput(raw) })
+  }
+
+  const focusNextUnresolved = (itemId) => {
+    const currentIndex = allRows.findIndex(({ item }) => item.id === itemId)
+    const ordered = [
+      ...allRows.slice(currentIndex + 1),
+      ...allRows.slice(0, Math.max(currentIndex, 0)),
+    ]
+    const next = ordered.find(
+      ({ item, status }) => item.id !== itemId && (status === 'uncounted' || status === 'invalid')
+    )
+    if (!next) return
+    requestAnimationFrame(() => {
+      const input = quantityInputRefs.current[next.item.id]
+      input?.focus()
+      input?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+
+  const continueAfterCurrent = (item, current) => {
+    const entry = countsLatestRef.current?.counts?.[item.id] || {}
+    const nextStatus = getItemStatus(item, { ...entry, current })
+    if (nextStatus === 'order') {
+      setFocusedItemId(null)
       return
     }
-    patchCount(item.id, { current: stored === '' ? '' : stored })
+    focusNextUnresolved(item.id)
+  }
+
+  const applyCurrentQuick = (item, value) => {
+    patchCount(item.id, { current: value })
+    continueAfterCurrent(item, value)
+  }
+
+  const handleCurrentKeyDown = (event, item) => {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    if (parseQuantity(event.currentTarget.value).kind === 'value') {
+      continueAfterCurrent(item, event.currentTarget.value)
+    }
   }
 
   const handleOrderQtyChange = (item, raw) => {
@@ -400,6 +546,25 @@ function GoodsOrderManager() {
     patchCount(item.id, { orderQty: stored })
   }
 
+  const handleOrderQtyKeyDown = (event, item) => {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    confirmOrderQuantity(item, event.currentTarget.value)
+  }
+
+  const confirmOrderQuantity = (item, rawOrderQty) => {
+    const entry = countsLatestRef.current?.counts?.[item.id] || {}
+    const candidate = {
+      ...entry,
+      ...(rawOrderQty === undefined ? {} : { orderQty: rawOrderQty }),
+    }
+    if (getOrderQuantityError(item, candidate)) {
+      orderInputRefs.current[item.id]?.focus()
+      return
+    }
+    focusNextUnresolved(item.id)
+  }
+
   const toggleForce = (item, entry, status) => {
     if (status === 'uncounted') return
     const suggested =
@@ -407,35 +572,95 @@ function GoodsOrderManager() {
         'value' &&
       parseQuantity(String(entry.current)).value < Number(item.minStock)
     if (status === 'order') {
-      // 改為下次
       patchCount(item.id, { forceInclude: false })
     } else {
-      // 改為要叫
       patchCount(item.id, { forceInclude: suggested ? null : true })
+    }
+  }
+
+  const completeNoOrder = async () => {
+    const payload = {
+      text: '',
+      orderCount: 0,
+      _clientUpdatedAt: Date.now(),
+    }
+    setIsCopying(true)
+    try {
+      await setDoc(doc(db, 'settings', getSnapshotDocId(selectedStore)), payload)
+      setSnapshotRetryPayload(null)
+      setCopyMessageVariant('success')
+      setCopyMessage('盤點完成，本次庫存足夠；快照已更新')
+    } catch (err) {
+      console.error('[goodsOrder] empty snapshot write', err)
+      setSnapshotRetryPayload(payload)
+      setCopyMessageVariant('warning')
+      setCopyMessage('盤點已完成，但快照更新失敗；可重試更新')
+    } finally {
+      setIsCopying(false)
     }
   }
 
   const openCopyFlow = () => {
     setCopyMessage('')
-    if (orderPreview.orderCount === 0) {
-      setCopyMessage('本次無需叫貨')
+    setSnapshotRetryPayload(null)
+    if (catalogValidation.count > 0) {
+      setCopyMessageVariant('error')
+      setCopyMessage(`品項設定有 ${catalogValidation.count} 個錯誤，請先修正再輸出`)
+      setShowSettings(true)
       return
     }
+    if (progress.invalid + progress.orderInvalid > 0) {
+      setCopyMessageVariant('error')
+      setCopyMessage(`還有 ${progress.invalid + progress.orderInvalid} 個數量格式錯誤，請先修正再輸出`)
+      return
+    }
+    if (progress.uncounted > 0) {
+      setShowIncompleteConfirm(true)
+      return
+    }
+    if (orderPreview.orderCount === 0) {
+      completeNoOrder()
+      return
+    }
+    setPreviewWarning('')
+    setShowPreview(true)
+  }
+
+  const previewIncompleteResult = () => {
+    setShowIncompleteConfirm(false)
+    if (orderPreview.orderCount === 0) {
+      setCopyMessageVariant('warning')
+      setCopyMessage(`尚有 ${progress.uncounted} 項未盤點，目前沒有可輸出的叫貨品項`)
+      return
+    }
+    setPreviewWarning(
+      `只包含已完成 ${progress.completed}/${progress.total} 項中的 ${orderPreview.orderCount} 個需叫貨品項；另有 ${progress.uncounted} 項未盤點。`
+    )
     setShowPreview(true)
   }
 
   const confirmCopy = async () => {
     const text = orderPreview.text
+    const isPartial = Boolean(previewWarning)
+    setIsCopying(true)
     try {
       await navigator.clipboard.writeText(text)
     } catch {
-      // fallback
-      const ta = document.createElement('textarea')
-      ta.value = text
-      document.body.appendChild(ta)
-      ta.select()
-      document.execCommand('copy')
-      document.body.removeChild(ta)
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        document.body.appendChild(ta)
+        ta.select()
+        const copied = document.execCommand('copy')
+        document.body.removeChild(ta)
+        if (!copied) throw new Error('copy command failed')
+      } catch (err) {
+        console.error('[goodsOrder] clipboard write', err)
+        setCopyMessageVariant('error')
+        setCopyMessage('無法複製叫貨文字，請允許剪貼簿權限後重試')
+        setIsCopying(false)
+        return
+      }
     }
     const payload = {
       text,
@@ -444,219 +669,544 @@ function GoodsOrderManager() {
     }
     try {
       await setDoc(doc(db, 'settings', getSnapshotDocId(selectedStore)), payload)
+      setSnapshotRetryPayload(null)
+      setCopyMessageVariant(isPartial ? 'warning' : 'success')
+      setCopyMessage(
+        isPartial
+          ? `已複製部分叫貨單 ${orderPreview.orderCount} 項，快照已更新`
+          : `已複製 ${orderPreview.orderCount} 項，快照已更新`
+      )
     } catch (err) {
       console.error('[goodsOrder] snapshot write', err)
+      setSnapshotRetryPayload(payload)
+      setCopyMessageVariant('warning')
+      setCopyMessage(`已複製 ${orderPreview.orderCount} 項，但快照更新失敗；可重試更新`)
     }
     setShowPreview(false)
-    setCopyMessage(`已複製 ${orderPreview.orderCount} 項`)
+    setPreviewWarning('')
+    setIsCopying(false)
   }
 
+  const retrySnapshot = async () => {
+    if (!snapshotRetryPayload) return
+    setIsCopying(true)
+    try {
+      await setDoc(
+        doc(db, 'settings', getSnapshotDocId(selectedStore)),
+        snapshotRetryPayload
+      )
+      setSnapshotRetryPayload(null)
+      setCopyMessageVariant('success')
+      setCopyMessage('快照已更新')
+    } catch (err) {
+      console.error('[goodsOrder] snapshot retry', err)
+      setCopyMessageVariant('warning')
+      setCopyMessage('快照仍無法更新，盤點資料已保留在本機')
+    } finally {
+      setIsCopying(false)
+    }
+  }
+
+  const syncLabel = {
+    idle: '準備同步',
+    syncing: '同步中…',
+    synced: '已同步',
+    offline: '離線保存',
+    error: '同步失敗',
+    conflict: '待處理',
+  }[syncStatus] || '同步狀態'
+
+  const blockingErrorCount = progress.invalid + progress.orderInvalid + catalogValidation.count
+  const copyActionLabel = blockingErrorCount > 0
+    ? `修正 ${blockingErrorCount} 個錯誤後再輸出`
+    : progress.uncounted > 0
+      ? `尚有 ${progress.uncounted} 項未盤點 · 查看輸出選項`
+    : orderPreview.orderCount > 0
+      ? `預覽並複製 ${orderPreview.orderCount} 項`
+      : '完成盤點 · 本次庫存足夠'
+
   const studio = (
-    <div className="pb-28">
-      <CwAlert variant="warning" className="mb-4">
-        測試頁（<code className="text-xs">#/goods-order-test</code>
-        ）· 尚未加入主選單導覽
-      </CwAlert>
+    <div className="pb-32">
+      <div
+        inert={showSettings || showPreview || showIncompleteConfirm || !!conflict ? '' : undefined}
+        aria-hidden={showSettings || showPreview || showIncompleteConfirm || !!conflict ? 'true' : undefined}
+      >
+      <header className="sticky top-0 z-40 border-b border-[var(--cw-border)] bg-[var(--cw-bg)]/95 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
+          <div className="flex items-center gap-3">
+            <a
+              href="#/sandwich"
+              aria-label="離開貨物叫貨"
+              className="cw-touch-target inline-flex items-center gap-1 rounded-[var(--cw-radius)] px-2 text-sm font-semibold text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
+            >
+              <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
+              <span className="hidden sm:inline">離開</span>
+            </a>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-2">
+                <h1 className="truncate text-xl font-bold tracking-tight text-[var(--cw-text)] sm:text-2xl">
+                  貨物叫貨
+                </h1>
+                <span
+                  className="shrink-0 text-xs text-[var(--cw-text-muted)]"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {syncLabel}
+                </span>
+              </div>
+              <p className="mt-0.5 text-sm text-[var(--cw-text-muted)]">
+                已盤 {progress.completed}/{progress.total}
+                {progress.invalid > 0 ? ` · ${progress.invalid} 項格式有誤` : ''}
+              </p>
+            </div>
+            <CwButton
+              type="button"
+              variant="ghost"
+              className="px-2 sm:px-3"
+              onClick={() => setShowSettings(true)}
+              aria-label="開啟品項設定"
+            >
+              <Cog6ToothIcon className="h-5 w-5" aria-hidden="true" />
+              <span className="hidden sm:inline">設定</span>
+            </CwButton>
+          </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {STORES.map((store) => (
-          <CwButton
-            key={store.id}
-            type="button"
-            variant={selectedStore === store.id ? 'brand' : 'secondary'}
-            onClick={() => setSelectedStore(store.id)}
+          <div
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--cw-border)]"
+            role="progressbar"
+            aria-label="盤點進度"
+            aria-valuemin="0"
+            aria-valuemax={progress.total}
+            aria-valuenow={progress.completed}
           >
-            {store.name}
-          </CwButton>
-        ))}
-        <CwButton
-          type="button"
-          variant="ghost"
-          className="ml-auto"
-          onClick={() => setShowSettings(true)}
-          aria-label="品項設定"
-        >
-          <Cog6ToothIcon className="h-5 w-5" />
-          設定
-        </CwButton>
-      </div>
+            <div
+              className="h-full rounded-full bg-[var(--cw-brand)] transition-[width] duration-200 ease-out"
+              style={{ width: `${progress.percent}%` }}
+            />
+          </div>
 
-      <p className="mb-3 text-xs text-[var(--cw-text-muted)]">
-        叫貨標題：三重➡️{catalog.orderStoreName || getDefaultOrderStoreName(selectedStore)}
-        {localVersionAt ? ` · 本機 ${formatVersionTime(localVersionAt)}` : null}
-      </p>
-
-      <GoodsOrderSyncBanner
-        status={syncStatus}
-        onRetry={() =>
-          flushCountsSync(selectedStore).catch(() => setSyncStatus('error'))
-        }
-      />
-
-      {copyMessage ? (
-        <CwAlert variant={copyMessage.includes('無需') ? 'warning' : 'success'} className="mb-3">
-          {copyMessage}
-        </CwAlert>
-      ) : null}
-
-      <div className="mb-3 flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <CwButton
-            key={f.id}
-            type="button"
-            variant={filter === f.id ? 'primary' : 'ghost'}
-            onClick={() => setFilter(f.id)}
-          >
-            {f.label}
-          </CwButton>
-        ))}
-      </div>
-
-      {/* iPad+: header row */}
-      <div className="mb-2 hidden grid-cols-[minmax(0,1.4fr)_5.5rem_4.5rem_5.5rem_auto] gap-2 px-1 text-xs font-semibold text-[var(--cw-text-muted)] md:grid">
-        <span>品名</span>
-        <span>現有</span>
-        <span>最低</span>
-        <span>叫貨</span>
-        <span>狀態</span>
-      </div>
-
-      <ul className="space-y-2">
-        {rows.length === 0 ? (
-          <li className="rounded-[var(--cw-radius)] border border-dashed border-[var(--cw-border-strong)] px-4 py-8 text-center text-sm text-[var(--cw-text-muted)]">
-            此篩選下沒有品項
-          </li>
-        ) : (
-          rows.map(({ item, entry, status }) => {
-            const currentDisplay =
-              entry.current === '' || entry.current == null
-                ? ''
-                : formatQuantity(entry.current)
-            const orderDisplay =
-              entry.orderQty === '' || entry.orderQty == null
-                ? formatQuantity(getEffectiveOrderQty(item, entry))
-                : formatQuantity(entry.orderQty)
-            const showOrderControls = status === 'order' || status === 'later'
-
-            return (
-              <li
-                key={item.id}
-                className="rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] p-3"
+          <div className="mt-3 grid grid-cols-3 gap-1 rounded-[var(--cw-radius)] bg-[var(--cw-border)] p-1">
+            {STORES.map((store) => (
+              <button
+                key={store.id}
+                type="button"
+                className={`cw-touch-target rounded-[10px] px-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cw-focus-ring)] ${
+                  selectedStore === store.id
+                    ? 'bg-[var(--cw-mega-surface)] text-[var(--cw-text)] shadow-[var(--cw-shadow-sm)]'
+                    : 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)]/60 hover:text-[var(--cw-text)]'
+                }`}
+                onClick={() => setSelectedStore(store.id)}
+                aria-pressed={selectedStore === store.id}
               >
-                {/* 手機：現有貨量為主 */}
-                <div className="md:hidden">
-                  <div className="mb-2 flex items-start justify-between gap-2">
+                {store.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
+        <div className="mb-3 flex items-center justify-between gap-3 text-xs text-[var(--cw-text-muted)]">
+          <span>三重➡️{catalog.orderStoreName || getDefaultOrderStoreName(selectedStore)}</span>
+          {localVersionAt ? (
+            <span>
+              {syncStatus === 'synced' ? '雲端版本' : '本機變更'} {formatVersionTime(localVersionAt)}
+            </span>
+          ) : null}
+        </div>
+
+        <GoodsOrderSyncBanner
+          status={syncStatus}
+          onRetry={() =>
+            flushCountsSync(selectedStore).catch(() => setSyncStatus('error'))
+          }
+        />
+
+        {copyMessage ? (
+          <CwAlert variant={copyMessageVariant} className="mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2" role="status" aria-live="polite">
+              <span>{copyMessage}</span>
+              {snapshotRetryPayload ? (
+                <CwButton
+                  type="button"
+                  variant="secondary"
+                  disabled={isCopying}
+                  onClick={retrySnapshot}
+                >
+                  {isCopying ? '重試中…' : '重試更新快照'}
+                </CwButton>
+              ) : null}
+            </div>
+          </CwAlert>
+        ) : null}
+
+        <div
+          className="mb-4 grid grid-cols-4 gap-1 sm:flex sm:overflow-x-auto sm:pb-1"
+          role="group"
+          aria-label="篩選盤點品項"
+        >
+          {FILTERS.map((f) => {
+            const count = f.id === 'all' ? progress.total : progress[f.id]
+            return (
+              <CwButton
+                key={f.id}
+                type="button"
+                variant={filter === f.id ? 'primary' : 'ghost'}
+                className="min-w-0 shrink-0 whitespace-nowrap px-1 text-[11px] sm:px-3 sm:text-sm"
+                onClick={() => setFilter(f.id)}
+                aria-pressed={filter === f.id}
+              >
+                {f.label} <span className="tabular-nums">{count}</span>
+              </CwButton>
+            )
+          })}
+        </div>
+
+        {/* 手機：以連續盤點列取代逐張卡片。 */}
+        <ul className="overflow-hidden rounded-[var(--cw-radius-lg)] bg-[var(--cw-mega-surface)] shadow-[var(--cw-shadow-sm)] md:hidden">
+          {rows.length === 0 ? (
+            <li className="px-4 py-10 text-center text-sm text-[var(--cw-text-muted)]">
+              此篩選沒有品項；可切換其他狀態繼續盤點。
+            </li>
+          ) : (
+            rows.map(({ item, entry, status, currentError, orderError }, index) => {
+              const currentDisplay = displayCurrentInput(entry.current)
+              const orderDisplay =
+                entry.orderQty === '' || entry.orderQty == null
+                  ? formatQuantity(getEffectiveOrderQty(item, entry))
+                  : typeof entry.orderQty === 'string'
+                    ? entry.orderQty
+                    : formatQuantity(entry.orderQty)
+              const showOrderControls = status === 'order' || status === 'later'
+              const showMobileQuicks = focusedItemId === item.id
+              const errorId = `goods-current-error-${item.id}`
+
+              return (
+                <li
+                  key={item.id}
+                  className={`px-4 py-4 ${
+                    index < rows.length - 1 ? 'border-b border-[var(--cw-border)]' : ''
+                  } ${status === 'order' ? 'bg-[var(--cw-brand-muted)]/40' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-[var(--cw-text)]">{item.name}</p>
-                      <p className="text-xs text-[var(--cw-text-muted)]">
-                        最低 {formatQuantity(item.minStock)}
-                        {item.unit}
-                        {item.allowFraction ? ' · 可分數' : ''}
+                      <p className="truncate font-semibold text-[var(--cw-text)]">
+                        {item.name}
+                        <span className="ml-1.5 font-normal text-[var(--cw-text-muted)]">
+                          {item.unit}
+                        </span>
+                      </p>
+                      <p className="mt-0.5 text-xs text-[var(--cw-text-muted)]">
+                        最低庫存 {formatQuantity(item.minStock)}
                       </p>
                     </div>
-                    <CwBadge tone={statusBadgeTone(status)}>{statusLabel(status)}</CwBadge>
+                    <CwBadge
+                      tone={statusBadgeTone(status)}
+                      className="shrink-0 normal-case tracking-normal"
+                    >
+                      {statusLabel(status)}
+                    </CwBadge>
                   </div>
-                  <CwInput
-                    label="現有貨量"
-                    inputMode="decimal"
-                    value={
-                      typeof entry.current === 'string' && entry.current.includes('/')
-                        ? entry.current
-                        : currentDisplay
-                    }
-                    onChange={(e) => handleCurrentChange(item, e.target.value)}
-                    placeholder={item.allowFraction ? '例如 1 或 1/2' : '整數'}
-                    inputClassName="text-lg"
-                  />
+
+                  <label className="mt-3 block">
+                    <span className="mb-1.5 block text-xs font-semibold text-[var(--cw-text-muted)]">
+                      現有數量
+                    </span>
+                    <input
+                      ref={(node) => {
+                        quantityInputRefs.current[item.id] = node
+                      }}
+                      name={`goods-current-${item.id}`}
+                      type="text"
+                      inputMode="text"
+                      enterKeyHint="next"
+                      autoComplete="off"
+                      value={currentDisplay}
+                      onChange={(event) => handleCurrentChange(item, event.target.value)}
+                      onKeyDown={(event) => handleCurrentKeyDown(event, item)}
+                      onFocus={() => setFocusedItemId(item.id)}
+                      onBlur={() => setFocusedItemId((id) => (id === item.id ? null : id))}
+                      placeholder="例如 0、1/2 或 1 1/2…"
+                      aria-label={`${item.name} 現有數量`}
+                      aria-invalid={status === 'invalid'}
+                      aria-describedby={status === 'invalid' ? errorId : undefined}
+                      className="min-h-[52px] w-full rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-bg)] px-4 text-xl tabular-nums text-[var(--cw-text)] placeholder:text-sm placeholder:text-[var(--cw-text-muted)] focus:border-[var(--cw-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--cw-focus-ring)]"
+                    />
+                  </label>
+
+                  {status === 'invalid' ? (
+                    <p id={errorId} className="mt-1.5 text-sm text-[var(--cw-danger)]">
+                      {currentError}
+                    </p>
+                  ) : null}
+
+                  {showMobileQuicks ? (
+                    <div className="mt-2 grid grid-cols-4 gap-2" aria-label={`${item.name} 快速輸入`}>
+                      {['0', '1/2', '1', '2'].map((quantity) => (
+                        <button
+                          key={quantity}
+                          type="button"
+                          className="cw-touch-target rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-mega-surface)] px-2 text-sm font-semibold tabular-nums text-[var(--cw-text)] hover:border-[var(--cw-border-strong)] hover:bg-[var(--cw-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cw-focus-ring)]"
+                          onPointerDown={(event) => event.preventDefault()}
+                          onClick={() => applyCurrentQuick(item, quantity)}
+                        >
+                          {quantity}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
                   {showOrderControls ? (
-                    <div className="mt-2 flex flex-wrap items-end gap-2">
+                    <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-[var(--cw-border)] pt-3">
                       {status === 'order' ? (
-                        <CwInput
-                          label="叫貨量"
-                          className="min-w-[7rem] flex-1"
-                          inputMode="decimal"
-                          value={
-                            typeof entry.orderQty === 'string'
-                              ? entry.orderQty
-                              : orderDisplay
-                          }
-                          onChange={(e) => handleOrderQtyChange(item, e.target.value)}
-                        />
-                      ) : null}
+                        <div className="min-w-[8rem] flex-1">
+                          <CwInput
+                            label="叫貨量"
+                            name={`goods-order-${item.id}`}
+                            inputMode="decimal"
+                            enterKeyHint="next"
+                            autoComplete="off"
+                            value={orderDisplay}
+                            aria-label={`${item.name} 叫貨量`}
+                            error={orderError}
+                            ref={(node) => {
+                              orderInputRefs.current[item.id] = node
+                            }}
+                            onChange={(event) => handleOrderQtyChange(item, event.target.value)}
+                            onKeyDown={(event) => handleOrderQtyKeyDown(event, item)}
+                          />
+                          <CwButton
+                            type="button"
+                            variant="primary"
+                            className="mt-2 w-full"
+                            onClick={() => confirmOrderQuantity(item)}
+                          >
+                            確認叫貨量，下一項
+                          </CwButton>
+                        </div>
+                      ) : (
+                        <p className="min-w-[8rem] flex-1 text-sm text-[var(--cw-text-muted)]">
+                          本次庫存足夠，不會加入叫貨文字
+                        </p>
+                      )}
                       <CwButton
                         type="button"
                         variant="secondary"
                         onClick={() => toggleForce(item, entry, status)}
                       >
-                        {status === 'order' ? '改為下次' : '改為要叫'}
+                        {status === 'order' ? '從叫貨移除' : '加入叫貨'}
                       </CwButton>
                     </div>
                   ) : null}
-                </div>
+                </li>
+              )
+            })
+          )}
+        </ul>
 
-                {/* iPad+：完整列 */}
-                <div className="hidden grid-cols-[minmax(0,1.4fr)_5.5rem_4.5rem_5.5rem_auto] items-center gap-2 md:grid">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-[var(--cw-text)]">{item.name}</p>
-                    <p className="text-xs text-[var(--cw-text-muted)]">{item.unit}</p>
+        {/* iPad+：保持同列比較，但所有觸控控制至少 44px。 */}
+        <div className="hidden overflow-hidden rounded-[var(--cw-radius-lg)] bg-[var(--cw-mega-surface)] shadow-[var(--cw-shadow-sm)] md:block">
+          <div
+            className={`grid ${TABLE_GRID} h-11 items-center border-b border-[var(--cw-border)] bg-[var(--cw-bg)] px-4 text-xs font-semibold text-[var(--cw-text-muted)]`}
+          >
+            <span>品名</span>
+            <span className="text-center">現有</span>
+            <span className="text-center">最低</span>
+            <span className="text-center">叫貨</span>
+            <span className="text-center">狀態</span>
+            <span className="text-center">調整</span>
+          </div>
+          {rows.length === 0 ? (
+            <div className="px-4 py-12 text-center text-sm text-[var(--cw-text-muted)]">
+              此篩選沒有品項；可切換其他狀態繼續盤點。
+            </div>
+          ) : (
+            rows.map(({ item, entry, status, currentError, orderError }, index) => {
+              const currentDisplay = displayCurrentInput(entry.current)
+              const orderDisplay =
+                entry.orderQty === '' || entry.orderQty == null
+                  ? formatQuantity(getEffectiveOrderQty(item, entry))
+                  : typeof entry.orderQty === 'string'
+                    ? entry.orderQty
+                    : formatQuantity(entry.orderQty)
+              const showOrderControls = status === 'order' || status === 'later'
+              const currentErrorId = `goods-table-current-error-${item.id}`
+              const orderErrorId = `goods-table-order-error-${item.id}`
+
+              return (
+                <div
+                  key={item.id}
+                  className={`grid ${TABLE_GRID} min-h-14 items-center px-4 py-1.5 ${
+                    index < rows.length - 1 ? 'border-b border-[var(--cw-border)]' : ''
+                  } ${status === 'order' ? 'bg-[var(--cw-brand-muted)]/40' : ''}`}
+                >
+                  <p className="min-w-0 truncate text-sm text-[var(--cw-text)]">
+                    <span className="font-semibold">{item.name}</span>
+                    <span className="ml-1 text-[var(--cw-text-muted)]">{item.unit}</span>
+                  </p>
+                  <div className="min-w-0 py-1">
+                    <input
+                      ref={(node) => {
+                        quantityInputRefs.current[item.id] = node
+                      }}
+                      name={`goods-current-${item.id}`}
+                      type="text"
+                      inputMode="text"
+                      enterKeyHint="next"
+                      autoComplete="off"
+                      className={`${tableInputClass} ${
+                        status === 'invalid' ? 'border-[var(--cw-danger)]' : ''
+                      }`}
+                      value={currentDisplay}
+                      onChange={(event) => handleCurrentChange(item, event.target.value)}
+                      onKeyDown={(event) => handleCurrentKeyDown(event, item)}
+                      aria-label={`${item.name} 現有數量`}
+                      aria-invalid={status === 'invalid'}
+                      aria-describedby={status === 'invalid' ? currentErrorId : undefined}
+                    />
+                    {status === 'invalid' ? (
+                      <p id={currentErrorId} className="mt-1 text-center text-xs leading-tight text-[var(--cw-danger)]">
+                        {currentError}
+                      </p>
+                    ) : null}
                   </div>
-                  <CwInput
-                    inputMode="decimal"
-                    value={
-                      typeof entry.current === 'string' && entry.current.includes('/')
-                        ? entry.current
-                        : currentDisplay
-                    }
-                    onChange={(e) => handleCurrentChange(item, e.target.value)}
-                    placeholder="—"
-                  />
-                  <span className="text-sm text-[var(--cw-text-muted)]">
+                  <span className="text-center text-sm tabular-nums text-[var(--cw-text-muted)]">
                     {formatQuantity(item.minStock)}
                   </span>
-                  <CwInput
-                    inputMode="decimal"
-                    disabled={status === 'uncounted'}
-                    value={
-                      status === 'uncounted'
-                        ? ''
-                        : typeof entry.orderQty === 'string'
-                          ? entry.orderQty
-                          : orderDisplay
-                    }
-                    onChange={(e) => handleOrderQtyChange(item, e.target.value)}
-                    placeholder="—"
-                  />
-                  <div className="flex flex-col items-start gap-1">
-                    <CwBadge tone={statusBadgeTone(status)}>{statusLabel(status)}</CwBadge>
+                  <div className="min-w-0 py-1 text-center">
+                    {status === 'order' ? (
+                      <>
+                        <input
+                          ref={(node) => {
+                            orderInputRefs.current[item.id] = node
+                          }}
+                          name={`goods-order-${item.id}`}
+                          type="text"
+                          inputMode="decimal"
+                          enterKeyHint="next"
+                          autoComplete="off"
+                          className={`${tableInputClass} ${
+                            orderError ? 'border-[var(--cw-danger)]' : ''
+                          }`}
+                          value={orderDisplay}
+                          onChange={(event) => handleOrderQtyChange(item, event.target.value)}
+                          onKeyDown={(event) => handleOrderQtyKeyDown(event, item)}
+                          aria-label={`${item.name} 叫貨量`}
+                          aria-invalid={Boolean(orderError)}
+                          aria-describedby={orderError ? orderErrorId : undefined}
+                        />
+                        {orderError ? (
+                          <p id={orderErrorId} className="mt-1 text-xs leading-tight text-[var(--cw-danger)]">
+                            {orderError}
+                          </p>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="cw-touch-target mt-1 rounded-[var(--cw-radius)] px-1 text-xs font-semibold text-[var(--cw-brand)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cw-focus-ring)]"
+                          onClick={() => confirmOrderQuantity(item)}
+                        >
+                          確認並下一項
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-sm text-[var(--cw-text-muted)]" aria-hidden="true">
+                        —
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex justify-center">
+                    <CwBadge
+                      tone={statusBadgeTone(status)}
+                      className="normal-case tracking-normal"
+                    >
+                      {statusLabel(status)}
+                    </CwBadge>
+                  </div>
+                  <div className="flex justify-center">
                     {showOrderControls ? (
                       <button
                         type="button"
-                        className="text-xs text-[var(--cw-brand)] underline"
+                        className="cw-touch-target rounded-[var(--cw-radius)] px-2 text-xs font-semibold text-[var(--cw-brand)] hover:bg-[var(--cw-brand-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cw-focus-ring)]"
                         onClick={() => toggleForce(item, entry, status)}
                       >
-                        {status === 'order' ? '改下次' : '改要叫'}
+                        {status === 'order' ? '從叫貨移除' : '加入叫貨'}
                       </button>
-                    ) : null}
+                    ) : (
+                      <span className="text-xs text-transparent select-none" aria-hidden="true">—</span>
+                    )}
                   </div>
                 </div>
-              </li>
-            )
-          })
-        )}
-      </ul>
+              )
+            })
+          )}
+        </div>
+      </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-[50] border-t border-[var(--cw-border-strong)] bg-[var(--cw-bg)]/95 px-4 py-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <CwButton type="button" variant="primary" className="w-full" onClick={openCopyFlow}>
-          複製叫貨文字
-          {orderPreview.orderCount > 0 ? `（本次要叫 ${orderPreview.orderCount} 項）` : ''}
-        </CwButton>
+      <footer className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--cw-border-strong)] bg-[var(--cw-bg)]/96 px-4 pt-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex max-w-6xl items-center gap-3">
+          <div className="hidden min-w-0 flex-1 sm:block">
+            <p className="text-sm font-semibold text-[var(--cw-text)]">
+              已盤 {progress.completed}/{progress.total}
+            </p>
+            <p className="truncate text-xs text-[var(--cw-text-muted)]">
+              {progress.unresolved > 0
+                ? `未盤點 ${progress.uncounted} 項 · 錯誤 ${progress.invalid + progress.orderInvalid} 項`
+                : `需叫貨 ${orderPreview.orderCount} 項`}
+            </p>
+          </div>
+          <CwButton
+            type="button"
+            variant="primary"
+            className="w-full sm:w-auto sm:min-w-[20rem]"
+            onClick={openCopyFlow}
+            disabled={isCopying}
+          >
+            {isCopying ? '處理中…' : copyActionLabel}
+          </CwButton>
+        </div>
+      </footer>
       </div>
+
+      <CwModalFrame
+        open={showIncompleteConfirm}
+        onClose={() => setShowIncompleteConfirm(false)}
+        title="盤點尚未完成"
+        description={`已完成 ${progress.completed}/${progress.total} 項，還有 ${progress.uncounted} 項未盤點。`}
+        maxWidthClass="max-w-md"
+        footer={
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <CwButton type="button" variant="secondary" onClick={previewIncompleteResult}>
+              只預覽已完成 {progress.completed}/{progress.total}
+            </CwButton>
+            <CwButton
+              type="button"
+              variant="primary"
+              onClick={() => {
+                setShowIncompleteConfirm(false)
+                focusNextUnresolved('')
+              }}
+            >
+              回到未盤點 {progress.uncounted} 項
+            </CwButton>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-[var(--cw-text)]">
+          部分輸出不會包含尚未盤點的品項，可能漏掉實際需要補貨的貨物。
+        </p>
+      </CwModalFrame>
 
       <GoodsOrderSettingsSheet
         open={showSettings}
         storeName={getStoreName(selectedStore)}
         orderStoreName={catalog.orderStoreName || getDefaultOrderStoreName(selectedStore)}
         items={catalog.items || []}
+        validation={catalogValidation}
+        saveStatus={catalogSaveStatus}
+        canUndo={catalogCanUndo}
+        onUndo={undoCatalogChange}
+        onRetrySave={retryCatalogSave}
         onClose={() => setShowSettings(false)}
         onChangeOrderStoreName={(name) =>
           persistCatalog(selectedStore, { ...catalog, orderStoreName: name })
@@ -667,12 +1217,15 @@ function GoodsOrderManager() {
       <GoodsOrderPreviewModal
         open={showPreview}
         text={orderPreview.text}
+        warning={previewWarning}
+        partial={Boolean(previewWarning)}
+        busy={isCopying}
         onClose={() => setShowPreview(false)}
         onConfirmCopy={confirmCopy}
       />
 
       <GoodsOrderConflictModal
-        open={!!conflict}
+        open={!!conflict && !showSettings && !showPreview && !showIncompleteConfirm}
         storeName={conflict?.storeName}
         localUpdatedAt={conflict?.localUpdatedAt}
         remoteUpdatedAt={conflict?.remoteUpdatedAt}
@@ -709,6 +1262,7 @@ function GoodsOrderManager() {
       breadcrumbs={BC}
       title="貨物叫貨"
       description="輸入現有貨量，對照最低庫存後複製叫貨文字。"
+      hideStudioHeader
       classic={
         <div className="p-4 text-sm text-text-secondary">
           貨物叫貨為 Club 介面。請切換到 Club 主題，或直接開啟{' '}

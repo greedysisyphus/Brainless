@@ -6,7 +6,7 @@
 @layer base {
   /* 預設跟 Club 對齊，避免 CSS 載入瞬間先套 Classic 深色底 */
   body {
-    @apply min-h-screen font-sans bg-[#f7f6f2] text-[#171717];
+    @apply min-h-screen font-sans bg-[#f3f0e8] text-[#1c1914];
     scrollbar-gutter: stable;
   }
 
@@ -69,11 +69,7 @@
   }
 
   .card-header {
-    @apply text-xl font-bold mb-6;
-    background: linear-gradient(to right, theme('colors.primary'), theme('colors.secondary'));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    @apply mb-6 text-xl font-bold text-primary;
   }
 
   .summary-row {
@@ -597,152 +593,4 @@
   );
   background-size: 400% 400%;
   animation: gradient-shift 15s ease infinite;
-}
-
-/* --- Club theme tokens（Cw* 元件契約） --- */
-html[data-app-theme='club'] {
-  color-scheme: light;
-  --cw-bg: #f7f6f2;
-  --cw-surface: #ffffff;
-  --cw-surface-elevated: #ffffff;
-  --cw-sidebar: #f0efe9;
-  --cw-header-bg: #f7f6f2;
-  --cw-mega-surface: #ffffff;
-  --cw-border: rgba(23, 23, 23, 0.10);
-  --cw-border-strong: rgba(23, 23, 23, 0.16);
-  --cw-text: #171717;
-  --cw-text-muted: #6b6b66;
-  --cw-fg-emphasis: #171717;
-  --cw-fg-emphasis-contrast: #ffffff;
-  --cw-brand: #ec5836;
-  --cw-brand-muted: rgba(236, 88, 54, 0.12);
-  --cw-accent: var(--cw-brand);
-  --cw-accent-contrast: #ffffff;
-  --cw-focus-ring: rgba(236, 88, 54, 0.38);
-  --cw-success: #15803d;
-  --cw-success-muted: rgba(21, 128, 61, 0.12);
-  --cw-warning: #b45309;
-  --cw-warning-muted: rgba(180, 83, 9, 0.12);
-  --cw-danger: #dc2626;
-  --cw-danger-muted: rgba(220, 38, 38, 0.12);
-  --cw-shadow-sm: 0 1px 0 rgba(23, 23, 23, 0.08);
-  --cw-radius-sm: 8px;
-  --cw-radius: 10px;
-  --cw-radius-lg: 16px;
-  --cw-radius-pill: 9999px;
-  --cw-section-y: 1.5rem;
-  --cw-stack-gap: 1rem;
-  --cw-transition: 150ms ease-out;
-  --club-border: #dedbd3;
-  --club-text: #171717;
-  --club-muted: #6b6b66;
-}
-
-html[data-app-theme='club'] body {
-  @apply bg-[var(--cw-bg)] text-[var(--cw-text)] min-h-screen;
-  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-}
-
-/* Club 導覽：手機固定小尺寸；平板／桌機依視窗寬度流暢縮放 */
-html[data-app-theme='club'] {
-  --club-nav-w: 3.5rem;
-  --club-nav-min-h: 3rem;
-  --club-nav-gap: 0.125rem;
-  --club-nav-pad: 0.25rem;
-  --club-nav-icon-box: 1.5rem;
-  --club-nav-icon: 0.875rem;
-  --club-nav-label: 9px;
-  --club-nav-row-gap: 0.25rem;
-}
-
-@media (min-width: 640px) {
-  html[data-app-theme='club'] {
-    --club-nav-w: clamp(4.25rem, 6.4vw, 7.25rem);
-    --club-nav-min-h: clamp(3.75rem, 5.6vw, 6.5rem);
-    --club-nav-gap: clamp(0.25rem, 0.45vw, 0.5rem);
-    --club-nav-pad: clamp(0.35rem, 0.55vw, 0.65rem);
-    --club-nav-icon-box: clamp(1.75rem, 2.7vw, 2.5rem);
-    --club-nav-icon: clamp(0.95rem, 1.5vw, 1.35rem);
-    --club-nav-label: clamp(10px, 0.95vw, 12px);
-    --club-nav-row-gap: clamp(0.35rem, 0.55vw, 0.75rem);
-  }
-}
-
-.club-nav-item {
-  width: var(--club-nav-w);
-  min-height: var(--club-nav-min-h);
-  gap: var(--club-nav-gap);
-  padding: var(--club-nav-pad);
-}
-
-.club-nav-icon-box {
-  width: var(--club-nav-icon-box);
-  height: var(--club-nav-icon-box);
-}
-
-.club-nav-icon {
-  width: var(--club-nav-icon);
-  height: var(--club-nav-icon);
-}
-
-.club-nav-label {
-  font-size: var(--club-nav-label);
-}
-
-.club-nav-row {
-  gap: var(--club-nav-row-gap);
-}
-
-html[data-app-theme='club'] .cw-tabular {
-  font-variant-numeric: tabular-nums;
-}
-
-html[data-app-theme='club'] input[type='date'],
-html[data-app-theme='club'] input[type='time'],
-html[data-app-theme='club'] input[type='datetime-local'],
-html[data-app-theme='club'] input[type='month'],
-html[data-app-theme='club'] input[type='week'],
-html[data-app-theme='club'] .cw-date-input {
-  color-scheme: light;
-  cursor: pointer;
-}
-
-html[data-app-theme='club'] .cw-shell-min-h {
-  min-height: 100dvh;
-  min-height: 100vh;
-}
-
-/* iOS Safe area helpers（Club 殼內可自行加 pt-safe 等） */
-@supports (padding: env(safe-area-inset-top)) {
-  .cw-pt-safe {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  .cw-pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .cw-pl-safe {
-    padding-left: env(safe-area-inset-left, 0px);
-  }
-  .cw-pr-safe {
-    padding-right: env(safe-area-inset-right, 0px);
-  }
-  .cw-px-safe {
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
-  }
-}
-
-.cw-touch-target {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html[data-app-theme='club'] *,
-  html[data-app-theme='club'] *::before,
-  html[data-app-theme='club'] *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
 }

@@ -44,7 +44,7 @@ export function ThemeProvider({ children }) {
     }
     const meta = document.querySelector('meta[name="theme-color"]')
     if (meta) {
-      meta.setAttribute('content', theme === 'club' ? '#f7f6f2' : '#8b5cf6')
+      meta.setAttribute('content', theme === 'club' ? '#f3f0e8' : '#8b5cf6')
     }
   }, [theme])
 
