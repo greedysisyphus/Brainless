@@ -7,7 +7,7 @@ import { useChangelog } from '../../contexts/ChangelogContext'
 import logoCat from '../../assets/logo-cat.png'
 import ThemeSwitcher from '../ThemeSwitcher'
 
-function ClubNavItem({ path, label, Icon }) {
+function ClubNavItem({ path, label, badge, Icon }) {
   return (
     <NavLink
       to={path}
@@ -22,6 +22,11 @@ function ClubNavItem({ path, label, Icon }) {
     >
       {({ isActive }) => (
         <>
+          {badge && (
+            <span className="absolute right-0.5 top-0.5 z-20 rounded-full border border-[#ec5836]/25 bg-[#fff1ed] px-1 py-px text-[7px] font-black uppercase leading-none tracking-[0.04em] text-[#b3381e] sm:right-1 sm:top-1 sm:text-[8px]">
+              {badge}
+            </span>
+          )}
           <span
             className={`club-nav-icon-box grid place-items-center rounded-lg border sm:rounded-xl ${
               isActive

@@ -13,9 +13,10 @@ function Navigation() {
   const navItemsRef = useRef([])
   const navRef = useRef(null)
 
-  const allMenuItems = getNavItems(isAdmin).map(({ path, label, Icon, section, accentColor }) => ({
+  const allMenuItems = getNavItems(isAdmin).map(({ path, label, badge, Icon, section, accentColor }) => ({
       path,
       label,
+      badge,
       section,
       accentColor,
       icon: React.createElement(Icon, { className: 'w-5 h-5' }),
@@ -172,7 +173,7 @@ function Navigation() {
         )}
 
         <div className="flex justify-center xl:justify-start gap-1 sm:gap-2 md:gap-3 lg:gap-2 xl:gap-3 flex-nowrap overflow-x-auto overflow-y-visible scrollbar-hide py-1 -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 px-3 sm:px-4 md:px-6 lg:px-8">
-          {allMenuItems.map(({ path, label, icon }, index) => (
+          {allMenuItems.map(({ path, label, badge, icon }, index) => (
             <NavLink
               key={path}
               to={path}
@@ -217,6 +218,12 @@ function Navigation() {
                 <>
                   {isActive && (
                     <div className="absolute inset-0 rounded-xl bg-primary/10 animate-pulse-glow opacity-50" />
+                  )}
+
+                  {badge && (
+                    <span className="absolute right-0.5 top-0.5 z-20 rounded-full border border-amber-300/35 bg-amber-300/15 px-1 py-px text-[7px] font-bold uppercase leading-none tracking-[0.04em] text-amber-300 sm:right-1 sm:top-1 sm:text-[8px]">
+                      {badge}
+                    </span>
                   )}
 
                   <div
