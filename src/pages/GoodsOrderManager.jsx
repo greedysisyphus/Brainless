@@ -160,7 +160,6 @@ function GoodsOrderManager() {
   const catalogEditGroupRef = useRef({})
   const catalogDirtyRef = useRef({})
   const quantityInputRefs = useRef({})
-  const orderInputRefs = useRef({})
 
   const getVisibleInputRef = (refs, itemId) => {
     const candidates = [refs.current[`mobile:${itemId}`], refs.current[`table:${itemId}`]]
@@ -577,25 +576,6 @@ function GoodsOrderManager() {
     patchCount(item.id, { orderQty: stored })
   }
 
-  const handleOrderQtyKeyDown = (event, item) => {
-    if (event.key !== 'Enter') return
-    event.preventDefault()
-    confirmOrderQuantity(item, event.currentTarget.value)
-  }
-
-  const confirmOrderQuantity = (item, rawOrderQty) => {
-    const entry = countsLatestRef.current?.counts?.[item.id] || {}
-    const candidate = {
-      ...entry,
-      ...(rawOrderQty === undefined ? {} : { orderQty: rawOrderQty }),
-    }
-    if (getOrderQuantityError(item, candidate)) {
-      getVisibleInputRef(orderInputRefs, item.id)?.focus()
-      return
-    }
-    focusNextUnresolved(item.id)
-  }
-
   const toggleForce = (item, entry, status) => {
     if (status === 'uncounted') return
     const suggested =
@@ -1004,33 +984,13 @@ function GoodsOrderManager() {
                             label="叫貨量"
                             name={`goods-order-${item.id}`}
                             inputMode="decimal"
-                            enterKeyHint="next"
+                            enterKeyHint="done"
                             autoComplete="off"
                             value={orderDisplay}
                             aria-label={`${item.name} 叫貨量`}
                             error={orderError}
-                            ref={(node) => {
-                              orderInputRefs.current[`mobile:${item.id}`] = node
-                            }}
                             onChange={(event) => handleOrderQtyChange(item, event.target.value)}
-                            onKeyDown={(event) => handleOrderQtyKeyDown(event, item)}
                           />
-                          <CwButton
-                            type="button"
-                            variant="primary"
-                            className="mt-2 w-full"
-                            onPointerDown={(event) => {
-                              // 在按鈕預設取得焦點前，把焦點交給下一個數量欄位。
-                              event.preventDefault()
-                              confirmOrderQuantity(item)
-                            }}
-                            onClick={(event) => {
-                              // 保留 Enter／Space 的鍵盤操作；指標操作已在上方完成。
-                              if (event.detail === 0) confirmOrderQuantity(item)
-                            }}
-                          >
-                            確認叫貨量，下一項
-                          </CwButton>
                         </div>
                       ) : (
                         <p className="min-w-[8rem] flex-1 text-sm text-[var(--cw-text-muted)]">
@@ -1130,20 +1090,16 @@ function GoodsOrderManager() {
                     {status === 'order' ? (
                       <>
                         <input
-                          ref={(node) => {
-                            orderInputRefs.current[`table:${item.id}`] = node
-                          }}
                           name={`goods-order-${item.id}`}
                           type="text"
                           inputMode="decimal"
-                          enterKeyHint="next"
+                          enterKeyHint="done"
                           autoComplete="off"
                           className={`${tableInputClass} ${
                             orderError ? 'border-[var(--cw-danger)]' : ''
                           }`}
                           value={orderDisplay}
                           onChange={(event) => handleOrderQtyChange(item, event.target.value)}
-                          onKeyDown={(event) => handleOrderQtyKeyDown(event, item)}
                           aria-label={`${item.name} 叫貨量`}
                           aria-invalid={Boolean(orderError)}
                           aria-describedby={orderError ? orderErrorId : undefined}
@@ -1153,13 +1109,6 @@ function GoodsOrderManager() {
                             {orderError}
                           </p>
                         ) : null}
-                        <button
-                          type="button"
-                          className="cw-touch-target mt-1 rounded-[var(--cw-radius)] px-1 text-xs font-semibold text-[var(--cw-brand)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cw-focus-ring)]"
-                          onClick={() => confirmOrderQuantity(item)}
-                        >
-                          確認並下一項
-                        </button>
                       </>
                     ) : (
                       <span className="text-sm text-[var(--cw-text-muted)]" aria-hidden="true">
