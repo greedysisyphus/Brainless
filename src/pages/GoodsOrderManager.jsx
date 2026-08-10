@@ -496,6 +496,18 @@ function GoodsOrderManager() {
     [catalog.items, catalog.orderStoreName, countsDoc.counts, selectedStore]
   )
 
+  const uncountedItemNames = useMemo(
+    () => allRows.filter(({ status }) => status === 'uncounted').map(({ item }) => item.name),
+    [allRows]
+  )
+
+  const partialExportText = useMemo(
+    () =>
+      orderPreview.text ||
+      `${orderPreview.header}\n目前沒有已確認需叫貨的品項`,
+    [orderPreview.header, orderPreview.text]
+  )
+
   const catalogValidation = useMemo(() => validateCatalog(catalog), [catalog])
 
   const enteredCount = useMemo(
@@ -661,20 +673,17 @@ function GoodsOrderManager() {
 
   const previewIncompleteResult = () => {
     setShowIncompleteConfirm(false)
-    if (orderPreview.orderCount === 0) {
-      setCopyMessageVariant('warning')
-      setCopyMessage(`尚有 ${progress.uncounted} 項未盤點，目前沒有可輸出的叫貨品項`)
-      return
-    }
     setPreviewWarning(
-      `只包含已完成 ${progress.completed}/${progress.total} 項中的 ${orderPreview.orderCount} 個需叫貨品項；另有 ${progress.uncounted} 項未盤點。`
+      orderPreview.orderCount > 0
+        ? `只包含已完成 ${progress.completed}/${progress.total} 項中的 ${orderPreview.orderCount} 個需叫貨品項；另有 ${progress.uncounted} 項空白。`
+        : `已完成 ${progress.completed}/${progress.total} 項，目前沒有已確認需叫貨的品項；另有 ${progress.uncounted} 項空白。`
     )
     setShowPreview(true)
   }
 
   const confirmCopy = async () => {
-    const text = orderPreview.text
     const isPartial = Boolean(previewWarning)
+    const text = isPartial ? partialExportText : orderPreview.text
     setIsCopying(true)
     try {
       await navigator.clipboard.writeText(text)
@@ -706,14 +715,20 @@ function GoodsOrderManager() {
       setCopyMessageVariant(isPartial ? 'warning' : 'success')
       setCopyMessage(
         isPartial
-          ? `已複製部分叫貨單 ${orderPreview.orderCount} 項，快照已更新`
+          ? orderPreview.orderCount > 0
+            ? `已複製部分叫貨單 ${orderPreview.orderCount} 項，尚有 ${progress.uncounted} 項空白；快照已更新`
+            : `已複製未完成盤點文字，尚有 ${progress.uncounted} 項空白；快照已更新`
           : `已複製 ${orderPreview.orderCount} 項，快照已更新`
       )
     } catch (err) {
       console.error('[goodsOrder] snapshot write', err)
       setSnapshotRetryPayload(payload)
       setCopyMessageVariant('warning')
-      setCopyMessage(`已複製 ${orderPreview.orderCount} 項，但快照更新失敗；可重試更新`)
+      setCopyMessage(
+        isPartial
+          ? '已複製未完成盤點文字，但快照更新失敗；可重試更新'
+          : `已複製 ${orderPreview.orderCount} 項，但快照更新失敗；可重試更新`
+      )
     }
     setShowPreview(false)
     setPreviewWarning('')
@@ -753,7 +768,7 @@ function GoodsOrderManager() {
   const copyActionLabel = blockingErrorCount > 0
     ? `修正 ${blockingErrorCount} 個錯誤後再輸出`
     : progress.uncounted > 0
-      ? `尚有 ${progress.uncounted} 項未盤點 · 查看輸出選項`
+      ? `尚有 ${progress.uncounted} 項空白 · 仍可輸出文字`
     : orderPreview.orderCount > 0
       ? `預覽並複製 ${orderPreview.orderCount} 項`
       : '完成盤點 · 本次庫存足夠'
@@ -1207,13 +1222,13 @@ function GoodsOrderManager() {
       <CwModalFrame
         open={showIncompleteConfirm}
         onClose={() => setShowIncompleteConfirm(false)}
-        title="盤點尚未完成"
-        description={`已完成 ${progress.completed}/${progress.total} 項，還有 ${progress.uncounted} 項未盤點。`}
+        title={`有 ${progress.uncounted} 項點貨數量空白`}
+        description={`已完成 ${progress.completed}/${progress.total} 項。你仍可輸出目前結果。`}
         maxWidthClass="max-w-md"
         footer={
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <CwButton type="button" variant="secondary" onClick={previewIncompleteResult}>
-              只預覽已完成 {progress.completed}/{progress.total}
+              仍要輸出文字
             </CwButton>
             <CwButton
               type="button"
@@ -1223,14 +1238,24 @@ function GoodsOrderManager() {
                 focusNextUnresolved('')
               }}
             >
-              回到未盤點 {progress.uncounted} 項
+              回到空白品項
             </CwButton>
           </div>
         }
       >
         <p className="text-sm leading-relaxed text-[var(--cw-text)]">
-          部分輸出不會包含尚未盤點的品項，可能漏掉實際需要補貨的貨物。
+          空白品項不會列入需叫貨判斷，輸出內容可能不完整：
         </p>
+        <ul
+          className="mt-3 grid max-h-56 grid-cols-1 gap-x-4 gap-y-1 overflow-y-auto rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] bg-[var(--cw-bg)] p-3 text-sm text-[var(--cw-text)] sm:grid-cols-2"
+          aria-label="點貨數量空白的品項"
+        >
+          {uncountedItemNames.map((name, index) => (
+            <li key={`${name}-${index}`} className="min-w-0 break-words">
+              {name}
+            </li>
+          ))}
+        </ul>
       </CwModalFrame>
 
       <CwModalFrame
@@ -1274,7 +1299,7 @@ function GoodsOrderManager() {
 
       <GoodsOrderPreviewModal
         open={showPreview}
-        text={orderPreview.text}
+        text={previewWarning ? partialExportText : orderPreview.text}
         warning={previewWarning}
         partial={Boolean(previewWarning)}
         busy={isCopying}
@@ -1283,7 +1308,13 @@ function GoodsOrderManager() {
       />
 
       <GoodsOrderConflictModal
-        open={!!conflict && !showSettings && !showPreview && !showIncompleteConfirm}
+        open={
+          !!conflict &&
+          !showSettings &&
+          !showPreview &&
+          !showIncompleteConfirm &&
+          !showClearConfirm
+        }
         storeName={conflict?.storeName}
         localUpdatedAt={conflict?.localUpdatedAt}
         remoteUpdatedAt={conflict?.remoteUpdatedAt}

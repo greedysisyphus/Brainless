@@ -15,7 +15,7 @@ export function GoodsOrderPreviewModal({
     <CwModalFrame
       open={open}
       onClose={onClose}
-      title="確認叫貨文字"
+      title="確認輸出文字"
       description="唯讀預覽。要改請回清單調整後再複製。"
       maxWidthClass="max-w-lg"
       footer={
@@ -24,7 +24,7 @@ export function GoodsOrderPreviewModal({
             返回調整
           </CwButton>
           <CwButton type="button" variant="primary" onClick={onConfirmCopy} disabled={busy}>
-            {busy ? '處理中…' : partial ? '複製部分叫貨單' : '複製並更新快照'}
+            {busy ? '處理中…' : partial ? '複製未完成盤點文字' : '複製並更新快照'}
           </CwButton>
         </div>
       }
