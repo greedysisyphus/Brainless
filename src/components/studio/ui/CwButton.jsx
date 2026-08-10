@@ -17,7 +17,7 @@ export function CwButton({
     ghost:
       'border border-transparent bg-transparent text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)] focus-visible:outline-[var(--cw-focus-ring)]',
     danger:
-      'border border-red-500/35 bg-red-950/40 text-red-200 hover:bg-red-950/55 focus-visible:outline-[var(--cw-focus-ring)]',
+      'border border-[var(--cw-danger)] bg-[var(--cw-danger)] text-white hover:brightness-90 focus-visible:outline-[var(--cw-focus-ring)]',
     brand:
       'bg-[var(--cw-brand-muted)] text-[var(--cw-brand)] border border-[var(--cw-brand)]/35 hover:bg-[var(--cw-brand)]/20 focus-visible:outline-[var(--cw-focus-ring)]',
     /** @deprecated 請改用 brand；保留相容 */

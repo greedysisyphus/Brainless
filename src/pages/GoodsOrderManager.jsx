@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeftIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, Cog6ToothIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwAlert, CwBadge, CwButton, CwInput, CwModalFrame } from '../components/studio/ui'
@@ -68,12 +68,17 @@ function statusBadgeTone(status) {
   return 'danger'
 }
 
+function hasEnteredCount(entry = {}) {
+  return entry.current !== '' && entry.current !== null && entry.current !== undefined
+}
+
 function GoodsOrderManager() {
   const [selectedStore, setSelectedStore] = useState('central')
   const [filter, setFilter] = useState('all')
   const [showSettings, setShowSettings] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [showIncompleteConfirm, setShowIncompleteConfirm] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [previewWarning, setPreviewWarning] = useState('')
   const [copyMessage, setCopyMessage] = useState('')
   const [copyMessageVariant, setCopyMessageVariant] = useState('success')
@@ -493,6 +498,11 @@ function GoodsOrderManager() {
 
   const catalogValidation = useMemo(() => validateCatalog(catalog), [catalog])
 
+  const enteredCount = useMemo(
+    () => allRows.filter(({ entry }) => hasEnteredCount(entry)).length,
+    [allRows]
+  )
+
   const patchCount = (itemId, patch) => {
     const prev = countsLatestRef.current || countsDoc
     const next = {
@@ -508,6 +518,18 @@ function GoodsOrderManager() {
       },
     }
     markCountsDirty(selectedStore, next)
+  }
+
+  const clearEnteredCounts = () => {
+    const empty = createEmptyCounts()
+    countsLatestRef.current = empty
+    markCountsDirty(selectedStore, empty)
+    setFilter('all')
+    setFocusedItemId(null)
+    setSnapshotRetryPayload(null)
+    setCopyMessageVariant('success')
+    setCopyMessage(`已清除${getStoreName(selectedStore)}的點貨量`)
+    setShowClearConfirm(false)
   }
 
   const handleCurrentChange = (item, raw) => {
@@ -739,8 +761,8 @@ function GoodsOrderManager() {
   const studio = (
     <div className="pb-32">
       <div
-        inert={showSettings || showPreview || showIncompleteConfirm || !!conflict ? '' : undefined}
-        aria-hidden={showSettings || showPreview || showIncompleteConfirm || !!conflict ? 'true' : undefined}
+        inert={showSettings || showPreview || showIncompleteConfirm || showClearConfirm || !!conflict ? '' : undefined}
+        aria-hidden={showSettings || showPreview || showIncompleteConfirm || showClearConfirm || !!conflict ? 'true' : undefined}
       >
       <header className="sticky top-0 z-40 border-b border-[var(--cw-border)] bg-[var(--cw-bg)]/95 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
@@ -818,13 +840,26 @@ function GoodsOrderManager() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
-        <div className="mb-3 flex items-center justify-between gap-3 text-xs text-[var(--cw-text-muted)]">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-[var(--cw-text-muted)]">
           <span>三重➡️{catalog.orderStoreName || getDefaultOrderStoreName(selectedStore)}</span>
-          {localVersionAt ? (
-            <span>
-              {syncStatus === 'synced' ? '雲端版本' : '本機變更'} {formatVersionTime(localVersionAt)}
-            </span>
-          ) : null}
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            {localVersionAt ? (
+              <span className="mr-1">
+                {syncStatus === 'synced' ? '雲端版本' : '本機變更'} {formatVersionTime(localVersionAt)}
+              </span>
+            ) : null}
+            <CwButton
+              type="button"
+              variant="ghost"
+              className="px-2 py-1.5 text-xs"
+              disabled={enteredCount === 0}
+              onClick={() => setShowClearConfirm(true)}
+              aria-label={`清除${getStoreName(selectedStore)}已輸入的點貨量`}
+            >
+              <TrashIcon className="h-4 w-4" aria-hidden="true" />
+              清除點貨量
+            </CwButton>
+          </div>
         </div>
 
         <GoodsOrderSyncBanner
@@ -1195,6 +1230,28 @@ function GoodsOrderManager() {
       >
         <p className="text-sm leading-relaxed text-[var(--cw-text)]">
           部分輸出不會包含尚未盤點的品項，可能漏掉實際需要補貨的貨物。
+        </p>
+      </CwModalFrame>
+
+      <CwModalFrame
+        open={showClearConfirm}
+        onClose={() => setShowClearConfirm(false)}
+        title={`清除${getStoreName(selectedStore)}點貨量？`}
+        description={`目前有 ${enteredCount} 項已輸入。`}
+        maxWidthClass="max-w-md"
+        footer={
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <CwButton type="button" variant="secondary" onClick={() => setShowClearConfirm(false)}>
+              取消
+            </CwButton>
+            <CwButton type="button" variant="danger" onClick={clearEnteredCounts}>
+              清除全部點貨量
+            </CwButton>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-[var(--cw-text)]">
+          清除後，現有數量、叫貨量及人工調整都會恢復為未盤點，並同步到其他裝置；品項設定與其他店別不受影響。
         </p>
       </CwModalFrame>
 
