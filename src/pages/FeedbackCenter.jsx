@@ -170,34 +170,16 @@ function VoteButton({ feedback, clientId, isClub, busy, onVote, compact = false 
   )
 }
 
-function Composer({ open, onClose, onCreated, onSelectExisting, feedbackItems, identity, setIdentity, clientId, isClub }) {
+function Composer({ open, onClose, onCreated, identity, setIdentity, clientId, isClub }) {
   const [form, setForm] = useState({ title: '', body: '', category: 'feature' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [confirmedNoDuplicate, setConfirmedNoDuplicate] = useState(false)
   const panelRef = useRef(null)
   const onCloseRef = useRef(onClose)
 
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
-
-  const similarFeedback = useMemo(() => {
-    const normalized = form.title.trim().toLocaleLowerCase('zh-TW')
-    if (normalized.length < 2) return []
-    const terms = normalized.split(/\s+/).filter((term) => term.length >= 2)
-    return feedbackItems
-      .map((item) => {
-        const haystack = `${item.title || ''} ${item.body || ''}`.toLocaleLowerCase('zh-TW')
-        let score = haystack.includes(normalized) ? 5 : 0
-        for (const term of terms) if (haystack.includes(term)) score += 1
-        return { item, score }
-      })
-      .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .map(({ item }) => item)
-  }, [feedbackItems, form.title])
 
   useEffect(() => {
     if (!open) return undefined
@@ -222,14 +204,12 @@ function Composer({ open, onClose, onCreated, onSelectExisting, feedbackItems, i
     if (!identity.name.trim() || !identity.store) return setError('請先填寫暱稱與分店。')
     if (form.title.trim().length < 4) return setError('標題至少需要 4 個字。')
     if (form.body.trim().length < 10) return setError('請再多描述一點，至少需要 10 個字。')
-    if (!confirmedNoDuplicate) return setError('請先確認上方沒有相同的回饋。')
     setSaving(true)
     setError('')
     try {
       saveIdentity(identity)
       const created = await createFeedback({ ...form, author: identity, clientId })
       setForm({ title: '', body: '', category: 'feature' })
-      setConfirmedNoDuplicate(false)
       onCreated(created.id)
       onClose()
     } catch (err) {
@@ -252,7 +232,6 @@ function Composer({ open, onClose, onCreated, onSelectExisting, feedbackItems, i
         <header className={`flex items-start justify-between border-b px-5 py-5 sm:px-7 ${isClub ? 'border-black/10' : 'border-white/10'}`}>
           <div>
             <h2 id="feedback-composer-title" className="text-2xl font-black tracking-[-0.02em]">新增回饋</h2>
-            <p className={`mt-1 text-sm ${isClub ? 'text-[#666057]' : 'text-slate-400'}`}>先說清楚情境，其他人就更容易加入討論。</p>
           </div>
           <button type="button" onClick={onClose} className={`grid h-11 w-11 place-items-center rounded-xl ${isClub ? 'hover:bg-black/5' : 'hover:bg-white/10'}`} aria-label="關閉">
             <XMarkIcon className="h-6 w-6" />
@@ -285,49 +264,12 @@ function Composer({ open, onClose, onCreated, onSelectExisting, feedbackItems, i
               <span className={`mb-1.5 block text-sm font-semibold ${isClub ? 'text-[#4f4a43]' : 'text-slate-300'}`}>標題</span>
               <input
                 value={form.title}
-                onChange={(event) => {
-                  setForm({ ...form, title: event.target.value })
-                  setConfirmedNoDuplicate(false)
-                }}
+                onChange={(event) => setForm({ ...form, title: event.target.value })}
                 maxLength={80}
                 placeholder="標題"
                 className={`min-h-12 w-full rounded-xl border px-4 py-3 text-base outline-none ring-2 ring-transparent transition ${fieldClass}`}
               />
             </label>
-            {form.title.trim().length >= 2 && (
-              <section aria-labelledby="similar-feedback-title" className={`rounded-xl p-4 ${isClub ? 'bg-[#ebe7df]' : 'bg-white/[0.05]'}`}>
-                <h3 id="similar-feedback-title" className={`text-sm font-black ${isClub ? 'text-[#37332e]' : 'text-white'}`}>先看看有沒有相同回饋</h3>
-                {similarFeedback.length > 0 ? (
-                  <div className="mt-3 space-y-2">
-                    {similarFeedback.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          onSelectExisting(item.id)
-                          onClose()
-                        }}
-                        className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-bold transition ${isClub ? 'bg-white text-[#37332e] hover:text-[#b3381e]' : 'bg-white/[0.06] text-slate-200 hover:bg-white/10 hover:text-white'}`}
-                      >
-                        <span className="line-clamp-2">{item.title}</span>
-                        <span className="shrink-0 font-medium opacity-60">▲ {Number(item.voteCount) || 0}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className={`mt-2 text-sm ${isClub ? 'text-[#666057]' : 'text-slate-400'}`}>目前沒有找到相似內容，可以繼續補充說明。</p>
-                )}
-                <label className={`mt-3 flex cursor-pointer items-start gap-3 text-sm font-semibold ${isClub ? 'text-[#4f4a43]' : 'text-slate-300'}`}>
-                  <input
-                    type="checkbox"
-                    checked={confirmedNoDuplicate}
-                    onChange={(event) => setConfirmedNoDuplicate(event.target.checked)}
-                    className="mt-0.5 h-5 w-5 rounded border-black/20 text-[#ec5836] focus:ring-[#ec5836]"
-                  />
-                  <span>我確認沒有相同回饋，要建立新的討論串。</span>
-                </label>
-              </section>
-            )}
             <label className="block">
               <span className={`mb-1.5 block text-sm font-semibold ${isClub ? 'text-[#4f4a43]' : 'text-slate-300'}`}>詳細說明</span>
               <textarea
@@ -690,7 +632,7 @@ export default function FeedbackCenter() {
         </section>
       </div>
 
-      <Composer open={composerOpen} onClose={() => setComposerOpen(false)} onCreated={setSelectedId} onSelectExisting={setSelectedId} feedbackItems={feedbackItems} identity={identity} setIdentity={setIdentity} clientId={clientId} isClub={isClub} />
+      <Composer open={composerOpen} onClose={() => setComposerOpen(false)} onCreated={setSelectedId} identity={identity} setIdentity={setIdentity} clientId={clientId} isClub={isClub} />
     </div>
   )
 }
