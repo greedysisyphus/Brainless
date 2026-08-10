@@ -27,6 +27,7 @@ import {
   normalizeCurrentInput,
   parseQuantity,
   quantityInputToStored,
+  shouldUpgradeDefaultCatalog,
   validateCatalog,
 } from './goodsOrder/goodsOrderConstants'
 import { GoodsOrderPreviewModal } from './goodsOrder/GoodsOrderPreviewModal'
@@ -352,6 +353,18 @@ function GoodsOrderManager() {
           return
         }
         const data = snap.data()
+        if (shouldUpgradeDefaultCatalog(data)) {
+          const upgraded = {
+            ...createDefaultCatalog(storeId),
+            orderStoreName: data.orderStoreName || getDefaultOrderStoreName(storeId),
+            _clientUpdatedAt: Date.now(),
+          }
+          setCatalogForStore(storeId, upgraded)
+          setDoc(snap.ref, upgraded).catch((err) =>
+            console.error('[goodsOrder] default catalog upgrade', err)
+          )
+          return
+        }
         setCatalogForStore(storeId, {
           ...stripCatalogMeta(data),
           orderStoreName:
@@ -393,6 +406,7 @@ function GoodsOrderManager() {
           orderStoreName: String(nextCatalog.orderStoreName).trim(),
           items: (nextCatalog.items || []).map((it) => ({
             ...it,
+            note: String(it.note || '').trim(),
             minStock: parseQuantity(it.minStock).value,
             defaultOrderQty: parseQuantity(it.defaultOrderQty).value,
             allowFraction: !!it.allowFraction,
@@ -915,7 +929,8 @@ function GoodsOrderManager() {
                         </span>
                       </p>
                       <p className="mt-0.5 text-xs text-[var(--cw-text-muted)]">
-                        最低庫存 {formatQuantity(item.minStock)}
+                        {item.note ? `${item.note} · ` : ''}最低庫存{' '}
+                        {formatQuantity(item.minStock)}
                       </p>
                     </div>
                     <CwBadge
@@ -1073,10 +1088,15 @@ function GoodsOrderManager() {
                     index < rows.length - 1 ? 'border-b border-[var(--cw-border)]' : ''
                   } ${status === 'order' ? 'bg-[var(--cw-brand-muted)]/40' : ''}`}
                 >
-                  <p className="min-w-0 truncate text-sm text-[var(--cw-text)]">
-                    <span className="font-semibold">{item.name}</span>
-                    <span className="ml-1 text-[var(--cw-text-muted)]">{item.unit}</span>
-                  </p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-[var(--cw-text)]">
+                      <span className="font-semibold">{item.name}</span>
+                      <span className="ml-1 text-[var(--cw-text-muted)]">{item.unit}</span>
+                    </p>
+                    {item.note ? (
+                      <p className="truncate text-xs text-[var(--cw-text-muted)]">{item.note}</p>
+                    ) : null}
+                  </div>
                   <div className="min-w-0 py-1">
                     <input
                       ref={(node) => {

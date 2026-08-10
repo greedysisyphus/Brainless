@@ -28,43 +28,133 @@ export const createItemId = () => {
   return `goi_${Date.now()}_${_idSeq}`
 }
 
-/** 測試用預設品項（各店可各自改，不共用） */
-export const createDefaultItems = () => {
-  const defs = [
-    { name: '大熱杯', unit: '箱', minStock: 2, defaultOrderQty: 2, allowFraction: true },
-    { name: '大熱杯蓋', unit: '箱', minStock: 2, defaultOrderQty: 2, allowFraction: true },
-    { name: '小熱杯蓋', unit: '箱', minStock: 1, defaultOrderQty: 1, allowFraction: true },
-    { name: '輕食用手套M號', unit: '盒', minStock: 1, defaultOrderQty: 3, allowFraction: false },
-    { name: '外帶吐司盒', unit: '箱', minStock: 1, defaultOrderQty: 1, allowFraction: true },
-    { name: '外帶小白杯', unit: '條', minStock: 2, defaultOrderQty: 4, allowFraction: false },
-    { name: '廚房紙巾', unit: '包', minStock: 1, defaultOrderQty: 1, allowFraction: false },
-    { name: '九乘九', unit: '箱', minStock: 1, defaultOrderQty: 1, allowFraction: true },
-    { name: '夾鏈袋（大）', unit: '條', minStock: 1, defaultOrderQty: 1, allowFraction: false },
-    { name: '黑糖粉', unit: '箱', minStock: 1, defaultOrderQty: 1, allowFraction: true },
-    { name: '黑糖蜜', unit: '罐', minStock: 1, defaultOrderQty: 2, allowFraction: false },
-    { name: '黑色塑膠刀', unit: '包', minStock: 1, defaultOrderQty: 3, allowFraction: false },
-    { name: '保鮮膜', unit: '條', minStock: 1, defaultOrderQty: 2, allowFraction: false },
-    { name: '一般紙袋', unit: '箱', minStock: 1, defaultOrderQty: 1, allowFraction: true },
-    { name: '大垃圾袋', unit: '袋', minStock: 1, defaultOrderQty: 1, allowFraction: false },
-    { name: '粗吸管', unit: '包', minStock: 1, defaultOrderQty: 2, allowFraction: false },
-    { name: '細吸管', unit: '包', minStock: 2, defaultOrderQty: 5, allowFraction: false },
-    { name: '夾心餅', unit: '盒', minStock: 1, defaultOrderQty: 2, allowFraction: false },
-    { name: '帕馬森乾酪', unit: '塊', minStock: 2, defaultOrderQty: 6, allowFraction: false },
-    { name: '木攪拌棒', unit: '包', minStock: 1, defaultOrderQty: 1, allowFraction: false },
-    { name: '珍珠', unit: '箱', minStock: 1, defaultOrderQty: 1, allowFraction: true },
-  ]
-  return defs.map((d) => ({
-    id: createItemId(),
-    name: d.name,
-    unit: d.unit,
-    minStock: d.minStock,
-    defaultOrderQty: d.defaultOrderQty,
-    allowFraction: d.allowFraction,
+export const GOODS_ORDER_CATALOG_VERSION = 2
+
+const LEGACY_DEFAULT_ITEMS = [
+  ['大熱杯', '箱', 2, 2, true],
+  ['大熱杯蓋', '箱', 2, 2, true],
+  ['小熱杯蓋', '箱', 1, 1, true],
+  ['輕食用手套M號', '盒', 1, 3, false],
+  ['外帶吐司盒', '箱', 1, 1, true],
+  ['外帶小白杯', '條', 2, 4, false],
+  ['廚房紙巾', '包', 1, 1, false],
+  ['九乘九', '箱', 1, 1, true],
+  ['夾鏈袋（大）', '條', 1, 1, false],
+  ['黑糖粉', '箱', 1, 1, true],
+  ['黑糖蜜', '罐', 1, 2, false],
+  ['黑色塑膠刀', '包', 1, 3, false],
+  ['保鮮膜', '條', 1, 2, false],
+  ['一般紙袋', '箱', 1, 1, true],
+  ['大垃圾袋', '袋', 1, 1, false],
+  ['粗吸管', '包', 1, 2, false],
+  ['細吸管', '包', 2, 5, false],
+  ['夾心餅', '盒', 1, 2, false],
+  ['帕馬森乾酪', '塊', 2, 6, false],
+  ['木攪拌棒', '包', 1, 1, false],
+  ['珍珠', '箱', 1, 1, true],
+]
+
+/** 照門市叫貨單排序：先左欄由上到下，再右欄由上到下。 */
+const DEFAULT_ITEM_DEFS = [
+  { name: '外帶大熱杯', unit: '箱', note: '1 箱 20 條，每條 50 入' },
+  { name: '外帶小熱杯', unit: '箱', note: '1 箱 20 條，每條 50 入' },
+  { name: '外帶大熱杯蓋', unit: '箱', note: '1 箱 20 條，每條 50 入' },
+  { name: '外帶小熱杯蓋', unit: '箱', note: '1 箱 20 條，每條 50 入' },
+  { name: '外帶卡布杯', unit: '條', note: '小綠杯' },
+  { name: '外帶吐司盒', unit: '箱', note: '1 箱 6 條' },
+  { name: '小白杯', unit: '條' },
+  { name: '廚房紙巾', unit: '包', note: '1 包 6 入' },
+  { name: '九乘九紙巾', unit: '箱' },
+  { name: '垃圾袋（大）', unit: '袋' },
+  { name: '垃圾袋（小）', unit: '條' },
+  { name: '一般紙袋', unit: '箱' },
+  { name: '濾水網', unit: '包' },
+  { name: '抹布、菜瓜布', unit: '包' },
+  { name: '吸管（細）、（粗）', unit: '包' },
+  { name: '輕食用手套 S', unit: '盒' },
+  { name: '輕食用手套 M', unit: '盒' },
+  { name: '輕食用手套 L', unit: '盒' },
+  { name: '夾鏈袋（大）、（小）', unit: '袋' },
+  { name: '黑糖粉', unit: '箱', note: '1 箱 20 包' },
+  { name: '黑糖蜜', unit: '罐' },
+  { name: '威士忌', unit: '罐' },
+  { name: '砂糖', unit: '箱', note: '1 箱 20 包' },
+  { name: '陳家蜂蜜', unit: '罐' },
+  { name: '辣蜂蜜', unit: '箱', note: '1 箱 8 罐' },
+  { name: '珍珠', unit: '箱' },
+  { name: '大寒、立秋', unit: '箱' },
+  { name: '康普茶', unit: '箱' },
+  { name: '伯爵茶葉', unit: '罐' },
+  { name: '不知春', unit: '盒' },
+  { name: '帕瑪森起司塊', unit: '塊' },
+  { name: '夾心餅', unit: '盒', note: 'Noah' },
+  { name: '烘焙紙捲', unit: '條' },
+  { name: '保鮮膜', unit: '條' },
+  { name: '杯架', unit: '條' },
+  { name: '木攪拌棒', unit: '包' },
+  { name: '黑色塑膠刀、叉', unit: '包', note: '另有箱裝' },
+  { name: '濾紙', unit: '箱', note: '1 箱 20 包，每包 100 入' },
+  { name: '養豆卡', unit: '箱' },
+  { name: '豆貼豆卡', unit: '盒' },
+  { name: '氣閥貼', unit: '疊' },
+  { name: '咪提袋', unit: '個' },
+  { name: '大禮盒＋紙袋', unit: '組' },
+  { name: 'Gleam 波光 君小兒', unit: '箱', note: '1 箱 20 入' },
+  { name: 'Ripple 漣漪 君大兒', unit: '個' },
+  { name: '水、日、寶 掛耳', unit: '箱' },
+  { name: '咪、低咖、高價 掛耳', unit: '小箱' },
+  { name: 'Hario Alpha 濾杯', unit: '個' },
+  { name: '販售用玻璃下壺', unit: '個' },
+  { name: '販售用馬克杯', unit: '個' },
+  { name: '2waycup 雙線品飲杯', unit: '箱', note: '1 箱 6 入' },
+  { name: '販售用濃縮杯', unit: '箱', note: '1 箱 6 入' },
+  { name: '販售用古典杯', unit: '箱', note: '1 箱 6 入；可塔朵' },
+  { name: '販售用卡布杯', unit: '箱', note: '1 箱 6 入' },
+  { name: '販售用小白杯', unit: '箱', note: '1 箱 6 入；FlatWhite' },
+  { name: '地板清潔劑', unit: '桶', note: '需要危安放行條' },
+  { name: '截油槽清潔劑', unit: '桶', note: '危安' },
+  { name: '洗碗精', unit: '桶', note: '危安' },
+  { name: '洗手乳', unit: '桶', note: '危安' },
+  { name: '酒精', unit: '桶', note: '危安' },
+  { name: '漂白水', unit: '桶', note: '危安' },
+  { name: '食器用酵素', unit: '桶', note: '危安；白蓋' },
+  { name: '咖啡機清潔藥劑', unit: '桶', note: '危安；紅蓋' },
+  { name: '烤箱清潔劑', unit: '罐', note: '危安' },
+  { name: '烤箱保養油', unit: '罐', note: '危安' },
+]
+
+/** 新預設一律先以最低 1、預設叫貨 1 建立；箱裝品支援分數盤點。 */
+export const createDefaultItems = () =>
+  DEFAULT_ITEM_DEFS.map((definition, index) => ({
+    id: `goi_default_v${GOODS_ORDER_CATALOG_VERSION}_${String(index + 1).padStart(2, '0')}`,
+    ...definition,
+    note: definition.note || '',
+    minStock: 1,
+    defaultOrderQty: 1,
+    allowFraction: definition.unit === '箱',
     disabled: false,
   }))
+
+/** 只自動升級完全未改動的舊預設，保留使用者自行調整過的門市清單。 */
+export function shouldUpgradeDefaultCatalog(catalog) {
+  if (Number(catalog?.catalogVersion) >= GOODS_ORDER_CATALOG_VERSION) return false
+  const items = Array.isArray(catalog?.items) ? catalog.items : []
+  if (items.length !== LEGACY_DEFAULT_ITEMS.length) return false
+  return items.every((item, index) => {
+    const [name, unit, minStock, defaultOrderQty, allowFraction] = LEGACY_DEFAULT_ITEMS[index]
+    return (
+      item.name === name &&
+      item.unit === unit &&
+      Number(item.minStock) === minStock &&
+      Number(item.defaultOrderQty) === defaultOrderQty &&
+      Boolean(item.allowFraction) === allowFraction &&
+      !item.disabled
+    )
+  })
 }
 
 export const createDefaultCatalog = (storeId) => ({
+  catalogVersion: GOODS_ORDER_CATALOG_VERSION,
   items: createDefaultItems(),
   orderStoreName: getDefaultOrderStoreName(storeId),
   _clientUpdatedAt: Date.now(),

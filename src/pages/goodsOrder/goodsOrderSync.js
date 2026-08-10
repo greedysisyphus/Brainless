@@ -22,10 +22,11 @@ export function stripSyncMeta(data) {
 
 export function stripCatalogMeta(data) {
   if (!data || typeof data !== 'object') {
-    return { items: [], orderStoreName: '' }
+    return { catalogVersion: 0, items: [], orderStoreName: '' }
   }
   const { _clientUpdatedAt, _lastUpdatedAt, ...rest } = data
   return {
+    catalogVersion: Number(rest.catalogVersion) || 0,
     items: Array.isArray(rest.items) ? rest.items : [],
     orderStoreName: typeof rest.orderStoreName === 'string' ? rest.orderStoreName : '',
   }

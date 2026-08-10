@@ -27,6 +27,7 @@ function blankItem() {
     id: createItemId(),
     name: '',
     unit: '箱',
+    note: '',
     minStock: 1,
     defaultOrderQty: 1,
     allowFraction: true,
@@ -109,9 +110,12 @@ export function GoodsOrderSettingsSheet({
 
   const visibleItems = items
     .map((item, index) => ({ item, index }))
-    .filter(({ item }) =>
-      String(item.name || '').toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
-    )
+    .filter(({ item }) => {
+      const normalizedQuery = query.trim().toLocaleLowerCase()
+      return [item.name, item.unit, item.note].some((value) =>
+        String(value || '').toLocaleLowerCase().includes(normalizedQuery)
+      )
+    })
 
   const updateItem = (id, patch) => {
     onChangeItems(items.map((it) => (it.id === id ? { ...it, ...patch } : it)))
@@ -303,6 +307,7 @@ export function GoodsOrderSettingsSheet({
                         </span>
                         <span className="mt-0.5 block text-xs text-[var(--cw-text-muted)]">
                           {item.unit || '—'}
+                          {item.note ? ` · ${item.note}` : ''}
                           {item.disabled ? ' · 已停用' : ''}
                           {!expanded
                             ? ` · 最低 ${item.minStock} · 預設叫 ${item.defaultOrderQty}`
@@ -344,6 +349,14 @@ export function GoodsOrderSettingsSheet({
                         onChange={(e) => updateItem(item.id, { name: e.target.value })}
                         placeholder="品名…"
                         error={validation?.itemErrors?.[item.id]?.name}
+                      />
+                      <CwInput
+                        label="備註（選填）"
+                        name={`goods-item-note-${item.id}`}
+                        autoComplete="off"
+                        value={item.note || ''}
+                        onChange={(e) => updateItem(item.id, { note: e.target.value })}
+                        placeholder="例如 1 箱 20 包、危安、白蓋…"
                       />
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                         <CwInput
