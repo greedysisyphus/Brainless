@@ -98,6 +98,7 @@ export const BASE_NAV_ITEMS = [
   {
     path: '/feedback',
     label: '回饋',
+    badge: 'Beta',
     section: '系統',
     accentColor: '#ec5836',
     Icon: ChatBubbleLeftRightIcon,

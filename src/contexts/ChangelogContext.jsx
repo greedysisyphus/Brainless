@@ -4,6 +4,16 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.7.0',
+    date: '2026-08-10',
+    title: '點貨與回饋功能',
+    items: [
+      '新增「點貨功能」：依分店輸入現有庫存，自動判斷需要叫貨的品項與數量。',
+      '點貨資料支援跨裝置同步、品項設定、未完成提醒，以及叫貨內容預覽與複製。（正常來說）',
+      '新增「回饋」：方便提出問題、功能需求或討論，可留言等功能。',
+    ],
+  },
+  {
     version: '1.6.15',
     date: '2026-08-01',
     title: '移除 Studio 主題與航班 Club 樣式',
