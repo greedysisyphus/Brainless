@@ -97,7 +97,7 @@ export const BASE_NAV_ITEMS = [
   },
   {
     path: '/feedback',
-    label: '回饋與許願',
+    label: '回饋',
     section: '系統',
     accentColor: '#ec5836',
     Icon: ChatBubbleLeftRightIcon,

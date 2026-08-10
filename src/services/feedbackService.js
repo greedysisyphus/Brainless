@@ -1,7 +1,9 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -103,6 +105,14 @@ export async function deleteComment(feedbackId, commentId) {
       updatedAt: serverTimestamp(),
     })
   })
+}
+
+export async function deleteFeedback(feedbackId) {
+  const feedbackRef = doc(db, 'feedback', feedbackId)
+  const commentsSnapshot = await getDocs(collection(feedbackRef, 'comments'))
+
+  await Promise.all(commentsSnapshot.docs.map((comment) => deleteDoc(comment.ref)))
+  await deleteDoc(feedbackRef)
 }
 
 export async function toggleFeedbackVote(feedbackId, clientId) {

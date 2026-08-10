@@ -19,6 +19,7 @@ import {
   createComment,
   createFeedback,
   deleteComment,
+  deleteFeedback,
   FEEDBACK_CATEGORIES,
   FEEDBACK_STATUSES,
   subscribeToComments,
@@ -352,12 +353,13 @@ function Composer({ open, onClose, onCreated, onSelectExisting, feedbackItems, i
   )
 }
 
-function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdentity, clientId, isClub, isAdmin, onBack, onVote, voteBusy }) {
+function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdentity, clientId, isClub, isAdmin, onBack, onDeleted, onVote, voteBusy }) {
   const [comment, setComment] = useState('')
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   const [statusBusy, setStatusBusy] = useState(false)
   const [deletingCommentId, setDeletingCommentId] = useState(null)
+  const [deletingFeedback, setDeletingFeedback] = useState(false)
   if (!feedback) return null
   const category = FEEDBACK_CATEGORIES[feedback.category] || FEEDBACK_CATEGORIES.discussion
   const CategoryIcon = CATEGORY_ICONS[feedback.category] || ChatBubbleLeftRightIcon
@@ -402,6 +404,20 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
       setDeletingCommentId(null)
     }
   }
+  const removeFeedback = async () => {
+    if (!window.confirm(`確定要刪除「${feedback.title}」以及裡面的所有留言嗎？刪除後無法復原。`)) return
+    setDeletingFeedback(true)
+    setError('')
+    try {
+      await deleteFeedback(feedback.id)
+      onDeleted()
+    } catch (err) {
+      console.error('刪除回饋失敗:', err)
+      setError('回饋刪除失敗，請確認管理員權限與網路後再試一次。')
+    } finally {
+      setDeletingFeedback(false)
+    }
+  }
   return (
     <article className={`min-w-0 overflow-hidden rounded-2xl ${isClub ? 'bg-white shadow-[0_18px_50px_rgba(23,23,23,0.08)]' : 'border border-white/10 bg-[#1b1b28]/90 shadow-[0_18px_50px_rgba(0,0,0,0.24)]'}`}>
       <div className={`border-b p-5 sm:p-7 ${isClub ? 'border-black/10' : 'border-white/10'}`}>
@@ -419,12 +435,24 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
         </div>
         <p className={`mt-6 whitespace-pre-wrap break-words text-base leading-7 ${isClub ? 'text-[#37332e]' : 'text-slate-200'}`}>{feedback.body}</p>
         {isAdmin && (
-          <label className={`mt-6 flex flex-col gap-2 border-t pt-5 text-sm font-semibold sm:flex-row sm:items-center sm:justify-between ${isClub ? 'border-black/10 text-[#4f4a43]' : 'border-white/10 text-slate-300'}`}>
-            管理員處理狀態
-            <select value={feedback.status || 'reviewing'} disabled={statusBusy} onChange={changeStatus} className={`min-h-11 rounded-xl border px-3 py-2 outline-none ${isClub ? 'border-black/15 bg-[#f7f6f2]' : 'border-white/10 bg-[#111119]'}`}>
-              {Object.entries(FEEDBACK_STATUSES).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
-            </select>
-          </label>
+          <div className={`mt-6 border-t pt-5 ${isClub ? 'border-black/10' : 'border-white/10'}`}>
+            <div className="mb-3">
+              <p className={`text-sm font-black ${isClub ? 'text-[#171717]' : 'text-white'}`}>管理員模式</p>
+              <p className={`mt-1 text-xs ${isClub ? 'text-[#777168]' : 'text-slate-400'}`}>你可以更新處理狀態、刪除整則回饋或管理下方留言。</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className={`flex flex-1 flex-col gap-1.5 text-sm font-semibold ${isClub ? 'text-[#4f4a43]' : 'text-slate-300'}`}>
+                處理狀態
+                <select value={feedback.status || 'reviewing'} disabled={statusBusy || deletingFeedback} onChange={changeStatus} className={`min-h-11 rounded-xl border px-3 py-2 outline-none ${isClub ? 'border-black/15 bg-[#f7f6f2]' : 'border-white/10 bg-[#111119]'}`}>
+                  {Object.entries(FEEDBACK_STATUSES).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
+                </select>
+              </label>
+              <button type="button" disabled={deletingFeedback} onClick={removeFeedback} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition disabled:opacity-50 ${isClub ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' : 'border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20'}`}>
+                <TrashIcon className="h-4 w-4" />
+                {deletingFeedback ? '刪除中…' : '刪除這則回饋'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
       <section aria-labelledby="comments-heading" className="p-5 sm:p-7">
@@ -460,7 +488,7 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
                       aria-label={`刪除 ${item.author?.name || '匿名'} 的留言`}
                     >
                       <TrashIcon className="h-4 w-4" />
-                      {deletingCommentId === item.id ? '刪除中…' : '刪除'}
+                      {deletingCommentId === item.id ? '刪除中…' : '刪除留言'}
                     </button>
                   )}
                 </div>
@@ -571,8 +599,12 @@ export default function FeedbackCenter() {
         <div className={`absolute -right-16 -top-24 h-64 w-64 rounded-full ${isClub ? 'bg-[#ec5836]/25' : 'bg-primary/20'} blur-3xl`} aria-hidden />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <h1 className="text-balance text-3xl font-black tracking-[-0.03em] sm:text-4xl">回饋與許願</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-balance text-3xl font-black tracking-[-0.03em] sm:text-4xl">回饋</h1>
+              {isAdmin && <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-black text-emerald-200 ring-1 ring-inset ring-emerald-300/30">管理員模式</span>}
+            </div>
             <p className="mt-3 max-w-[68ch] text-sm leading-6 text-slate-300 sm:text-base">回報使用問題、提出功能需求、查看處理進度，並在討論串中留言補充。</p>
+            {isAdmin && <p className="mt-2 text-xs font-semibold text-emerald-200">選擇一則回饋，即可變更狀態、刪除回饋或管理留言。</p>}
           </div>
           <button type="button" onClick={() => setComposerOpen(true)} className={`inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-5 font-black transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${isClub ? 'bg-[#ec5836] text-white hover:bg-[#ff7758] focus-visible:outline-white' : 'bg-primary text-white hover:bg-violet-500 focus-visible:outline-white'}`}><PlusIcon className="h-5 w-5" />新增回饋</button>
         </div>
@@ -647,7 +679,7 @@ export default function FeedbackCenter() {
 
         <section className={`${selected ? 'block' : 'hidden lg:block'} min-w-0`} aria-label="回饋內容">
           {selected ? (
-            <ThreadDetail feedback={selected} comments={comments} commentsLoading={commentsLoading} identity={identity} setIdentity={setIdentity} clientId={clientId} isClub={isClub} isAdmin={isAdmin} onBack={() => setSelectedId(null)} onVote={handleVote} voteBusy={voteBusy.has(selected.id)} />
+            <ThreadDetail feedback={selected} comments={comments} commentsLoading={commentsLoading} identity={identity} setIdentity={setIdentity} clientId={clientId} isClub={isClub} isAdmin={isAdmin} onBack={() => setSelectedId(null)} onDeleted={() => setSelectedId(null)} onVote={handleVote} voteBusy={voteBusy.has(selected.id)} />
           ) : (
             <div className={`sticky top-4 rounded-2xl px-8 py-20 text-center ${isClub ? 'bg-white text-[#666057] shadow-[0_18px_50px_rgba(23,23,23,0.06)]' : 'border border-white/10 bg-white/[0.03] text-slate-400'}`}>
               <ArrowTrendingUpIcon className="mx-auto mb-4 h-9 w-9" />
