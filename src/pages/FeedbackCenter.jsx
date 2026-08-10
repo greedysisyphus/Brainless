@@ -175,6 +175,11 @@ function Composer({ open, onClose, onCreated, onSelectExisting, feedbackItems, i
   const [saving, setSaving] = useState(false)
   const [confirmedNoDuplicate, setConfirmedNoDuplicate] = useState(false)
   const panelRef = useRef(null)
+  const onCloseRef = useRef(onClose)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   const similarFeedback = useMemo(() => {
     const normalized = form.title.trim().toLocaleLowerCase('zh-TW')
@@ -196,7 +201,7 @@ function Composer({ open, onClose, onCreated, onSelectExisting, feedbackItems, i
   useEffect(() => {
     if (!open) return undefined
     const previous = document.activeElement
-    const onKeyDown = (event) => event.key === 'Escape' && onClose()
+    const onKeyDown = (event) => event.key === 'Escape' && onCloseRef.current()
     document.addEventListener('keydown', onKeyDown)
     document.body.style.overflow = 'hidden'
     requestAnimationFrame(() => panelRef.current?.querySelector('input')?.focus())
@@ -205,7 +210,7 @@ function Composer({ open, onClose, onCreated, onSelectExisting, feedbackItems, i
       document.body.style.overflow = ''
       previous?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
   const fieldClass = isClub
