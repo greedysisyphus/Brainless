@@ -105,14 +105,19 @@
       "destination": "Incheon (ICN)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4926",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "B77028",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "NZ4926",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "OZ6874",
@@ -123,11 +128,6 @@
           "flight_code": "AC6535",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
-        },
-        {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -428,6 +428,11 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6336",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "NZ4908",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -441,11 +446,6 @@
           "flight_code": "NH5816",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
-        },
-        {
-          "flight_code": "TG6336",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -608,7 +608,7 @@
       "type": "departure",
       "airport_code": "OKA",
       "city": "Okinawa",
-      "status": "準時ON TIME",
+      "status": "時間更改SCHEDULE CHANGE",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Okinawa (OKA)",
@@ -683,7 +683,7 @@
     {
       "time": "20:10",
       "datetime": "2026-08-10T20:10:00",
-      "gate": "D14R",
+      "gate": "D11",
       "flight_code": "JX32",
       "airline_code": "JX",
       "airline_name": "星宇航空",
@@ -753,8 +753,8 @@
     "18:10 : D13 : BR857 (長榮航空)",
     "19:00 : D17 : BR809 (長榮航空)",
     "19:35 : D12 : BR381 (長榮航空)",
-    "20:10 : D14R : JX32 (星宇航空)",
+    "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D16 : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-08-10T04:43:55.256675"
+  "updated_at": "2026-08-10T06:14:47.828892"
 }
