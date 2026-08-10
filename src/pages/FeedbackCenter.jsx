@@ -202,8 +202,8 @@ function Composer({ open, onClose, onCreated, identity, setIdentity, clientId, i
   const submit = async (event) => {
     event.preventDefault()
     if (!identity.name.trim() || !identity.store) return setError('請先填寫暱稱與分店。')
-    if (form.title.trim().length < 4) return setError('標題至少需要 4 個字。')
-    if (form.body.trim().length < 10) return setError('請再多描述一點，至少需要 10 個字。')
+    if (!form.title.trim()) return setError('請填寫標題。')
+    if (!form.body.trim()) return setError('請填寫詳細說明。')
     setSaving(true)
     setError('')
     try {
@@ -308,7 +308,7 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
   const submitComment = async (event) => {
     event.preventDefault()
     if (!identity.name.trim() || !identity.store) return setError('請先填寫暱稱與分店。')
-    if (comment.trim().length < 2) return setError('留言至少需要 2 個字。')
+    if (!comment.trim()) return setError('請填寫留言。')
     setSending(true)
     setError('')
     try {

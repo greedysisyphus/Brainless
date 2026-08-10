@@ -22,10 +22,10 @@ service cloud.firestore {
           'voterIds', 'voteCount', 'commentCount', 'createdAt', 'updatedAt'
         ])
         && request.resource.data.title is string
-        && request.resource.data.title.size() >= 4
+        && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 80
         && request.resource.data.body is string
-        && request.resource.data.body.size() >= 10
+        && request.resource.data.body.size() > 0
         && request.resource.data.body.size() <= 2000
         && request.resource.data.category in ['feature', 'bug', 'discussion']
         && request.resource.data.status == 'reviewing'
@@ -62,7 +62,7 @@ service cloud.firestore {
             'body', 'author', 'authorClientId', 'authorRole', 'createdAt'
           ])
           && request.resource.data.body is string
-          && request.resource.data.body.size() >= 2
+          && request.resource.data.body.size() > 0
           && request.resource.data.body.size() <= 1000
           && request.resource.data.author.name is string
           && request.resource.data.author.name.size() > 0
