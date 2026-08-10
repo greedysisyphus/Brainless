@@ -10,6 +10,7 @@ import {
   PaperAirplaneIcon,
   QrCodeIcon,
   ShoppingCartIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline'
 
 /** SVG 雞尾酒圖示（與 Navigation 原版一致） */
@@ -93,6 +94,13 @@ export const BASE_NAV_ITEMS = [
     section: '門市工具',
     accentColor: '#38bdf8',
     Icon: BeakerIcon,
+  },
+  {
+    path: '/feedback',
+    label: '回饋與許願',
+    section: '系統',
+    accentColor: '#ec5836',
+    Icon: ChatBubbleLeftRightIcon,
   },
   {
     path: '/playground',

@@ -21,6 +21,7 @@ const PoursteadyAdjustment = lazy(() => import('./pages/PoursteadyAdjustment'))
 const DailyReportGenerator = lazy(() => import('./pages/DailyReportGenerator'))
 const PublicMenuPage = lazy(() => import('./pages/PublicMenuPage'))
 const DataFormatTester = lazy(() => import('./pages/DataFormatTester'))
+const FeedbackCenter = lazy(() => import('./pages/FeedbackCenter'))
 
 function AppContent() {
   const { isStudio } = useTheme()
@@ -70,6 +71,7 @@ function AppContent() {
               <Route path="/data-tester" element={<DataFormatTester />} />
               <Route path="/poursteady" element={<PoursteadyAdjustment />} />
               <Route path="/flight-data" element={<FlightData />} />
+              <Route path="/feedback" element={<FeedbackCenter />} />
               <Route path="/playground" element={<Playground />} />
               <Route path="/music" element={<Navigate to="/playground#music" replace />} />
               <Route path="/admin" element={<AdminPanel />} />
@@ -99,4 +101,4 @@ function App() {
   )
 }
 
-export default App 
+export default App

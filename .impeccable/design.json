@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-10T08:34:59+08:00",
+  "title": "Design System: Brainless",
+  "extensions": {
+    "colorMeta": {
+      "club-canvas": { "role": "neutral", "displayName": "Warm Canvas", "canonical": "#f3f0e8", "tonalRamp": ["oklch(18% 0.015 85)", "oklch(28% 0.015 85)", "oklch(40% 0.015 85)", "oklch(52% 0.015 85)", "oklch(64% 0.015 85)", "oklch(76% 0.015 85)", "oklch(87% 0.015 85)", "oklch(95% 0.015 85)"] },
+      "club-ink": { "role": "neutral", "displayName": "Counter Ink", "canonical": "#1c1914", "tonalRamp": ["oklch(15% 0.012 70)", "oklch(27% 0.012 70)", "oklch(39% 0.012 70)", "oklch(51% 0.012 70)", "oklch(63% 0.012 70)", "oklch(75% 0.012 70)", "oklch(87% 0.012 70)", "oklch(95% 0.012 70)"] },
+      "club-coral": { "role": "primary", "displayName": "Counter Coral", "canonical": "#c64022", "tonalRamp": ["oklch(15% 0.10 35)", "oklch(27% 0.14 35)", "oklch(39% 0.17 35)", "oklch(51% 0.19 35)", "oklch(63% 0.16 35)", "oklch(75% 0.12 35)", "oklch(87% 0.07 35)", "oklch(95% 0.03 35)"] },
+      "classic-canvas": { "role": "neutral", "displayName": "Night Canvas", "canonical": "#13131a", "tonalRamp": ["oklch(15% 0.015 285)", "oklch(27% 0.015 285)", "oklch(39% 0.015 285)", "oklch(51% 0.015 285)", "oklch(63% 0.015 285)", "oklch(75% 0.015 285)", "oklch(87% 0.015 285)", "oklch(95% 0.015 285)"] },
+      "classic-primary": { "role": "primary", "displayName": "Electric Indigo", "canonical": "#6366f1", "tonalRamp": ["oklch(15% 0.10 280)", "oklch(27% 0.15 280)", "oklch(39% 0.19 280)", "oklch(51% 0.22 280)", "oklch(63% 0.20 280)", "oklch(75% 0.15 280)", "oklch(87% 0.08 280)", "oklch(95% 0.03 280)"] },
+      "classic-secondary": { "role": "secondary", "displayName": "Soft Violet", "canonical": "#8b5cf6", "tonalRamp": ["oklch(15% 0.10 300)", "oklch(27% 0.15 300)", "oklch(39% 0.19 300)", "oklch(51% 0.22 300)", "oklch(63% 0.20 300)", "oklch(75% 0.15 300)", "oklch(87% 0.08 300)", "oklch(95% 0.03 300)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Operational Promise", "purpose": "Primary page promise and hero headings." },
+      "headline": { "displayName": "Focused Subject", "purpose": "Thread titles, dialogs, and major empty states." },
+      "title": { "displayName": "Section Title", "purpose": "Cards and operational section headings." },
+      "body": { "displayName": "Working Copy", "purpose": "Instructions, feedback detail, and discussion." },
+      "label": { "displayName": "Control Label", "purpose": "Field labels, badges, metadata, and table headers." }
+    },
+    "shadows": [
+      { "name": "club-low", "value": "0 1px 2px rgba(28, 25, 20, 0.08)", "purpose": "Small Club controls." },
+      { "name": "club-selected", "value": "0 16px 35px rgba(23, 23, 23, 0.14)", "purpose": "Selected queue rows." },
+      { "name": "club-focused", "value": "0 18px 50px rgba(23, 23, 23, 0.08)", "purpose": "Focused Club detail panels." },
+      { "name": "classic-panel", "value": "0 18px 50px rgba(0, 0, 0, 0.24)", "purpose": "Focused Classic panels and overlays." }
+    ],
+    "motion": [
+      { "name": "club-state", "value": "150ms ease-out", "purpose": "Club button, border, and color changes." },
+      { "name": "classic-state", "value": "300ms ease", "purpose": "Classic navigation and common interactive transitions." },
+      { "name": "classic-card", "value": "500ms ease", "purpose": "Classic card border, shadow, and lift changes." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Club Primary Button",
+      "kind": "button",
+      "refersTo": "button-club-primary",
+      "description": "Standard high-confidence action on Club surfaces.",
+      "html": "<button class=\"ds-btn-club\">送出留言</button>",
+      "css": ".ds-btn-club { min-height:44px; padding:10px 20px; border:0; border-radius:var(--cw-radius,12px); background:var(--cw-fg-emphasis,#1c1914); color:var(--cw-fg-emphasis-contrast,#fffdfa); font:700 14px 'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif; transition:background-color 150ms ease-out,opacity 150ms ease-out; } .ds-btn-club:hover { background:var(--cw-brand,#c64022); } .ds-btn-club:focus-visible { outline:2px solid var(--cw-focus-ring,rgba(198,64,34,.48)); outline-offset:2px; } .ds-btn-club:active { opacity:.82; }"
+    },
+    {
+      "name": "Classic Primary Button",
+      "kind": "button",
+      "refersTo": "button-classic-primary",
+      "description": "Primary completion action on Classic surfaces.",
+      "html": "<button class=\"ds-btn-classic\">新增回饋</button>",
+      "css": ".ds-btn-classic { min-height:44px; padding:10px 20px; border:0; border-radius:12px; background:#6366f1; color:#fff; font:700 14px ui-sans-serif,system-ui,sans-serif; transition:background-color 300ms ease,transform 300ms ease; } .ds-btn-classic:hover { background:#8b5cf6; transform:translateY(-2px); } .ds-btn-classic:focus-visible { outline:2px solid #fff; outline-offset:2px; } .ds-btn-classic:active { transform:translateY(0); }"
+    },
+    {
+      "name": "Club Search Field",
+      "kind": "input",
+      "refersTo": "field-club",
+      "description": "Search and text entry on warm operational surfaces.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-search\">搜尋回饋</label><input id=\"ds-search\" class=\"ds-field-club\" placeholder=\"搜尋回饋…\">",
+      "css": ".ds-field-label { display:block; margin-bottom:6px; color:var(--cw-text-muted,#595349); font:600 12px 'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif; letter-spacing:.025em; } .ds-field-club { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--cw-border,rgba(28,25,20,.12)); border-radius:var(--cw-radius,12px); background:var(--cw-surface,#fffdfa); color:var(--cw-text,#1c1914); font:400 16px 'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif; } .ds-field-club:hover { border-color:var(--cw-border-strong,rgba(28,25,20,.2)); } .ds-field-club:focus-visible { outline:1px solid var(--cw-focus-ring,rgba(198,64,34,.48)); outline-offset:1px; border-color:var(--cw-brand,#c64022); }"
+    },
+    {
+      "name": "Classic Search Field",
+      "kind": "input",
+      "refersTo": "field-classic",
+      "description": "Search and text entry on dark violet operational surfaces.",
+      "html": "<label class=\"ds-field-label-classic\" for=\"ds-search-classic\">搜尋回饋</label><input id=\"ds-search-classic\" class=\"ds-field-classic\" placeholder=\"搜尋回饋…\">",
+      "css": ".ds-field-label-classic { display:block; margin-bottom:6px; color:#94a3b8; font:600 12px ui-sans-serif,system-ui,sans-serif; } .ds-field-classic { width:100%; min-height:44px; padding:10px 12px; border:1px solid rgba(255,255,255,.1); border-radius:12px; background:rgba(255,255,255,.05); color:#fff; font:400 16px ui-sans-serif,system-ui,sans-serif; } .ds-field-classic:hover { border-color:rgba(255,255,255,.2); } .ds-field-classic:focus-visible { outline:2px solid rgba(99,102,241,.2); outline-offset:1px; border-color:#6366f1; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "description": "Compact visible processing state for queue and detail views.",
+      "html": "<span class=\"ds-status\">處理中</span>",
+      "css": ".ds-status { display:inline-flex; align-items:center; padding:4px 10px; border-radius:9999px; background:#ede9fe; color:#5b21b6; box-shadow:inset 0 0 0 1px rgba(124,58,237,.2); font:700 12px 'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif; } .ds-status:hover { background:#ddd6fe; } .ds-status:focus-visible { outline:2px solid #8b5cf6; outline-offset:2px; }"
+    },
+    {
+      "name": "Feedback Queue Item",
+      "kind": "custom",
+      "description": "The signature scannable record combining demand, state, subject, and provenance.",
+      "html": "<article class=\"ds-feedback\"><button class=\"ds-vote\" aria-label=\"我也需要\">▲<strong>12</strong></button><div><div class=\"ds-meta\">功能許願 · 處理中</div><h3>讓每日報表可以保留常用設定</h3><p>減少每次重新輸入相同內容的時間。</p><small>中央店 · 2 小時前</small></div></article>",
+      "css": ".ds-feedback { display:flex; gap:12px; padding:20px; border:1px solid rgba(28,25,20,.12); border-radius:16px; background:#fffdfa; color:#1c1914; font-family:'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif; transition:transform 150ms ease-out,box-shadow 150ms ease-out; } .ds-feedback:hover { transform:translateY(-2px); box-shadow:0 14px 32px rgba(23,23,23,.08); } .ds-feedback:focus-within { outline:2px solid rgba(198,64,34,.48); outline-offset:2px; } .ds-vote { width:48px; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid rgba(28,25,20,.12); border-radius:12px; background:#fff; color:#595349; font-size:12px; } .ds-vote:hover { border-color:#c64022; color:#9f301b; } .ds-vote:focus-visible { outline:2px solid #c64022; outline-offset:2px; } .ds-feedback h3 { margin:8px 0 0; font-size:18px; line-height:1.4; } .ds-feedback p { margin:8px 0; color:#595349; font-size:14px; line-height:1.5; } .ds-meta { color:#9f301b; font-size:12px; font-weight:700; } .ds-feedback small { color:#777168; }"
+    },
+    {
+      "name": "Club Navigation Tile",
+      "kind": "nav",
+      "description": "Compact icon-led destination tile for the Club shell.",
+      "html": "<a class=\"ds-nav-club\" href=\"#\"><span class=\"ds-nav-icon\">↗</span><span>回饋中心</span></a>",
+      "css": ".ds-nav-club { width:88px; min-height:72px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:6px; border:1px solid rgba(28,25,20,.1); border-radius:16px; background:rgba(255,255,255,.55); color:#595349; text-decoration:none; font:700 11px 'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif; text-align:center; transition:all 200ms ease; } .ds-nav-icon { width:32px; height:32px; display:grid; place-items:center; border:1px solid rgba(28,25,20,.1); border-radius:12px; background:#f7f6f2; color:#c64022; } .ds-nav-club:hover { transform:translateY(-2px); border-color:#c64022; background:#fff; color:#1c1914; box-shadow:0 12px 24px rgba(23,23,23,.08); } .ds-nav-club:focus-visible { outline:2px solid rgba(198,64,34,.48); outline-offset:2px; } .ds-nav-club:active { background:#1c1914; color:#fff; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Behind-the-Counter Queue",
+    "overview": "Brainless feels like a practical control surface used during live store operations: immediately scannable, touch-ready, and explicit about state. Its visual identity has two established expressions. Club uses warm paper, dark ink, coral signals, solid surfaces, and restrained lift; Classic uses a near-black violet canvas, translucent panels, indigo-to-violet emphasis, and brighter depth effects.\n\nNew operational surfaces inherit the selected theme instead of blending them. Information is organized into readable cards, compact filters, status badges, and focused work areas; the interface makes shared state and the next action visible.",
+    "keyCharacteristics": [
+      "Two complete themes with shared hierarchy and interaction behavior.",
+      "Dense but readable operational layouts with clear selected states.",
+      "Rounded rectangular controls, pill filters, and at least 44px touch targets.",
+      "Coral is Club's action signal; indigo and violet carry the same role in Classic.",
+      "Traditional Chinese copy and the cat mark remain part of the product identity."
+    ],
+    "rules": [
+      { "name": "The Theme Integrity Rule", "body": "Use one theme's palette as a complete set; never place Club coral-and-paper components inside Classic violet glass, or vice versa.", "section": "colors" },
+      { "name": "The Signal Rarity Rule", "body": "Reserve coral, indigo, and semantic colors for actions, selection, focus, and status—not broad decorative fields.", "section": "colors" },
+      { "name": "The Scan-Then-Read Rule", "body": "Let weight and spacing identify title, state, and metadata before the user reads the longer body copy.", "section": "typography" },
+      { "name": "The First-Action Rule", "body": "Put the page promise and primary create action before dense operational content; put search, filters, and sorting directly above the queue they control.", "section": "layout" },
+      { "name": "The Structural Depth Rule", "body": "Elevation communicates stickiness, selection, overlays, or focused work; ordinary content surfaces remain quiet.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do preserve identical information hierarchy and touch behavior across Club and Classic.",
+      "Do keep shared state—status, vote count, author/store, timestamps, and errors—visible at the point of action.",
+      "Do use the 8px / 12px / 16px corner hierarchy consistently.",
+      "Do disable nonessential motion under reduced-motion preferences."
+    ],
+    "donts": [
+      "Don't mix theme primitives within a component or surface.",
+      "Don't hide operational status inside body copy or a secondary dialog.",
+      "Don't turn dense work queues into chat walls; preserve list scanability and a focused thread.",
+      "Don't make a user create a duplicate when search and similar-item review can route them to an existing discussion."
+    ]
+  }
+}

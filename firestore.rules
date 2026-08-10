@@ -13,9 +13,74 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 暫時允許所有操作，讓 Brainless 既有功能維持正常
-    match /{document=**} {
-      allow read, write: if true;
+    // 公開回饋中心：任何人可讀、發文、留言與投票；處理狀態與官方身分僅限管理員。
+    match /feedback/{feedbackId} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly([
+          'title', 'body', 'category', 'status', 'author', 'creatorClientId',
+          'voterIds', 'voteCount', 'commentCount', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 4
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 10
+        && request.resource.data.body.size() <= 2000
+        && request.resource.data.category in ['feature', 'bug', 'discussion']
+        && request.resource.data.status == 'reviewing'
+        && request.resource.data.author.name is string
+        && request.resource.data.author.name.size() > 0
+        && request.resource.data.author.name.size() <= 30
+        && request.resource.data.author.store is string
+        && request.resource.data.author.store.size() > 0
+        && request.resource.data.creatorClientId is string
+        && request.resource.data.voterIds is list
+        && request.resource.data.voterIds.size() == 1
+        && request.resource.data.voterIds[0] == request.resource.data.creatorClientId
+        && request.resource.data.voteCount == 1
+        && request.resource.data.commentCount == 0;
+
+      allow update: if isAdmin()
+        || (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['voterIds', 'voteCount', 'updatedAt'])
+          && request.resource.data.voterIds is list
+          && request.resource.data.voteCount == request.resource.data.voterIds.size()
+        )
+        || (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['commentCount', 'updatedAt'])
+          && request.resource.data.commentCount == resource.data.commentCount + 1
+        );
+
+      allow delete: if isAdmin();
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly([
+            'body', 'author', 'authorClientId', 'authorRole', 'createdAt'
+          ])
+          && request.resource.data.body is string
+          && request.resource.data.body.size() >= 2
+          && request.resource.data.body.size() <= 1000
+          && request.resource.data.author.name is string
+          && request.resource.data.author.name.size() > 0
+          && request.resource.data.author.name.size() <= 30
+          && request.resource.data.author.store is string
+          && request.resource.data.author.store.size() > 0
+          && request.resource.data.authorClientId is string
+          && (
+            request.resource.data.authorRole == 'member'
+            || (request.resource.data.authorRole == 'admin' && isAdmin())
+          );
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // 既有功能暫時維持原權限；feedback 已由上方規則獨立保護。
+    match /{collectionId}/{document=**} {
+      allow read, write: if collectionId != 'feedback';
     }
   }
 }
