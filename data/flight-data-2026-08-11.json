@@ -242,7 +242,7 @@
       "type": "departure",
       "airport_code": "KIX",
       "city": "Osaka Kansai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Osaka Kansai (KIX)",
@@ -302,7 +302,7 @@
       "type": "departure",
       "airport_code": "DPS",
       "city": "Bali",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Bali (DPS)",
@@ -350,7 +350,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-9",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -687,5 +687,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D14R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-08-11T02:10:10.468408"
+  "updated_at": "2026-08-11T04:24:44.432779"
 }
