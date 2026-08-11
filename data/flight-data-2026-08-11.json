@@ -329,14 +329,14 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "CA5512",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
-        },
-        {
           "flight_code": "B77016",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "CA5512",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
         }
       ]
     },
@@ -372,7 +372,7 @@
       "type": "departure",
       "airport_code": "CNX",
       "city": "Chiang Mai",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Chiang Mai (CNX)",
@@ -417,33 +417,6 @@
       "codeshare_flights": []
     },
     {
-      "time": "14:30",
-      "datetime": "2026-08-11T14:30:00",
-      "gate": "D16",
-      "flight_code": "CI178",
-      "airline_code": "CI",
-      "airline_name": "中華航空",
-      "type": "departure",
-      "airport_code": "TAK",
-      "city": "Takamatsu",
-      "status": "準時ON TIME",
-      "aircraft": "A321-271",
-      "terminal": "2",
-      "destination": "Takamatsu (TAK)",
-      "codeshare_flights": [
-        {
-          "flight_code": "JL5124",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
-          "flight_code": "KL4985",
-          "airline_code": "KL",
-          "airline_name": "荷蘭航空"
-        }
-      ]
-    },
-    {
       "time": "15:10",
       "datetime": "2026-08-11T15:10:00",
       "gate": "D15R",
@@ -469,14 +442,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "TK9452",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
           "flight_code": "NH5848",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "TK9452",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
         }
       ]
     },
@@ -547,6 +520,33 @@
           "flight_code": "NX3005",
           "airline_code": "NX",
           "airline_name": "澳門航空"
+        }
+      ]
+    },
+    {
+      "time": "17:15",
+      "datetime": "2026-08-11T17:15:00",
+      "gate": "D11",
+      "flight_code": "CI150",
+      "airline_code": "CI",
+      "airline_name": "中華航空",
+      "type": "departure",
+      "airport_code": "NGO",
+      "city": "Nagoya",
+      "status": "準時ON TIME",
+      "aircraft": "A321-271",
+      "terminal": "2",
+      "destination": "Nagoya (NGO)",
+      "codeshare_flights": [
+        {
+          "flight_code": "JL5114",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "KL4998",
+          "airline_code": "KL",
+          "airline_name": "荷蘭航空"
         }
       ]
     },
@@ -651,8 +651,8 @@
   ],
   "summary": {
     "total_flights": 31,
-    "before_17:00": 26,
-    "after_17:00": 5
+    "before_17:00": 25,
+    "after_17:00": 6
   },
   "formatted_display": [
     "00:05 : D14R : JX12 (星宇航空)",
@@ -675,17 +675,17 @@
     "13:20 : D12 : JX751 (星宇航空)",
     "14:10 : D11 : CI521 (中華航空)",
     "14:20 : D13 : JX713 (星宇航空)",
-    "14:30 : D16 : CI178 (中華航空)",
     "15:10 : D15R : BR102 (長榮航空)",
     "15:25 : D12 : CI517 (中華航空)",
     "15:45 : D13 : JX703 (星宇航空)",
     "16:15 : D14R : JX783 (星宇航空)",
     "16:40 : D16 : BR805 (長榮航空)",
+    "17:15 : D11 : CI150 (中華航空)",
     "19:00 : D17 : BR809 (長榮航空)",
     "19:35 : D15R : BR381 (長榮航空)",
     "20:10 : D13 : JX26 (星宇航空)",
     "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D14R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-08-11T04:24:44.432779"
+  "updated_at": "2026-08-11T05:57:14.685538"
 }
