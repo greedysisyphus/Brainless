@@ -324,14 +324,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "CA5512",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
-        },
-        {
           "flight_code": "B77016",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "CA5512",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
         },
         {
           "flight_code": "HO3182",
@@ -533,7 +533,7 @@
       "type": "departure",
       "airport_code": "NGO",
       "city": "Nagoya",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Nagoya (NGO)",
@@ -687,5 +687,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D14R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-08-11T09:06:02.049191"
+  "updated_at": "2026-08-11T10:55:43.554727"
 }
