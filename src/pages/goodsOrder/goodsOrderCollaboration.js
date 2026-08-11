@@ -72,7 +72,19 @@ export class CountsConflictError extends Error {
 }
 
 function valuesEqual(a, b) {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+  const stable = (value) => {
+    if (Array.isArray(value)) return value.map(stable)
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.keys(value)
+          .sort()
+          .filter((key) => value[key] !== undefined)
+          .map((key) => [key, stable(value[key])])
+      )
+    }
+    return value ?? null
+  }
+  return JSON.stringify(stable(a)) === JSON.stringify(stable(b))
 }
 
 export function prepareCountsRevision({

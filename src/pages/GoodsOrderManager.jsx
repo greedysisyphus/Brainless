@@ -213,6 +213,8 @@ function GoodsOrderManager() {
     )
   )
   const catalogRemotePendingRef = useRef({})
+  const catalogSaveLockRef = useRef({})
+  const catalogConflictPausedRef = useRef({})
   const catalogUndoRef = useRef({})
   const catalogEditGroupRef = useRef({})
   const catalogEditVersionRef = useRef({})
@@ -230,6 +232,7 @@ function GoodsOrderManager() {
     )
   )
   const countsConflictRef = useRef({})
+  const countsFlushLockRef = useRef({})
   const countsResumeRef = useRef({})
   const catalogResumeRef = useRef({})
   const quantityInputRefs = useRef({})
@@ -311,6 +314,17 @@ function GoodsOrderManager() {
 
   const flushCountsSync = useCallback(
     async (storeId = selectedStore, override = null, { force = false } = {}) => {
+      while (countsFlushLockRef.current[storeId]) {
+        await countsFlushLockRef.current[storeId]
+      }
+      if (countsConflictRef.current[storeId] && !force) return null
+
+      let releaseFlushLock
+      const flushLock = new Promise((resolve) => {
+        releaseFlushLock = resolve
+      })
+      countsFlushLockRef.current[storeId] = flushLock
+      try {
       const fromState =
         storeId === 'd7' ? countsD7 : storeId === 'd13' ? countsD13 : countsCentral
       const inv =
@@ -389,6 +403,12 @@ function GoodsOrderManager() {
         setLocalVersionAt(getUpdatedAt(saved))
       }
       return saved
+      } finally {
+        if (countsFlushLockRef.current[storeId] === flushLock) {
+          delete countsFlushLockRef.current[storeId]
+        }
+        releaseFlushLock()
+      }
     },
     [countsCentral, countsD7, countsD13, selectedStore, syncActor]
   )
@@ -668,6 +688,20 @@ function GoodsOrderManager() {
       if (storeId === selectedStoreRef.current) setCatalogSaveStatus('saving')
       catalogDebounceRef.current[storeId] = setTimeout(async () => {
         catalogDebounceRef.current[storeId] = null
+        while (catalogSaveLockRef.current[storeId]) {
+          await catalogSaveLockRef.current[storeId]
+        }
+        if (
+          catalogConflictPausedRef.current[storeId] ||
+          catalogEditVersionRef.current[storeId] !== editVersion
+        ) {
+          return
+        }
+        let releaseCatalogLock
+        const catalogLock = new Promise((resolve) => {
+          releaseCatalogLock = resolve
+        })
+        catalogSaveLockRef.current[storeId] = catalogLock
         const normalized = {
           ...nextCatalog,
           orderStoreName: String(nextCatalog.orderStoreName).trim(),
@@ -689,6 +723,7 @@ function GoodsOrderManager() {
             actor: syncActor,
             force,
           })
+          catalogConflictPausedRef.current[storeId] = false
           catalogBaseRef.current[storeId] = saved
           catalogRemotePendingRef.current[storeId] = null
           if (catalogEditVersionRef.current[storeId] === editVersion) {
@@ -711,6 +746,7 @@ function GoodsOrderManager() {
           }
         } catch (err) {
           if (err instanceof CatalogConflictError) {
+            catalogConflictPausedRef.current[storeId] = true
             catalogRemotePendingRef.current[storeId] = err.remoteData
             if (storeId === selectedStoreRef.current) {
               setCatalogConflict({
@@ -725,6 +761,11 @@ function GoodsOrderManager() {
           }
           console.error('[goodsOrder] catalog sync', err)
           if (storeId === selectedStoreRef.current) setCatalogSaveStatus('error')
+        } finally {
+          if (catalogSaveLockRef.current[storeId] === catalogLock) {
+            delete catalogSaveLockRef.current[storeId]
+          }
+          releaseCatalogLock()
         }
       }, 600)
     },
@@ -830,6 +871,9 @@ function GoodsOrderManager() {
       _syncVersion: remote._syncVersion,
     }
     catalogDirtyRef.current[conflictStoreId] = false
+    catalogConflictPausedRef.current[conflictStoreId] = false
+    catalogEditVersionRef.current[conflictStoreId] =
+      (catalogEditVersionRef.current[conflictStoreId] || 0) + 1
     catalogEditGroupRef.current[conflictStoreId] = false
     writeLocalRecord(catalogDraftStorageKey(conflictStoreId), null)
     delete catalogUndoRef.current[conflictStoreId]
@@ -845,6 +889,7 @@ function GoodsOrderManager() {
   const keepMergedCatalog = () => {
     if (!catalogConflict) return
     const { storeId, remoteData, mergedCatalog } = catalogConflict
+    catalogConflictPausedRef.current[storeId] = false
     catalogBaseRef.current[storeId] = remoteData
     catalogLatestRef.current = mergedCatalog
     setCatalogForStore(storeId, mergedCatalog)

@@ -4,6 +4,16 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.7.3',
+    date: '2026-08-11',
+    title: '同步衝突重複彈出修正',
+    items: [
+      '同一店別的盤點與品項設定改為依序送出，避免兩個同步請求互相製造衝突。',
+      '選擇使用雲端後會停止舊的待處理請求，不再重複跳出相同衝突。',
+      '同步比較不再因資料欄位順序不同而誤判為內容衝突。',
+    ],
+  },
+  {
     version: '1.7.2',
     date: '2026-08-11',
     title: '多人同步可靠性修正',

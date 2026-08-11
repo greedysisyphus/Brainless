@@ -177,6 +177,28 @@ test('同一盤點品項已被別人修改時停止交易', () => {
   )
 })
 
+test('同一盤點內容只有欄位順序不同時不誤判為衝突', () => {
+  const result = prepareCountsRevision({
+    remoteData: {
+      _revision: 2,
+      counts: { cup: { forceInclude: null, orderQty: 1, current: '2' } },
+    },
+    nextCounts: { counts: { cup: { current: '3', orderQty: 1, forceInclude: null } } },
+    pending: {
+      replaceAll: false,
+      items: {
+        cup: {
+          editAt: 100,
+          baseEntry: { current: '2', orderQty: 1, forceInclude: null },
+        },
+      },
+    },
+    actor: { id: 'local', name: 'D7 iPad' },
+  })
+
+  assert.equal(result.counts.cup.current, '3')
+})
+
 test('清除全部前雲端版本已改變時停止交易', () => {
   assert.throws(
     () => prepareCountsRevision({
