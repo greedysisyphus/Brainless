@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftIcon, Cog6ToothIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
+import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwAlert, CwBadge, CwButton, CwInput, CwModalFrame } from '../components/studio/ui'
 import { useLocalStorage } from '../hooks/useLocalStorage'
@@ -34,11 +34,23 @@ import { GoodsOrderPreviewModal } from './goodsOrder/GoodsOrderPreviewModal'
 import { GoodsOrderSettingsSheet } from './goodsOrder/GoodsOrderSettingsSheet'
 import { GoodsOrderConflictModal, GoodsOrderSyncBanner } from './goodsOrder/GoodsOrderSyncUI'
 import {
+  CatalogConflictError,
+  GOODS_ORDER_ACTOR_NAME_KEY,
+  GOODS_ORDER_SYNC_VERSION,
+  getDefaultActorName,
+  getOrCreateGoodsOrderActorId,
+  loadCatalogVersions,
+  saveCatalogRevision,
+} from './goodsOrder/goodsOrderCollaboration'
+import {
   COUNTS_SYNC_DEBOUNCE_MS,
   createCountsSyncMeta,
   formatVersionTime,
+  getRevision,
   getUpdatedAt,
+  getUpdatedBy,
   mergeCountsData,
+  mergeCountsWithPending,
   resolveCountsSnapshot,
   stripCatalogMeta,
   stripSyncMeta,
@@ -87,9 +99,25 @@ function GoodsOrderManager() {
   const [syncStatus, setSyncStatus] = useState('idle')
   const [catalogSaveStatus, setCatalogSaveStatus] = useState('idle')
   const [catalogCanUndo, setCatalogCanUndo] = useState(false)
+  const [catalogConflict, setCatalogConflict] = useState(null)
+  const [catalogVersions, setCatalogVersions] = useState([])
+  const [catalogHistoryStatus, setCatalogHistoryStatus] = useState('idle')
   const [conflict, setConflict] = useState(null)
   const [localVersionAt, setLocalVersionAt] = useState(0)
   const [focusedItemId, setFocusedItemId] = useState(null)
+
+  const actorIdRef = useRef(getOrCreateGoodsOrderActorId())
+  const [actorName, setActorName] = useLocalStorage(
+    GOODS_ORDER_ACTOR_NAME_KEY,
+    getDefaultActorName(actorIdRef.current)
+  )
+  const syncActor = useMemo(
+    () => ({
+      id: actorIdRef.current,
+      name: String(actorName || '').trim() || getDefaultActorName(actorIdRef.current),
+    }),
+    [actorName]
+  )
 
   const [catalogCentral, setCatalogCentral] = useLocalStorage(
     getCatalogStorageKey('central'),
@@ -161,9 +189,13 @@ function GoodsOrderManager() {
   const selectedStoreRef = useRef(selectedStore)
   const catalogDebounceRef = useRef(null)
   const catalogLatestRef = useRef(catalog)
+  const catalogBaseRef = useRef({})
+  const catalogRemotePendingRef = useRef({})
   const catalogUndoRef = useRef({})
   const catalogEditGroupRef = useRef({})
+  const catalogEditVersionRef = useRef({})
   const catalogDirtyRef = useRef({})
+  const countsPendingRef = useRef({})
   const quantityInputRefs = useRef({})
 
   const getVisibleInputRef = (refs, itemId) => {
@@ -193,12 +225,15 @@ function GoodsOrderManager() {
 
   useEffect(() => {
     selectedStoreRef.current = selectedStore
+    setCatalogConflict(null)
+    setCatalogVersions([])
+    setCatalogHistoryStatus('idle')
     setCatalogCanUndo(Boolean(catalogUndoRef.current[selectedStore]))
     setCatalogSaveStatus(
       validateCatalog(catalog).count > 0
         ? 'invalid'
         : catalogDirtyRef.current[selectedStore]
-          ? 'saving'
+          ? 'error'
           : 'idle'
     )
   }, [selectedStore])
@@ -210,6 +245,13 @@ function GoodsOrderManager() {
     return countsMetaRef.current[storeId]
   }
 
+  const getCountsPending = (storeId) => {
+    if (!countsPendingRef.current[storeId]) {
+      countsPendingRef.current[storeId] = { replaceAll: false, items: {} }
+    }
+    return countsPendingRef.current[storeId]
+  }
+
   const flushCountsSync = useCallback(
     async (storeId = selectedStore, override = null) => {
       const fromState =
@@ -218,33 +260,79 @@ function GoodsOrderManager() {
         override ??
         (storeId === selectedStore ? countsLatestRef.current : null) ??
         fromState
-      const payload = {
-        ...stripSyncMeta(inv),
-        _clientUpdatedAt: Date.now(),
+      const pending = getCountsPending(storeId)
+      const capturedItems = { ...pending.items }
+      const capturedReplaceAll = pending.replaceAll
+      const now = Date.now()
+      const basePayload = {
+        _syncVersion: GOODS_ORDER_SYNC_VERSION,
+        _clientUpdatedAt: now,
+        _updatedAt: serverTimestamp(),
+        _updatedBy: syncActor,
       }
-      await setDoc(doc(db, 'settings', getCountsDocId(storeId)), payload)
+
+      if (capturedReplaceAll) {
+        await setDoc(doc(db, 'settings', getCountsDocId(storeId)), {
+          ...stripSyncMeta(inv),
+          ...basePayload,
+        })
+      } else {
+        const itemIds = Object.keys(capturedItems)
+        if (itemIds.length === 0) return
+        const partialCounts = {}
+        itemIds.forEach((itemId) => {
+          const entry = inv.counts?.[itemId] || {}
+          partialCounts[itemId] = {
+            ...entry,
+            _clientUpdatedAt: capturedItems[itemId],
+            _updatedBy: syncActor,
+          }
+        })
+        // merge:true 只更新這批品項；其他使用者正在盤的品項不會被整份覆蓋。
+        await setDoc(
+          doc(db, 'settings', getCountsDocId(storeId)),
+          { counts: partialCounts, ...basePayload },
+          { merge: true }
+        )
+      }
+
+      const livePending = getCountsPending(storeId)
+      if (capturedReplaceAll && livePending.replaceAll) livePending.replaceAll = false
+      Object.entries(capturedItems).forEach(([itemId, editAt]) => {
+        if (livePending.items[itemId] === editAt) delete livePending.items[itemId]
+      })
       const meta = getCountsMeta(storeId)
-      meta.lastSyncedToCloudAt = payload._clientUpdatedAt
-      meta.isDirty = false
+      meta.lastSyncedToCloudAt = now
+      meta.isDirty = livePending.replaceAll || Object.keys(livePending.items).length > 0
       meta.hasReceivedInitialRemote = true
       if (storeId === selectedStore) {
-        setSyncStatus('synced')
-        setLocalVersionAt(payload._clientUpdatedAt)
+        setSyncStatus(meta.isDirty ? 'syncing' : 'synced')
+        setLocalVersionAt(now)
       }
     },
-    [countsCentral, countsD7, countsD13, selectedStore]
+    [countsCentral, countsD7, countsD13, selectedStore, syncActor]
   )
 
   const markCountsDirty = useCallback(
-    (storeId, nextCounts) => {
+    (storeId, nextCounts, { itemId = null, replaceAll = false } = {}) => {
       const meta = getCountsMeta(storeId)
       meta.isDirty = true
       meta.lastLocalEditAt = Date.now()
+      const pending = getCountsPending(storeId)
+      if (replaceAll) {
+        pending.replaceAll = true
+        pending.items = {}
+      } else if (itemId) {
+        pending.items[itemId] = meta.lastLocalEditAt
+      }
       setLocalVersionAt(meta.lastLocalEditAt)
-      setCountsForStore(storeId, {
+      const localDoc = {
         ...stripSyncMeta(nextCounts),
         _clientUpdatedAt: meta.lastLocalEditAt,
-      })
+        _updatedBy: syncActor,
+      }
+      if (storeId === selectedStoreRef.current) countsLatestRef.current = localDoc
+      setCountsForStore(storeId, localDoc)
       setSyncStatus('syncing')
       if (countsDebounceRef.current) clearTimeout(countsDebounceRef.current)
       countsDebounceRef.current = setTimeout(() => {
@@ -254,7 +342,7 @@ function GoodsOrderManager() {
         })
       }, COUNTS_SYNC_DEBOUNCE_MS)
     },
-    [flushCountsSync, setCountsForStore]
+    [flushCountsSync, setCountsForStore, syncActor]
   )
 
   // 切店 flush
@@ -297,6 +385,23 @@ function GoodsOrderManager() {
         }
         const raw = snap.data()
         const remoteUpdatedAt = getUpdatedAt(raw)
+        const pending = getCountsPending(storeId)
+
+        if (meta.isDirty && !pending.replaceAll) {
+          const merged = mergeCountsWithPending(
+            countsLatestRef.current,
+            raw,
+            Object.keys(pending.items)
+          )
+          setCountsForStore(storeId, {
+            ...merged,
+            _clientUpdatedAt: Math.max(remoteUpdatedAt, meta.lastLocalEditAt),
+            _updatedBy: getUpdatedBy(raw),
+          })
+          meta.hasReceivedInitialRemote = true
+          meta.lastAppliedRemoteAt = remoteUpdatedAt
+          return
+        }
         const decision = resolveCountsSnapshot({
           meta,
           remoteUpdatedAt,
@@ -321,6 +426,7 @@ function GoodsOrderManager() {
         setCountsForStore(storeId, {
           ...stripSyncMeta(raw),
           _clientUpdatedAt: remoteUpdatedAt || Date.now(),
+          _updatedBy: getUpdatedBy(raw),
         })
         meta.lastAppliedRemoteAt = remoteUpdatedAt
         if (!meta.isDirty) {
@@ -349,11 +455,15 @@ function GoodsOrderManager() {
       doc(db, 'settings', getCatalogDocId(storeId)),
       (snap) => {
         if (!mounted) return
-        if (catalogDirtyRef.current[storeId]) return
+        if (catalogDirtyRef.current[storeId]) {
+          catalogRemotePendingRef.current[storeId] = snap.exists() ? snap.data() : null
+          return
+        }
         if (!snap.exists()) {
           const created = createDefaultCatalog(storeId)
           setDoc(snap.ref, created).catch(() => {})
           setCatalogForStore(storeId, created)
+          catalogBaseRef.current[storeId] = created
           return
         }
         const data = snap.data()
@@ -364,17 +474,26 @@ function GoodsOrderManager() {
             _clientUpdatedAt: Date.now(),
           }
           setCatalogForStore(storeId, upgraded)
+          catalogBaseRef.current[storeId] = upgraded
           setDoc(snap.ref, upgraded).catch((err) =>
             console.error('[goodsOrder] default catalog upgrade', err)
           )
           return
         }
-        setCatalogForStore(storeId, {
+        const nextCatalog = {
           ...stripCatalogMeta(data),
           orderStoreName:
             stripCatalogMeta(data).orderStoreName || getDefaultOrderStoreName(storeId),
           _clientUpdatedAt: getUpdatedAt(data) || Date.now(),
-        })
+          _updatedAt: data._updatedAt,
+          _updatedBy: getUpdatedBy(data),
+          _revision: getRevision(data),
+          _syncVersion: data._syncVersion,
+        }
+        setCatalogForStore(storeId, nextCatalog)
+        catalogLatestRef.current = nextCatalog
+        catalogBaseRef.current[storeId] = nextCatalog
+        catalogRemotePendingRef.current[storeId] = null
       },
       (err) => console.error('[goodsOrder] catalog snapshot', err)
     )
@@ -385,7 +504,10 @@ function GoodsOrderManager() {
   }, [selectedStore, setCatalogForStore])
 
   const persistCatalog = useCallback(
-    (storeId, nextCatalog, { captureUndo = true } = {}) => {
+    (storeId, nextCatalog, { captureUndo = true, force = false } = {}) => {
+      if (!catalogBaseRef.current[storeId]) {
+        catalogBaseRef.current[storeId] = catalogLatestRef.current
+      }
       if (captureUndo && !catalogEditGroupRef.current[storeId]) {
         catalogUndoRef.current[storeId] = catalogLatestRef.current
         catalogEditGroupRef.current[storeId] = true
@@ -393,6 +515,9 @@ function GoodsOrderManager() {
       }
 
       catalogDirtyRef.current[storeId] = true
+      catalogEditVersionRef.current[storeId] =
+        (catalogEditVersionRef.current[storeId] || 0) + 1
+      const editVersion = catalogEditVersionRef.current[storeId]
       catalogLatestRef.current = nextCatalog
       setCatalogForStore(storeId, nextCatalog)
       if (catalogDebounceRef.current) clearTimeout(catalogDebounceRef.current)
@@ -417,22 +542,47 @@ function GoodsOrderManager() {
             disabled: !!it.disabled,
           })),
         }
-        const payload = {
-          ...stripCatalogMeta(normalized),
-          _clientUpdatedAt: Date.now(),
-        }
         try {
-          await setDoc(doc(db, 'settings', getCatalogDocId(storeId)), payload)
-          catalogDirtyRef.current[storeId] = false
-          catalogEditGroupRef.current[storeId] = false
-          if (storeId === selectedStoreRef.current) setCatalogSaveStatus('saved')
+          const saved = await saveCatalogRevision({
+            db,
+            catalogDocId: getCatalogDocId(storeId),
+            baseCatalog: catalogBaseRef.current[storeId],
+            nextCatalog: normalized,
+            actor: syncActor,
+            force,
+          })
+          catalogBaseRef.current[storeId] = saved
+          catalogRemotePendingRef.current[storeId] = null
+          if (catalogEditVersionRef.current[storeId] === editVersion) {
+            catalogDirtyRef.current[storeId] = false
+            catalogEditGroupRef.current[storeId] = false
+            catalogLatestRef.current = saved
+            setCatalogForStore(storeId, saved)
+            if (storeId === selectedStoreRef.current) {
+              setCatalogSaveStatus('saved')
+              setCatalogConflict(null)
+            }
+          }
         } catch (err) {
+          if (err instanceof CatalogConflictError) {
+            catalogRemotePendingRef.current[storeId] = err.remoteData
+            if (storeId === selectedStoreRef.current) {
+              setCatalogConflict({
+                storeId,
+                remoteData: err.remoteData,
+                mergedCatalog: err.mergedCatalog,
+                conflicts: err.conflicts,
+              })
+              setCatalogSaveStatus('conflict')
+            }
+            return
+          }
           console.error('[goodsOrder] catalog sync', err)
           if (storeId === selectedStoreRef.current) setCatalogSaveStatus('error')
         }
       }, 600)
     },
-    [setCatalogForStore]
+    [setCatalogForStore, syncActor]
   )
 
   const undoCatalogChange = () => {
@@ -446,6 +596,64 @@ function GoodsOrderManager() {
 
   const retryCatalogSave = () => {
     persistCatalog(selectedStore, catalogLatestRef.current, { captureUndo: false })
+  }
+
+  const loadCatalogHistory = useCallback(async () => {
+    const storeId = selectedStoreRef.current
+    setCatalogHistoryStatus('loading')
+    try {
+      const versions = await loadCatalogVersions(db, getCatalogDocId(storeId))
+      if (storeId !== selectedStoreRef.current) return
+      setCatalogVersions(versions)
+      setCatalogHistoryStatus('loaded')
+    } catch (err) {
+      console.error('[goodsOrder] catalog history', err)
+      if (storeId === selectedStoreRef.current) setCatalogHistoryStatus('error')
+    }
+  }, [])
+
+  const restoreCatalogVersion = (version) => {
+    const restored = {
+      ...stripCatalogMeta(version),
+      orderStoreName:
+        stripCatalogMeta(version).orderStoreName || getDefaultOrderStoreName(selectedStore),
+    }
+    persistCatalog(selectedStore, restored)
+  }
+
+  const useRemoteCatalog = () => {
+    if (!catalogConflict) return
+    if (catalogDebounceRef.current) clearTimeout(catalogDebounceRef.current)
+    const remote = catalogConflict.remoteData
+    const next = {
+      ...stripCatalogMeta(remote),
+      orderStoreName:
+        stripCatalogMeta(remote).orderStoreName || getDefaultOrderStoreName(selectedStore),
+      _clientUpdatedAt: getUpdatedAt(remote) || Date.now(),
+      _updatedAt: remote._updatedAt,
+      _updatedBy: getUpdatedBy(remote),
+      _revision: getRevision(remote),
+      _syncVersion: remote._syncVersion,
+    }
+    catalogDirtyRef.current[selectedStore] = false
+    catalogEditGroupRef.current[selectedStore] = false
+    delete catalogUndoRef.current[selectedStore]
+    setCatalogCanUndo(false)
+    catalogBaseRef.current[selectedStore] = next
+    catalogLatestRef.current = next
+    setCatalogForStore(selectedStore, next)
+    setCatalogConflict(null)
+    setCatalogSaveStatus('saved')
+  }
+
+  const keepMergedCatalog = () => {
+    if (!catalogConflict) return
+    const { storeId, remoteData, mergedCatalog } = catalogConflict
+    catalogBaseRef.current[storeId] = remoteData
+    catalogLatestRef.current = mergedCatalog
+    setCatalogForStore(storeId, mergedCatalog)
+    setCatalogConflict(null)
+    persistCatalog(storeId, mergedCatalog, { captureUndo: false, force: true })
   }
 
   const activeItems = useMemo(
@@ -529,13 +737,13 @@ function GoodsOrderManager() {
         },
       },
     }
-    markCountsDirty(selectedStore, next)
+    markCountsDirty(selectedStore, next, { itemId })
   }
 
   const clearEnteredCounts = () => {
     const empty = createEmptyCounts()
     countsLatestRef.current = empty
-    markCountsDirty(selectedStore, empty)
+    markCountsDirty(selectedStore, empty, { replaceAll: true })
     setFilter('all')
     setFocusedItemId(null)
     setSnapshotRetryPayload(null)
@@ -861,6 +1069,7 @@ function GoodsOrderManager() {
             {localVersionAt ? (
               <span className="mr-1">
                 {syncStatus === 'synced' ? '雲端版本' : '本機變更'} {formatVersionTime(localVersionAt)}
+                {getUpdatedBy(countsDoc)?.name ? ` · ${getUpdatedBy(countsDoc).name}` : ''}
               </span>
             ) : null}
             <CwButton
@@ -1288,8 +1497,20 @@ function GoodsOrderManager() {
         validation={catalogValidation}
         saveStatus={catalogSaveStatus}
         canUndo={catalogCanUndo}
+        actorName={actorName}
+        lastUpdatedAt={getUpdatedAt(catalog)}
+        lastUpdatedBy={getUpdatedBy(catalog)}
+        revision={getRevision(catalog)}
+        versions={catalogVersions}
+        historyStatus={catalogHistoryStatus}
+        conflict={catalogConflict}
         onUndo={undoCatalogChange}
         onRetrySave={retryCatalogSave}
+        onChangeActorName={setActorName}
+        onLoadVersions={loadCatalogHistory}
+        onRestoreVersion={restoreCatalogVersion}
+        onKeepMerged={keepMergedCatalog}
+        onUseRemote={useRemoteCatalog}
         onClose={() => setShowSettings(false)}
         onChangeOrderStoreName={(name) =>
           persistCatalog(selectedStore, { ...catalog, orderStoreName: name })
@@ -1339,7 +1560,7 @@ function GoodsOrderManager() {
         onMerge={() => {
           if (!conflict) return
           const merged = mergeCountsData(countsLatestRef.current, conflict.remoteData)
-          markCountsDirty(conflict.storeId, merged)
+          markCountsDirty(conflict.storeId, merged, { replaceAll: true })
           setConflict(null)
         }}
       />

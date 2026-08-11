@@ -4,6 +4,16 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.7.1',
+    date: '2026-08-11',
+    title: '多人盤點與品項版本保護',
+    items: [
+      '盤點改為逐品項同步，兩位使用者分工不同品項時不再互相覆蓋整份資料。',
+      '品項設定支援多人自動合併；相同欄位同時修改時會提示確認。',
+      '品項設定新增最後更新時間、裝置名稱、版本紀錄與安全還原。',
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-08-10',
     title: '點貨與回饋功能',

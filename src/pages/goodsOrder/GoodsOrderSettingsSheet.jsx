@@ -4,14 +4,16 @@ import {
   ArrowUpIcon,
   ArrowsUpDownIcon,
   ArrowUturnLeftIcon,
+  ClockIcon,
   ChevronDownIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { CwButton, CwInput } from '../../components/studio/ui'
+import { CwAlert, CwButton, CwInput } from '../../components/studio/ui'
 import { createItemId } from './goodsOrderConstants'
+import { formatVersionTime, getUpdatedAt, getUpdatedBy } from './goodsOrderSync'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -43,22 +45,37 @@ export function GoodsOrderSettingsSheet({
   validation,
   saveStatus,
   canUndo,
+  actorName,
+  lastUpdatedAt,
+  lastUpdatedBy,
+  revision,
+  versions,
+  historyStatus,
+  conflict,
   onClose,
   onUndo,
   onRetrySave,
   onChangeOrderStoreName,
   onChangeItems,
+  onChangeActorName,
+  onLoadVersions,
+  onRestoreVersion,
+  onKeepMerged,
+  onUseRemote,
 }) {
   const [draftName, setDraftName] = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [query, setQuery] = useState('')
   const [reorderMode, setReorderMode] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [restoreCandidateId, setRestoreCandidateId] = useState(null)
   const dialogRef = useRef(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return undefined
+    onLoadVersions?.()
     const previousOverflow = document.body.style.overflow
     const previousFocus = document.activeElement
     const handleKeyDown = (event) => {
@@ -96,7 +113,7 @@ export function GoodsOrderSettingsSheet({
         previousFocus.focus()
       }
     }
-  }, [open])
+  }, [open, onLoadVersions])
 
   if (!open) return null
 
@@ -106,6 +123,7 @@ export function GoodsOrderSettingsSheet({
     saved: '已自動儲存',
     invalid: `有 ${validation?.count || 0} 個欄位需要修正`,
     error: '自動儲存失敗',
+    conflict: '有其他人的修改待確認',
   }[saveStatus] || '自動儲存'
 
   const visibleItems = items
@@ -161,7 +179,13 @@ export function GoodsOrderSettingsSheet({
           <p className="mt-0.5 text-sm text-[var(--cw-text-muted)]">
             {storeName} · 僅本店 ·{' '}
             <span
-              className={saveStatus === 'error' || saveStatus === 'invalid' ? 'text-[var(--cw-danger)]' : ''}
+              className={
+                saveStatus === 'error' || saveStatus === 'invalid'
+                  ? 'text-[var(--cw-danger)]'
+                  : saveStatus === 'conflict'
+                    ? 'text-[var(--cw-warning)]'
+                    : ''
+              }
               role="status"
               aria-live="polite"
             >
@@ -191,7 +215,55 @@ export function GoodsOrderSettingsSheet({
         </div>
       </header>
 
+      {conflict ? (
+        <div className="shrink-0 border-b border-[var(--cw-border)] px-5 py-3">
+          <CwAlert variant="warning">
+            <div role="alert">
+              <p className="font-semibold">另一台裝置修改了相同設定</p>
+              <p className="mt-1 text-sm leading-relaxed">
+                已自動合併不同品項；仍有 {conflict.conflicts?.length || 1} 個相同欄位需要決定。無論選哪一個，目前雲端版本都會保留在版本紀錄。
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <CwButton type="button" variant="primary" onClick={onKeepMerged}>
+                  保留我的衝突欄位並合併
+                </CwButton>
+                <CwButton type="button" variant="secondary" onClick={onUseRemote}>
+                  使用最新雲端版本
+                </CwButton>
+              </div>
+            </div>
+          </CwAlert>
+        </div>
+      ) : null}
+
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <section className="mb-8 rounded-[var(--cw-radius-lg)] bg-[var(--cw-mega-surface)] p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 className="font-semibold text-[var(--cw-text)]">多人協作</h3>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--cw-text-muted)]">
+                不同品項會自動合併；同一欄位同時修改時會請你確認。
+              </p>
+            </div>
+            <span className="rounded-full border border-[var(--cw-border)] px-2.5 py-1 text-xs text-[var(--cw-text-muted)]">
+              {revision > 0 ? `版本 ${revision}` : '相容舊版資料'}
+            </span>
+          </div>
+          <CwInput
+            label="這台裝置的顯示名稱"
+            name="goods-order-actor-name"
+            autoComplete="off"
+            value={actorName}
+            onChange={(event) => onChangeActorName(event.target.value)}
+            placeholder="例如 D7 iPad、怡君手機…"
+            hint="其他使用者可用這個名稱辨認最後更新來源。"
+          />
+          <p className="mt-3 text-xs leading-relaxed text-[var(--cw-text-muted)]" role="status">
+            最後更新：{lastUpdatedAt ? formatVersionTime(lastUpdatedAt) : '尚無雲端紀錄'}
+            {lastUpdatedBy?.name ? ` · ${lastUpdatedBy.name}` : ''}
+          </p>
+        </section>
+
         <section className="mb-8">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--cw-text-muted)]">
             叫貨標題
@@ -425,6 +497,94 @@ export function GoodsOrderSettingsSheet({
               >
                 清除搜尋
               </button>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mt-8 border-t border-[var(--cw-border)] pt-6">
+          <button
+            type="button"
+            className="cw-touch-target flex w-full items-center justify-between gap-3 rounded-[var(--cw-radius)] px-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cw-focus-ring)]"
+            onClick={() => {
+              setHistoryOpen((value) => !value)
+              setRestoreCandidateId(null)
+              if (!historyOpen) onLoadVersions?.()
+            }}
+            aria-expanded={historyOpen}
+          >
+            <span className="flex items-center gap-2 font-semibold text-[var(--cw-text)]">
+              <ClockIcon className="h-5 w-5" aria-hidden="true" />
+              版本紀錄與還原
+            </span>
+            <ChevronDownIcon
+              className={`h-4 w-4 text-[var(--cw-text-muted)] transition-transform ${historyOpen ? '' : '-rotate-90'}`}
+              aria-hidden="true"
+            />
+          </button>
+
+          {historyOpen ? (
+            <div className="mt-3">
+              <p className="mb-3 text-xs leading-relaxed text-[var(--cw-text-muted)]">
+                還原不會刪除目前內容；系統會先保存目前版本，再建立一個新的還原版本。
+              </p>
+              {historyStatus === 'loading' ? (
+                <p className="py-5 text-center text-sm text-[var(--cw-text-muted)]">載入版本紀錄…</p>
+              ) : historyStatus === 'error' ? (
+                <div className="flex items-center justify-between gap-2 rounded-[var(--cw-radius)] border border-[var(--cw-danger)]/30 p-3 text-sm text-[var(--cw-danger)]">
+                  <span>無法載入版本紀錄</span>
+                  <CwButton type="button" variant="secondary" onClick={onLoadVersions}>重試</CwButton>
+                </div>
+              ) : versions.length === 0 ? (
+                <p className="rounded-[var(--cw-radius)] border border-dashed border-[var(--cw-border-strong)] px-3 py-5 text-center text-sm text-[var(--cw-text-muted)]">
+                  下一次設定儲存後，這裡會開始保留舊版本。
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {versions.map((version) => {
+                    const versionActor = getUpdatedBy(version)
+                    const selected = restoreCandidateId === version.id
+                    return (
+                      <li key={version.id} className="rounded-[var(--cw-radius)] border border-[var(--cw-border)] p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="min-w-0 text-sm">
+                            <p className="font-semibold text-[var(--cw-text)]">
+                              版本 {Number(version._revision) || 0}
+                            </p>
+                            <p className="mt-0.5 text-xs text-[var(--cw-text-muted)]">
+                              {formatVersionTime(getUpdatedAt(version))}
+                              {versionActor?.name ? ` · ${versionActor.name}` : ''}
+                              {` · ${(version.items || []).length} 項`}
+                            </p>
+                          </div>
+                          <CwButton
+                            type="button"
+                            variant="ghost"
+                            disabled={saveStatus === 'saving' || saveStatus === 'invalid'}
+                            onClick={() => setRestoreCandidateId(selected ? null : version.id)}
+                          >
+                            {selected ? '取消' : '選擇還原'}
+                          </CwButton>
+                        </div>
+                        {selected ? (
+                          <div className="mt-3 flex flex-col gap-2 border-t border-[var(--cw-border)] pt-3 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="text-xs text-[var(--cw-text-muted)]">確定以此內容建立新版本？</span>
+                            <CwButton
+                              type="button"
+                              variant="primary"
+                              onClick={() => {
+                                onRestoreVersion(version)
+                                setRestoreCandidateId(null)
+                              }}
+                            >
+                              還原此版本
+                            </CwButton>
+                          </div>
+                        ) : null}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </div>
           ) : null}
         </section>
