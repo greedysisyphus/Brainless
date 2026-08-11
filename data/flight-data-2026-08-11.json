@@ -560,7 +560,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -582,7 +582,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -687,5 +687,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:30 : D14R : BR261 (長榮航空)"
   ],
-  "updated_at": "2026-08-11T10:55:43.554727"
+  "updated_at": "2026-08-11T11:50:01.866810"
 }
