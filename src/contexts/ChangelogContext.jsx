@@ -4,6 +4,15 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '1.7.4',
+    date: '2026-08-11',
+    title: '手機數量輸入修正',
+    items: [
+      '叫貨量清空後會保持空白，可直接重新輸入，不再立刻跳回預設 1。',
+      '盤點量、叫貨量、最低庫存與預設叫貨欄位點入時會全選原數字，方便手機直接覆蓋。',
+    ],
+  },
+  {
     version: '1.7.3',
     date: '2026-08-11',
     title: '同步衝突重複彈出修正',

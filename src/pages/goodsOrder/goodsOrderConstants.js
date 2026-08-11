@@ -305,6 +305,7 @@ export function getCurrentQuantityError(item, countEntry) {
 
 export function getEffectiveOrderQty(item, countEntry) {
   const override = countEntry?.orderQty
+  if (override === '') return 0
   if (override !== '' && override != null && Number.isFinite(Number(override))) {
     return Number(override)
   }
@@ -313,7 +314,7 @@ export function getEffectiveOrderQty(item, countEntry) {
 
 export function getOrderQuantityError(item, countEntry) {
   const raw =
-    countEntry?.orderQty === '' || countEntry?.orderQty == null
+    countEntry?.orderQty == null
       ? item.defaultOrderQty
       : countEntry.orderQty
   const parsed = parseQuantity(raw)

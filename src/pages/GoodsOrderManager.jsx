@@ -109,6 +109,11 @@ function hasEnteredCount(entry = {}) {
   return entry.current !== '' && entry.current !== null && entry.current !== undefined
 }
 
+function selectQuantityOnFocus(event) {
+  // 手機點入已有數字時直接全選，可直接輸入新值；再次點擊仍可自行移動游標。
+  event.currentTarget.select()
+}
+
 function GoodsOrderManager() {
   const [selectedStore, setSelectedStore] = useState('central')
   const [filter, setFilter] = useState('all')
@@ -1049,7 +1054,8 @@ function GoodsOrderManager() {
 
   const handleOrderQtyChange = (item, raw) => {
     if (raw === '' || raw == null) {
-      patchCount(item.id, { orderQty: null })
+      // 空字串代表使用者正在重打；null 才代表尚未覆寫、採用品項預設值。
+      patchCount(item.id, { orderQty: '' })
       return
     }
     const stored = quantityInputToStored(raw, true)
@@ -1385,7 +1391,7 @@ function GoodsOrderManager() {
             rows.map(({ item, entry, status, currentError, orderError }, index) => {
               const currentDisplay = displayCurrentInput(entry.current)
               const orderDisplay =
-                entry.orderQty === '' || entry.orderQty == null
+                entry.orderQty == null
                   ? formatQuantity(getEffectiveOrderQty(item, entry))
                   : typeof entry.orderQty === 'string'
                     ? entry.orderQty
@@ -1437,8 +1443,11 @@ function GoodsOrderManager() {
                       autoComplete="off"
                       value={currentDisplay}
                       onChange={(event) => handleCurrentChange(item, event.target.value)}
+                      onFocus={(event) => {
+                        setFocusedItemId(item.id)
+                        selectQuantityOnFocus(event)
+                      }}
                       onKeyDown={(event) => handleCurrentKeyDown(event, item)}
-                      onFocus={() => setFocusedItemId(item.id)}
                       onBlur={() => setFocusedItemId((id) => (id === item.id ? null : id))}
                       placeholder="例如 0、1/2 或 1 1/2…"
                       aria-label={`${item.name} 現有數量`}
@@ -1490,6 +1499,7 @@ function GoodsOrderManager() {
                             value={orderDisplay}
                             aria-label={`${item.name} 叫貨量`}
                             error={orderError}
+                            onFocus={selectQuantityOnFocus}
                             onChange={(event) => handleOrderQtyChange(item, event.target.value)}
                           />
                         </div>
@@ -1533,7 +1543,7 @@ function GoodsOrderManager() {
             rows.map(({ item, entry, status, currentError, orderError }, index) => {
               const currentDisplay = displayCurrentInput(entry.current)
               const orderDisplay =
-                entry.orderQty === '' || entry.orderQty == null
+                entry.orderQty == null
                   ? formatQuantity(getEffectiveOrderQty(item, entry))
                   : typeof entry.orderQty === 'string'
                     ? entry.orderQty
@@ -1572,6 +1582,7 @@ function GoodsOrderManager() {
                         status === 'invalid' ? 'border-[var(--cw-danger)]' : ''
                       }`}
                       value={currentDisplay}
+                      onFocus={selectQuantityOnFocus}
                       onChange={(event) => handleCurrentChange(item, event.target.value)}
                       onKeyDown={(event) => handleCurrentKeyDown(event, item)}
                       aria-label={`${item.name} 現有數量`}
@@ -1600,6 +1611,7 @@ function GoodsOrderManager() {
                             orderError ? 'border-[var(--cw-danger)]' : ''
                           }`}
                           value={orderDisplay}
+                          onFocus={selectQuantityOnFocus}
                           onChange={(event) => handleOrderQtyChange(item, event.target.value)}
                           aria-label={`${item.name} 叫貨量`}
                           aria-invalid={Boolean(orderError)}

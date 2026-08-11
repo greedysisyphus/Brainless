@@ -445,6 +445,7 @@ export function GoodsOrderSettingsSheet({
                           inputMode="decimal"
                           autoComplete="off"
                           value={item.minStock}
+                          onFocus={(event) => event.currentTarget.select()}
                           onChange={(e) => updateItem(item.id, { minStock: e.target.value })}
                           error={validation?.itemErrors?.[item.id]?.minStock}
                         />
@@ -454,6 +455,7 @@ export function GoodsOrderSettingsSheet({
                           inputMode="decimal"
                           autoComplete="off"
                           value={item.defaultOrderQty}
+                          onFocus={(event) => event.currentTarget.select()}
                           onChange={(e) =>
                             updateItem(item.id, { defaultOrderQty: e.target.value })
                           }

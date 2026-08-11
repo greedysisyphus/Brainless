@@ -8,6 +8,10 @@ import {
   stripCountEntryMeta,
 } from '../src/pages/goodsOrder/goodsOrderSync.js'
 import {
+  getEffectiveOrderQty,
+  getOrderQuantityError,
+} from '../src/pages/goodsOrder/goodsOrderConstants.js'
+import {
   CountsConflictError,
   prepareCountsRevision,
 } from '../src/pages/goodsOrder/goodsOrderCollaboration.js'
@@ -216,4 +220,13 @@ test('清除全部前雲端版本已改變時停止交易', () => {
       error instanceof CountsConflictError &&
       error.conflicts.includes('counts.all')
   )
+})
+
+test('叫貨量清空後保持空白，不會立刻恢復預設值', () => {
+  const catalogItem = item('cup', '杯')
+  catalogItem.defaultOrderQty = 1
+
+  assert.equal(getEffectiveOrderQty(catalogItem, { orderQty: null }), 1)
+  assert.equal(getEffectiveOrderQty(catalogItem, { orderQty: '' }), 0)
+  assert.match(getOrderQuantityError(catalogItem, { orderQty: '' }), /請輸入有效的叫貨量/)
 })
