@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftIcon, Cog6ToothIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwAlert, CwBadge, CwButton, CwInput, CwModalFrame } from '../components/studio/ui'
 import { useLocalStorage } from '../hooks/useLocalStorage'
@@ -35,12 +35,13 @@ import { GoodsOrderSettingsSheet } from './goodsOrder/GoodsOrderSettingsSheet'
 import { GoodsOrderConflictModal, GoodsOrderSyncBanner } from './goodsOrder/GoodsOrderSyncUI'
 import {
   CatalogConflictError,
+  CountsConflictError,
   GOODS_ORDER_ACTOR_NAME_KEY,
-  GOODS_ORDER_SYNC_VERSION,
   getDefaultActorName,
   getOrCreateGoodsOrderActorId,
   loadCatalogVersions,
   saveCatalogRevision,
+  saveCountsRevision,
 } from './goodsOrder/goodsOrderCollaboration'
 import {
   COUNTS_SYNC_DEBOUNCE_MS,
@@ -49,10 +50,13 @@ import {
   getRevision,
   getUpdatedAt,
   getUpdatedBy,
+  hasCountsPending,
   mergeCountsData,
   mergeCountsWithPending,
+  normalizeCountsPending,
   resolveCountsSnapshot,
   stripCatalogMeta,
+  stripCountEntryMeta,
   stripSyncMeta,
 } from './goodsOrder/goodsOrderSync'
 import { buildOrderLines } from './goodsOrder/goodsOrderText'
@@ -61,6 +65,27 @@ const BC = [
   { label: 'Brainless', href: '#/sandwich' },
   { label: '貨物叫貨（測試）', href: '#/goods-order-test' },
 ]
+
+const countsPendingStorageKey = (storeId) => `goodsOrderCountsPending_v2_${storeId}`
+const catalogDraftStorageKey = (storeId) => `goodsOrderCatalogDraft_v2_${storeId}`
+
+function readLocalRecord(key) {
+  try {
+    const value = window.localStorage.getItem(key)
+    return value ? JSON.parse(value) : null
+  } catch {
+    return null
+  }
+}
+
+function writeLocalRecord(key, value) {
+  try {
+    if (value == null) window.localStorage.removeItem(key)
+    else window.localStorage.setItem(key, JSON.stringify(value))
+  } catch (error) {
+    console.error('[goodsOrder] local sync state', error)
+  }
+}
 
 /** iPad 表：品名 | 現有 | 最低 | 叫貨 | 狀態 | 操作 — 表頭與列共用 */
 const TABLE_GRID =
@@ -156,46 +181,57 @@ function GoodsOrderManager() {
 
   const setCatalogForStore = useCallback(
     (storeId, next) => {
-      const value = typeof next === 'function'
-        ? next(
-            storeId === 'd7' ? catalogD7 : storeId === 'd13' ? catalogD13 : catalogCentral
-          )
-        : next
-      if (storeId === 'd7') setCatalogD7(value)
-      else if (storeId === 'd13') setCatalogD13(value)
-      else setCatalogCentral(value)
+      const apply = (previous) => (typeof next === 'function' ? next(previous) : next)
+      if (storeId === 'd7') setCatalogD7(apply)
+      else if (storeId === 'd13') setCatalogD13(apply)
+      else setCatalogCentral(apply)
     },
-    [catalogCentral, catalogD7, catalogD13, setCatalogCentral, setCatalogD7, setCatalogD13]
+    [setCatalogCentral, setCatalogD7, setCatalogD13]
   )
 
   const setCountsForStore = useCallback(
     (storeId, next) => {
-      const prev =
-        storeId === 'd7' ? countsD7 : storeId === 'd13' ? countsD13 : countsCentral
-      const value = typeof next === 'function' ? next(prev) : next
-      if (storeId === 'd7') setCountsD7(value)
-      else if (storeId === 'd13') setCountsD13(value)
-      else setCountsCentral(value)
-      return value
+      const apply = (previous) => (typeof next === 'function' ? next(previous) : next)
+      if (storeId === 'd7') setCountsD7(apply)
+      else if (storeId === 'd13') setCountsD13(apply)
+      else setCountsCentral(apply)
     },
-    [countsCentral, countsD7, countsD13, setCountsCentral, setCountsD7, setCountsD13]
+    [setCountsCentral, setCountsD7, setCountsD13]
   )
 
   const countsMetaRef = useRef({})
   const countsLatestRef = useRef(countsDoc)
   const countsUnsubRef = useRef(null)
-  const countsDebounceRef = useRef(null)
+  const countsDebounceRef = useRef({})
   const prevStoreRef = useRef(selectedStore)
   const selectedStoreRef = useRef(selectedStore)
-  const catalogDebounceRef = useRef(null)
+  const catalogDebounceRef = useRef({})
   const catalogLatestRef = useRef(catalog)
-  const catalogBaseRef = useRef({})
+  const catalogBaseRef = useRef(
+    Object.fromEntries(
+      STORES.map(({ id }) => [id, readLocalRecord(catalogDraftStorageKey(id))?.baseCatalog || null])
+    )
+  )
   const catalogRemotePendingRef = useRef({})
   const catalogUndoRef = useRef({})
   const catalogEditGroupRef = useRef({})
   const catalogEditVersionRef = useRef({})
-  const catalogDirtyRef = useRef({})
-  const countsPendingRef = useRef({})
+  const catalogDirtyRef = useRef(
+    Object.fromEntries(
+      STORES.map(({ id }) => [id, !!readLocalRecord(catalogDraftStorageKey(id))?.dirty])
+    )
+  )
+  const countsPendingRef = useRef(
+    Object.fromEntries(
+      STORES.map(({ id }) => [
+        id,
+        normalizeCountsPending(readLocalRecord(countsPendingStorageKey(id))),
+      ])
+    )
+  )
+  const countsConflictRef = useRef({})
+  const countsResumeRef = useRef({})
+  const catalogResumeRef = useRef({})
   const quantityInputRefs = useRef({})
 
   const getVisibleInputRef = (refs, itemId) => {
@@ -236,24 +272,45 @@ function GoodsOrderManager() {
           ? 'error'
           : 'idle'
     )
+    const savedCountsConflict = countsConflictRef.current[selectedStore] || null
+    setConflict(savedCountsConflict)
+    if (savedCountsConflict) setSyncStatus('conflict')
   }, [selectedStore])
 
   const getCountsMeta = (storeId) => {
     if (!countsMetaRef.current[storeId]) {
       countsMetaRef.current[storeId] = createCountsSyncMeta()
+      const pending = getCountsPending(storeId)
+      if (hasCountsPending(pending)) {
+        countsMetaRef.current[storeId].isDirty = true
+        countsMetaRef.current[storeId].lastLocalEditAt = Math.max(
+          Number(pending.editAt) || 0,
+          ...Object.values(pending.items).map((item) => Number(item.editAt) || 0)
+        )
+      }
     }
     return countsMetaRef.current[storeId]
   }
 
   const getCountsPending = (storeId) => {
     if (!countsPendingRef.current[storeId]) {
-      countsPendingRef.current[storeId] = { replaceAll: false, items: {} }
+      countsPendingRef.current[storeId] = normalizeCountsPending(
+        readLocalRecord(countsPendingStorageKey(storeId))
+      )
     }
     return countsPendingRef.current[storeId]
   }
 
+  const persistCountsPending = (storeId) => {
+    const pending = getCountsPending(storeId)
+    writeLocalRecord(
+      countsPendingStorageKey(storeId),
+      hasCountsPending(pending) ? pending : null
+    )
+  }
+
   const flushCountsSync = useCallback(
-    async (storeId = selectedStore, override = null) => {
+    async (storeId = selectedStore, override = null, { force = false } = {}) => {
       const fromState =
         storeId === 'd7' ? countsD7 : storeId === 'd13' ? countsD13 : countsCentral
       const inv =
@@ -261,54 +318,77 @@ function GoodsOrderManager() {
         (storeId === selectedStore ? countsLatestRef.current : null) ??
         fromState
       const pending = getCountsPending(storeId)
-      const capturedItems = { ...pending.items }
-      const capturedReplaceAll = pending.replaceAll
-      const now = Date.now()
-      const basePayload = {
-        _syncVersion: GOODS_ORDER_SYNC_VERSION,
-        _clientUpdatedAt: now,
-        _updatedAt: serverTimestamp(),
-        _updatedBy: syncActor,
+      if (!hasCountsPending(pending)) return null
+      const capturedPending = {
+        replaceAll: pending.replaceAll,
+        editAt: pending.editAt,
+        baseRevision: pending.baseRevision,
+        baseUpdatedAt: pending.baseUpdatedAt,
+        items: Object.fromEntries(
+          Object.entries(pending.items).map(([itemId, record]) => [itemId, { ...record }])
+        ),
       }
-
-      if (capturedReplaceAll) {
-        await setDoc(doc(db, 'settings', getCountsDocId(storeId)), {
-          ...stripSyncMeta(inv),
-          ...basePayload,
+      let saved
+      try {
+        saved = await saveCountsRevision({
+          db,
+          countsDocId: getCountsDocId(storeId),
+          nextCounts: stripSyncMeta(inv),
+          pending: capturedPending,
+          actor: syncActor,
+          force,
         })
-      } else {
-        const itemIds = Object.keys(capturedItems)
-        if (itemIds.length === 0) return
-        const partialCounts = {}
-        itemIds.forEach((itemId) => {
-          const entry = inv.counts?.[itemId] || {}
-          partialCounts[itemId] = {
-            ...entry,
-            _clientUpdatedAt: capturedItems[itemId],
-            _updatedBy: syncActor,
+      } catch (err) {
+        if (err instanceof CountsConflictError) {
+          const nextConflict = {
+            storeId,
+            storeName: getStoreName(storeId),
+            remoteData: err.remoteData,
+            remoteUpdatedAt: getUpdatedAt(err.remoteData),
+            localUpdatedAt: getCountsMeta(storeId).lastLocalEditAt,
+            conflicts: err.conflicts,
           }
-        })
-        // merge:true 只更新這批品項；其他使用者正在盤的品項不會被整份覆蓋。
-        await setDoc(
-          doc(db, 'settings', getCountsDocId(storeId)),
-          { counts: partialCounts, ...basePayload },
-          { merge: true }
-        )
+          countsConflictRef.current[storeId] = nextConflict
+          if (storeId === selectedStoreRef.current) {
+            setConflict(nextConflict)
+            setSyncStatus('conflict')
+          }
+          return null
+        }
+        throw err
       }
 
       const livePending = getCountsPending(storeId)
-      if (capturedReplaceAll && livePending.replaceAll) livePending.replaceAll = false
-      Object.entries(capturedItems).forEach(([itemId, editAt]) => {
-        if (livePending.items[itemId] === editAt) delete livePending.items[itemId]
+      if (
+        capturedPending.replaceAll &&
+        livePending.replaceAll &&
+        livePending.editAt === capturedPending.editAt
+      ) {
+        livePending.replaceAll = false
+      }
+      Object.entries(capturedPending.items).forEach(([itemId, record]) => {
+        if (livePending.items[itemId]?.editAt === record.editAt) {
+          delete livePending.items[itemId]
+        } else if (livePending.items[itemId]) {
+          // 同一品項在交易進行中又輸入一次：第二次修改應以本次剛寫入的值為新基準，
+          // 否則下一次送出會把自己的前一次寫入誤判為他人衝突。
+          livePending.items[itemId].baseEntry = stripCountEntryMeta(saved.counts?.[itemId])
+        }
       })
+      livePending.baseRevision = getRevision(saved)
+      livePending.baseUpdatedAt = getUpdatedAt(saved)
+      delete countsConflictRef.current[storeId]
+      persistCountsPending(storeId)
       const meta = getCountsMeta(storeId)
-      meta.lastSyncedToCloudAt = now
-      meta.isDirty = livePending.replaceAll || Object.keys(livePending.items).length > 0
+      meta.lastSyncedToCloudAt = getUpdatedAt(saved)
+      meta.isDirty = hasCountsPending(livePending)
       meta.hasReceivedInitialRemote = true
       if (storeId === selectedStore) {
+        setConflict(null)
         setSyncStatus(meta.isDirty ? 'syncing' : 'synced')
-        setLocalVersionAt(now)
+        setLocalVersionAt(getUpdatedAt(saved))
       }
+      return saved
     },
     [countsCentral, countsD7, countsD13, selectedStore, syncActor]
   )
@@ -319,31 +399,62 @@ function GoodsOrderManager() {
       meta.isDirty = true
       meta.lastLocalEditAt = Date.now()
       const pending = getCountsPending(storeId)
+      pending.editAt = meta.lastLocalEditAt
+      if (!hasCountsPending(pending)) {
+        pending.baseRevision = getRevision(countsLatestRef.current)
+        pending.baseUpdatedAt = getUpdatedAt(countsLatestRef.current)
+      }
       if (replaceAll) {
         pending.replaceAll = true
         pending.items = {}
       } else if (itemId) {
-        pending.items[itemId] = meta.lastLocalEditAt
+        const previous = pending.items[itemId]
+        pending.items[itemId] = {
+          editAt: meta.lastLocalEditAt,
+          baseEntry: previous?.baseEntry || stripCountEntryMeta(
+            countsLatestRef.current?.counts?.[itemId]
+          ),
+        }
       }
       setLocalVersionAt(meta.lastLocalEditAt)
       const localDoc = {
         ...stripSyncMeta(nextCounts),
         _clientUpdatedAt: meta.lastLocalEditAt,
         _updatedBy: syncActor,
+        _revision: getRevision(countsLatestRef.current),
       }
+      // useLocalStorage 會在 effect 寫入；同步狀態需在關頁前立即落盤，避免 debounce 視窗遺失。
+      writeLocalRecord(getCountsStorageKey(storeId), localDoc)
+      persistCountsPending(storeId)
       if (storeId === selectedStoreRef.current) countsLatestRef.current = localDoc
       setCountsForStore(storeId, localDoc)
-      setSyncStatus('syncing')
-      if (countsDebounceRef.current) clearTimeout(countsDebounceRef.current)
-      countsDebounceRef.current = setTimeout(() => {
+      setSyncStatus(navigator.onLine ? 'syncing' : 'offline')
+      if (countsDebounceRef.current[storeId]) clearTimeout(countsDebounceRef.current[storeId])
+      countsDebounceRef.current[storeId] = setTimeout(() => {
+        countsDebounceRef.current[storeId] = null
         flushCountsSync(storeId).catch((err) => {
           console.error('[goodsOrder] counts sync failed', err)
-          setSyncStatus('error')
+          setSyncStatus(navigator.onLine ? 'error' : 'offline')
         })
       }, COUNTS_SYNC_DEBOUNCE_MS)
     },
     [flushCountsSync, setCountsForStore, syncActor]
   )
+
+  // 重新整理後若 localStorage 還有待同步品項，自動接續交易，不先用雲端覆蓋草稿。
+  useEffect(() => {
+    const pending = getCountsPending(selectedStore)
+    if (!hasCountsPending(pending) || countsResumeRef.current[selectedStore]) return undefined
+    countsResumeRef.current[selectedStore] = true
+    setSyncStatus(navigator.onLine ? 'syncing' : 'offline')
+    const timer = window.setTimeout(() => {
+      flushCountsSync(selectedStore).catch((err) => {
+        console.error('[goodsOrder] resume counts sync', err)
+        setSyncStatus(navigator.onLine ? 'error' : 'offline')
+      })
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [selectedStore])
 
   // 切店 flush
   useEffect(() => {
@@ -359,7 +470,7 @@ function GoodsOrderManager() {
       }
     }
     prevStoreRef.current = selectedStore
-    setConflict(null)
+    setConflict(countsConflictRef.current[selectedStore] || null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore])
 
@@ -393,13 +504,22 @@ function GoodsOrderManager() {
             raw,
             Object.keys(pending.items)
           )
-          setCountsForStore(storeId, {
+          const nextLocal = {
             ...merged,
             _clientUpdatedAt: Math.max(remoteUpdatedAt, meta.lastLocalEditAt),
             _updatedBy: getUpdatedBy(raw),
-          })
+            _revision: getRevision(raw),
+          }
+          countsLatestRef.current = nextLocal
+          setCountsForStore(storeId, nextLocal)
           meta.hasReceivedInitialRemote = true
           meta.lastAppliedRemoteAt = remoteUpdatedAt
+          return
+        }
+        if (meta.isDirty && pending.replaceAll) {
+          // 全量清除／合併的衝突由 Firestore transaction 的 revision 檢查決定，
+          // 不用不同裝置的本機時鐘猜測，離線時也不覆蓋本機草稿。
+          meta.hasReceivedInitialRemote = true
           return
         }
         const decision = resolveCountsSnapshot({
@@ -412,22 +532,27 @@ function GoodsOrderManager() {
 
         if (decision === 'ignore') return
         if (decision === 'conflict') {
-          setConflict({
+          const nextConflict = {
             storeId,
             storeName: getStoreName(storeId),
             remoteData: raw,
             remoteUpdatedAt,
             localUpdatedAt: meta.lastLocalEditAt || getUpdatedAt(countsLatestRef.current),
-          })
+          }
+          countsConflictRef.current[storeId] = nextConflict
+          setConflict(nextConflict)
           setSyncStatus('conflict')
           return
         }
 
-        setCountsForStore(storeId, {
+        const nextRemote = {
           ...stripSyncMeta(raw),
           _clientUpdatedAt: remoteUpdatedAt || Date.now(),
           _updatedBy: getUpdatedBy(raw),
-        })
+          _revision: getRevision(raw),
+        }
+        countsLatestRef.current = nextRemote
+        setCountsForStore(storeId, nextRemote)
         meta.lastAppliedRemoteAt = remoteUpdatedAt
         if (!meta.isDirty) {
           meta.lastSyncedToCloudAt = Math.max(meta.lastSyncedToCloudAt, remoteUpdatedAt)
@@ -475,9 +600,13 @@ function GoodsOrderManager() {
           }
           setCatalogForStore(storeId, upgraded)
           catalogBaseRef.current[storeId] = upgraded
-          setDoc(snap.ref, upgraded).catch((err) =>
-            console.error('[goodsOrder] default catalog upgrade', err)
-          )
+          saveCatalogRevision({
+            db,
+            catalogDocId: getCatalogDocId(storeId),
+            baseCatalog: data,
+            nextCatalog: upgraded,
+            actor: syncActor,
+          }).catch((err) => console.error('[goodsOrder] default catalog upgrade', err))
           return
         }
         const nextCatalog = {
@@ -501,7 +630,7 @@ function GoodsOrderManager() {
       mounted = false
       unsub()
     }
-  }, [selectedStore, setCatalogForStore])
+  }, [selectedStore, setCatalogForStore, syncActor])
 
   const persistCatalog = useCallback(
     (storeId, nextCatalog, { captureUndo = true, force = false } = {}) => {
@@ -519,8 +648,16 @@ function GoodsOrderManager() {
         (catalogEditVersionRef.current[storeId] || 0) + 1
       const editVersion = catalogEditVersionRef.current[storeId]
       catalogLatestRef.current = nextCatalog
+      writeLocalRecord(getCatalogStorageKey(storeId), nextCatalog)
       setCatalogForStore(storeId, nextCatalog)
-      if (catalogDebounceRef.current) clearTimeout(catalogDebounceRef.current)
+      writeLocalRecord(catalogDraftStorageKey(storeId), {
+        dirty: true,
+        baseCatalog: catalogBaseRef.current[storeId],
+        updatedAt: Date.now(),
+      })
+      if (catalogDebounceRef.current[storeId]) {
+        clearTimeout(catalogDebounceRef.current[storeId])
+      }
 
       const validation = validateCatalog(nextCatalog)
       if (validation.count > 0) {
@@ -529,7 +666,8 @@ function GoodsOrderManager() {
       }
 
       if (storeId === selectedStoreRef.current) setCatalogSaveStatus('saving')
-      catalogDebounceRef.current = setTimeout(async () => {
+      catalogDebounceRef.current[storeId] = setTimeout(async () => {
+        catalogDebounceRef.current[storeId] = null
         const normalized = {
           ...nextCatalog,
           orderStoreName: String(nextCatalog.orderStoreName).trim(),
@@ -555,6 +693,7 @@ function GoodsOrderManager() {
           catalogRemotePendingRef.current[storeId] = null
           if (catalogEditVersionRef.current[storeId] === editVersion) {
             catalogDirtyRef.current[storeId] = false
+            writeLocalRecord(catalogDraftStorageKey(storeId), null)
             catalogEditGroupRef.current[storeId] = false
             catalogLatestRef.current = saved
             setCatalogForStore(storeId, saved)
@@ -562,6 +701,13 @@ function GoodsOrderManager() {
               setCatalogSaveStatus('saved')
               setCatalogConflict(null)
             }
+          } else {
+            // 儲存期間又有新輸入：把剛完成的版本設為下一次送出的共同基準。
+            writeLocalRecord(catalogDraftStorageKey(storeId), {
+              dirty: true,
+              baseCatalog: saved,
+              updatedAt: Date.now(),
+            })
           }
         } catch (err) {
           if (err instanceof CatalogConflictError) {
@@ -584,6 +730,50 @@ function GoodsOrderManager() {
     },
     [setCatalogForStore, syncActor]
   )
+
+  // 品項設定在關頁前尚未送出時，重新開啟會保留草稿並自動續傳。
+  useEffect(() => {
+    if (!catalogDirtyRef.current[selectedStore] || catalogResumeRef.current[selectedStore]) {
+      return undefined
+    }
+    catalogResumeRef.current[selectedStore] = true
+    if (validateCatalog(catalog).count > 0) {
+      setCatalogSaveStatus('invalid')
+      return undefined
+    }
+    const timer = window.setTimeout(() => {
+      persistCatalog(selectedStore, catalogLatestRef.current, { captureUndo: false })
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [selectedStore])
+
+  useEffect(() => {
+    const handleOffline = () => {
+      if (getCountsMeta(selectedStore).isDirty) setSyncStatus('offline')
+    }
+    const handleOnline = () => {
+      const pending = getCountsPending(selectedStore)
+      if (hasCountsPending(pending)) {
+        setSyncStatus('syncing')
+        flushCountsSync(selectedStore).catch((err) => {
+          console.error('[goodsOrder] online counts sync', err)
+          setSyncStatus('error')
+        })
+      }
+      if (
+        catalogDirtyRef.current[selectedStore] &&
+        validateCatalog(catalogLatestRef.current).count === 0
+      ) {
+        persistCatalog(selectedStore, catalogLatestRef.current, { captureUndo: false })
+      }
+    }
+    window.addEventListener('offline', handleOffline)
+    window.addEventListener('online', handleOnline)
+    return () => {
+      window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [selectedStore, flushCountsSync, persistCatalog])
 
   const undoCatalogChange = () => {
     const previous = catalogUndoRef.current[selectedStore]
@@ -623,25 +813,31 @@ function GoodsOrderManager() {
 
   const useRemoteCatalog = () => {
     if (!catalogConflict) return
-    if (catalogDebounceRef.current) clearTimeout(catalogDebounceRef.current)
+    const conflictStoreId = catalogConflict.storeId
+    if (catalogDebounceRef.current[conflictStoreId]) {
+      clearTimeout(catalogDebounceRef.current[conflictStoreId])
+      catalogDebounceRef.current[conflictStoreId] = null
+    }
     const remote = catalogConflict.remoteData
     const next = {
       ...stripCatalogMeta(remote),
       orderStoreName:
-        stripCatalogMeta(remote).orderStoreName || getDefaultOrderStoreName(selectedStore),
+        stripCatalogMeta(remote).orderStoreName || getDefaultOrderStoreName(conflictStoreId),
       _clientUpdatedAt: getUpdatedAt(remote) || Date.now(),
       _updatedAt: remote._updatedAt,
       _updatedBy: getUpdatedBy(remote),
       _revision: getRevision(remote),
       _syncVersion: remote._syncVersion,
     }
-    catalogDirtyRef.current[selectedStore] = false
-    catalogEditGroupRef.current[selectedStore] = false
-    delete catalogUndoRef.current[selectedStore]
+    catalogDirtyRef.current[conflictStoreId] = false
+    catalogEditGroupRef.current[conflictStoreId] = false
+    writeLocalRecord(catalogDraftStorageKey(conflictStoreId), null)
+    delete catalogUndoRef.current[conflictStoreId]
     setCatalogCanUndo(false)
-    catalogBaseRef.current[selectedStore] = next
+    catalogBaseRef.current[conflictStoreId] = next
     catalogLatestRef.current = next
-    setCatalogForStore(selectedStore, next)
+    writeLocalRecord(getCatalogStorageKey(conflictStoreId), next)
+    setCatalogForStore(conflictStoreId, next)
     setCatalogConflict(null)
     setCatalogSaveStatus('saved')
   }
@@ -653,7 +849,8 @@ function GoodsOrderManager() {
     catalogLatestRef.current = mergedCatalog
     setCatalogForStore(storeId, mergedCatalog)
     setCatalogConflict(null)
-    persistCatalog(storeId, mergedCatalog, { captureUndo: false, force: true })
+    // 確認當下仍重新讀取交易中的最新版本；若第三台裝置又修改，會再次合併／提示。
+    persistCatalog(storeId, mergedCatalog, { captureUndo: false })
   }
 
   const activeItems = useMemo(
@@ -1540,17 +1737,39 @@ function GoodsOrderManager() {
         localUpdatedAt={conflict?.localUpdatedAt}
         remoteUpdatedAt={conflict?.remoteUpdatedAt}
         onKeepLocal={() => {
+          if (conflict) delete countsConflictRef.current[conflict.storeId]
           setConflict(null)
-          flushCountsSync(selectedStore).catch(() => setSyncStatus('error'))
+          flushCountsSync(selectedStore, null, { force: true }).catch(() =>
+            setSyncStatus(navigator.onLine ? 'error' : 'offline')
+          )
         }}
         onUseRemote={() => {
           if (!conflict) return
           const meta = getCountsMeta(conflict.storeId)
-          setCountsForStore(conflict.storeId, {
+          delete countsConflictRef.current[conflict.storeId]
+          if (countsDebounceRef.current[conflict.storeId]) {
+            clearTimeout(countsDebounceRef.current[conflict.storeId])
+            countsDebounceRef.current[conflict.storeId] = null
+          }
+          const pending = getCountsPending(conflict.storeId)
+          pending.replaceAll = false
+          pending.editAt = 0
+          pending.baseRevision = getRevision(conflict.remoteData)
+          pending.baseUpdatedAt = getUpdatedAt(conflict.remoteData)
+          pending.items = {}
+          persistCountsPending(conflict.storeId)
+          const nextRemote = {
             ...stripSyncMeta(conflict.remoteData),
             _clientUpdatedAt: conflict.remoteUpdatedAt || Date.now(),
-          })
+            _updatedBy: getUpdatedBy(conflict.remoteData),
+            _revision: getRevision(conflict.remoteData),
+          }
+          countsLatestRef.current = nextRemote
+          writeLocalRecord(getCountsStorageKey(conflict.storeId), nextRemote)
+          setCountsForStore(conflict.storeId, nextRemote)
           meta.isDirty = false
+          meta.hasReceivedInitialRemote = true
+          meta.lastLocalEditAt = 0
           meta.lastSyncedToCloudAt = conflict.remoteUpdatedAt
           meta.lastAppliedRemoteAt = conflict.remoteUpdatedAt
           setConflict(null)
@@ -1559,7 +1778,13 @@ function GoodsOrderManager() {
         }}
         onMerge={() => {
           if (!conflict) return
+          delete countsConflictRef.current[conflict.storeId]
           const merged = mergeCountsData(countsLatestRef.current, conflict.remoteData)
+          countsLatestRef.current = {
+            ...merged,
+            _revision: getRevision(conflict.remoteData),
+            _clientUpdatedAt: getUpdatedAt(conflict.remoteData),
+          }
           markCountsDirty(conflict.storeId, merged, { replaceAll: true })
           setConflict(null)
         }}

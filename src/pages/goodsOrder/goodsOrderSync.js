@@ -20,6 +20,41 @@ export function stripSyncMeta(data) {
   }
 }
 
+export function stripCountEntryMeta(entry) {
+  if (!entry || typeof entry !== 'object') return {}
+  const { _clientUpdatedAt, _updatedBy, ...rest } = entry
+  return rest
+}
+
+export function normalizeCountsPending(value, fallbackRevision = 0) {
+  const raw = value && typeof value === 'object' ? value : {}
+  const items = {}
+  Object.entries(raw.items && typeof raw.items === 'object' ? raw.items : {}).forEach(
+    ([itemId, pending]) => {
+      const record = pending && typeof pending === 'object'
+        ? pending
+        : { editAt: Number(pending) || 0 }
+      items[itemId] = {
+        editAt: Number(record.editAt) || 0,
+        baseEntry: stripCountEntryMeta(record.baseEntry),
+      }
+    }
+  )
+  return {
+    replaceAll: !!raw.replaceAll,
+    editAt: Number(raw.editAt) || 0,
+    baseRevision: Number.isFinite(Number(raw.baseRevision))
+      ? Number(raw.baseRevision)
+      : fallbackRevision,
+    baseUpdatedAt: Number(raw.baseUpdatedAt) || 0,
+    items,
+  }
+}
+
+export function hasCountsPending(pending) {
+  return !!pending?.replaceAll || Object.keys(pending?.items || {}).length > 0
+}
+
 export function stripCatalogMeta(data) {
   if (!data || typeof data !== 'object') {
     return { catalogVersion: 0, items: [], orderStoreName: '' }
@@ -115,6 +150,40 @@ function mapItems(items) {
   return new Map((Array.isArray(items) ? items : []).map((item) => [item.id, item]))
 }
 
+function mergeItemOrder(baseOrder, localOrder, remoteOrder, conflicts) {
+  if (valuesEqual(localOrder, remoteOrder)) return [...localOrder]
+  if (valuesEqual(localOrder, baseOrder)) return [...remoteOrder]
+  if (valuesEqual(remoteOrder, baseOrder)) return [...localOrder]
+
+  const baseIds = new Set(baseOrder)
+  const localExisting = localOrder.filter((id) => baseIds.has(id))
+  const remoteExisting = remoteOrder.filter((id) => baseIds.has(id))
+  const baseStillPresent = baseOrder.filter(
+    (id) => localExisting.includes(id) && remoteExisting.includes(id)
+  )
+  const localExistingCommon = localExisting.filter((id) => baseStillPresent.includes(id))
+  const remoteExistingCommon = remoteExisting.filter((id) => baseStillPresent.includes(id))
+
+  // 兩邊若只各自新增品項，保留共同舊順序並依序接上兩邊新增項目，不視為衝突。
+  if (
+    valuesEqual(localExistingCommon, baseStillPresent) &&
+    valuesEqual(remoteExistingCommon, baseStillPresent)
+  ) {
+    const merged = [...baseStillPresent]
+    ;[...localOrder, ...remoteOrder].forEach((id) => {
+      if (!merged.includes(id)) merged.push(id)
+    })
+    return merged
+  }
+
+  conflicts.push('items.order')
+  const merged = [...localOrder]
+  remoteOrder.forEach((id) => {
+    if (!merged.includes(id)) merged.push(id)
+  })
+  return merged
+}
+
 /**
  * 品項設定三方合併：不同品項／不同欄位會自動合併；同一欄位同時修改才列為衝突。
  * 衝突欄位暫以本機草稿呈現，必須由使用者確認後才會寫回。
@@ -166,11 +235,7 @@ export function mergeCatalogThreeWay(baseData, localData, remoteData) {
   const baseOrder = (base.items || []).map((item) => item.id)
   const localOrder = (local.items || []).map((item) => item.id)
   const remoteOrder = (remote.items || []).map((item) => item.id)
-  const chosenOrder = chooseThreeWay(baseOrder, localOrder, remoteOrder, 'items.order', conflicts)
-  const mergedOrder = [...chosenOrder]
-  ;[...localOrder, ...remoteOrder].forEach((id) => {
-    if (!mergedOrder.includes(id)) mergedOrder.push(id)
-  })
+  const mergedOrder = mergeItemOrder(baseOrder, localOrder, remoteOrder, conflicts)
 
   return {
     catalog: {
