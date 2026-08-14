@@ -246,14 +246,14 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "AC6536",
-          "airline_code": "AC",
-          "airline_name": "加拿大航空"
-        },
-        {
           "flight_code": "NH5850",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "AC6536",
+          "airline_code": "AC",
+          "airline_name": "加拿大航空"
         },
         {
           "flight_code": "NZ4944",
@@ -790,5 +790,5 @@
     "20:10 : D12 : JX32 (星宇航空)",
     "20:45 : D15R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-14T20:36:14.473972"
+  "updated_at": "2026-08-14T21:30:33.272032"
 }
