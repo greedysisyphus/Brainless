@@ -198,14 +198,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "LO5348",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
-        },
-        {
           "flight_code": "AC6535",
           "airline_code": "AC",
           "airline_name": "加拿大航空"
+        },
+        {
+          "flight_code": "LO5348",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         }
       ]
     },
@@ -643,14 +643,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "CZ7975",
-          "airline_code": "CZ",
-          "airline_name": "南方航空"
-        },
-        {
           "flight_code": "MU8903",
           "airline_code": "MU",
           "airline_name": "東方航空"
+        },
+        {
+          "flight_code": "CZ7975",
+          "airline_code": "CZ",
+          "airline_name": "南方航空"
         }
       ]
     },
@@ -847,5 +847,5 @@
     "20:45 : D15R : BR205 (長榮航空)",
     "23:30 : D13 : CI57 (中華航空)"
   ],
-  "updated_at": "2026-08-16T12:51:04.855092"
+  "updated_at": "2026-08-16T13:35:54.059744"
 }
