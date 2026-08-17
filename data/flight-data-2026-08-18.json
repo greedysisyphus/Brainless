@@ -221,14 +221,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "AC6543",
@@ -595,5 +595,5 @@
     "19:00 : D12 : BR809 (長榮航空)",
     "20:45 : D17 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-17T21:31:01.431536"
+  "updated_at": "2026-08-17T22:30:26.532794"
 }
