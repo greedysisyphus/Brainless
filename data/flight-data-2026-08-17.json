@@ -605,22 +605,6 @@
       ]
     },
     {
-      "time": "15:45",
-      "datetime": "2026-08-17T15:45:00",
-      "gate": "D15R",
-      "flight_code": "JX703",
-      "airline_code": "JX",
-      "airline_name": "星宇航空",
-      "type": "departure",
-      "airport_code": "DAD",
-      "city": "Da Nang",
-      "status": "準時ON TIME",
-      "aircraft": "A321-252",
-      "terminal": "2",
-      "destination": "Da Nang (DAD)",
-      "codeshare_flights": []
-    },
-    {
       "time": "16:25",
       "datetime": "2026-08-17T16:25:00",
       "gate": "D12",
@@ -639,6 +623,28 @@
           "flight_code": "ZH3402",
           "airline_code": "ZH",
           "airline_name": "深圳航空"
+        }
+      ]
+    },
+    {
+      "time": "16:40",
+      "datetime": "2026-08-17T16:40:00",
+      "gate": "D18",
+      "flight_code": "BR871",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "HKG",
+      "city": "Hong Kong",
+      "status": "準時ON TIME",
+      "aircraft": "B787-10",
+      "terminal": "2",
+      "destination": "Hong Kong (HKG)",
+      "codeshare_flights": [
+        {
+          "flight_code": "HX1831",
+          "airline_code": "HX",
+          "airline_name": "香港航空"
         }
       ]
     },
@@ -751,11 +757,11 @@
     "14:15 : D14R : JX713 (星宇航空)",
     "14:35 : D12 : CI108 (中華航空)",
     "14:50 : D17 : CI527 (中華航空)",
-    "15:45 : D15R : JX703 (星宇航空)",
     "16:25 : D12 : B7187 (立榮航空)",
+    "16:40 : D18 : BR871 (長榮航空)",
     "19:00 : D15R : BR809 (長榮航空)",
     "20:10 : D12 : JX32 (星宇航空)",
     "20:45 : D14R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-17T04:50:38.510077"
+  "updated_at": "2026-08-17T05:39:47.999901"
 }
