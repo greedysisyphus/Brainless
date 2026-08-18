@@ -286,14 +286,14 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "CA5512",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
-        },
-        {
           "flight_code": "B77016",
           "airline_code": "B7",
           "airline_name": "立榮航空"
+        },
+        {
+          "flight_code": "CA5512",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
         }
       ]
     },
@@ -448,14 +448,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8740",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
-        },
-        {
           "flight_code": "JL5048",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "QF8740",
+          "airline_code": "QF",
+          "airline_name": "澳洲航空"
         }
       ]
     },
@@ -550,7 +550,7 @@
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -629,5 +629,5 @@
     "19:00 : D12 : BR809 (長榮航空)",
     "20:45 : D17 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-18T10:34:59.662583"
+  "updated_at": "2026-08-18T11:30:44.325787"
 }
