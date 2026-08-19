@@ -302,14 +302,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "LO5344",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
-        },
-        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "LO5344",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         },
         {
           "flight_code": "NZ4934",
@@ -505,7 +505,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-900",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -521,7 +521,7 @@
       "type": "departure",
       "airport_code": "TAK",
       "city": "Takamatsu",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Takamatsu (TAK)",
@@ -753,5 +753,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:45 : D15R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-19T05:35:54.636574"
+  "updated_at": "2026-08-19T06:54:14.596145"
 }
