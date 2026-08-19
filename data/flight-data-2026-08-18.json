@@ -222,9 +222,9 @@
           "airline_name": "泰國航空"
         },
         {
-          "flight_code": "NZ4934",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
+          "flight_code": "LO5344",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         },
         {
           "flight_code": "NH5808",
@@ -232,9 +232,9 @@
           "airline_name": "全日本空輸"
         },
         {
-          "flight_code": "LO5344",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
+          "flight_code": "NZ4934",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "AC6543",
@@ -335,11 +335,6 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4908",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6336",
           "airline_code": "TG",
           "airline_name": "泰國航空"
@@ -353,6 +348,11 @@
           "flight_code": "NH5816",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "NZ4908",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -629,5 +629,5 @@
     "19:00 : D12 : BR809 (長榮航空)",
     "20:45 : D17 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-19T06:54:14.595371"
+  "updated_at": "2026-08-19T07:46:31.230786"
 }

@@ -302,14 +302,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5808",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "LO5344",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
+        },
+        {
+          "flight_code": "NH5808",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "NZ4934",
@@ -548,7 +548,7 @@
       "type": "departure",
       "airport_code": "PQC",
       "city": "Phu Quoc",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Phu Quoc (PQC)",
@@ -753,5 +753,5 @@
     "20:10 : D11 : JX32 (星宇航空)",
     "20:45 : D15R : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-19T06:54:14.596145"
+  "updated_at": "2026-08-19T07:46:31.231546"
 }
