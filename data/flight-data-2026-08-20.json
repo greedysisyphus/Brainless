@@ -598,11 +598,6 @@
           "airline_name": "土耳其航空"
         },
         {
-          "flight_code": "B77026",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "OZ6872",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
@@ -611,6 +606,11 @@
           "flight_code": "NZ4922",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
+        },
+        {
+          "flight_code": "B77026",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         },
         {
           "flight_code": "TG6392",
@@ -875,5 +875,5 @@
     "23:30 : D14R : CI51 (中華航空)",
     "23:30 : D15R : CI57 (中華航空)"
   ],
-  "updated_at": "2026-08-20T07:47:17.123263"
+  "updated_at": "2026-08-20T08:48:03.529456"
 }
