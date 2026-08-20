@@ -119,14 +119,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "NH5838",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "TK9456",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "NH5838",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "TG6366",
@@ -603,6 +603,11 @@
           "airline_name": "土耳其航空"
         },
         {
+          "flight_code": "NZ4922",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
+        },
+        {
           "flight_code": "B77026",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -611,11 +616,6 @@
           "flight_code": "OZ6872",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
-        },
-        {
-          "flight_code": "NZ4922",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -759,7 +759,7 @@
       "type": "departure",
       "airport_code": "BKK",
       "city": "Bangkok",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Bangkok (BKK)",
@@ -875,5 +875,5 @@
     "23:30 : D14R : CI51 (中華航空)",
     "23:30 : D15R : CI57 (中華航空)"
   ],
-  "updated_at": "2026-08-20T13:00:39.707980"
+  "updated_at": "2026-08-20T14:41:16.480831"
 }
