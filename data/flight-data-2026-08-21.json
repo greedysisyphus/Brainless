@@ -153,6 +153,11 @@
       "destination": "Okinawa (OKA)",
       "codeshare_flights": [
         {
+          "flight_code": "MH5604",
+          "airline_code": "MH",
+          "airline_name": "馬來西亞"
+        },
+        {
           "flight_code": "JL5134",
           "airline_code": "JL",
           "airline_name": "日本航空"
@@ -161,11 +166,6 @@
           "flight_code": "KL4997",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
-        },
-        {
-          "flight_code": "MH5604",
-          "airline_code": "MH",
-          "airline_name": "馬來西亞"
         }
       ]
     },
@@ -778,5 +778,5 @@
     "19:00 : D14R : BR809 (長榮航空)",
     "20:45 : D12 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-21T14:41:06.885502"
+  "updated_at": "2026-08-21T15:39:37.171066"
 }

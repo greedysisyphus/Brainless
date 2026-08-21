@@ -577,14 +577,14 @@
       "destination": "Nagoya (NGO)",
       "codeshare_flights": [
         {
-          "flight_code": "MH5618",
-          "airline_code": "MH",
-          "airline_name": "馬來西亞"
-        },
-        {
           "flight_code": "KL4998",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "MH5618",
+          "airline_code": "MH",
+          "airline_name": "馬來西亞"
         },
         {
           "flight_code": "JL5114",
@@ -718,5 +718,5 @@
     "20:10 : D15R : JX32 (星宇航空)",
     "23:30 : D13 : CI51 (中華航空)"
   ],
-  "updated_at": "2026-08-21T14:41:06.886288"
+  "updated_at": "2026-08-21T15:39:37.171832"
 }
