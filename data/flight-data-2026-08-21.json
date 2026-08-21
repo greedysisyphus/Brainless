@@ -61,14 +61,14 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4928",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6354",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4928",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "NH5834",
@@ -302,14 +302,14 @@
           "airline_name": "加拿大航空"
         },
         {
-          "flight_code": "NZ4934",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6346",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4934",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         }
       ]
     },
@@ -452,7 +452,7 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-300",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
@@ -515,6 +515,22 @@
       "aircraft": "A330-900",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
+      "codeshare_flights": []
+    },
+    {
+      "time": "14:20",
+      "datetime": "2026-08-21T14:20:00",
+      "gate": "D15R",
+      "flight_code": "BR176",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "UKB",
+      "city": "KOBE",
+      "status": "準時ON TIME",
+      "aircraft": "A321-200",
+      "terminal": "2",
+      "destination": "KOBE (UKB)",
       "codeshare_flights": []
     },
     {
@@ -725,8 +741,8 @@
     }
   ],
   "summary": {
-    "total_flights": 30,
-    "before_17:00": 28,
+    "total_flights": 31,
+    "before_17:00": 29,
     "after_17:00": 2
   },
   "formatted_display": [
@@ -751,6 +767,7 @@
     "13:20 : D13 : JX705 (星宇航空)",
     "13:50 : D16 : JX745 (星宇航空)",
     "14:15 : D12 : JX713 (星宇航空)",
+    "14:20 : D15R : BR176 (長榮航空)",
     "14:50 : D17 : CI128 (中華航空)",
     "14:50 : D18 : CI527 (中華航空)",
     "15:50 : D11 : JX703 (星宇航空)",
@@ -761,5 +778,5 @@
     "19:00 : D14R : BR809 (長榮航空)",
     "20:45 : D12 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-21T03:09:04.778108"
+  "updated_at": "2026-08-21T04:45:28.061269"
 }
