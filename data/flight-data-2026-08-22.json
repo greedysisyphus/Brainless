@@ -87,16 +87,6 @@
       "destination": "Komatsu (KMQ)",
       "codeshare_flights": [
         {
-          "flight_code": "TK9543",
-          "airline_code": "TK",
-          "airline_name": "土耳其航空"
-        },
-        {
-          "flight_code": "NH5820",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "NZ4920",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -105,6 +95,16 @@
           "flight_code": "TG6376",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "TK9543",
+          "airline_code": "TK",
+          "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "NH5820",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -172,11 +172,6 @@
       "destination": "Fukuoka (FUK)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5802",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "NZ4906",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -185,6 +180,11 @@
           "flight_code": "TG6362",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NH5802",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -285,14 +285,14 @@
       "destination": "Singapore (SIN)",
       "codeshare_flights": [
         {
-          "flight_code": "AI7059",
-          "airline_code": "AI",
-          "airline_name": "印度航空"
-        },
-        {
           "flight_code": "SQ5803",
           "airline_code": "SQ",
           "airline_name": "新加坡航空"
+        },
+        {
+          "flight_code": "AI7059",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
         }
       ]
     },
@@ -378,11 +378,6 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "NH5816",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "NZ4908",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
@@ -396,6 +391,11 @@
           "flight_code": "TG6336",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NH5816",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         }
       ]
     },
@@ -463,14 +463,14 @@
       "destination": "Takamatsu (TAK)",
       "codeshare_flights": [
         {
-          "flight_code": "JL5124",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
-        },
-        {
           "flight_code": "KL4985",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "JL5124",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
         }
       ]
     },
@@ -577,6 +577,11 @@
       "destination": "Nagoya (NGO)",
       "codeshare_flights": [
         {
+          "flight_code": "JL5114",
+          "airline_code": "JL",
+          "airline_name": "日本航空"
+        },
+        {
           "flight_code": "MH5618",
           "airline_code": "MH",
           "airline_name": "馬來西亞"
@@ -585,11 +590,6 @@
           "flight_code": "KL4998",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
-        },
-        {
-          "flight_code": "JL5114",
-          "airline_code": "JL",
-          "airline_name": "日本航空"
         }
       ]
     },
@@ -641,7 +641,7 @@
       "type": "departure",
       "airport_code": "BNE",
       "city": "Brisbane",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Brisbane (BNE)",
@@ -690,5 +690,5 @@
     "20:10 : D15R : JX32 (星宇航空)",
     "23:55 : D13 : CI53 (中華航空)"
   ],
-  "updated_at": "2026-08-22T16:31:36.374871"
+  "updated_at": "2026-08-22T17:25:58.420030"
 }
