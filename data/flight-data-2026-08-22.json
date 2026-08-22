@@ -258,14 +258,14 @@
       "destination": "Brisbane (BNE)",
       "codeshare_flights": [
         {
-          "flight_code": "TG6292",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "TK9549",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "TG6292",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         }
       ]
     },
@@ -582,14 +582,14 @@
           "airline_name": "荷蘭航空"
         },
         {
-          "flight_code": "MH5618",
-          "airline_code": "MH",
-          "airline_name": "馬來西亞"
-        },
-        {
           "flight_code": "JL5114",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "MH5618",
+          "airline_code": "MH",
+          "airline_name": "馬來西亞"
         }
       ]
     },
@@ -718,5 +718,5 @@
     "20:10 : D15R : JX32 (星宇航空)",
     "23:30 : D13 : CI51 (中華航空)"
   ],
-  "updated_at": "2026-08-22T04:39:13.610495"
+  "updated_at": "2026-08-22T05:32:48.293241"
 }
