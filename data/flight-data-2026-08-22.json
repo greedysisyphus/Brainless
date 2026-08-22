@@ -409,7 +409,7 @@
       "type": "departure",
       "airport_code": "KUL",
       "city": "Kuala Lumpur",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Kuala Lumpur (KUL)",
@@ -669,14 +669,14 @@
       "destination": "Sydney (SYD)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8730",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
-        },
-        {
           "flight_code": "KL4991",
           "airline_code": "KL",
           "airline_name": "荷蘭航空"
+        },
+        {
+          "flight_code": "QF8730",
+          "airline_code": "QF",
+          "airline_name": "澳洲航空"
         }
       ]
     }
@@ -718,5 +718,5 @@
     "20:10 : D15R : JX32 (星宇航空)",
     "23:30 : D13 : CI51 (中華航空)"
   ],
-  "updated_at": "2026-08-22T02:59:54.894093"
+  "updated_at": "2026-08-22T03:50:58.348533"
 }
