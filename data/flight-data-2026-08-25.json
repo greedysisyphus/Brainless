@@ -447,6 +447,11 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "TG6352",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "LO5342",
           "airline_code": "LO",
           "airline_name": "波蘭航空"
@@ -465,11 +470,6 @@
           "flight_code": "NZ4932",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "TG6352",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
         }
       ]
     },
@@ -613,7 +613,7 @@
       "type": "departure",
       "airport_code": "SEA",
       "city": "Seattle",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Seattle (SEA)",
@@ -661,5 +661,5 @@
     "19:00 : D13 : BR809 (長榮航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-08-25T11:33:54.983532"
+  "updated_at": "2026-08-25T12:58:20.516340"
 }
