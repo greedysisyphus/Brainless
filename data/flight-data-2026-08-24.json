@@ -297,14 +297,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "LO5344",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
-        },
-        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
+        },
+        {
+          "flight_code": "LO5344",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         },
         {
           "flight_code": "AC6543",
@@ -587,14 +587,14 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
-          "flight_code": "B77018",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "CA5522",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "B77018",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         },
         {
           "flight_code": "HO3188",
@@ -795,5 +795,5 @@
     "20:05 : D11 : JX10 (星宇航空)",
     "20:45 : D16 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-08-25T13:56:55.170235"
+  "updated_at": "2026-08-25T14:54:26.661630"
 }
