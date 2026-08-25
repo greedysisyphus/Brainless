@@ -526,14 +526,14 @@
           "airline_name": "吉祥航空"
         },
         {
-          "flight_code": "B77018",
-          "airline_code": "B7",
-          "airline_name": "立榮航空"
-        },
-        {
           "flight_code": "CA5522",
           "airline_code": "CA",
           "airline_name": "中國國際"
+        },
+        {
+          "flight_code": "B77018",
+          "airline_code": "B7",
+          "airline_name": "立榮航空"
         }
       ]
     },
@@ -661,5 +661,5 @@
     "19:00 : D13 : BR809 (長榮航空)",
     "20:10 : D11 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-08-25T22:33:25.950904"
+  "updated_at": "2026-08-25T23:29:51.042579"
 }
