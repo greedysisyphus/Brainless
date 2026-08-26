@@ -1,0 +1,76 @@
+{
+  "date": "2026-08-27",
+  "flights": [
+    {
+      "time": "00:05",
+      "datetime": "2026-08-27T00:05:00",
+      "gate": "D11",
+      "flight_code": "JX12",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "SFO",
+      "city": "San Francisco",
+      "status": "準時ON TIME",
+      "aircraft": "-",
+      "terminal": "2",
+      "destination": "San Francisco (SFO)",
+      "codeshare_flights": [
+        {
+          "flight_code": "AS7218",
+          "airline_code": "AS",
+          "airline_name": "阿拉斯加航空"
+        }
+      ]
+    },
+    {
+      "time": "00:10",
+      "datetime": "2026-08-27T00:10:00",
+      "gate": "D12",
+      "flight_code": "JX2",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "LAX",
+      "city": "Los Angeles",
+      "status": "準時ON TIME",
+      "aircraft": "-",
+      "terminal": "2",
+      "destination": "Los Angeles (LAX)",
+      "codeshare_flights": [
+        {
+          "flight_code": "AS7214",
+          "airline_code": "AS",
+          "airline_name": "阿拉斯加航空"
+        }
+      ]
+    },
+    {
+      "time": "00:10",
+      "datetime": "2026-08-27T00:10:00",
+      "gate": "D13",
+      "flight_code": "JX101",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "PRG",
+      "city": "Prague",
+      "status": "準時ON TIME",
+      "aircraft": "-",
+      "terminal": "2",
+      "destination": "Prague (PRG)",
+      "codeshare_flights": []
+    }
+  ],
+  "summary": {
+    "total_flights": 3,
+    "before_17:00": 3,
+    "after_17:00": 0
+  },
+  "formatted_display": [
+    "00:05 : D11 : JX12 (星宇航空)",
+    "00:10 : D12 : JX2 (星宇航空)",
+    "00:10 : D13 : JX101 (星宇航空)"
+  ],
+  "updated_at": "2026-08-26T14:51:06.246828"
+}
