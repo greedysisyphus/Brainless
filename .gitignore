@@ -30,19 +30,38 @@ yarn-error.log*
 
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
 node_modules
 .env
-.env
-# docs/ 目錄中的構建產物不應該在 Git 中追蹤
-# 這些文件由 Vite 構建過程自動生成，每次構建都會重新生成
-# 使用 GitHub Actions 部署時，這些文件會在部署時自動生成，不需要在 Git 中追蹤
-# 保留 docs/data/ 中的資料文件在 Git 中（如果需要）
+
+# Vite / Python 本地快取（不該入版控）
+.vite/
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+
+# Impeccable 執行產物（design.json 仍追蹤）
+.impeccable/critique/
+.impeccable/quality-bar/
+.impeccable/questions/
+.impeccable/sketches/
+
+# 本機 agent skills / hooks，不要 commit 進產品 repo
+.agents/
+.codex/
+.cursor/
+
+# docs/ 構建產物由 GitHub Actions 部署時產生，不追蹤
 docs/assets/
 docs/assets/**
 docs/index.html
+docs/reports/
+docs/data/*.json
+docs/data/*.xls
+docs/data/*.xlsx
 
-# public/data/ 是本地開發時使用的資料副本，不需要追蹤
+# public/data/ 是本地開發時使用的資料副本
 # 實際資料在 data/ 目錄中
 public/data/
 public/data/**

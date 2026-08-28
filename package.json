@@ -1,12 +1,11 @@
 {
-  "name": "flight-forecast",
+  "name": "brainless",
   "private": true,
   "version": "1.7.4",
   "type": "module",
   "scripts": {
     "dev": "bash scripts/sync-data-for-dev.sh && vite",
     "start": "bash scripts/sync-data-for-dev.sh && vite",
-    "server": "node server.js",
     "build": "vite build && npm run copy-data && node scripts/inject-version.js && npm run verify-build",
     "verify-build": "bash scripts/verify-build.sh",
     "copy-data": "mkdir -p docs/data && cp data/*.json docs/data/ 2>/dev/null || true",
@@ -14,6 +13,7 @@
     "sync-data": "bash scripts/sync-data-for-dev.sh",
     "preview": "vite preview --base /Brainless/",
     "preview:local": "vite preview",
+    "test": "node --test tests/goodsOrderSync.test.js",
     "deploy": "npm run build && gh-pages -d docs"
   },
   "dependencies": {
@@ -21,23 +21,18 @@
     "animejs": "^3.2.2",
     "dayjs": "^1.11.13",
     "echarts": "^6.0.0",
-    "file-saver": "^2.0.5",
     "firebase": "^10.14.1",
     "framer-motion": "^12.23.24",
-    "gsap": "^3.13.0",
     "html2canvas": "^1.4.1",
-    "html2pdf.js": "^0.14.0",
     "ics": "^3.8.1",
     "jspdf": "^4.0.0",
     "jszip": "^3.10.1",
-    "lenis": "^1.3.15",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.3",
     "recharts": "^3.1.2"
   },
   "devDependencies": {
-    "@types/file-saver": "^2.0.7",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "gh-pages": "^6.3.0",

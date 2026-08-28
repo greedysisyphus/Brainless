@@ -1,60 +1,42 @@
 # Brainless
 
-A comprehensive coffee shop management tool designed to simplify daily operations and enhance staff communication.
+咖啡店門市營運工具：厚片計算、收銀、點豆、叫貨、日結報表、電子菜單、航班資料。給現場人員用手機／iPad／電腦快速完成當下工作。
 
-## Features
+線上：https://greedysisyphus.github.io/Brainless/
 
-### Schedule Management
-- **Monthly Staff Scheduling**: Visual calendar interface for managing staff schedules
-- **Shift Tracking & Statistics**: Real-time shift monitoring and analytics
-- **Morning Shift Pickup Coordination**: Automated pickup statistics and coordination
-- **API Endpoints**: RESTful APIs for automated pickup statistics integration
+## 主要功能
 
-### Sandwich Calculator
-- **Smart Bread Calculation**: Automatically calculates required bread slices
-- **Extra Allocation**: Configurable target quantities with automatic extra slice allocation
-- **Real-time Updates**: Instant calculations as you adjust quantities
+- **厚片計算器**：依分店目標量計算麵包片數
+- **收銀管理**：點鈔、外幣、當日對帳
+- **咖啡豆盤點**：分店庫存與重量換算
+- **貨物叫貨**：對照最低庫存產出可複製的叫貨文字
+- **日結報表**：產出各店月報 zip
+- **電子菜單**：店內／公開菜單（完整站台另見 `menu-site/`）
+- **航班資料**：桃園機場航班，每小時由 GitHub Actions 更新
+- **回饋中心**：功能許願、問題回報、操作討論
+- **Playground**：班表、酒精計算、音樂等實驗／次要工具
 
-### Cashier Management
-- **Cash Counting System**: Denomination-based cash counting with visual interface
-- **Foreign Currency Conversion**: Multi-currency support with real-time rates
-- **Daily Reconciliation**: Automated daily cash reconciliation calculations
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
+介面有 Classic 與 Club 兩套主題。
 
-### Smart Communication System
-- **Intelligent Message Generation**: AI-powered message system based on schedule data
-- **Custom Rule Management**: Time-based, day-based, and date-specific message rules
-- **Consecutive Work Day Recognition**: Automatic detection and greeting for staff working consecutive days
-- **Schedule-based Greetings**: Dynamic greetings based on current shift assignments
-- **Real-time Updates**: Messages update automatically based on schedule changes
+## 開發
 
-### Admin Panel
-- **Comprehensive Management**: Full administrative control over all system features
-- **User Management**: Staff account and permission management
-- **Data Analytics**: Detailed reports and statistics
-- **System Configuration**: Global settings and preferences management
+```bash
+npm install
+npm run dev          # http://localhost:3001
+npm test
+npm run build        # 輸出到 docs/，供 GitHub Pages
+```
 
-## Technologies
+航班 JSON 的唯一來源是 `data/`。`npm run dev` 會同步到 `public/data/`；正式建置再複製進 `docs/data/`。日結 zip 只追蹤 `public/reports/`。
 
-### Frontend
-- **React 18** - Modern React with hooks and functional components
-- **Vite** - Fast build tool and development server
-- **Tailwind CSS** - Utility-first CSS framework
-- **React Router DOM** - Client-side routing
-- **Recharts** - Data visualization library
+## 部署
 
-### Backend & Database
-- **Firebase**
-  - **Firestore** - NoSQL cloud database
-  - **Authentication** - User authentication and authorization
-  - **Cloud Functions** - Serverless backend functions
-  - **Hosting** - Static site hosting
+`main` 推送後由 `.github/workflows/deploy.yml` 建置並部署 GitHub Pages。航班資料由 `.github/workflows/update-flight-data.yml` 每小時寫入 `data/`。
 
-### Development Tools
-- **ESLint** - Code linting and quality assurance
-- **PostCSS** - CSS processing
-- **GitHub Pages** - Production deployment
+## 相關目錄
 
-## Live Demo
-
-Visit the live application: [https://greedysisyphus.github.io/Brainless/](https://greedysisyphus.github.io/Brainless/)
+- `src/` 主站
+- `functions/` Firebase Cloud Functions
+- `menu-site/` 客人電子菜單（同步到獨立 Vercel repo）
+- `scripts/scraper/` 現行爬蟲（`fetch-from-txt-api.py`）
+- `scripts/archive/` 舊實驗腳本，不再用於 CI
