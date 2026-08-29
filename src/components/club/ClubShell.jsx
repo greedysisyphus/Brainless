@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { DocumentTextIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { SparklesIcon } from '@heroicons/react/24/outline'
 import { auth, checkAdminStatus } from '../../utils/firebase'
 import { getNavItems } from '../../config/navigation.jsx'
-import { useChangelog } from '../../contexts/ChangelogContext'
 import logoCat from '../../assets/logo-cat.png'
-import ThemeSwitcher from '../ThemeSwitcher'
+import { ChangelogTrigger, ChangelogUpdateBar } from '../ChangelogNotice'
 
 function ClubNavItem({ path, label, badge, Icon }) {
   return (
@@ -47,7 +46,6 @@ function ClubNavItem({ path, label, badge, Icon }) {
 
 export default function ClubShell({ children }) {
   const [isAdmin, setIsAdmin] = useState(false)
-  const { openChangelog } = useChangelog()
   useEffect(() => {
     let mounted = true
     const unsub = auth.onAuthStateChanged(async (user) => {
@@ -60,10 +58,10 @@ export default function ClubShell({ children }) {
   return (
     <div className="club-shell cw-shell-min-h overflow-x-hidden bg-[#f7f6f2] text-[#171717]">
       <header className="sticky top-0 z-[70] border-b border-black/10 bg-[#f7f6f2]/95 backdrop-blur-xl">
+        <ChangelogUpdateBar />
         <div className="relative mx-auto flex h-[106px] max-w-[1540px] items-center justify-center px-5 sm:px-8 lg:px-12">
-          <button type="button" onClick={openChangelog} className="absolute left-5 grid h-11 w-11 place-items-center rounded-2xl border border-black/10 bg-white text-[#ec5836] shadow-sm sm:left-8 lg:left-12" title="本次更新"><DocumentTextIcon className="h-5 w-5" /></button>
+          <ChangelogTrigger />
           <NavLink to="/sandwich" className="flex items-center gap-3" aria-label="回到厚片計算器"><img src={logoCat} alt="Brainless" className="h-[66px] w-[66px] rounded-full border-2 border-[#ec5836] object-cover p-1 shadow-[0_8px_20px_rgba(236,88,54,0.18)]" /><span><span className="block text-[30px] font-black leading-none tracking-[-0.075em] text-[#171717] sm:text-[36px]">brainless</span><span className="mt-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#ec5836]"><SparklesIcon className="h-3.5 w-3.5" /> behind the counter</span></span></NavLink>
-          <div className="absolute right-5 sm:right-8 lg:right-12"><ThemeSwitcher variant="club" /></div>
         </div>
         <nav className="border-t border-black/10 bg-white/35 px-2 py-1.5 sm:px-5 sm:py-3 lg:px-8" aria-label="主要功能">
           <div className="club-nav-row scrollbar-hide mx-auto -m-1 flex max-w-[1220px] items-stretch justify-start overflow-x-auto p-1 sm:justify-center">

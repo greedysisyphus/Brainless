@@ -37,7 +37,6 @@ export default function PublicMenuPage() {
           ? '最多 2 張圖；換圖即時同步客人 QR 站。'
           : '檢視目前菜單與客人頁。如需修改請先登入管理員。'
       }
-      classic={<PublicMenuSettings embedded canEdit={canEdit} />}
       studio={<PublicMenuSettings embedded canEdit={canEdit} />}
     />
   )

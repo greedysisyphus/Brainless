@@ -1855,15 +1855,6 @@ function GoodsOrderManager() {
       title="貨物叫貨"
       description="輸入現有貨量，對照最低庫存後複製叫貨文字。"
       hideStudioHeader
-      classic={
-        <div className="p-4 text-sm text-text-secondary">
-          貨物叫貨為 Club 介面。請切換到 Club 主題，或直接開啟{' '}
-          <a className="underline" href="#/goods-order-test">
-            #/goods-order-test
-          </a>
-          。
-        </div>
-      }
       studio={studio}
     />
   )

@@ -28,38 +28,19 @@
     <script>
       (function () {
         try {
-          var saved = localStorage.getItem('app-theme');
-          var theme = 'club';
-          if (saved === 'classic') {
-            theme = 'classic';
-          } else if (saved === 'club') {
-            theme = 'club';
-          } else if (saved === 'studio' || saved === 'craftwork' || saved === 'linear') {
-            theme = 'club';
-          }
-          document.documentElement.setAttribute('data-app-theme', theme);
-          var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) {
-            meta.setAttribute('content', theme === 'club' ? '#f3f0e8' : '#8b5cf6');
-          }
-        } catch (e) {
-          document.documentElement.setAttribute('data-app-theme', 'club');
-        }
+          localStorage.setItem('app-theme', 'club');
+        } catch (e) { /* ignore */ }
+        document.documentElement.setAttribute('data-app-theme', 'club');
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', '#f3f0e8');
       })();
     </script>
-    <!-- 首屏底色：在 Tailwind CSS 載入前就畫對主題，避免 Club 先閃 Classic 深色框架 -->
     <style>
       html, body, #root {
         margin: 0;
         min-height: 100%;
         background: #f3f0e8;
         color: #1c1914;
-      }
-      html[data-app-theme='classic'],
-      html[data-app-theme='classic'] body,
-      html[data-app-theme='classic'] #root {
-        background: #13131a;
-        color: #ffffff;
       }
     </style>
     
@@ -70,8 +51,6 @@
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
       rel="stylesheet"
     />
-    <!-- YouTube IFrame API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
   </head>
   <body>
     <div id="root"></div>

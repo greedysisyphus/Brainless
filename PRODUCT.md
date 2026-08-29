@@ -25,7 +25,7 @@ Brainless 集中咖啡店日常營運工具，減少人工換算、重複整理�
 ## Capabilities and Constraints
 
 - React 18、Vite、Tailwind CSS、Firebase Authentication 與 Firestore。
-- 介面提供 Classic 與 Club 兩套既有主題。
+- 介面為單一 Club 主題（暖紙、墨、珊瑚）。
 - 回饋中心的內容與留言對所有使用者公開可見，所有人都能以暱稱與分店留言、投票及建立回饋。
 - 管理員可更新回饋狀態並代表團隊正式回覆。
 - 回饋類型為功能許願、問題回報與操作討論；處理狀態為待確認、已排程、處理中、已完成與暫不處理。
@@ -33,7 +33,7 @@ Brainless 集中咖啡店日常營運工具，減少人工換算、重複整理�
 
 ## Brand Commitments
 
-沿用 Brainless 名稱、貓咪標誌、繁體中文介面，以及現有 Classic／Club 主題，不因新增回饋中心改變既有產品識別。
+沿用 Brainless 名稱、貓咪標誌、繁體中文介面與 Club 主題，不因新增回饋中心改變既有產品識別。
 
 ## Evidence on Hand
 

@@ -1,82 +1,45 @@
-import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useLayoutEffect, useMemo } from 'react'
 
 export const STORAGE_KEY_APP_THEME = 'app-theme'
+const CLUB_THEME = 'club'
+const CLUB_THEME_COLOR = '#f3f0e8'
 
-const VALID_THEMES = ['classic', 'club']
-const DEFAULT_THEME = 'club'
-
-function normalizeTheme(saved) {
-  if (saved === 'classic') return 'classic'
-  if (saved === 'club') return 'club'
-  // 已移除 Studio 主題：舊設定一律遷移到 Club
-  if (saved === 'studio' || saved === 'craftwork' || saved === 'linear') {
-    return 'club'
-  }
-  return DEFAULT_THEME
-}
-
-function readInitialTheme() {
+function migrateStoredThemeToClub() {
   try {
-    const saved = typeof localStorage !== 'undefined'
-      ? localStorage.getItem(STORAGE_KEY_APP_THEME)
-      : null
-    const theme = normalizeTheme(saved)
-    if (saved !== theme && typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_APP_THEME, theme)
+    if (typeof localStorage === 'undefined') return
+    const saved = localStorage.getItem(STORAGE_KEY_APP_THEME)
+    if (saved !== CLUB_THEME) {
+      localStorage.setItem(STORAGE_KEY_APP_THEME, CLUB_THEME)
     }
-    return theme
   } catch {
-    return DEFAULT_THEME
+    /* ignore */
   }
 }
 
 const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(readInitialTheme)
-
   useLayoutEffect(() => {
-    document.documentElement.setAttribute('data-app-theme', theme)
-    try {
-      localStorage.setItem(STORAGE_KEY_APP_THEME, theme)
-    } catch {
-      /* ignore */
-    }
+    document.documentElement.setAttribute('data-app-theme', CLUB_THEME)
+    migrateStoredThemeToClub()
     const meta = document.querySelector('meta[name="theme-color"]')
-    if (meta) {
-      meta.setAttribute('content', theme === 'club' ? '#f3f0e8' : '#8b5cf6')
-    }
-  }, [theme])
-
-  const setTheme = useCallback((next) => {
-    if (VALID_THEMES.includes(next)) {
-      setThemeState(next)
-    }
-  }, [])
-
-  const toggleTheme = useCallback(() => {
-    setThemeState((prev) => (prev === 'classic' ? 'club' : 'classic'))
+    if (meta) meta.setAttribute('content', CLUB_THEME_COLOR)
   }, [])
 
   const value = useMemo(
     () => ({
-      theme,
-      setTheme,
-      toggleTheme,
-      // Club 沿用 Cw* 元件契約（原 Studio UI kit）
-      isStudio: theme === 'club',
-      isClub: theme === 'club',
-      isModern: theme === 'club',
-      isClassic: theme === 'classic',
+      theme: CLUB_THEME,
+      setTheme: () => {},
+      toggleTheme: () => {},
+      isStudio: true,
+      isClub: true,
+      isModern: true,
+      isClassic: false,
     }),
-    [theme, setTheme, toggleTheme]
+    []
   )
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme() {

@@ -55,42 +55,6 @@ function DataFormatTester() {
     setResult(analysis)
   }
 
-  const hintBlockClassic = (
-    <div className="mt-8 rounded-xl border border-white/10 bg-surface/40 p-6">
-      <h3 className="mb-4 text-xl font-bold text-purple-400">正確的資料格式</h3>
-      <div className="space-y-4">
-        <div>
-          <h4 className="mb-2 text-lg font-semibold text-orange-400">Excel 格式要求</h4>
-          <ul className="list-inside list-disc space-y-1 text-sm text-text-secondary">
-            <li>第一欄：職員編號（如 A45、A51）</li>
-            <li>第二欄：姓名（如 林小余、黃紅葉）</li>
-            <li>第三欄開始：每日班表（如 K、Y、L、月休）</li>
-            <li>欄位之間用 Tab 鍵分隔</li>
-            <li>每行代表一位同仁的完整班表</li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="mb-2 text-lg font-semibold text-green-400">範例資料</h4>
-          <div className="rounded-lg border border-white/5 bg-surface/20 p-4">
-            <pre className="font-mono text-sm text-text-secondary">
-              {`A45	林小余	K	K	Y	L	月休	Y
-A51	黃紅葉	K	K	Y	L	K	Y
-A60	李Ashley	Y	L	K	Y	L	K`}
-            </pre>
-          </div>
-        </div>
-        <div>
-          <h4 className="mb-2 text-lg font-semibold text-red-400">常見問題</h4>
-          <ul className="list-inside list-disc space-y-1 text-sm text-text-secondary">
-            <li>複製時沒有包含 Tab 分隔符</li>
-            <li>職員編號或姓名為空</li>
-            <li>資料行數不足</li>
-            <li>包含多餘的空格或特殊字符</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  )
 
   const hintBlockCraft = (
     <CwCard title="正確格式與範例">
@@ -107,46 +71,6 @@ A51	黃紅葉	K	K	Y	L`}
     </CwCard>
   )
 
-  const classicInner = (
-    <div className="container-custom py-8">
-      <div className="mb-8">
-        <h1 className="mb-2 text-center text-3xl font-bold">資料格式測試工具</h1>
-        <p className="text-center text-text-secondary">檢查 Excel 資料格式是否正確</p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-surface/40 p-6">
-          <h3 className="mb-4 text-xl font-bold text-blue-400">輸入測試資料</h3>
-          <div className="mb-4">
-            <label className="mb-2 block text-sm font-semibold">從 Excel 複製的資料</label>
-            <textarea
-              value={testData}
-              onChange={(e) => setTestData(e.target.value)}
-              placeholder="請從 Excel 複製資料並貼上這裡..."
-              className="focus:border-blue-400/50 h-64 w-full resize-none rounded-lg border border-white/10 bg-white/5 px-4 py-2 focus:bg-white/10"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={testFormat}
-            className="rounded-lg border border-blue-400/30 bg-blue-500/20 px-6 py-2 text-blue-400 transition-all hover:bg-blue-500/30"
-          >
-            分析資料格式
-          </button>
-        </div>
-
-        <div className="rounded-xl border border-white/10 bg-surface/40 p-6">
-          <h3 className="mb-4 text-xl font-bold text-green-400">分析結果</h3>
-          <div className="rounded-lg border border-white/5 bg-surface/20 p-4">
-            <pre className="font-mono text-sm whitespace-pre-wrap text-text-secondary">
-              {result || '請輸入資料並點擊「分析資料格式」'}
-            </pre>
-          </div>
-        </div>
-      </div>
-      {hintBlockClassic}
-    </div>
-  )
 
   const studioInner = (
     <CwStack className="!gap-[var(--cw-stack-gap)]">
@@ -179,7 +103,6 @@ A51	黃紅葉	K	K	Y	L`}
       breadcrumbs={DT_BC}
       title="資料格式測試工具"
       description="檢查從 Excel 複製貼上班表資料是否符合 Tab 欄結構。"
-      classic={classicInner}
       studio={studioInner}
     />
   )

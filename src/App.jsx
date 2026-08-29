@@ -1,7 +1,7 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy, useEffect, useState } from 'react'
 import Layout from './components/layout/Layout'
-import { ThemeProvider, useTheme } from './contexts/ThemeContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { FirebaseStatusBanner } from './components/studio/FirebaseStatusBanner'
 import LoadingPage from './pages/LoadingPage'
 import ErrorPage from './pages/ErrorPage'
@@ -24,7 +24,6 @@ const DataFormatTester = lazy(() => import('./pages/DataFormatTester'))
 const FeedbackCenter = lazy(() => import('./pages/FeedbackCenter'))
 
 function AppContent() {
-  const { isStudio } = useTheme()
   const [firebaseStatus, setFirebaseStatus] = useState({
     checked: false,
     connected: false,
@@ -55,7 +54,7 @@ function AppContent() {
   return (
     <Layout>
           {firebaseStatus.checked && !firebaseStatus.connected && (
-            <FirebaseStatusBanner isStudio={isStudio} errorMessage={firebaseStatus.error || null} />
+            <FirebaseStatusBanner errorMessage={firebaseStatus.error || null} />
           )}
           <Suspense fallback={<LoadingPage />}>
             <Routes>

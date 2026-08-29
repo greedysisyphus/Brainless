@@ -1,0 +1,134 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "7px",
+        "createdAt": "2026-08-29T07:18:46.529Z",
+        "reason": "Incumbent Club nav Beta overlay on compact tiles; unchanged by changelog notice work"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "8px",
+        "createdAt": "2026-08-29T07:18:46.580Z",
+        "reason": "Incumbent Club nav Beta overlay sm size; unchanged by changelog notice work"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "10px",
+        "createdAt": "2026-08-29T07:18:46.630Z",
+        "reason": "Incumbent Club wordmark tagline size; unchanged by changelog notice work"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "30px",
+        "createdAt": "2026-08-29T07:18:46.681Z",
+        "reason": "Incumbent Club wordmark display size; unchanged by changelog notice work"
+      },
+      {
+        "rule": "overused-font",
+        "value": "plus jakarta sans",
+        "createdAt": "2026-08-29T07:29:49.666Z",
+        "reason": "Committed Club display face in DESIGN.md"
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "src/pages/CoffeeBeanManager.jsx",
+          "src/pages/ScheduleManager.jsx"
+        ],
+        "createdAt": "2026-08-29T07:33:23.243Z",
+        "reason": "Incumbent leftover Classic styling; Club-only cut does not restyle these pages"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/pages/CoffeeBeanManager.jsx",
+          "src/pages/ScheduleManager.jsx"
+        ],
+        "createdAt": "2026-08-29T07:33:23.293Z",
+        "reason": "Incumbent leftover Classic palette classes; Club-only cut does not restyle these pages"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "11px",
+        "files": [
+          "src/pages/GoodsOrderManager.jsx"
+        ],
+        "createdAt": "2026-08-29T07:33:23.344Z",
+        "reason": "Incumbent Club compact label size; unchanged by Classic removal"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "11px",
+        "files": [
+          "src/styles/index.css"
+        ],
+        "createdAt": "2026-08-29T07:33:23.398Z",
+        "reason": "Incumbent Club CSS; Classic body rule removal only"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "13px",
+        "files": [
+          "src/styles/index.css"
+        ],
+        "createdAt": "2026-08-29T07:33:23.454Z",
+        "reason": "Incumbent Club CSS; Classic body rule removal only"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0, 0, 0, 0.1)",
+        "files": [
+          "src/styles/index.css"
+        ],
+        "createdAt": "2026-08-29T07:33:23.507Z",
+        "reason": "Incumbent Club CSS; Classic body rule removal only"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          "src/pages/CoffeeBeanManager.jsx",
+          "src/pages/ScheduleManager.jsx"
+        ],
+        "createdAt": "2026-08-29T07:33:56.734Z",
+        "reason": "Incumbent leftover Classic colors; Club-only cut does not restyle these pages"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          "src/pages/CoffeeBeanManager.jsx",
+          "src/pages/ScheduleManager.jsx"
+        ],
+        "createdAt": "2026-08-29T07:33:56.785Z",
+        "reason": "Incumbent leftover Classic fonts; Club-only cut does not restyle these pages"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "src/pages/CoffeeBeanManager.jsx",
+          "src/pages/ScheduleManager.jsx"
+        ],
+        "createdAt": "2026-08-29T07:33:56.838Z",
+        "reason": "Incumbent leftover Classic type sizes; Club-only cut does not restyle these pages"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "*",
+        "files": [
+          "src/pages/CoffeeBeanManager.jsx",
+          "src/pages/ScheduleManager.jsx"
+        ],
+        "createdAt": "2026-08-29T07:33:56.890Z",
+        "reason": "Incumbent leftover Classic radii; Club-only cut does not restyle these pages"
+      }
+    ]
+  }
+}

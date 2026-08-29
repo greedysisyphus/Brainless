@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import ChangelogModal from '../components/ChangelogModal'
 
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
@@ -244,40 +244,89 @@ export const APP_CHANGELOG = [
 // 版號單一來源：之後發版只需改 APP_CHANGELOG 最上方一筆
 const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.6.5'
 const CHANGELOG_STORAGE_KEY = 'appChangelogLastSeenVersion'
+const BANNER_DISMISS_KEY = 'appChangelogBannerDismissedVersion'
 
 const ChangelogContext = createContext(null)
 
+function readAppVersion() {
+  const injected = typeof window !== 'undefined' ? window.__APP_VERSION__ : ''
+  if (injected && injected !== '{{APP_VERSION}}') return injected
+  return FALLBACK_VERSION
+}
+
+function readHasUnseenUpdate() {
+  try {
+    return localStorage.getItem(CHANGELOG_STORAGE_KEY) !== readAppVersion()
+  } catch {
+    return false
+  }
+}
+
+function readBannerDismissed() {
+  try {
+    return localStorage.getItem(BANNER_DISMISS_KEY) === readAppVersion()
+  } catch {
+    return false
+  }
+}
+
+const EMPTY_CHANGELOG = {
+  openChangelog: () => {},
+  hasUnseenUpdate: false,
+  showUpdateBanner: false,
+  latestVersion: FALLBACK_VERSION,
+  latestTitle: APP_CHANGELOG[0]?.title ?? '',
+  dismissBanner: () => {},
+}
+
 export function ChangelogProvider({ children }) {
   const [showChangelog, setShowChangelog] = useState(false)
+  const [hasUnseenUpdate, setHasUnseenUpdate] = useState(readHasUnseenUpdate)
+  const [bannerDismissed, setBannerDismissed] = useState(readBannerDismissed)
 
-  const closeChangelog = useCallback(() => {
+  const latest = APP_CHANGELOG[0]
+  const latestVersion = latest?.version ?? FALLBACK_VERSION
+  const latestTitle = latest?.title ?? ''
+
+  const markChangelogSeen = useCallback(() => {
     try {
-      const currentVersion = (typeof window !== 'undefined' && window.__APP_VERSION__) ? window.__APP_VERSION__ : FALLBACK_VERSION
-      if (currentVersion !== '{{APP_VERSION}}') {
-        localStorage.setItem(CHANGELOG_STORAGE_KEY, currentVersion)
-      }
-    } catch (e) {
+      const version = readAppVersion()
+      localStorage.setItem(CHANGELOG_STORAGE_KEY, version)
+      localStorage.setItem(BANNER_DISMISS_KEY, version)
+    } catch {
       // ignore
     }
-    setShowChangelog(false)
+    setHasUnseenUpdate(false)
+    setBannerDismissed(true)
   }, [])
+
+  const closeChangelog = useCallback(() => {
+    markChangelogSeen()
+    setShowChangelog(false)
+  }, [markChangelogSeen])
 
   const openChangelog = useCallback(() => setShowChangelog(true), [])
 
-  // 進入時若版本與上次關閉時不同，自動顯示更新跳窗
-  useEffect(() => {
+  const dismissBanner = useCallback(() => {
     try {
-      const currentVersion = (typeof window !== 'undefined' && window.__APP_VERSION__) ? window.__APP_VERSION__ : FALLBACK_VERSION
-      const lastSeen = localStorage.getItem(CHANGELOG_STORAGE_KEY)
-      if (currentVersion !== '{{APP_VERSION}}' && lastSeen !== currentVersion) {
-        setShowChangelog(true)
-      }
-    } catch (e) {
+      localStorage.setItem(BANNER_DISMISS_KEY, readAppVersion())
+    } catch {
       // ignore
     }
+    setBannerDismissed(true)
   }, [])
 
-  const contextValue = useMemo(() => ({ openChangelog }), [])
+  const contextValue = useMemo(
+    () => ({
+      openChangelog,
+      hasUnseenUpdate,
+      showUpdateBanner: hasUnseenUpdate && !bannerDismissed,
+      latestVersion,
+      latestTitle,
+      dismissBanner,
+    }),
+    [openChangelog, hasUnseenUpdate, bannerDismissed, latestVersion, latestTitle, dismissBanner]
+  )
 
   return (
     <ChangelogContext.Provider value={contextValue}>
@@ -293,6 +342,6 @@ export function ChangelogProvider({ children }) {
 
 export function useChangelog() {
   const ctx = useContext(ChangelogContext)
-  if (!ctx) return { openChangelog: () => {} }
+  if (!ctx) return EMPTY_CHANGELOG
   return ctx
 }

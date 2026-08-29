@@ -1,6 +1,6 @@
 # Studio / Classic 路由盤點矩陣
 
-> 全站 Studio 升級計畫階段 0 產出。Classic 在目前產品中仍保留，`isStudio` 來自 ThemeContext（`localStorage` `app-theme`: `studio` | `classic`；舊值 `craftwork` 會自動遷移為 `studio`）。
+> 歷史盤點（階段 0）。**Classic 已於 2026-08 下線**；全站固定 Club。`isStudio` 在 ThemeContext 恆為 true，僅相容既有 Club 視圖分支。
 
 ## 路由對照（`src/App.jsx`）
 

@@ -2812,7 +2812,6 @@ function ScheduleManager({ embedded = false }) {
       ]}
       title="班表管理工具"
       description="早班好。編輯、統計與匯出一站式。"
-      classic={schedulePageInner}
       studio={schedulePageInner}
     />
   )

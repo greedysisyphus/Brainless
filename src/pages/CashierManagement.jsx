@@ -190,27 +190,6 @@ function CashierManagement() {
   const fxPriceInvalid = foreignChangeData.productPrice && parseFloat(foreignChangeData.productPrice) < 0
   const fxForeignInvalid = foreignChangeData.foreignAmount && parseFloat(foreignChangeData.foreignAmount) < 0
 
-  const mainGridClassic = (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <DenominationCounter
-        title="收銀機現金"
-        onTotalChange={setCashierTotal}
-        savedKey="cashierDenominations"
-        resetKey={resetKey}
-      />
-      <DenominationCounter title="抽屜現金" onTotalChange={setDrawerTotal} savedKey="drawerDenominations" resetKey={resetKey} />
-      <ForeignCurrency onTotalChange={setForeignTotal} savedKey="foreignTransactions" resetKey={resetKey} />
-      <Summary
-        cashierTotal={cashierTotal}
-        drawerTotal={drawerTotal}
-        foreignTotal={foreignTotal}
-        posAmount={posAmount}
-        onPosAmountChange={setPosAmount}
-        foreignTransactions={resetKey > 0 ? [] : JSON.parse(localStorage.getItem('foreignTransactions') || '[]')}
-        resetKey={resetKey}
-      />
-    </div>
-  )
 
   const mainGridCraft = (
     <CwGrid className="!grid-cols-1 lg:!grid-cols-2">
@@ -954,44 +933,6 @@ function CashierManagement() {
       breadcrumbs={CASHIER_BC}
       title="收銀管理系統"
       description={`討厭算錢的第 ${dislikeDays} 天。`}
-      classic={
-        <div className="container-custom py-6">
-          <div className="mb-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="mb-2 text-2xl font-bold text-white sm:text-3xl">收銀管理系統</h1>
-                <p className="text-text-secondary">
-                  討厭算錢的第
-                  <span className="mx-1 inline-block rounded-lg border border-primary/30 bg-primary/20 px-2 py-1 font-semibold text-primary">
-                    {dislikeDays}
-                  </span>
-                  天
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowForeignChangeCalculator(true)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-green-400/30 bg-gradient-to-r from-green-500/20 to-emerald-500/20 px-4 py-2 text-green-400 shadow-lg transition-all duration-200 hover:border-green-500/50 hover:from-green-500/30 hover:to-emerald-500/30 hover:shadow-xl"
-                >
-                  <CalculatorIcon className="h-5 w-5" />
-                  <span className="hidden sm:inline">外幣找零</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={resetAll}
-                  className="inline-flex items-center gap-2 rounded-xl border border-red-400/30 bg-gradient-to-r from-red-500/20 to-pink-500/20 px-4 py-2 text-red-400 shadow-lg transition-all duration-200 hover:border-red-500/50 hover:from-red-500/30 hover:to-pink-500/30 hover:shadow-xl"
-                >
-                  <ArrowPathIcon className="h-5 w-5" />
-                  <span className="hidden sm:inline">重置數據</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          {mainGridClassic}
-          {fabAndModal}
-        </div>
-      }
       studio={
         <>
           <CwStack className="!gap-[var(--cw-stack-gap)]">

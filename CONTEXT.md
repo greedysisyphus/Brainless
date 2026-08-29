@@ -7,16 +7,16 @@
 ### Themes
 
 **Club**：
-暖白底＋珊瑚橘強調色的第三套介面；內容沿用 Studio 的元件契約，但視覺與 token 獨立。
-_Avoid_: Studio light、奶油主題、淺色 Studio
+目前唯一介面主題。暖紙底、墨色字、珊瑚橘強調；內容走 Cw* 元件契約。
+_Avoid_: Studio light、奶油主題、淺色 Studio、再加第二套主題
 
 **Studio**：
-深色現代介面；與 Club 共用許多元件契約（程式裡常以 `isStudio` 一併涵蓋 Club）。
-_Avoid_: 把 Club 直接叫 Studio
+程式裡 `isStudio`／`DualThemePage` 的 `studio` prop 仍指 Club 視圖，不是獨立主題。
+_Avoid_: 把 Club 直接叫 Studio（對使用者）
 
 **Classic**：
-舊版深色紫系介面；點豆表已有右下角浮動重量換算入口。
-_Avoid_: 舊 theme（若未特指 Classic）
+已下線的深紫玻璃介面。
+_Avoid_: 再新增 Classic 分支或主題切換器
 
 ### 點豆／重量換算
 

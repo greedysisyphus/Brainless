@@ -9,10 +9,6 @@
     @apply min-h-screen font-sans bg-[#f3f0e8] text-[#1c1914];
     scrollbar-gutter: stable;
   }
-
-  html[data-app-theme='classic'] body {
-    @apply bg-background text-text-primary;
-  }
 }
 
 @layer components {

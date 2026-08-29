@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { MusicalNoteIcon, CloudIcon, CalendarIcon, ArrowLeftIcon, ChartBarIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
+import { MusicalNoteIcon, CloudIcon, CalendarIcon, ChartBarIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
 import { CocktailIcon } from '../config/navigation.jsx'
 import { Suspense, lazy } from 'react'
 import LoadingPage from './LoadingPage'
@@ -79,114 +79,6 @@ function Playground() {
   const title = currentPage ? PAGE_META[currentPage].title : 'Playground'
   const description = currentPage ? PAGE_META[currentPage].description : '實驗一些實驗。'
 
-  const classicCatalog = (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="ui-warm-panel rounded-xl p-3">
-            <MusicalNoteIcon className="h-8 w-8 text-purple-400" />
-          </div>
-          <div>
-            <h2 className="mb-1 text-3xl font-bold text-primary">Playground</h2>
-            <p className="text-text-secondary">實驗一些實驗</p>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <button
-          type="button"
-          onClick={() => navigate('/playground#music')}
-          className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-purple-500/30"
-        >
-          <div className="flex items-center gap-4">
-            <div className="ui-warm-panel rounded-lg p-3 transition-transform group-hover:scale-110">
-              <MusicalNoteIcon className="h-6 w-6 text-purple-400" />
-            </div>
-            <h3 className="text-xl font-bold text-primary">音樂</h3>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/playground#weather')}
-          className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-cyan-500/30"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-gradient-to-br from-cyan-500/20 to-teal-500/20 p-3 transition-transform group-hover:scale-110">
-              <CloudIcon className="h-6 w-6 text-cyan-400" />
-            </div>
-            <h3 className="text-xl font-bold text-primary">天氣</h3>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/playground#schedule-manager')}
-          className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-green-500/30"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20 p-3 transition-transform group-hover:scale-110">
-              <CalendarIcon className="h-6 w-6 text-green-400" />
-            </div>
-            <div className="text-left">
-              <h3 className="text-xl font-bold text-primary">班表管理</h3>
-              <p className="mt-1 text-sm text-text-secondary">編輯、統計、車資與匯出</p>
-            </div>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/playground#schedule')}
-          className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-teal-500/30"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-gradient-to-br from-teal-500/20 to-cyan-500/20 p-3 transition-transform group-hover:scale-110">
-              <CalendarIcon className="h-6 w-6 text-teal-400" />
-            </div>
-            <div className="text-left">
-              <h3 className="text-xl font-bold text-primary">班表匯出</h3>
-              <p className="mt-1 text-sm text-text-secondary">月曆輸入並匯出 Apple Calendar</p>
-            </div>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/playground#alcohol')}
-          className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-pink-500/30"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-gradient-to-br from-pink-500/20 to-rose-500/20 p-3 transition-transform group-hover:scale-110">
-              <CocktailIcon className="h-6 w-6 text-pink-400" />
-            </div>
-            <h3 className="text-xl font-bold text-primary">酒精計算</h3>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/playground#charts')}
-          className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-amber-500/30 md:col-span-2 lg:col-span-1"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 p-3 transition-transform group-hover:scale-110">
-              <ChartBarIcon className="h-6 w-6 text-amber-400" />
-            </div>
-            <h3 className="text-xl font-bold text-primary">Charts Testing</h3>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/playground#studio-ui')}
-          className="group rounded-xl border border-white/10 bg-surface/40 p-6 backdrop-blur-md transition-all hover:scale-105 hover:border-primary/30 md:col-span-2 lg:col-span-3"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-gradient-to-br from-lime-500/20 to-emerald-500/20 p-3 transition-transform group-hover:scale-110">
-              <Squares2X2Icon className="h-6 w-6 text-lime-300" />
-            </div>
-            <h3 className="text-xl font-bold text-primary">Studio UI 樣板</h3>
-          </div>
-          <p className="mt-2 text-left text-sm text-text-secondary">對照 Cw 元件與 token，建議在 Studio 主題下開啟。</p>
-        </button>
-      </div>
-    </div>
-  )
 
   const studioCatalog = (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
@@ -227,33 +119,6 @@ function Playground() {
     </div>
   )
 
-  const subClassic = (
-    <div className="mx-auto max-w-6xl">
-      <button
-        type="button"
-        onClick={() => navigate('/playground')}
-        className="mb-6 flex items-center gap-2 text-text-secondary transition-colors hover:text-primary"
-      >
-        <ArrowLeftIcon className="h-5 w-5" />
-        <span>返回目錄</span>
-      </button>
-      <Suspense fallback={<LoadingPage />}>
-        {currentPage === 'music' && <MusicContent />}
-        {currentPage === 'weather' && <WeatherContent />}
-        {currentPage === 'schedule' && <ScheduleExport />}
-        {currentPage === 'schedule-manager' && <ScheduleManagerPage embedded />}
-        {currentPage === 'charts' && <EchartsDemo />}
-        {currentPage === 'alcohol' && <AlcoholContent />}
-        {currentPage === 'studioui' && (
-          <div className="rounded-xl border border-white/10 bg-surface/40 p-6">
-            <p className="text-text-secondary">
-              Studio UI 元件樣板主要在 <strong className="text-primary">Studio</strong> 主題下檢視；請用頂部主題切換後重新進入此頁。
-            </p>
-          </div>
-        )}
-      </Suspense>
-    </div>
-  )
 
   const studioUiShowcase = (
     <CwStack>
@@ -309,9 +174,6 @@ function Playground() {
     </div>
   )
 
-  const classicInner = (
-    <div className="container-custom py-8">{currentPage === null ? classicCatalog : subClassic}</div>
-  )
 
   const studioInner = (
     <div className="px-4 py-8 sm:px-6 lg:px-8">{currentPage === null ? studioCatalog : subStudio}</div>
@@ -322,7 +184,6 @@ function Playground() {
       breadcrumbs={breadcrumbs}
       title={title}
       description={description}
-      classic={classicInner}
       studio={studioInner}
     />
   )

@@ -3544,7 +3544,6 @@ function CoffeeBeanManager() {
       breadcrumbs={COFFEE_BC}
       title="咖啡豆管理工具"
       description="所以又到星期天"
-      classic={<div className="coffee-bean-container container-custom py-4 sm:py-6 md:py-8">{coffeeInner}</div>}
       studio={coffeeInner}
     />
   )

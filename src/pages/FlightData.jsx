@@ -16,21 +16,12 @@ function FlightData() {
       <FlightDataContent />
     </Suspense>
   )
-  const classicChrome = (
-    <div className="container-custom py-8">
-      <div className="mx-auto max-w-6xl">{flightBody}</div>
-    </div>
-  )
-
-  const studioChrome = <div className="mx-auto max-w-6xl">{flightBody}</div>
-
   return (
     <DualThemePage
       breadcrumbs={FL_BC}
       title="航班資料"
       description="班表門市區間航班與統計視覺化。"
-      classic={classicChrome}
-      studio={studioChrome}
+      studio={<div className="mx-auto max-w-6xl">{flightBody}</div>}
     />
   )
 }
