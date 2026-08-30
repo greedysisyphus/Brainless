@@ -11,6 +11,7 @@ import {
   PICKUP_LOCATIONS,
   stopTime,
   UNSET_PICKUP,
+  SHIFT_META,
 } from './shiftConstants.js'
 import {
   addDays,
@@ -249,10 +250,15 @@ export function renderDriverText(table, { title = '交通車接送表（司機�
  */
 export function renderDriverSchedule(table) {
   if (!table || !table.dates.length) return ''
-  const lines = []
-  table.sections.forEach((section, sectionIndex) => {
-    if (sectionIndex) lines.push('', '')
-    lines.push(`${section.ordinalLabel}《《 這是${section.label}`)
+  const md = (date) => `${Number(date.dateKey.slice(5, 7))}/${date.day}（${date.weekday}）`
+  const first = table.dates[0]
+  const last = table.dates[table.dates.length - 1]
+
+  const lines = [`交通車接送表　${md(first)} ～ ${md(last)}`]
+
+  table.sections.forEach((section) => {
+    // 「第1班車（早班車）」的車字重複了，取班別本身：第1班車（早班）
+      lines.push('', '', `${section.ordinalLabel}（${SHIFT_META[section.shift]?.label ?? section.label}）`)
 
     table.dates.forEach((date, index) => {
       const stops = section.rows
@@ -263,10 +269,15 @@ export function renderDriverSchedule(table) {
         }))
         .filter((stop) => stop.count > 0)
         .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
-      if (!stops.length) return
 
-      // 司機看的是「8/1」不是「1」——一次傳好幾週時，只有日沒有月會對錯天
-      lines.push('', `${Number(date.dateKey.slice(5, 7))}/${date.day}`)
+      // 沒人的那天要寫「停開」。整天消失的話司機不知道是真的沒班還是訊息被截掉了。
+      if (!stops.length) {
+        lines.push('', `${md(date)} 停開`)
+        return
+      }
+      const total = stops.reduce((sum, stop) => sum + stop.count, 0)
+      // 當日總人數給司機自己對：接完人數不符就知道漏了誰
+      lines.push('', `${md(date)} 共 ${total} 人`)
       stops.forEach((stop) => {
         lines.push(`${stop.time || '（時間未定）'} ${stop.name} ${stop.count}人`)
       })

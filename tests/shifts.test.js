@@ -2278,7 +2278,9 @@ test('司機版排班表：一台車一段，逐日列出「時間 站名 幾人
   })
   const text = renderDriverSchedule(table)
 
-  assert.match(text, /^第1班車《《 這是早班車/)
+  assert.match(text, /^交通車接送表　/, '開頭要有日期範圍，一次傳好幾週才分得出是哪一週')
+  assert.match(text, /第1班車（早班）/)
+  assert.match(text, /共 2 人/, '當日總人數給司機自己對')
   // 站名用司機那邊的寫法，時間是各站自己的到站時間
   assert.match(text, /03:45 A21環北站 2人/)
   assert.doesNotMatch(text, /小明|Ben|Ann/, '司機版不含姓名')
@@ -2312,4 +2314,17 @@ test('兩台車各站間隔五分鐘，站序就是行車順序', () => {
     PICKUP_LOCATIONS.map((l) => stopTime(l, 'MID')),
     ['04:45', '04:50', '04:55', '05:00']
   )
+})
+
+test('司機版：沒人搭的那天寫「停開」，不是整天消失', () => {
+  const book = buildFixtureBook()
+  const table = buildPickupTable(book, {
+    from: '2026-09-01',
+    to: '2026-09-03',
+    pickupByPerson: { 小明: 'A21環北站' },
+  })
+  const text = renderDriverSchedule(table)
+  // 整天不見的話，司機不知道是真的沒班還是訊息被截掉了
+  assert.match(text, /9\/2（三） 停開/)
+  assert.match(text, /9\/1（二） 共 1 人/)
 })
