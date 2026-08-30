@@ -20,9 +20,9 @@ export function CwThead({ children }) {
   )
 }
 
-export function CwTh({ children, className = '' }) {
+export function CwTh({ children, scope = 'col', className = '' }) {
   return (
-    <th className={`px-4 py-3 font-semibold ${className}`}>
+    <th scope={scope} className={`px-4 py-3 font-semibold ${className}`}>
       {children}
     </th>
   )
@@ -30,7 +30,7 @@ export function CwTh({ children, className = '' }) {
 
 export function CwTd({ children, className = '' }) {
   return (
-    <td className={`border-t border-[var(--cw-border)] px-4 py-3 ${className}`}>
+    <td className={`border-t border-[var(--cw-border)] px-4 py-3 tabular-nums ${className}`}>
       {children}
     </td>
   )

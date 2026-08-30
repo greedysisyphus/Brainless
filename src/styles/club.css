@@ -6,7 +6,8 @@ html[data-app-theme='club'] {
   --cw-surface-elevated: #ffffff;
   --cw-sidebar: #ece8de;
   --cw-header-bg: #f3f0e8;
-  --cw-mega-surface: #fffdfa;
+  /* 次級表面：必須和 --cw-surface 不同，否則週末底色、合計列、表頭分帶全部失效 */
+  --cw-mega-surface: #f7f6f2;
   --cw-border: rgba(28, 25, 20, 0.12);
   --cw-border-strong: rgba(28, 25, 20, 0.2);
   --cw-text: #1c1914;
@@ -115,6 +116,13 @@ html[data-app-theme='club'] input[type='week'],
 html[data-app-theme='club'] .cw-date-input {
   color-scheme: light;
   cursor: pointer;
+}
+
+/* 右邊已經有我們自己的日曆按鈕（有 aria-label、有 hover），原生那顆是多的：
+   兩個日曆圖示並排本來就雜，而且它畫在文字和按鈕中間，看起來像個沒對齊的鬼影。
+   隱藏它不影響開啟，元件是用 showPicker() 開的。 */
+html[data-app-theme='club'] .cw-date-input::-webkit-calendar-picker-indicator {
+  display: none;
 }
 
 @supports (padding: env(safe-area-inset-top)) {

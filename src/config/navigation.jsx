@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   CalculatorIcon,
+  CalendarDaysIcon,
   BanknotesIcon,
   BeakerIcon,
   ClipboardDocumentListIcon,
@@ -73,6 +74,14 @@ export const BASE_NAV_ITEMS = [
     section: '庫存與報表',
     accentColor: '#fb923c',
     Icon: DocumentTextIcon,
+  },
+  {
+    path: '/shifts',
+    label: '班表',
+    badge: 'Beta',
+    section: '人事與航班',
+    accentColor: '#0ea5e9',
+    Icon: CalendarDaysIcon,
   },
   {
     path: '/menu',

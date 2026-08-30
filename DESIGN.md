@@ -41,6 +41,12 @@ typography:
     fontWeight: 600
     lineHeight: 1.4
     letterSpacing: "0.025em"
+  micro:
+    fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "0.01em"
 rounded:
   sm: "8px"
   md: "12px"
@@ -131,6 +137,7 @@ Club is warm and material. Semantic success, warning, and danger colors remain l
 - **Title:** Bold; use for cards and section headings.
 - **Body:** Regular with open leading; use for descriptions, long feedback, and discussion text, generally capped near 68 characters per line.
 - **Label:** Semibold, often uppercase with wide tracking in table headers and compact controls.
+- **Micro (11px):** The smallest permitted step. Reserved for dense operational grids — day-number headers, per-row and per-column totals, and in-cell secondary marks. Never used for body copy, and never below 11px.
 
 **The Scan-Then-Read Rule.** Let weight and spacing identify title, state, and metadata before the user reads the longer body copy.
 

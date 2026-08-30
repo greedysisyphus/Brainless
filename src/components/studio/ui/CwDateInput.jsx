@@ -50,7 +50,9 @@ export function CwDateInput({
         id={inputId}
         type="date"
         className={`cw-date-input w-full min-h-11 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] py-2.5 pl-3 pr-11 text-sm text-[var(--cw-text)] placeholder:text-[var(--cw-text-muted)] focus:border-[var(--cw-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--cw-focus-ring)] ${inputClassName}`}
-        style={{ WebkitTapHighlightColor: 'transparent', colorScheme: 'dark' }}
+        // colorScheme 交給主題的 CSS 決定。這裡曾寫死 dark，在淺色紙感主題上會讓瀏覽器
+        // 用深色模式畫原生的日期圖示 —— 淺色圖示畫在淺色底上，變成一個看不見的鬼影。
+        style={{ WebkitTapHighlightColor: 'transparent' }}
         onClick={handleInputClick}
         {...props}
       />

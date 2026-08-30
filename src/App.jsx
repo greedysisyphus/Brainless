@@ -22,6 +22,7 @@ const DailyReportGenerator = lazy(() => import('./pages/DailyReportGenerator'))
 const PublicMenuPage = lazy(() => import('./pages/PublicMenuPage'))
 const DataFormatTester = lazy(() => import('./pages/DataFormatTester'))
 const FeedbackCenter = lazy(() => import('./pages/FeedbackCenter'))
+const ShiftBoard = lazy(() => import('./pages/ShiftBoard'))
 
 function AppContent() {
   const [firebaseStatus, setFirebaseStatus] = useState({
@@ -66,6 +67,7 @@ function AppContent() {
               <Route path="/goods-order-test" element={<GoodsOrderManager />} />
               <Route path="/daily-reports" element={<DailyReportGenerator />} />
               <Route path="/menu" element={<PublicMenuPage />} />
+              <Route path="/shifts" element={<ShiftBoard />} />
               <Route path="/schedule" element={<Navigate to="/playground#schedule-manager" replace />} />
               <Route path="/data-tester" element={<DataFormatTester />} />
               <Route path="/poursteady" element={<PoursteadyAdjustment />} />

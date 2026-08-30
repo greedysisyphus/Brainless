@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "brainless-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "brainless-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--base",
+        "/Brainless/",
+        "--port",
+        "4173",
+        "--outDir",
+        "docs"
+      ],
+      "port": 4173
+    }
+  ]
+}

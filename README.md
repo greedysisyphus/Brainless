@@ -1,6 +1,6 @@
 # Brainless
 
-咖啡店門市營運工具：厚片計算、收銀、點豆、叫貨、日結報表、電子菜單、航班資料。給現場人員用手機／iPad／電腦快速完成當下工作。
+咖啡店門市營運工具：厚片計算、收銀、點豆、叫貨、日結報表、電子菜單、班表、航班資料。給現場人員用手機／iPad／電腦快速完成當下工作。
 
 線上：https://greedysisyphus.github.io/Brainless/
 
@@ -12,9 +12,10 @@
 - **貨物叫貨**：對照最低庫存產出可複製的叫貨文字
 - **日結報表**：產出各店月報 zip
 - **電子菜單**：店內／公開菜單（完整站台另見 `menu-site/`）
+- **班表**：匯入班表轉換器的 JSON，看三家店的完整班表、今天誰上班、公司車名單（含司機版）與統計；個人月視圖可自訂欄位匯出 .ics 到手機行事曆
 - **航班資料**：桃園機場航班，每小時由 GitHub Actions 更新
 - **回饋中心**：功能許願、問題回報、操作討論
-- **Playground**：班表、酒精計算、音樂等實驗／次要工具
+- **Playground**：舊版班表工具、酒精計算、音樂等實驗／次要工具
 
 介面為 Club 主題（暖紙底、墨色字、珊瑚強調）。
 
@@ -26,6 +27,8 @@ npm run dev          # http://localhost:3001
 npm test
 npm run build        # 輸出到 docs/，供 GitHub Pages
 ```
+
+班表資料存在 Firestore 的 `shiftMonths`（每店每月一份）、`shiftPeople`（上車地點、暱稱、合併）與 `shiftSupportLinks`（支援班的手動配對）；來源是 Brainless-SimpleKaffa-Shifts-Convertor 的 `.json` 或 `.flat.json` 匯出檔，`src/pages/shifts/` 是純函式邏輯，有 `tests/shifts.test.js` 覆蓋。
 
 航班 JSON 的唯一來源是 `data/`。`npm run dev` 會同步到 `public/data/`；正式建置再複製進 `docs/data/`。日結 zip 只追蹤 `public/reports/`。
 
