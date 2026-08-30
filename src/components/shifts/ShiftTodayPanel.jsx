@@ -2,13 +2,14 @@ import { useMemo } from 'react'
 import { UserGroupIcon } from '@heroicons/react/24/outline'
 import { CwBadge, CwCard, CwEmptyState } from '../studio/ui'
 import {
-  CAR_DEPARTURE,
   CAR_LABELS,
   CAR_SHIFTS,
   SHIFT_META,
   UNSET_PICKUP,
+  carDepartureTime,
   getStore,
   getStoreShortName,
+  stopTime,
 } from '../../pages/shifts/shiftConstants'
 import { getShiftDisplay } from '../../pages/shifts/shiftVocab'
 import {
@@ -109,7 +110,7 @@ export function ShiftTodayPanel({ book, dateKey, pickupByPerson, onOpenPickupSet
                     <ShuttleBusIcon className="h-5 w-5 shrink-0 self-center text-[var(--cw-brand)]" />
                     {CAR_LABELS[car.shift]}
                     <span className="text-xs font-semibold tabular-nums text-[var(--cw-brand-strong)]">
-                      {CAR_DEPARTURE[car.shift]} 發車
+                      {carDepartureTime(car.shift)} 發車
                     </span>
                   </span>
                   <span className="shrink-0 text-xs tabular-nums text-[var(--cw-text-muted)]">
@@ -124,12 +125,19 @@ export function ShiftTodayPanel({ book, dateKey, pickupByPerson, onOpenPickupSet
                     {car.groups.map((group) => {
                       const unset = group.location === UNSET_PICKUP
                       return (
-                        <li key={group.location} className="grid grid-cols-[auto_1fr] gap-x-3 py-1.5 text-sm">
+                        <li
+                          key={group.location}
+                          className="grid grid-cols-[auto_1fr] gap-x-3 py-1.5 text-sm"
+                        >
                           <span
-                            className={`flex items-baseline gap-1 whitespace-nowrap font-semibold ${
+                            className={`flex items-baseline gap-1.5 whitespace-nowrap font-semibold ${
                               unset ? 'text-[var(--cw-warning)]' : 'text-[var(--cw-text)]'
                             }`}
                           >
+                            {/* 每一站上車時間不同，只標一個發車時間會讓後面幾站的人早到十五分鐘 */}
+                            <span className="tabular-nums text-xs font-semibold text-[var(--cw-brand-strong)]">
+                              {stopTime(group.location, car.shift) || '—'}
+                            </span>
                             {group.location}
                             <span className="text-xs font-normal tabular-nums text-[var(--cw-text-muted)]">
                               {group.riders.length}
@@ -172,7 +180,7 @@ export function ShiftTodayPanel({ book, dateKey, pickupByPerson, onOpenPickupSet
           })}
         </div>
         <p className="mt-4 text-xs text-[var(--cw-text-muted)]">
-          {CAR_SHIFTS.map((code) => `${CAR_LABELS[code]} ${CAR_DEPARTURE[code]} 發車`).join('、')}
+          {CAR_SHIFTS.map((code) => `${CAR_LABELS[code]} ${carDepartureTime(code)} 發車`).join('、')}
           ；只有{CAR_SHIFTS.map((code) => SHIFT_META[code].label).join('、')}排交通車，
           跨店支援（T3／D7）的同事會算在實際上班的那家店。
         </p>

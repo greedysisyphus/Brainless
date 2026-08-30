@@ -81,15 +81,20 @@ export const CAR_LABELS = {
   MID: '中班車',
 }
 
-/** 發車時間。比到店時間早半小時：早班 04:30 到店、中班 05:30 到店。 */
-export const CAR_DEPARTURE = {
-  MORNING: '04:00',
-  MID: '05:00',
+/**
+ * 發車時間＝**第一站的到站時間**，從站表推。
+ *
+ * 這裡曾經寫死 04:00／05:00，但那是最後一站（高鐵站）的時間 —— 車其實 03:45 就從環北開了。
+ * 寫死等於資料有兩個來源，站表一改就悄悄不一致，所以一律從站表推。
+ */
+export function carDepartureTime(shiftCode) {
+  const times = PICKUP_LOCATIONS.map((location) => stopTime(location, shiftCode)).filter(Boolean)
+  return times.length ? times.sort()[0] : ''
 }
 
 export function carLabelWithTime(shiftCode) {
   const label = CAR_LABELS[shiftCode] || shiftCode
-  const time = CAR_DEPARTURE[shiftCode]
+  const time = carDepartureTime(shiftCode)
   return time ? `${label} ${time}` : label
 }
 

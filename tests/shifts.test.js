@@ -32,7 +32,7 @@ import {
   resolveExportRange,
   renderDriverSchedule,
 } from '../src/pages/shifts/shiftExport.js'
-import { CAR_DEPARTURE, carLabelWithTime } from '../src/pages/shifts/shiftConstants.js'
+import { carDepartureTime, carLabelWithTime } from '../src/pages/shifts/shiftConstants.js'
 
 import {
   POSITION_TOKENS,
@@ -353,15 +353,15 @@ test('匯出：文字與表格都帶上車地點與人數', () => {
   assert.equal(morning.rows.find((r) => r.location === 'A21環北站').total, 2)
 
   const text = renderPickupText(table)
-  // 名單要帶發車時間：早班車 04:00、中班車 05:00
-  assert.match(text, /早班車 04:00 發車（2 人）/)
+  // 名單要帶發車時間＝第一站：早班車 03:45、中班車 04:45
+  assert.match(text, /早班車 03:45 發車（2 人）/)
   assert.match(text, /A21環北站：小明（一店）、Ben（D13）/)
   assert.match(text, /中秋節/)
   assert.match(text, /今日無人搭車/)
 
   const tsv = renderPickupTsv(table)
   assert.match(tsv.split('\n')[0], /^車次\t上車地點\t1（二）/)
-  assert.match(tsv.split('\n')[1], /^早班車 04:00\t/)
+  assert.match(tsv.split('\n')[1], /^早班車 03:45\t/)
 })
 
 test('統計：班別分布跟著人走，調店與支援算在實際上班的店', () => {
@@ -1210,16 +1210,16 @@ test('匯出：司機版只有站點與人數，不含任何姓名', () => {
   })
 
   const driverText = renderDriverText(table)
-  assert.match(driverText, /早班車 04:00 發車（共 2 人）/)
+  assert.match(driverText, /早班車 03:45 發車（共 2 人）/)
   assert.match(driverText, /A21環北站　2 人/)
   assert.doesNotMatch(driverText, /小明|Ben|Ann/)
 
   const driverTsv = renderDriverTsv(table)
   assert.doesNotMatch(driverTsv, /小明|Ben|Ann/)
   // 每列不再帶「整列合計」欄，只保留每天的人數
-  assert.match(driverTsv.split('\n')[1], /^早班車 04:00\tA21環北站\t2$/)
+  assert.match(driverTsv.split('\n')[1], /^早班車 03:45\tA21環北站\t2$/)
   assert.doesNotMatch(driverTsv, /合計/)
-  assert.match(driverTsv, /早班車 04:00\t小計\t2/)
+  assert.match(driverTsv, /早班車 03:45\t小計\t2/)
 
   // 店內版仍然有名字
   assert.match(renderPickupText(table), /小明/)
@@ -1363,10 +1363,11 @@ test('崗位色：整格上色與小標記各有一組值，且不用匯入檔�
 
 
 test('交通車：發車時間比到店時間早半小時，兩台車各自標示', () => {
-  assert.equal(CAR_DEPARTURE.MORNING, '04:00')
-  assert.equal(CAR_DEPARTURE.MID, '05:00')
-  assert.equal(carLabelWithTime('MORNING'), '早班車 04:00')
-  assert.equal(carLabelWithTime('MID'), '中班車 05:00')
+  // 發車時間＝第一站，從站表推。寫死 04:00／05:00 是錯的，那是最後一站高鐵站的時間
+  assert.equal(carDepartureTime('MORNING'), '03:45')
+  assert.equal(carDepartureTime('MID'), '04:45')
+  assert.equal(carLabelWithTime('MORNING'), '早班車 03:45')
+  assert.equal(carLabelWithTime('MID'), '中班車 04:45')
 
   const book = buildFixtureBook()
   const table = buildPickupTable(book, {
@@ -1377,8 +1378,8 @@ test('交通車：發車時間比到店時間早半小時，兩台車各自標�
   assert.deepEqual(
     table.sections.map((s) => [s.label, s.departure]),
     [
-      ['早班車', '04:00'],
-      ['中班車', '05:00'],
+      ['早班車', '03:45'],
+      ['中班車', '04:45'],
     ]
   )
 })

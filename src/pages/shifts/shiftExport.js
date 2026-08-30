@@ -1,7 +1,7 @@
 /** 班表：上車地點名單的表格模型與文字輸出（純函式，可單元測試） */
 
 import {
-  CAR_DEPARTURE,
+  carDepartureTime,
   CAR_LABELS,
   CAR_ORDINAL_LABELS,
   CAR_SHIFTS,
@@ -104,7 +104,7 @@ export function buildPickupTable(book, { from, to, pickupByPerson = {} } = {}) {
       shift: shiftCode,
       label: CAR_LABELS[shiftCode] || shiftCode,
       ordinalLabel: CAR_ORDINAL_LABELS[shiftCode] || CAR_LABELS[shiftCode] || shiftCode,
-      departure: CAR_DEPARTURE[shiftCode] || '',
+      departure: carDepartureTime(shiftCode),
       rows,
       totals,
       total: totals.reduce((sum, n) => sum + n, 0),
