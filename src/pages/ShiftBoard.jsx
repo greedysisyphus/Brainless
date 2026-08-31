@@ -227,8 +227,9 @@ function ShiftBoard() {
       ) : null}
 
       <div
-        className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1"
-        style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+        // 手機上橫向捲動＋隱藏捲軸＝最後兩個分頁看起來不存在。六個短標籤換行剛好兩排，
+        // 全部看得到，也不必先發現「這裡可以滑」。桌機本來就一排放得下。
+        className="-mx-1 flex flex-wrap items-center gap-2 px-1 pb-1"
       >
         {TABS.map((tab) => {
           const active = tab.key === activeTab
@@ -238,7 +239,7 @@ function ShiftBoard() {
               type="button"
               aria-pressed={active}
               onClick={() => setActiveTab(tab.key)}
-              className={`cw-touch-target shrink-0 rounded-[var(--cw-radius-pill)] border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)] ${
+              className={`cw-touch-target rounded-[var(--cw-radius-pill)] border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)] ${
                 active
                   ? 'border-[var(--cw-brand)]/40 bg-[var(--cw-brand-muted)] text-[var(--cw-brand-strong)]'
                   : 'border-[var(--cw-border-strong)] text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)]'
@@ -338,15 +339,19 @@ function ShiftBoard() {
                     <PersonOptionGroups groups={peopleGroups} />
                   </CwSelect>
                   {selectedPersonKey ? null : (
-                    <div className="flex flex-col justify-end">
+                    // 對齊要看標籤與控制項，不是整格的底部：隔壁那格的 hint 掛在下面，
+                    // 用 justify-end 會被 hint 一起往下推，看起來就沒對齊。
+                    <div className="flex flex-col">
                       <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
                         店別
                       </span>
-                      <StoreTabs
-                        stores={availableStores}
-                        value={selectedStore}
-                        onChange={setSelectedStore}
-                      />
+                      <div className="flex min-h-11 items-center">
+                        <StoreTabs
+                          stores={availableStores}
+                          value={selectedStore}
+                          onChange={setSelectedStore}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

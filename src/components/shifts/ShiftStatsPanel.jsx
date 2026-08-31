@@ -361,7 +361,7 @@ export function ShiftStatsPanel({ book, peopleSettings, selectedPersonKey, onSel
             <CwSelect
               label="選一位同事"
               name="partner-person"
-              className="min-w-[12rem]"
+              className="min-w-0 flex-1 sm:min-w-[12rem] sm:flex-none"
               value={selectedPersonKey || ''}
               onChange={(event) => onSelectPerson(event.target.value || null)}
             >
@@ -407,8 +407,14 @@ export function ShiftStatsPanel({ book, peopleSettings, selectedPersonKey, onSel
                       </span>
                       <span
                         className={`text-right ${lead === 'hours' ? 'font-bold text-[var(--cw-text)]' : 'text-[var(--cw-text-muted)]'}`}
+                        title={
+                          partner.overlapMinutes === 0 && partner.days > 0
+                            ? '那天兩人都有班，但一個下班另一個才上班，時間沒有重疊'
+                            : undefined
+                        }
                       >
-                        {partner.overlapHours}
+                        {/* 0 小時不是壞掉：中班 14:00 下班、晚班 14:00 上班，剛好接在一起而已 */}
+                        {partner.overlapMinutes === 0 && partner.days > 0 ? '交班' : partner.overlapHours}
                       </span>
                       <span className="hidden text-right text-[var(--cw-text-muted)] sm:block">
                         {partner.days}

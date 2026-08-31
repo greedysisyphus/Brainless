@@ -2328,3 +2328,14 @@ test('司機版：沒人搭的那天寫「停開」，不是整天消失', () =>
   assert.match(text, /9\/2（三） 停開/)
   assert.match(text, /9\/1（二） 共 1 人/)
 })
+
+test('重疊 0 小時不是錯的：中班下班那一刻晚班才上班', () => {
+  const book = buildFixtureBook()
+  // 一店 9/1：小明中班 05:30–14:00、Ann 晚班 14:00–22:30，同店同日但完全不重疊
+  const partners = computePartnerFrequency(book, '小明')
+  const touching = partners.filter((p) => p.days > 0 && p.overlapMinutes === 0)
+  touching.forEach((p) => {
+    assert.equal(p.overlapHours, 0)
+    assert.ok(p.days > 0, '有搭到班（同日同店）但時數是 0，這是交班不是漏算')
+  })
+})

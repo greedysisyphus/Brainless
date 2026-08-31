@@ -11,7 +11,11 @@ export function CwCard({ title, subtitle, actions, children, className = '' }) {
               <p className="mt-1 text-sm text-[var(--cw-text-muted)]">{subtitle}</p>
             )}
           </div>
-          {actions ? <div className="flex flex-shrink-0 flex-wrap gap-2">{actions}</div> : null}
+          {/* flex-shrink-0 在窄螢幕會把 actions 撐出畫面（chips、下拉選單都可能比 375px 寬），
+              所以只在放得下的時候不縮，窄的時候讓它換行並自己捲。 */}
+          {actions ? (
+            <div className="flex min-w-0 max-w-full flex-wrap gap-2 sm:flex-shrink-0">{actions}</div>
+          ) : null}
         </div>
       )}
       <div>{children}</div>
