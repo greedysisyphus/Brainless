@@ -270,6 +270,11 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
+          "flight_code": "LO5344",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
+        },
+        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -288,11 +293,6 @@
           "flight_code": "NZ4934",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
-        },
-        {
-          "flight_code": "LO5344",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
         }
       ]
     },
@@ -686,5 +686,5 @@
     "20:10 : D12 : JX32 (星宇航空)",
     "23:30 : D13 : CI57 (中華航空)"
   ],
-  "updated_at": "2026-09-01T18:18:31.856255"
+  "updated_at": "2026-09-01T21:40:28.716964"
 }
