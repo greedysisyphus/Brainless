@@ -309,7 +309,7 @@ export function PeopleSettingsPanel({
 
             return (
               <li key={person.key} className="py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_10rem_auto]">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-[var(--cw-text)]">
@@ -318,21 +318,8 @@ export function PeopleSettingsPanel({
                       {settings.nickname ? (
                         <span className="text-xs text-[var(--cw-text-muted)]">（{person.name}）</span>
                       ) : null}
-                      {storeCodesOf(person).map((code) => (
-                        <CwBadge key={code}>{getStoreName(code)}</CwBadge>
-                      ))}
-                      {storeCodesOf(person).length > 1 ? (
-                        <CwBadge tone="brand">跨店</CwBadge>
-                      ) : null}
                       {person.unnamed ? <CwBadge tone="warning">姓名待確認</CwBadge> : null}
-                      <PickupExceptions
-                      person={person}
-                      settings={settings}
-                      onChange={onChange}
-                      today={today}
-                    />
-
-                    {aliases.length ? (
+                      {aliases.length ? (
                         <CwBadge tone="brand">
                           <LinkIcon className="mr-1 inline h-3 w-3" />
                           含 {aliases.join('、')}
@@ -344,10 +331,9 @@ export function PeopleSettingsPanel({
                     ) : null}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    <CwSelect
+                  <CwSelect
                       name={`pickup-${person.key}`}
-                      className="w-40"
+                      className="col-start-1 sm:col-start-2"
                       value={settings.pickup || ''}
                       onChange={(event) =>
                         onChange(person.key, { ...settings, pickup: event.target.value })
@@ -359,19 +345,18 @@ export function PeopleSettingsPanel({
                           {location}
                         </option>
                       ))}
-                    </CwSelect>
-                    <button
-                      type="button"
-                      onClick={() => setOpenKey(open ? null : person.key)}
-                      aria-expanded={open}
-                      className="cw-touch-target inline-flex items-center gap-1 rounded-[var(--cw-radius)] px-2 py-2 text-xs font-semibold text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)]"
-                    >
-                      更多
-                      <ChevronDownIcon
-                        className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                  </div>
+                  </CwSelect>
+                  <button
+                    type="button"
+                    onClick={() => setOpenKey(open ? null : person.key)}
+                    aria-expanded={open}
+                    className="cw-touch-target row-start-1 inline-flex items-center justify-self-end gap-1 rounded-[var(--cw-radius)] px-2 py-2 text-xs font-semibold text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] sm:row-start-auto"
+                  >
+                    更多
+                    <ChevronDownIcon
+                      className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
+                    />
+                  </button>
                 </div>
 
                 {open ? (
@@ -408,7 +393,17 @@ export function PeopleSettingsPanel({
                       />
                     </CwSelect>
 
-                    <label className="flex items-center gap-2 text-xs text-[var(--cw-text-muted)]">
+
+                    <div className="border-t border-[var(--cw-border)] pt-3 sm:col-span-2">
+                      <PickupExceptions
+                        person={person}
+                        settings={settings}
+                        onChange={onChange}
+                        today={today}
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2 border-t border-[var(--cw-border)] pt-3 text-xs text-[var(--cw-text-muted)] sm:col-span-2">
                       <input
                         type="checkbox"
                         className="h-4 w-4 accent-[var(--cw-brand)]"
