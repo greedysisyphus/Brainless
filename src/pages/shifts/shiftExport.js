@@ -129,7 +129,11 @@ export function renderPickupText(table, { title = '交通車上車名單', withS
   if (!table || !table.dates.length) return ''
   const first = table.dates[0]
   const last = table.dates[table.dates.length - 1]
-  const lines = [title, `${formatDateShort(first.dateKey)} ～ ${formatDateShort(last.dateKey)}`, '']
+  // 只有一天時「9/1 ～ 9/1」加上底下再寫一次日期＝同一個日期出現三遍
+  const singleDay = first.dateKey === last.dateKey
+  const lines = singleDay
+    ? [`${title}　${formatDateShort(first.dateKey)}`, '']
+    : [title, `${formatDateShort(first.dateKey)} ～ ${formatDateShort(last.dateKey)}`, '']
 
   table.dates.forEach((date, index) => {
     const blocks = []
@@ -142,16 +146,19 @@ export function renderPickupText(table, { title = '交通車上車名單', withS
       blocks.push(
         [
           `▍${section.label} ${section.departure} 發車（${count} 人）`,
-          ...groups.map(
-            (group) =>
-              `  ${group.location}：${group.riders.map((r) => riderLabel(r, { withStore })).join('、')}`
-          ),
+          // 看的人要的是「我幾點上車」，不是「車幾點從第一站開」
+          ...groups.map((group) => {
+            const time = stopTime(group.location, section.shift)
+            const riders = group.riders.map((r) => riderLabel(r, { withStore })).join('、')
+            return `  ${time ? `${time} ` : ''}${group.location}：${riders}`
+          }),
         ].join('\n')
       )
     })
 
-    const heading = `${formatDateShort(date.dateKey)}${date.holiday ? ` · ${date.holiday}` : ''}`
-    lines.push(heading)
+    if (!singleDay || date.holiday) {
+      lines.push(`${formatDateShort(date.dateKey)}${date.holiday ? ` · ${date.holiday}` : ''}`)
+    }
     lines.push(blocks.length ? blocks.join('\n') : '  今日無人搭車')
     lines.push('')
   })

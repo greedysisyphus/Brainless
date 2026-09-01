@@ -2339,3 +2339,18 @@ test('重疊 0 小時不是錯的：中班下班那一刻晚班才上班', () =>
     assert.ok(p.days > 0, '有搭到班（同日同店）但時數是 0，這是交班不是漏算')
   })
 })
+
+test('店內版：單日不重複寫三次日期，每一站標自己的上車時間', () => {
+  const book = buildFixtureBook()
+  const table = buildPickupTable(book, {
+    from: '2026-09-01',
+    to: '2026-09-01',
+    pickupByPerson: { 小明: 'A21環北站', Ann: '高鐵站' },
+  })
+  const text = renderPickupText(table, { withStore: true })
+  // 標題那行就帶日期，底下不再重複
+  assert.match(text.split('\n')[0], /交通車上車名單　9\/1（二）/)
+  assert.doesNotMatch(text, /9\/1（二） ～ 9\/1（二）/)
+  // 同事要知道的是自己幾點上車，不是車幾點從第一站開
+  assert.match(text, /03:45 A21環北站：/)
+})
