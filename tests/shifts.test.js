@@ -355,9 +355,9 @@ test('匯出：文字與表格都帶上車地點與人數', () => {
   const text = renderPickupText(table)
   // 名單要帶發車時間＝第一站：早班車 03:45、中班車 04:45
   assert.match(text, /早班車 03:45 發車（2 人）/)
-  // 預設不寫店名：加上去一行長一倍，看名單的人本來就認得同事在哪家店
+  // 預設只寫名字：店別與支援與否都不影響誰上哪一台車
   assert.match(text, /A21環北站：小明、Ben/)
-  assert.doesNotMatch(text, /小明（一店）/)
+  assert.doesNotMatch(text, /（一店）|（支援）/)
   // 要的話還是叫得出來
   assert.match(renderPickupText(table, { withStore: true }), /小明（一店）/)
   assert.match(text, /中秋節/)

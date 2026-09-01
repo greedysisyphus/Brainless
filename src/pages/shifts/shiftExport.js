@@ -116,11 +116,11 @@ export function buildPickupTable(book, { from, to, pickupByPerson = {} } = {}) {
 }
 
 /**
- * 名單上的一個人。**預設只寫名字** —— 加上店名會讓一行變兩倍長，
- * 而看名單的人本來就認得同事在哪家店。只有跨店支援才值得標，那是例外。
+ * 名單上的一個人。**預設只寫名字** —— 這是一張上車名單，司機和同事要的是
+ * 「誰在這站」，店別、支援與否都不影響誰上哪一台車。
  */
 function riderLabel(rider, { withStore = false } = {}) {
-  if (!withStore) return rider.isSupport ? `${rider.name}（支援）` : rider.name
+  if (!withStore) return rider.name
   const suffix = getStoreShortName(rider.workStore)
   const support = rider.isSupport ? '·支援' : ''
   return `${rider.name}（${suffix}${support}）`
