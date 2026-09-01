@@ -68,3 +68,6 @@ public/data/**
 
 # Cursor local rules (personal preferences)
 .cursorrules
+
+# functions/lib/shifts 由 scripts/sync-shift-lib.sh 從 src 複製，部署前自動產生
+functions/lib/shifts/

@@ -39,8 +39,13 @@ const calculatePickupStats = (scheduleData, tomorrow) => {
 };
 */
 
-// API endpoint
-exports.getTomorrowPickup = functions.https.onRequest(async (req, res) => {
+// 交通車名單 API（給 iOS 捷徑）
+exports.pickup = require("./pickup").pickup;
+
+// 舊的端點：讀的是已經淘汰的班表格式，永遠回「尚無班表資料」，
+// 而且不帶任何驗證就會吐同事姓名。改用上面的 pickup。
+// eslint-disable-next-line no-unused-vars
+const _retiredGetTomorrowPickup = functions.https.onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
 
   try {

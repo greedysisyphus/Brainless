@@ -340,3 +340,20 @@ _Avoid_: 以為「後面的規則會蓋掉前面的」、把整個 catch-all 改
 **改規則一定要跑 `npm run test:rules`**：那組測試的重點不是「班表鎖住了嗎」，是**其他功能有沒有被改壞**。需要 Java 與 firebase emulator。
 
 **讀取仍然是開放的**：知道 project id 就讀得到全部班表。這是明知的取捨（全站無登入機制），不是疏漏；要關掉就必須先做登入。
+
+## 交通車 API（給 iOS 捷徑）
+
+`https://us-central1-brainless-schedule.cloudfunctions.net/pickup?key=...`
+
+| 參數 | 值 | 預設 |
+|---|---|---|
+| `key` | 必填，對 `PICKUP_API_KEY` secret | — |
+| `date` | `today` / `tomorrow` / `YYYY-MM-DD` | `today` |
+| `range` | `day` / `week` | `day` |
+| `audience` | `driver`（只有人數）/ `store`（含姓名） | `driver` |
+| `format` | `text` / `json` | `text` |
+
+**算法不重寫**：`functions/lib/shifts/` 是 `scripts/sync-shift-lib.sh` 從 `src/pages/shifts/` 複製的，部署前自動跑（`firebase.json` 的 predeploy）。捷徑跟網頁一定算出同一個答案。上一次因為發車時間寫兩份而顯示錯誤時間，就是不能重寫的理由。
+_Avoid_: 在 functions 裡另寫一份計算邏輯、把 `functions/lib/shifts/` 進版控（那是產物）
+
+**要帶 key**：名單有同事姓名，不能像舊的 `getTomorrowPickup` 那樣裸奔（那支已刪除）。secret 用 CLI 設時容易夾帶結尾換行，所以兩邊都 trim。

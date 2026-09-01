@@ -1,11 +1,14 @@
 module.exports = {
   root: true,
+  // lib/shifts 是從 src 複製過來的 ES module 產物，用網站那邊的規範，不在這裡檢查
+  ignorePatterns: ["lib/**"],
   env: {
     es6: true,
     node: true,
   },
   parserOptions: {
-    ecmaVersion: 2018,
+    // 動態 import() 需要 2020 以上；Node 22 完全支援
+    ecmaVersion: 2020,
   },
   extends: [
     "eslint:recommended",

@@ -18,6 +18,7 @@
         "*.local"
       ],
       "predeploy": [
+        "bash \"$PROJECT_DIR/scripts/sync-shift-lib.sh\"",
         "npm --prefix \"$RESOURCE_DIR\" run lint"
       ]
     }

@@ -128,26 +128,8 @@ export async function savePersonSettings(personKey, settings) {
   return payload
 }
 
-/**
- * 取出「人員鍵 → 上車地點」對照，供交通車與匯出使用。
- * 合併過的別名會跟著正式人員鍵走；別名自己設過的地點在正式的沒設時才頂上。
- */
-export function pickupMapFrom(peopleSettings = {}, identity = null) {
-  const map = {}
-  Object.entries(peopleSettings).forEach(([key, value]) => {
-    const pickup = canonicalPickup(value?.pickup)
-    if (!pickup) return
-    const canonical = identity ? identity.canonicalOf(key) : key
-    if (canonical === key || !map[canonical]) map[canonical] = pickup
-  })
-  // 正式人員鍵自己設過的一律優先
-  Object.entries(peopleSettings).forEach(([key, value]) => {
-    const canonical = identity ? identity.canonicalOf(key) : key
-    const pickup = canonicalPickup(value?.pickup)
-    if (canonical === key && pickup) map[canonical] = pickup
-  })
-  return map
-}
+// pickupMapFrom 已搬到 shiftModel（純函式，伺服器端要共用），這裡轉出去維持相容
+export { pickupMapFrom } from './shiftModel.js'
 
 
 /* ---------- 支援班的手動配對 ---------- */
