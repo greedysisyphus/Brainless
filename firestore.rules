@@ -78,9 +78,30 @@ service cloud.firestore {
       }
     }
 
-    // 既有功能暫時維持原權限；feedback 已由上方規則獨立保護。
+    // 班表月份文件與支援班配對：所有人可讀，只有管理員能寫。
+    //
+    // 只有店長會匯入班表與修配對，同事只是看。開放寫入代表任何知道 project id 的人
+    // 都能覆蓋或刪光整個月的班表，而且不會留下任何痕跡。
+    //
+    // 上車地點（shiftPeople）**不鎖** —— 那是同事自己設定的，鎖了就沒人能改。
+    match /shiftMonths/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /shiftSupportLinks/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 既有功能暫時維持原權限；feedback 與班表已由上方規則獨立保護。
+    //
+    // ⚠️ Firestore 的規則是「OR」——只要有任何一條放行就放行。所以上面那兩條限制
+    // 不會蓋掉這一條，必須在這裡把它們排除掉，否則等於沒鎖。
     match /{collectionId}/{document=**} {
-      allow read, write: if collectionId != 'feedback';
+      allow read, write: if collectionId != 'feedback'
+        && collectionId != 'shiftMonths'
+        && collectionId != 'shiftSupportLinks';
     }
   }
 }

@@ -14,7 +14,8 @@
     "preview": "vite preview --base /Brainless/",
     "preview:local": "vite preview",
     "test": "node --test tests/goodsOrderSync.test.js tests/shifts.test.js",
-    "deploy": "npm run build && gh-pages -d docs"
+    "deploy": "npm run build && gh-pages -d docs",
+    "test:rules": "JAVA_HOME=$(brew --prefix openjdk@21) PATH=\"$JAVA_HOME/bin:$PATH\" firebase emulators:exec --only firestore --project rules-check \"node tests/firestore-rules.test.mjs\""
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
@@ -32,6 +33,7 @@
     "recharts": "^3.1.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "gh-pages": "^6.3.0",

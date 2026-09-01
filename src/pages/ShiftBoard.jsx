@@ -49,6 +49,18 @@ function PanelFallback() {
   )
 }
 
+/**
+ * 班表資料只有管理員能寫（Firestore 規則），沒登入時 Firebase 只會丟一句
+ * 「Missing or insufficient permissions」，看不出要做什麼。這裡翻成人話。
+ */
+function describeSaveError(error) {
+  const code = error?.code || ''
+  if (code === 'permission-denied' || /insufficient permissions/i.test(error?.message || '')) {
+    return '沒有權限寫入班表。班表只有管理員能改，請先到「管理」登入後再試一次。'
+  }
+  return error?.message || '未知錯誤'
+}
+
 function ShiftBoard() {
   const [months, setMonths] = useState([])
   const [peopleSettings, setPeopleSettings] = useState({})
@@ -144,6 +156,8 @@ function ShiftBoard() {
         // eslint-disable-next-line no-await-in-loop
         await saveShiftMonth(month)
       }
+    } catch (error) {
+      throw new Error(describeSaveError(error))
     } finally {
       setSaving(false)
     }
@@ -164,7 +178,7 @@ function ShiftBoard() {
           next.filter((link) => link.date.startsWith(monthKey))
         )
       } catch (error) {
-        setLoadError(`儲存支援班配對失敗：${error.message}`)
+        setLoadError(`儲存支援班配對失敗：${describeSaveError(error)}`)
       } finally {
         setSaving(false)
       }
