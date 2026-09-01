@@ -419,7 +419,6 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className={`font-black ${isClub ? 'text-[#171717]' : 'text-white'}`}>{item.author?.name || '匿名'}</span>
                   <span className={isClub ? 'text-[#777168]' : 'text-slate-500'}>· {item.author?.store || '未提供分店'}</span>
-                  {item.authorRole === 'admin' && <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${isClub ? 'bg-[#171717] text-white' : 'bg-primary text-white'}`}>管理員</span>}
                   <span className={`ml-auto text-xs ${isClub ? 'text-[#8a847b]' : 'text-slate-500'}`}>{formatTime(item.createdAt)}</span>
                   {isAdmin && (
                     <button
