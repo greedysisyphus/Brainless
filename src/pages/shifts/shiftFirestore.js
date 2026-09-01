@@ -82,7 +82,15 @@ export async function deleteShiftMonth(monthKey, storeCode) {
 export function normalizePersonSettings(raw) {
   // 存進 Firebase 的可能是舊站名（環西站），讀出來先正規化，不然那些人會變成「未設定」
   const pickup = canonicalPickup(raw?.pickup)
+  // 特定日期的例外：那天不搭車，或那天從別站上車
+  const pickupOn = {}
+  Object.entries(raw?.pickupOn || {}).forEach(([date, location]) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return
+    const value = canonicalPickup(location)
+    if (PICKUP_OPTIONS.includes(value)) pickupOn[date] = value
+  })
   return {
+    pickupOn,
     pickup: PICKUP_OPTIONS.includes(pickup) ? pickup : '',
     excludeFromStats: !!raw?.excludeFromStats,
     note: String(raw?.note ?? ''),

@@ -404,25 +404,44 @@ export function groupWorkingByStore(assignments) {
  */
 export function pickupMapFrom(peopleSettings = {}, identity = null) {
   const map = {}
-  Object.entries(peopleSettings).forEach(([key, value]) => {
+  const put = (canonical, value) => {
     const pickup = canonicalPickup(value?.pickup)
-    if (!pickup) return
+    const on = {}
+    Object.entries(value?.pickupOn || {}).forEach(([date, location]) => {
+      const canonicalLocation = canonicalPickup(location)
+      if (canonicalLocation) on[date] = canonicalLocation
+    })
+    if (!pickup && !Object.keys(on).length) return
+    map[canonical] = { pickup, on }
+  }
+  Object.entries(peopleSettings).forEach(([key, value]) => {
     const canonical = identity ? identity.canonicalOf(key) : key
-    if (canonical === key || !map[canonical]) map[canonical] = pickup
+    if (canonical === key || !map[canonical]) put(canonical, value)
   })
   // 正式人員鍵自己設過的一律優先
   Object.entries(peopleSettings).forEach(([key, value]) => {
     const canonical = identity ? identity.canonicalOf(key) : key
-    const pickup = canonicalPickup(value?.pickup)
-    if (canonical === key && pickup) map[canonical] = pickup
+    if (canonical === key) put(canonical, value)
   })
   return map
 }
 
 
-export function pickupOf(pickupByPerson, personKey) {
+/**
+ * 這個人這天從哪裡上車。
+ *
+ * `pickupByPerson[key]` 可以是字串（就一個固定地點），也可以是
+ * `{ pickup, on: { 'YYYY-MM-DD': 地點 } }` —— 那天有例外就用例外的。
+ * 例外不只表達「不搭車」，也表達「這天從別站上」，因為兩者是同一件事。
+ */
+export function pickupOf(pickupByPerson, personKey, dateKey) {
+  const entry = pickupByPerson?.[personKey]
+  const raw =
+    typeof entry === 'string'
+      ? entry
+      : (dateKey && entry?.on?.[dateKey]) ?? entry?.pickup
   // 舊站名在這裡也擋一次：漏接的話那個人會被歸成「未設定」，等於當天少一個人上車
-  const value = canonicalPickup(pickupByPerson?.[personKey])
+  const value = canonicalPickup(raw)
   if (!value) return UNSET_PICKUP
   return value
 }
@@ -443,7 +462,7 @@ export function getCarLists(book, dateKey, pickupByPerson = {}) {
   return CAR_SHIFTS.map((shiftCode) => {
     const riders = working
       .filter((a) => a.shift === shiftCode)
-      .map((a) => ({ ...a, pickup: pickupOf(pickupByPerson, a.personKey) }))
+      .map((a) => ({ ...a, pickup: pickupOf(pickupByPerson, a.personKey, dateKey) }))
       .filter((a) => a.pickup !== NO_PICKUP)
 
     const byLocation = new Map()
@@ -468,7 +487,7 @@ export function getCarLists(book, dateKey, pickupByPerson = {}) {
       total: riders.length,
       groups,
       skipped: working.filter(
-        (a) => a.shift === shiftCode && pickupOf(pickupByPerson, a.personKey) === NO_PICKUP
+        (a) => a.shift === shiftCode && pickupOf(pickupByPerson, a.personKey, dateKey) === NO_PICKUP
       ),
     }
   })

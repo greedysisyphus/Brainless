@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ChevronDownIcon, LinkIcon, LinkSlashIcon } from '@heroicons/react/24/outline'
-import { CwAlert, CwBadge, CwButton, CwInput, CwSelect } from '../studio/ui'
+import { ChevronDownIcon, LinkIcon, LinkSlashIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { CwAlert, CwBadge, CwButton, CwDateInput, CwInput, CwSelect } from '../studio/ui'
 import {
   NO_PICKUP,
   PICKUP_LOCATIONS,
@@ -8,8 +8,106 @@ import {
   getStoreName,
 } from '../../pages/shifts/shiftConstants'
 import { checkMergeSafety } from '../../pages/shifts/shiftIdentity'
-import { groupPeopleByStore, personInStore } from '../../pages/shifts/shiftModel'
+import { groupPeopleByStore, personInStore, formatDateShort, toDateKey } from '../../pages/shifts/shiftModel'
 import { PersonOptionGroups, StoreFilterChips } from './shiftUi'
+
+/**
+ * 特定日期的上車例外。
+ *
+ * 「這個月 5–8 號不搭車」不該逼人每次手動改設定再改回來 —— 一定會忘記改回去，
+ * 那天名單就少一個人。例外不只表達「不搭」，也表達「這天從別站上」，
+ * 因為對名單來說那是同一件事：那天他從哪裡上車。
+ *
+ * 過去的日期收起來不顯示（月底要對帳的話資料還在），畫面才不會愈用愈長。
+ */
+function PickupExceptions({ person, settings, onChange, today }) {
+  const [date, setDate] = useState('')
+  const [location, setLocation] = useState(NO_PICKUP)
+  const entries = Object.entries(settings.pickupOn || {}).sort((a, b) => a[0].localeCompare(b[0]))
+  const upcoming = entries.filter(([day]) => day >= today)
+  const past = entries.length - upcoming.length
+
+  const write = (next) => onChange(person.key, { ...settings, pickupOn: next })
+  const add = () => {
+    if (!date) return
+    write({ ...(settings.pickupOn || {}), [date]: location })
+    setDate('')
+  }
+  const remove = (day) => {
+    const next = { ...(settings.pickupOn || {}) }
+    delete next[day]
+    write(next)
+  }
+
+  return (
+    <div className="sm:col-span-2">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
+        特定日期例外
+      </p>
+
+      {upcoming.length ? (
+        <ul className="mb-2 flex flex-wrap gap-2">
+          {upcoming.map(([day, value]) => (
+            <li
+              key={day}
+              className="inline-flex items-center gap-1.5 rounded-[var(--cw-radius-pill)] border border-[var(--cw-border-strong)] py-1 pl-3 pr-1 text-xs"
+            >
+              <span className="tabular-nums font-semibold text-[var(--cw-text)]">
+                {formatDateShort(day)}
+              </span>
+              <span className={value === NO_PICKUP ? 'text-[var(--cw-text-muted)]' : ''}>
+                {value}
+              </span>
+              <button
+                type="button"
+                aria-label={`刪除 ${day} 的例外`}
+                onClick={() => remove(day)}
+                className="cw-touch-target grid h-7 w-7 place-items-center rounded-full text-[var(--cw-text-muted)] hover:bg-[var(--cw-surface)] hover:text-[var(--cw-text)]"
+              >
+                <XMarkIcon className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mb-2 text-xs text-[var(--cw-text-muted)]">還沒有例外，平常都照上面的設定。</p>
+      )}
+
+      <div className="flex flex-wrap items-end gap-2">
+        <CwDateInput
+          label="日期"
+          name={`exception-date-${person.key}`}
+          className="w-44"
+          value={date}
+          min={today}
+          onChange={(event) => setDate(event.target.value)}
+        />
+        <CwSelect
+          label="那天"
+          name={`exception-location-${person.key}`}
+          className="w-40"
+          value={location}
+          onChange={(event) => setLocation(event.target.value)}
+        >
+          {PICKUP_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </CwSelect>
+        <CwButton type="button" variant="secondary" onClick={add} disabled={!date}>
+          新增例外
+        </CwButton>
+      </div>
+
+      {past ? (
+        <p className="mt-2 text-[11px] text-[var(--cw-text-muted)]">
+          另有 {past} 筆已過期的例外沒有列出（資料留著，不影響往後的名單）。
+        </p>
+      ) : null}
+    </div>
+  )
+}
 
 /**
  * 同事設定：暱稱、上車地點、手動合併與排除統計。
@@ -25,6 +123,7 @@ export function PeopleSettingsPanel({
 }) {
   const [keyword, setKeyword] = useState('')
   const [openKey, setOpenKey] = useState(null)
+  const today = toDateKey(new Date())
   const [mergeError, setMergeError] = useState(null)
   const [storeFilter, setStoreFilter] = useState('all')
 
@@ -204,7 +303,14 @@ export function PeopleSettingsPanel({
                         <CwBadge tone="brand">跨店</CwBadge>
                       ) : null}
                       {person.unnamed ? <CwBadge tone="warning">姓名待確認</CwBadge> : null}
-                      {aliases.length ? (
+                      <PickupExceptions
+                      person={person}
+                      settings={settings}
+                      onChange={onChange}
+                      today={today}
+                    />
+
+                    {aliases.length ? (
                         <CwBadge tone="brand">
                           <LinkIcon className="mr-1 inline h-3 w-3" />
                           含 {aliases.join('、')}

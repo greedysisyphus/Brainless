@@ -16,6 +16,8 @@ import {
   groupWorkingByStore,
   addDays,
   dateRange,
+  pickupOf,
+  pickupMapFrom,
 } from '../src/pages/shifts/shiftModel.js'
 import {
   computePartnerFrequency,
@@ -32,7 +34,7 @@ import {
   resolveExportRange,
   renderDriverSchedule,
 } from '../src/pages/shifts/shiftExport.js'
-import { carDepartureTime, carLabelWithTime } from '../src/pages/shifts/shiftConstants.js'
+import { carDepartureTime, carLabelWithTime, NO_PICKUP } from '../src/pages/shifts/shiftConstants.js'
 
 import {
   POSITION_TOKENS,
@@ -48,7 +50,7 @@ import {
   checkMergeSafety,
   normalizeIdentitySettings,
 } from '../src/pages/shifts/shiftIdentity.js'
-import { pickupMapFrom, normalizePersonSettings } from '../src/pages/shifts/shiftFirestore.js'
+import { normalizePersonSettings } from '../src/pages/shifts/shiftFirestore.js'
 import { formatTimestamp, getCrossStoreMoves } from '../src/pages/shifts/shiftModel.js'
 import { mergeVocab, getLeaveDisplay } from '../src/pages/shifts/shiftVocab.js'
 import { groupPeopleByStore, primaryStoreOf } from '../src/pages/shifts/shiftModel.js'
@@ -798,7 +800,7 @@ test('合併：上車地點跟著正式人員鍵走，別名設過的會頂上',
   // 只有別名設過 → 併到正式的身上，名單不會少人
   assert.deepEqual(
     pickupMapFrom({ 阿寶: { pickup: '高鐵站', mergedInto: '阿力' } }, identity),
-    { 阿力: '高鐵站' }
+    { 阿力: { pickup: '高鐵站', on: {} } }
   )
 
   // 正式的自己設過 → 以正式的為準
@@ -807,7 +809,7 @@ test('合併：上車地點跟著正式人員鍵走，別名設過的會頂上',
       { 阿寶: { pickup: '高鐵站', mergedInto: '阿力' }, 阿力: { pickup: 'A21環北站' } },
       identity
     ),
-    { 阿力: 'A21環北站' }
+    { 阿力: { pickup: 'A21環北站', on: {} } }
   )
 })
 
@@ -2304,8 +2306,8 @@ test('舊站名讀出來要對回新站名，不能變成未設定', () => {
 
   assert.equal(normalizePersonSettings({ pickup: '環西站' }).pickup, 'A21環北站')
   assert.deepEqual(pickupMapFrom({ 小明: { pickup: '環西站' }, Ann: { pickup: '興南站' } }), {
-    小明: 'A21環北站',
-    Ann: 'A20興南站',
+    小明: { pickup: 'A21環北站', on: {} },
+    Ann: { pickup: 'A20興南站', on: {} },
   })
 })
 
@@ -2357,4 +2359,43 @@ test('店內版：單日不重複寫三次日期，每一站標自己的上車�
   assert.doesNotMatch(text, /9\/1（二） ～ 9\/1（二）/)
   // 同事要知道的是自己幾點上車，不是車幾點從第一站開
   assert.match(text, /03:45 A21環北站：/)
+})
+
+test('特定日期不搭車：只影響那幾天，其他天照常', () => {
+  const book = buildFixtureBook()
+  const settings = {
+    小明: { pickup: 'A21環北站', pickupOn: { '2026-09-01': NO_PICKUP } },
+    Ann: { pickup: '高鐵站' },
+  }
+  const map = pickupMapFrom(settings)
+
+  // 9/1 小明不搭車
+  assert.equal(pickupOf(map, '小明', '2026-09-01'), NO_PICKUP)
+  // 其他天照舊
+  assert.equal(pickupOf(map, '小明', '2026-09-02'), 'A21環北站')
+  // 沒給日期時看的是平常設定
+  assert.equal(pickupOf(map, '小明'), 'A21環北站')
+  // 沒設例外的人完全不受影響
+  assert.equal(pickupOf(map, 'Ann', '2026-09-01'), '高鐵站')
+
+  // 名單真的會少那個人
+  const cars = getCarLists(book, '2026-09-01', map)
+  const riders = cars.flatMap((c) => c.groups.flatMap((g) => g.riders.map((r) => r.personKey)))
+  assert.ok(!riders.includes('小明'), '9/1 小明不該出現在車上')
+  assert.ok(
+    cars.some((c) => c.skipped.some((a) => a.personKey === '小明')),
+    '要被算進「不搭車」而不是憑空消失'
+  )
+})
+
+test('特定日期換一站上車，不是只能取消', () => {
+  const settings = { 小明: { pickup: 'A21環北站', pickupOn: { '2026-09-05': '高鐵站' } } }
+  const map = pickupMapFrom(settings)
+  assert.equal(pickupOf(map, '小明', '2026-09-05'), '高鐵站')
+  assert.equal(pickupOf(map, '小明', '2026-09-06'), 'A21環北站')
+})
+
+test('例外的站名也吃舊寫法', () => {
+  const map = pickupMapFrom({ 小明: { pickup: '高鐵站', pickupOn: { '2026-09-05': '環西站' } } })
+  assert.equal(pickupOf(map, '小明', '2026-09-05'), 'A21環北站')
 })
