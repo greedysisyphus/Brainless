@@ -115,8 +115,12 @@ export function buildPickupTable(book, { from, to, pickupByPerson = {} } = {}) {
   return { dates, sections, hasRiders }
 }
 
-function riderLabel(rider, { withStore = true } = {}) {
-  if (!withStore) return rider.name
+/**
+ * 名單上的一個人。**預設只寫名字** —— 加上店名會讓一行變兩倍長，
+ * 而看名單的人本來就認得同事在哪家店。只有跨店支援才值得標，那是例外。
+ */
+function riderLabel(rider, { withStore = false } = {}) {
+  if (!withStore) return rider.isSupport ? `${rider.name}（支援）` : rider.name
   const suffix = getStoreShortName(rider.workStore)
   const support = rider.isSupport ? '·支援' : ''
   return `${rider.name}（${suffix}${support}）`
@@ -125,7 +129,7 @@ function riderLabel(rider, { withStore = true } = {}) {
 /**
  * 文字版上車名單，適合貼進群組。
  */
-export function renderPickupText(table, { title = '交通車上車名單', withStore = true } = {}) {
+export function renderPickupText(table, { title = '交通車上車名單', withStore = false } = {}) {
   if (!table || !table.dates.length) return ''
   const first = table.dates[0]
   const last = table.dates[table.dates.length - 1]

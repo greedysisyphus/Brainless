@@ -90,7 +90,7 @@ exports.pickup = onRequest(
     const forDriver = req.query.audience !== "store";
     const text = forDriver
       ? renderDriverSchedule(table)
-      : renderPickupText(table, { withStore: true });
+      : renderPickupText(table);
 
     res.status(200).type("text/plain; charset=utf-8")
       .send(text || `${from} 沒有人要坐交通車。`);
