@@ -8,7 +8,13 @@ import {
   getStoreName,
 } from '../../pages/shifts/shiftConstants'
 import { checkMergeSafety } from '../../pages/shifts/shiftIdentity'
-import { groupPeopleByStore, personInStore, formatDateShort, toDateKey } from '../../pages/shifts/shiftModel'
+import {
+  dateRange,
+  formatDateShort,
+  groupPeopleByStore,
+  personInStore,
+  toDateKey,
+} from '../../pages/shifts/shiftModel'
 import { PersonOptionGroups, StoreFilterChips } from './shiftUi'
 
 /**
@@ -22,16 +28,24 @@ import { PersonOptionGroups, StoreFilterChips } from './shiftUi'
  */
 function PickupExceptions({ person, settings, onChange, today }) {
   const [date, setDate] = useState('')
+  // 連續幾天不搭車是常態（連假、出遊），一天一天加會加到放棄。留空就是只加那一天。
+  const [until, setUntil] = useState('')
   const [location, setLocation] = useState(NO_PICKUP)
   const entries = Object.entries(settings.pickupOn || {}).sort((a, b) => a[0].localeCompare(b[0]))
   const upcoming = entries.filter(([day]) => day >= today)
   const past = entries.length - upcoming.length
 
   const write = (next) => onChange(person.key, { ...settings, pickupOn: next })
+  const days = date ? dateRange(date, until && until >= date ? until : date) : []
   const add = () => {
-    if (!date) return
-    write({ ...(settings.pickupOn || {}), [date]: location })
+    if (!days.length) return
+    const next = { ...(settings.pickupOn || {}) }
+    days.forEach((day) => {
+      next[day] = location
+    })
+    write(next)
     setDate('')
+    setUntil('')
   }
   const remove = (day) => {
     const next = { ...(settings.pickupOn || {}) }
@@ -82,8 +96,16 @@ function PickupExceptions({ person, settings, onChange, today }) {
           min={today}
           onChange={(event) => setDate(event.target.value)}
         />
+        <CwDateInput
+          label="到（可留空）"
+          name={`exception-until-${person.key}`}
+          className="w-44"
+          value={until}
+          min={date || today}
+          onChange={(event) => setUntil(event.target.value)}
+        />
         <CwSelect
-          label="那天"
+          label="那幾天"
           name={`exception-location-${person.key}`}
           className="w-40"
           value={location}
@@ -95,8 +117,8 @@ function PickupExceptions({ person, settings, onChange, today }) {
             </option>
           ))}
         </CwSelect>
-        <CwButton type="button" variant="secondary" onClick={add} disabled={!date}>
-          新增例外
+        <CwButton type="button" variant="secondary" onClick={add} disabled={!days.length}>
+          {days.length > 1 ? `新增 ${days.length} 天` : '新增例外'}
         </CwButton>
       </div>
 
