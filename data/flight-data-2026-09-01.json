@@ -270,11 +270,6 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "LO5344",
-          "airline_code": "LO",
-          "airline_name": "波蘭航空"
-        },
-        {
           "flight_code": "NH5808",
           "airline_code": "NH",
           "airline_name": "全日本空輸"
@@ -285,14 +280,19 @@
           "airline_name": "加拿大航空"
         },
         {
+          "flight_code": "TG6346",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
+        },
+        {
           "flight_code": "NZ4934",
           "airline_code": "NZ",
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "TG6346",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
+          "flight_code": "LO5344",
+          "airline_code": "LO",
+          "airline_name": "波蘭航空"
         }
       ]
     },
@@ -441,14 +441,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "QF8740",
-          "airline_code": "QF",
-          "airline_name": "澳洲航空"
-        },
-        {
           "flight_code": "JL5048",
           "airline_code": "JL",
           "airline_name": "日本航空"
+        },
+        {
+          "flight_code": "QF8740",
+          "airline_code": "QF",
+          "airline_name": "澳洲航空"
         }
       ]
     },
@@ -506,6 +506,11 @@
       "destination": "Shanghai/Pudong (PVG)",
       "codeshare_flights": [
         {
+          "flight_code": "CA5522",
+          "airline_code": "CA",
+          "airline_name": "中國國際"
+        },
+        {
           "flight_code": "B77018",
           "airline_code": "B7",
           "airline_name": "立榮航空"
@@ -514,11 +519,6 @@
           "flight_code": "HO3188",
           "airline_code": "HO",
           "airline_name": "吉祥航空"
-        },
-        {
-          "flight_code": "CA5522",
-          "airline_code": "CA",
-          "airline_name": "中國國際"
         }
       ]
     },
@@ -636,7 +636,7 @@
       "type": "departure",
       "airport_code": "MEL",
       "city": "Melbourne",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A350-900",
       "terminal": "2",
       "destination": "Melbourne (MEL)",
@@ -686,5 +686,5 @@
     "20:10 : D12 : JX32 (星宇航空)",
     "23:30 : D13 : CI57 (中華航空)"
   ],
-  "updated_at": "2026-09-01T14:41:04.946950"
+  "updated_at": "2026-09-01T18:18:31.856255"
 }
