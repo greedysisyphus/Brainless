@@ -61,14 +61,14 @@
       "destination": "Osaka Kansai (KIX)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4928",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6354",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4928",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "NH5834",
@@ -152,14 +152,14 @@
       "destination": "Sapporo/CTS (CTS)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4924",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6366",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4924",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "TK9456",
@@ -221,14 +221,14 @@
       "destination": "Tokyo (NRT)",
       "codeshare_flights": [
         {
-          "flight_code": "NZ4944",
-          "airline_code": "NZ",
-          "airline_name": "紐西蘭航空"
-        },
-        {
           "flight_code": "TG6364",
           "airline_code": "TG",
           "airline_name": "泰國航空"
+        },
+        {
+          "flight_code": "NZ4944",
+          "airline_code": "NZ",
+          "airline_name": "紐西蘭航空"
         },
         {
           "flight_code": "NH5850",
@@ -440,7 +440,7 @@
       "type": "departure",
       "airport_code": "PQC",
       "city": "Phu Quoc",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-252",
       "terminal": "2",
       "destination": "Phu Quoc (PQC)",
@@ -456,7 +456,7 @@
       "type": "departure",
       "airport_code": "SGN",
       "city": "Ho Chi Minh",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A330-900",
       "terminal": "2",
       "destination": "Ho Chi Minh (SGN)",
@@ -472,7 +472,7 @@
       "type": "departure",
       "airport_code": "NRT",
       "city": "Tokyo",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-271",
       "terminal": "2",
       "destination": "Tokyo (NRT)",
@@ -499,7 +499,7 @@
       "type": "departure",
       "airport_code": "FUK",
       "city": "Fukuoka",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "A321-200",
       "terminal": "2",
       "destination": "Fukuoka (FUK)",
@@ -529,14 +529,36 @@
     {
       "time": "16:40",
       "datetime": "2026-09-02T16:40:00",
-      "gate": "D12",
+      "gate": "D13",
+      "flight_code": "BR805",
+      "airline_code": "BR",
+      "airline_name": "長榮航空",
+      "type": "departure",
+      "airport_code": "MFM",
+      "city": "Macau",
+      "status": "出發DEPARTED",
+      "aircraft": "A321-200",
+      "terminal": "2",
+      "destination": "Macau (MFM)",
+      "codeshare_flights": [
+        {
+          "flight_code": "NX3005",
+          "airline_code": "NX",
+          "airline_name": "澳門航空"
+        }
+      ]
+    },
+    {
+      "time": "16:40",
+      "datetime": "2026-09-02T16:40:00",
+      "gate": "D16",
       "flight_code": "BR871",
       "airline_code": "BR",
       "airline_name": "長榮航空",
       "type": "departure",
       "airport_code": "HKG",
       "city": "Hong Kong",
-      "status": "準時ON TIME",
+      "status": "出發DEPARTED",
       "aircraft": "B787-10",
       "terminal": "2",
       "destination": "Hong Kong (HKG)",
@@ -547,22 +569,6 @@
           "airline_name": "香港航空"
         }
       ]
-    },
-    {
-      "time": "16:50",
-      "datetime": "2026-09-02T16:50:00",
-      "gate": "D13",
-      "flight_code": "BR186",
-      "airline_code": "BR",
-      "airline_name": "長榮航空",
-      "type": "departure",
-      "airport_code": "OKA",
-      "city": "Okinawa",
-      "status": "準時ON TIME",
-      "aircraft": "A321-200",
-      "terminal": "2",
-      "destination": "Okinawa (OKA)",
-      "codeshare_flights": []
     },
     {
       "time": "18:10",
@@ -652,11 +658,11 @@
     "14:15 : D16 : JX713 (星宇航空)",
     "14:35 : D14R : CI108 (中華航空)",
     "15:10 : D13 : BR102 (長榮航空)",
-    "16:40 : D12 : BR871 (長榮航空)",
-    "16:50 : D13 : BR186 (長榮航空)",
+    "16:40 : D13 : BR805 (長榮航空)",
+    "16:40 : D16 : BR871 (長榮航空)",
     "18:10 : D11 : BR857 (長榮航空)",
     "20:05 : D13 : JX10 (星宇航空)",
     "20:10 : D12 : JX32 (星宇航空)"
   ],
-  "updated_at": "2026-09-02T04:11:21.526234"
+  "updated_at": "2026-09-02T09:24:15.374840"
 }
