@@ -157,14 +157,14 @@
           "airline_name": "加拿大航空"
         },
         {
-          "flight_code": "TG6396",
-          "airline_code": "TG",
-          "airline_name": "泰國航空"
-        },
-        {
           "flight_code": "OZ6874",
           "airline_code": "OZ",
           "airline_name": "韓亞航空"
+        },
+        {
+          "flight_code": "TG6396",
+          "airline_code": "TG",
+          "airline_name": "泰國航空"
         },
         {
           "flight_code": "NZ4926",
@@ -645,5 +645,5 @@
     "20:05 : D11 : JX10 (星宇航空)",
     "20:45 : D12 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-09-04T14:07:58.695092"
+  "updated_at": "2026-09-04T18:14:22.004673"
 }
