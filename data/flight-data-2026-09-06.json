@@ -46,22 +46,6 @@
       ]
     },
     {
-      "time": "06:55",
-      "datetime": "2026-09-06T06:55:00",
-      "gate": "D18",
-      "flight_code": "JX761",
-      "airline_code": "JX",
-      "airline_name": "星宇航空",
-      "type": "departure",
-      "airport_code": "CGK",
-      "city": "Jakarta",
-      "status": "準時ON TIME",
-      "aircraft": "A321-252",
-      "terminal": "2",
-      "destination": "Jakarta (CGK)",
-      "codeshare_flights": []
-    },
-    {
       "time": "07:00",
       "datetime": "2026-09-06T07:00:00",
       "gate": "D16",
@@ -97,6 +81,22 @@
           "airline_name": "全日本空輸"
         }
       ]
+    },
+    {
+      "time": "07:10",
+      "datetime": "2026-09-06T07:10:00",
+      "gate": "D18",
+      "flight_code": "JX785",
+      "airline_code": "JX",
+      "airline_name": "星宇航空",
+      "type": "departure",
+      "airport_code": "MNL",
+      "city": "Manila",
+      "status": "準時ON TIME",
+      "aircraft": "A321-252",
+      "terminal": "2",
+      "destination": "Manila (MNL)",
+      "codeshare_flights": []
     },
     {
       "time": "07:40",
@@ -274,14 +274,14 @@
       "destination": "Singapore (SIN)",
       "codeshare_flights": [
         {
-          "flight_code": "AI7059",
-          "airline_code": "AI",
-          "airline_name": "印度航空"
-        },
-        {
           "flight_code": "SQ5803",
           "airline_code": "SQ",
           "airline_name": "新加坡航空"
+        },
+        {
+          "flight_code": "AI7059",
+          "airline_code": "AI",
+          "airline_name": "印度航空"
         }
       ]
     },
@@ -484,14 +484,14 @@
           "airline_name": "紐西蘭航空"
         },
         {
-          "flight_code": "NH5848",
-          "airline_code": "NH",
-          "airline_name": "全日本空輸"
-        },
-        {
           "flight_code": "TK9452",
           "airline_code": "TK",
           "airline_name": "土耳其航空"
+        },
+        {
+          "flight_code": "NH5848",
+          "airline_code": "NH",
+          "airline_name": "全日本空輸"
         },
         {
           "flight_code": "TG6282",
@@ -623,8 +623,8 @@
   "formatted_display": [
     "00:05 : D11 : JX12 (星宇航空)",
     "00:10 : D12 : JX2 (星宇航空)",
-    "06:55 : D18 : JX761 (星宇航空)",
     "07:00 : D16 : BR166 (長榮航空)",
+    "07:10 : D18 : JX785 (星宇航空)",
     "07:40 : D13 : JX711 (星宇航空)",
     "08:10 : D11 : JX771 (星宇航空)",
     "08:15 : D16 : BR851 (長榮航空)",
@@ -648,5 +648,5 @@
     "20:10 : D13 : JX32 (星宇航空)",
     "20:45 : D12 : BR205 (長榮航空)"
   ],
-  "updated_at": "2026-09-05T18:03:23.433949"
+  "updated_at": "2026-09-05T21:04:02.575814"
 }
