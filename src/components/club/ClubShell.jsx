@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { SparklesIcon } from '@heroicons/react/24/outline'
 import { auth, checkAdminStatus } from '../../utils/firebase'
 import { getNavItems } from '../../config/navigation.jsx'
-import logoCat from '../../assets/logo-cat.png'
+import BrainlessLogo from './BrainlessLogo'
 import { ChangelogTrigger, ChangelogUpdateBar } from '../ChangelogNotice'
 
 function ClubNavItem({ path, label, badge, Icon }) {
@@ -61,7 +60,7 @@ export default function ClubShell({ children }) {
         <ChangelogUpdateBar />
         <div className="relative mx-auto flex h-[106px] max-w-[1540px] items-center justify-center px-5 sm:px-8 lg:px-12">
           <ChangelogTrigger />
-          <NavLink to="/sandwich" className="flex items-center gap-3" aria-label="回到厚片計算器"><img src={logoCat} alt="Brainless" className="h-[66px] w-[66px] rounded-full border-2 border-[#ec5836] object-cover p-1 shadow-[0_8px_20px_rgba(236,88,54,0.18)]" /><span><span className="block text-[30px] font-black leading-none tracking-[-0.075em] text-[#171717] sm:text-[36px]">brainless</span><span className="mt-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#ec5836]"><SparklesIcon className="h-3.5 w-3.5" /> behind the counter</span></span></NavLink>
+          <NavLink to="/sandwich" aria-label="回到厚片計算器"><BrainlessLogo size={66} /></NavLink>
         </div>
         <nav className="border-t border-black/10 bg-white/35 px-2 py-1.5 sm:px-5 sm:py-3 lg:px-8" aria-label="主要功能">
           <div className="club-nav-row scrollbar-hide mx-auto -m-1 flex max-w-[1220px] items-stretch justify-start overflow-x-auto p-1 sm:justify-center">
