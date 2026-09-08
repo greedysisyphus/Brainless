@@ -13,6 +13,15 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
+    // 回饋照片：任何人可讀、可上傳（限圖片、壓縮後 512KB 內）；覆蓋與刪除僅管理員。
+    // ⚠️ 這是未登入寫入，規則只擋得住單檔大小與型別，擋不住有人狂洗檔案。
+    match /feedback/{fileName} {
+      allow read: if true;
+      allow create: if request.resource.size < 512 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAdmin();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

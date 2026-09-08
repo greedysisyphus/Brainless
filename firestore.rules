@@ -7,6 +7,15 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // 回饋／留言的照片欄位：可以不帶，帶了就必須是 feedback/ 底下的下載網址。
+    function photoOk(data) {
+      return !('photoUrl' in data)
+        || (data.photoUrl is string
+          && data.photoUrl.size() <= 800
+          && data.photoPath is string
+          && data.photoPath.matches('feedback/.*'));
+    }
+
     // 電子菜單 metadata：客人可讀 imageUrl；僅管理員可寫
     match /publicMenu/current {
       allow read: if true;
@@ -19,8 +28,10 @@ service cloud.firestore {
 
       allow create: if request.resource.data.keys().hasOnly([
           'title', 'body', 'category', 'status', 'author', 'creatorClientId',
-          'voterIds', 'voteCount', 'commentCount', 'createdAt', 'updatedAt'
+          'voterIds', 'voteCount', 'commentCount', 'createdAt', 'updatedAt',
+          'photoUrl', 'photoPath'
         ])
+        && photoOk(request.resource.data)
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 80
@@ -59,11 +70,14 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if true;
         allow create: if request.resource.data.keys().hasOnly([
-            'body', 'author', 'authorClientId', 'authorRole', 'createdAt'
+            'body', 'author', 'authorClientId', 'authorRole', 'createdAt',
+            'photoUrl', 'photoPath'
           ])
+          && photoOk(request.resource.data)
           && request.resource.data.body is string
-          && request.resource.data.body.size() > 0
           && request.resource.data.body.size() <= 1000
+          && (request.resource.data.body.size() > 0
+            || 'photoUrl' in request.resource.data)
           && request.resource.data.author.name is string
           && request.resource.data.author.name.size() > 0
           && request.resource.data.author.name.size() <= 30
