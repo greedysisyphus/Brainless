@@ -59,7 +59,7 @@ import {
   stripCountEntryMeta,
   stripSyncMeta,
 } from './goodsOrder/goodsOrderSync'
-import { buildOrderLines } from './goodsOrder/goodsOrderText'
+import { buildOrderLines, buildSnapshotItems } from './goodsOrder/goodsOrderText'
 
 const BC = [
   { label: 'Brainless', href: '#/sandwich' },
@@ -107,6 +107,16 @@ function statusBadgeTone(status) {
 
 function hasEnteredCount(entry = {}) {
   return entry.current !== '' && entry.current !== null && entry.current !== undefined
+}
+
+/** 快速輸入：0、半箱／1，再加上最低庫存與差一格，重複的值只留一顆。 */
+function quickCountValues(item) {
+  const min = Number(item.minStock) || 1
+  const round = (value) => (item.allowFraction ? value : Math.round(value))
+  const values = [0, item.allowFraction ? 0.5 : 1, round(min - 1), round(min)].filter(
+    (value) => value >= 0
+  )
+  return [...new Set(values)].map(formatQuantity)
 }
 
 function selectQuantityOnFocus(event) {
@@ -914,7 +924,21 @@ function GoodsOrderManager() {
       const status = getItemStatus(item, entry)
       const currentError = getCurrentQuantityError(item, entry)
       const orderError = status === 'order' ? getOrderQuantityError(item, entry) : ''
-      return { item, entry, status, currentError, orderError }
+      const orderDisplay =
+        entry.orderQty == null
+          ? formatQuantity(getEffectiveOrderQty(item, entry))
+          : typeof entry.orderQty === 'string'
+            ? entry.orderQty
+            : formatQuantity(entry.orderQty)
+      return {
+        item,
+        entry,
+        status,
+        currentError,
+        orderError,
+        orderDisplay,
+        showOrderControls: status === 'order' || status === 'later',
+      }
     })
   }, [activeItems, countsDoc.counts])
 
@@ -949,6 +973,11 @@ function GoodsOrderManager() {
         catalog.orderStoreName || getDefaultOrderStoreName(selectedStore)
       ),
     [catalog.items, catalog.orderStoreName, countsDoc.counts, selectedStore]
+  )
+
+  const snapshotItems = useMemo(
+    () => buildSnapshotItems(catalog.items, countsDoc.counts),
+    [catalog.items, countsDoc.counts]
   )
 
   const uncountedItemNames = useMemo(
@@ -1058,7 +1087,7 @@ function GoodsOrderManager() {
       patchCount(item.id, { orderQty: '' })
       return
     }
-    const stored = quantityInputToStored(raw, true)
+    const stored = quantityInputToStored(raw, item.allowFraction)
     if (stored === null) {
       patchCount(item.id, { orderQty: raw })
       return
@@ -1068,10 +1097,8 @@ function GoodsOrderManager() {
 
   const toggleForce = (item, entry, status) => {
     if (status === 'uncounted') return
-    const suggested =
-      parseQuantity(entry.current === 0 || entry.current ? String(entry.current) : '').kind ===
-        'value' &&
-      parseQuantity(String(entry.current)).value < Number(item.minStock)
+    // 不帶 forceInclude 重算一次，看規則本身建議叫或不叫。
+    const suggested = getItemStatus(item, { ...entry, forceInclude: null }) === 'order'
     if (status === 'order') {
       patchCount(item.id, { forceInclude: false })
     } else {
@@ -1083,6 +1110,7 @@ function GoodsOrderManager() {
     const payload = {
       text: '',
       orderCount: 0,
+      items: snapshotItems,
       _clientUpdatedAt: Date.now(),
     }
     setIsCopying(true)
@@ -1163,6 +1191,7 @@ function GoodsOrderManager() {
     const payload = {
       text,
       orderCount: orderPreview.orderCount,
+      items: snapshotItems,
       _clientUpdatedAt: Date.now(),
     }
     try {
@@ -1388,16 +1417,10 @@ function GoodsOrderManager() {
               此篩選沒有品項；可切換其他狀態繼續盤點。
             </li>
           ) : (
-            rows.map(({ item, entry, status, currentError, orderError }, index) => {
+            rows.map(({ item, entry, status, currentError, orderError, orderDisplay, showOrderControls }, index) => {
               const currentDisplay = displayCurrentInput(entry.current)
-              const orderDisplay =
-                entry.orderQty == null
-                  ? formatQuantity(getEffectiveOrderQty(item, entry))
-                  : typeof entry.orderQty === 'string'
-                    ? entry.orderQty
-                    : formatQuantity(entry.orderQty)
-              const showOrderControls = status === 'order' || status === 'later'
               const showMobileQuicks = focusedItemId === item.id
+              const quicks = showMobileQuicks ? quickCountValues(item) : []
               const errorId = `goods-current-error-${item.id}`
 
               return (
@@ -1464,8 +1487,14 @@ function GoodsOrderManager() {
                   ) : null}
 
                   {showMobileQuicks ? (
-                    <div className="mt-2 grid grid-cols-4 gap-2" aria-label={`${item.name} 快速輸入`}>
-                      {['0', '1/2', '1', '2'].map((quantity) => (
+                    <div
+                      className="mt-2 grid gap-2"
+                      style={{
+                        gridTemplateColumns: `repeat(${quicks.length}, minmax(0, 1fr))`,
+                      }}
+                      aria-label={`${item.name} 快速輸入`}
+                    >
+                      {quicks.map((quantity) => (
                         <button
                           key={quantity}
                           type="button"
@@ -1540,15 +1569,8 @@ function GoodsOrderManager() {
               此篩選沒有品項；可切換其他狀態繼續盤點。
             </div>
           ) : (
-            rows.map(({ item, entry, status, currentError, orderError }, index) => {
+            rows.map(({ item, entry, status, currentError, orderError, orderDisplay, showOrderControls }, index) => {
               const currentDisplay = displayCurrentInput(entry.current)
-              const orderDisplay =
-                entry.orderQty == null
-                  ? formatQuantity(getEffectiveOrderQty(item, entry))
-                  : typeof entry.orderQty === 'string'
-                    ? entry.orderQty
-                    : formatQuantity(entry.orderQty)
-              const showOrderControls = status === 'order' || status === 'later'
               const currentErrorId = `goods-table-current-error-${item.id}`
               const orderErrorId = `goods-table-order-error-${item.id}`
 

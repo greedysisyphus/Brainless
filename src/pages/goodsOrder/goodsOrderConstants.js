@@ -309,13 +309,23 @@ export function getEffectiveOrderQty(item, countEntry) {
   if (override !== '' && override != null && Number.isFinite(Number(override))) {
     return Number(override)
   }
-  return Number(item.defaultOrderQty) || 0
+  const base = Number(item.defaultOrderQty) || 0
+  const parsed = parseQuantity(
+    countEntry?.current === 0 || countEntry?.current ? String(countEntry.current) : ''
+  )
+  if (parsed.kind !== 'value') return base
+  // 補到最低庫存；缺口比預設叫貨量小時仍照預設叫。
+  // 最低庫存可能是小數（例如 1.5 箱），不可分割的品項要進位成整數。
+  const gap = (Number(item.minStock) || 0) - parsed.value
+  return Math.max(base, item.allowFraction ? gap : Math.ceil(gap))
 }
 
 export function getOrderQuantityError(item, countEntry) {
+  // 沒有手動覆寫時，驗證的必須是實際會送出的數量（可能已補到最低庫存），
+  // 不能只驗 defaultOrderQty，否則畫面顯示的值不受檢查。
   const raw =
     countEntry?.orderQty == null
-      ? item.defaultOrderQty
+      ? getEffectiveOrderQty(item, countEntry)
       : countEntry.orderQty
   const parsed = parseQuantity(raw)
   if (parsed.kind !== 'value') return '請輸入有效的叫貨量，例如 1、1/2 或 2。'

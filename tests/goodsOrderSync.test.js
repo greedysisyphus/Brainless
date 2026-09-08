@@ -11,6 +11,7 @@ import {
   getEffectiveOrderQty,
   getOrderQuantityError,
 } from '../src/pages/goodsOrder/goodsOrderConstants.js'
+import { buildSnapshotItems } from '../src/pages/goodsOrder/goodsOrderText.js'
 import {
   CountsConflictError,
   prepareCountsRevision,
@@ -229,4 +230,44 @@ test('叫貨量清空後保持空白，不會立刻恢復預設值', () => {
   assert.equal(getEffectiveOrderQty(catalogItem, { orderQty: null }), 1)
   assert.equal(getEffectiveOrderQty(catalogItem, { orderQty: '' }), 0)
   assert.match(getOrderQuantityError(catalogItem, { orderQty: '' }), /請輸入有效的叫貨量/)
+})
+
+test('叫貨量會補到最低庫存，缺口小於預設叫貨量時仍照預設', () => {
+  const catalogItem = item('cup', '杯', 5)
+  catalogItem.defaultOrderQty = 1
+
+  assert.equal(getEffectiveOrderQty(catalogItem, { current: 1 }), 4)
+  assert.equal(getEffectiveOrderQty(catalogItem, { current: 0 }), 5)
+  assert.equal(getEffectiveOrderQty(catalogItem, { current: 4.5 }), 1)
+  assert.equal(getEffectiveOrderQty(catalogItem, { current: 8 }), 1)
+  assert.equal(getEffectiveOrderQty(catalogItem, { current: 1, orderQty: 2 }), 2)
+})
+
+test('不可分割的品項，補到小數最低庫存時要進位成整數', () => {
+  const boxes = { ...item('box', '箱', 1.5), allowFraction: true, defaultOrderQty: 1 }
+  const packs = { ...item('pack', '包', 1.5), allowFraction: false, defaultOrderQty: 1 }
+
+  assert.equal(getEffectiveOrderQty(boxes, { current: 0 }), 1.5)
+  assert.equal(getEffectiveOrderQty(packs, { current: 0 }), 2)
+  // 錯誤檢查看的是實際送出的數量，不是 defaultOrderQty
+  assert.equal(getOrderQuantityError(packs, { orderQty: null, current: 0 }), '')
+  assert.match(
+    getOrderQuantityError({ ...packs, defaultOrderQty: 1.5 }, { orderQty: null, current: 9 }),
+    /只能輸入整數/
+  )
+})
+
+test('快照留下每項當時的現有量與品名，未輸入的品項不入帳', () => {
+  const items = [
+    { ...item('cup', '杯', 5), unit: '箱', defaultOrderQty: 1 },
+    { ...item('lid', '蓋', 2), unit: '包', defaultOrderQty: 1 },
+    { ...item('gone', '停用品', 5), disabled: true },
+  ]
+  const counts = { cup: { current: 1 }, lid: { current: 8 }, gone: { current: 1 } }
+
+  assert.deepEqual(buildSnapshotItems(items, counts), [
+    { id: 'cup', name: '杯', unit: '箱', current: 1, minStock: 5, order: 4 },
+    { id: 'lid', name: '蓋', unit: '包', current: 8, minStock: 2, order: 0 },
+  ])
+  assert.deepEqual(buildSnapshotItems(items, { cup: { current: '' } }), [])
 })
