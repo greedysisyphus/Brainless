@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeftIcon,
+  PhotoIcon,
   ArrowTrendingUpIcon,
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
@@ -16,14 +17,17 @@ import {
 import { auth, checkAdminStatus } from '../utils/firebase'
 import { useTheme } from '../contexts/ThemeContext'
 import {
+  compressPhoto,
   createComment,
   createFeedback,
   deleteComment,
   deleteFeedback,
   FEEDBACK_CATEGORIES,
   FEEDBACK_STATUSES,
+  PHOTO_MAX_SOURCE_BYTES,
   subscribeToComments,
   subscribeToFeedback,
+  uploadFeedbackPhoto,
   toggleFeedbackVote,
   updateFeedbackStatus,
 } from '../services/feedbackService'
@@ -52,6 +56,18 @@ const CLASSIC_STATUS_TONES = {
   inProgress: 'bg-violet-400/10 text-violet-300 ring-violet-400/30',
   completed: 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/30',
   declined: 'bg-slate-400/10 text-slate-300 ring-slate-400/30',
+}
+
+// 手機虛擬鍵盤的 Enter 就是換行，只在有滑鼠的裝置上啟用 Enter 送出。
+const CAN_ENTER_SEND = typeof window !== 'undefined'
+  && Boolean(window.matchMedia?.('(pointer: fine)').matches)
+
+function submitOnEnter(event) {
+  if (!CAN_ENTER_SEND) return
+  // 中文輸入法選字中的 Enter 是在選字，不是送出。
+  if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent?.isComposing) return
+  event.preventDefault()
+  event.currentTarget.form?.requestSubmit()
 }
 
 function getClientId() {
@@ -94,6 +110,13 @@ function formatTime(value) {
   if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)} 小時前`
   if (diffMinutes < 10080) return `${Math.floor(diffMinutes / 1440)} 天前`
   return new Intl.DateTimeFormat('zh-TW', { month: 'short', day: 'numeric' }).format(date)
+}
+
+// 標題留空時是從內文第一行抓的，這時內文不要再把同一句話重播一次。
+function bodyWithoutTitle(feedback) {
+  const body = feedback.body || ''
+  const title = feedback.title || ''
+  return title && body.startsWith(title) ? body.slice(title.length).trim() : body
 }
 
 function StatusBadge({ status, isClub }) {
@@ -140,6 +163,91 @@ function IdentityFields({ identity, onChange, isClub, idPrefix }) {
   )
 }
 
+function PhotoField({ photo, onChange, isClub, disabled }) {
+  const inputRef = useRef(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [preview, setPreview] = useState('')
+
+  useEffect(() => {
+    if (!photo?.blob) {
+      setPreview('')
+      return undefined
+    }
+    const url = URL.createObjectURL(photo.blob)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photo])
+
+  const pick = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setError('')
+    if (!file.type.startsWith('image/')) return setError('請選擇圖片檔。')
+    if (file.size > PHOTO_MAX_SOURCE_BYTES) return setError('原始檔太大，請先縮圖再上傳。')
+    setBusy(true)
+    try {
+      const blob = await compressPhoto(file)
+      onChange({ blob })
+    } catch (err) {
+      console.error('照片處理失敗:', err)
+      setError(err?.message || '照片讀取失敗，請換一張試試。')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const clear = () => {
+    onChange(null)
+    setError('')
+  }
+
+  return (
+    <div>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={pick} />
+      {preview ? (
+        <div className="relative inline-block">
+          <img src={preview} alt="待上傳的照片預覽" className="max-h-40 rounded-xl object-contain" />
+          <button
+            type="button"
+            onClick={clear}
+            disabled={disabled}
+            aria-label="移除照片"
+            className="absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-full bg-black/75 text-white hover:bg-black"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={disabled || busy}
+          className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-bold transition disabled:opacity-50 ${
+            isClub
+              ? 'border-black/10 bg-white text-[#595349] hover:border-[#ec5836] hover:text-[#b3381e]'
+              : 'border-white/10 bg-white/5 text-slate-300 hover:border-primary/60 hover:text-white'
+          }`}
+        >
+          <PhotoIcon className="h-5 w-5" />
+          {busy ? '處理中…' : '加照片'}
+        </button>
+      )}
+      {error && <p role="alert" className={`mt-2 text-sm font-medium ${isClub ? 'text-red-700' : 'text-red-300'}`}>{error}</p>}
+    </div>
+  )
+}
+
+function PhotoAttachment({ url, className = '' }) {
+  if (!url) return null
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className={`mt-3 block w-fit ${className}`}>
+      <img src={url} alt="附加照片" loading="lazy" className="max-h-80 rounded-xl object-contain" />
+    </a>
+  )
+}
+
 function VoteButton({ feedback, clientId, isClub, busy, onVote, compact = false }) {
   const voted = Array.isArray(feedback.voterIds) && feedback.voterIds.includes(clientId)
   return (
@@ -172,6 +280,7 @@ function VoteButton({ feedback, clientId, isClub, busy, onVote, compact = false 
 
 function Composer({ open, onClose, onCreated, identity, setIdentity, clientId, isClub }) {
   const [form, setForm] = useState({ title: '', body: '', category: 'feature' })
+  const [photo, setPhoto] = useState(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const panelRef = useRef(null)
@@ -202,14 +311,15 @@ function Composer({ open, onClose, onCreated, identity, setIdentity, clientId, i
   const submit = async (event) => {
     event.preventDefault()
     if (!identity.name.trim() || !identity.store) return setError('請先填寫暱稱與分店。')
-    if (!form.title.trim()) return setError('請填寫標題。')
     if (!form.body.trim()) return setError('請填寫詳細說明。')
     setSaving(true)
     setError('')
     try {
       saveIdentity(identity)
-      const created = await createFeedback({ ...form, author: identity, clientId })
+      const uploaded = photo ? await uploadFeedbackPhoto(photo.blob) : null
+      const created = await createFeedback({ ...form, author: identity, clientId, photo: uploaded })
       setForm({ title: '', body: '', category: 'feature' })
+      setPhoto(null)
       onCreated(created.id)
       onClose()
     } catch (err) {
@@ -261,12 +371,12 @@ function Composer({ open, onClose, onCreated, identity, setIdentity, clientId, i
               </div>
             </fieldset>
             <label className="block">
-              <span className={`mb-1.5 block text-sm font-semibold ${isClub ? 'text-[#4f4a43]' : 'text-slate-300'}`}>標題</span>
+              <span className={`mb-1.5 block text-sm font-semibold ${isClub ? 'text-[#4f4a43]' : 'text-slate-300'}`}>標題（選填）</span>
               <input
                 value={form.title}
                 onChange={(event) => setForm({ ...form, title: event.target.value })}
                 maxLength={80}
-                placeholder="標題"
+                placeholder="留空就自動抓內文第一行"
                 className={`min-h-12 w-full rounded-xl border px-4 py-3 text-base outline-none ring-2 ring-transparent transition ${fieldClass}`}
               />
             </label>
@@ -282,6 +392,10 @@ function Composer({ open, onClose, onCreated, identity, setIdentity, clientId, i
               />
               <span className={`mt-1 block text-right text-xs ${isClub ? 'text-[#777168]' : 'text-slate-500'}`}>{form.body.length}/2000</span>
             </label>
+            <div>
+              <span className={`mb-1.5 block text-sm font-semibold ${isClub ? 'text-[#4f4a43]' : 'text-slate-300'}`}>照片（選填）</span>
+              <PhotoField photo={photo} onChange={setPhoto} isClub={isClub} disabled={saving} />
+            </div>
             <IdentityFields identity={identity} onChange={setIdentity} isClub={isClub} idPrefix="new-feedback" />
             {error && <p role="alert" className={`rounded-xl px-4 py-3 text-sm font-medium ${isClub ? 'bg-red-50 text-red-700' : 'bg-red-400/10 text-red-300'}`}>{error}</p>}
           </div>
@@ -297,6 +411,7 @@ function Composer({ open, onClose, onCreated, identity, setIdentity, clientId, i
 
 function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdentity, clientId, isClub, isAdmin, onBack, onDeleted, onVote, voteBusy }) {
   const [comment, setComment] = useState('')
+  const [commentPhoto, setCommentPhoto] = useState(null)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   const [statusBusy, setStatusBusy] = useState(false)
@@ -308,13 +423,15 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
   const submitComment = async (event) => {
     event.preventDefault()
     if (!identity.name.trim() || !identity.store) return setError('請先填寫暱稱與分店。')
-    if (!comment.trim()) return setError('請填寫留言。')
+    if (!comment.trim() && !commentPhoto) return setError('請填寫留言，或附一張照片。')
     setSending(true)
     setError('')
     try {
       saveIdentity(identity)
-      await createComment({ feedbackId: feedback.id, body: comment, author: identity, clientId, isAdmin })
+      const uploaded = commentPhoto ? await uploadFeedbackPhoto(commentPhoto.blob) : null
+      await createComment({ feedbackId: feedback.id, body: comment, author: identity, clientId, isAdmin, photo: uploaded })
       setComment('')
+      setCommentPhoto(null)
     } catch (err) {
       console.error('留言失敗:', err)
       setError('留言沒有送出，請確認網路後再試一次。')
@@ -375,7 +492,10 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
             <p className={`mt-3 text-sm ${isClub ? 'text-[#777168]' : 'text-slate-400'}`}>{feedback.author?.name || '匿名'} · {feedback.author?.store || '未提供分店'} · {formatTime(feedback.createdAt)}</p>
           </div>
         </div>
-        <p className={`mt-6 whitespace-pre-wrap break-words text-base leading-7 ${isClub ? 'text-[#37332e]' : 'text-slate-200'}`}>{feedback.body}</p>
+        {bodyWithoutTitle(feedback) && (
+          <p className={`mt-6 whitespace-pre-wrap break-words text-base leading-7 ${isClub ? 'text-[#37332e]' : 'text-slate-200'}`}>{bodyWithoutTitle(feedback)}</p>
+        )}
+        <PhotoAttachment url={feedback.photoUrl} />
         {isAdmin && (
           <div className={`mt-6 border-t pt-5 ${isClub ? 'border-black/10' : 'border-white/10'}`}>
             <div className="mb-3">
@@ -413,40 +533,54 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
             <p className="mt-1 text-sm">補充使用情境，或告訴大家你也遇到了。</p>
           </div>
         ) : (
-          <div className={`divide-y ${isClub ? 'divide-black/10' : 'divide-white/10'}`}>
-            {comments.map((item) => (
-              <div key={item.id} className="py-5 first:pt-0">
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className={`font-black ${isClub ? 'text-[#171717]' : 'text-white'}`}>{item.author?.name || '匿名'}</span>
-                  <span className={isClub ? 'text-[#777168]' : 'text-slate-500'}>· {item.author?.store || '未提供分店'}</span>
-                  <span className={`ml-auto text-xs ${isClub ? 'text-[#8a847b]' : 'text-slate-500'}`}>{formatTime(item.createdAt)}</span>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      disabled={deletingCommentId === item.id}
-                      onClick={() => removeComment(item)}
-                      className={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 text-xs font-bold transition disabled:opacity-50 ${isClub ? 'text-red-700 hover:bg-red-50' : 'text-red-300 hover:bg-red-400/10'}`}
-                      aria-label={`刪除 ${item.author?.name || '匿名'} 的留言`}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                      {deletingCommentId === item.id ? '刪除中…' : '刪除留言'}
-                    </button>
-                  )}
+          <div className="space-y-4">
+            {comments.map((item) => {
+              const mine = item.authorClientId === clientId
+              const official = item.authorRole === 'admin'
+              const bubbleTone = mine
+                ? isClub ? 'bg-[#fff1ed]' : 'bg-primary/20'
+                : isClub ? 'bg-[#f7f6f2]' : 'bg-white/[0.05]'
+              return (
+                <div key={item.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`min-w-0 max-w-[85%] rounded-2xl px-4 py-3 ${bubbleTone} ${official ? 'ring-1 ring-inset ring-emerald-400/40' : ''}`}>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                      <span className={`font-black ${isClub ? 'text-[#171717]' : 'text-white'}`}>{item.author?.name || '匿名'}</span>
+                      {official && <span className={`rounded-full bg-emerald-400/15 px-2 py-0.5 text-xs font-black ring-1 ring-inset ring-emerald-500/30 ${isClub ? 'text-emerald-700' : 'text-emerald-200'}`}>官方</span>}
+                      <span className={`text-xs ${isClub ? 'text-[#8a847b]' : 'text-slate-500'}`}>{item.author?.store || '未提供分店'} · {formatTime(item.createdAt)}</span>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          disabled={deletingCommentId === item.id}
+                          onClick={() => removeComment(item)}
+                          className={`ml-auto inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-bold transition disabled:opacity-50 ${isClub ? 'text-red-700 hover:bg-red-100' : 'text-red-300 hover:bg-red-400/10'}`}
+                          aria-label={`刪除 ${item.author?.name || '匿名'} 的留言`}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          {deletingCommentId === item.id ? '刪除中…' : '刪除'}
+                        </button>
+                      )}
+                    </div>
+                    {item.body && <p className={`mt-1.5 whitespace-pre-wrap break-words leading-7 ${isClub ? 'text-[#37332e]' : 'text-slate-200'}`}>{item.body}</p>}
+                    <PhotoAttachment url={item.photoUrl} />
+                  </div>
                 </div>
-                <p className={`mt-2 whitespace-pre-wrap break-words leading-7 ${isClub ? 'text-[#37332e]' : 'text-slate-200'}`}>{item.body}</p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
         <form onSubmit={submitComment} className={`mt-7 border-t pt-6 ${isClub ? 'border-black/10' : 'border-white/10'}`}>
           <IdentityFields identity={identity} onChange={setIdentity} isClub={isClub} idPrefix="comment" />
           <label className="mt-4 block">
             <span className={`mb-1.5 block text-sm font-semibold ${isClub ? 'text-[#4f4a43]' : 'text-slate-300'}`}>{isAdmin ? '以管理員身分回覆' : '加入討論'}</span>
-            <textarea value={comment} onChange={(event) => setComment(event.target.value)} maxLength={1000} rows={4} placeholder="寫下補充、使用情境或建議…" className={`w-full resize-y rounded-xl border px-4 py-3 text-base leading-7 outline-none ring-2 ring-transparent transition ${isClub ? 'border-black/15 bg-[#f7f6f2] text-[#171717] placeholder:text-[#777168] focus:border-[#ec5836] focus:ring-[#ec5836]/20' : 'border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:border-primary focus:ring-primary/20'}`} />
+            <textarea value={comment} onChange={(event) => setComment(event.target.value)} onKeyDown={submitOnEnter} maxLength={1000} rows={3} placeholder="寫下補充、使用情境或建議…" className={`w-full resize-y rounded-xl border px-4 py-3 text-base leading-7 outline-none ring-2 ring-transparent transition ${isClub ? 'border-black/15 bg-[#f7f6f2] text-[#171717] placeholder:text-[#777168] focus:border-[#ec5836] focus:ring-[#ec5836]/20' : 'border-white/10 bg-white/5 text-white placeholder:text-slate-500 focus:border-primary focus:ring-primary/20'}`} />
           </label>
           {error && <p role="alert" className={`mt-3 rounded-xl px-4 py-3 text-sm font-medium ${isClub ? 'bg-red-50 text-red-700' : 'bg-red-400/10 text-red-300'}`}>{error}</p>}
-          <div className="mt-3 flex justify-end">
-            <button type="submit" disabled={sending} className={`min-h-11 rounded-xl px-5 text-sm font-bold text-white transition disabled:opacity-50 ${isClub ? 'bg-[#171717] hover:bg-[#ec5836]' : 'bg-primary hover:bg-violet-500'}`}>{sending ? '留言送出中…' : '送出留言'}</button>
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+            <PhotoField photo={commentPhoto} onChange={setCommentPhoto} isClub={isClub} disabled={sending} />
+            <div className="ml-auto flex items-center gap-3">
+              {CAN_ENTER_SEND && <span className={`text-xs ${isClub ? 'text-[#8a847b]' : 'text-slate-500'}`}>Enter 送出 · Shift+Enter 換行</span>}
+              <button type="submit" disabled={sending} className={`min-h-11 rounded-xl px-5 text-sm font-bold text-white transition disabled:opacity-50 ${isClub ? 'bg-[#171717] hover:bg-[#ec5836]' : 'bg-primary hover:bg-violet-500'}`}>{sending ? '留言送出中…' : '送出留言'}</button>
+            </div>
           </div>
         </form>
       </section>
@@ -604,10 +738,13 @@ export default function FeedbackCenter() {
                         <StatusBadge status={item.status} isClub={isClub && !active} />
                       </div>
                       <h2 className={`mt-2 line-clamp-2 text-base font-black leading-snug sm:text-lg ${active ? 'text-white' : isClub ? 'text-[#171717]' : 'text-white'}`}>{item.title}</h2>
-                      <p className={`mt-2 line-clamp-2 text-sm leading-6 ${active ? 'text-slate-300' : isClub ? 'text-[#666057]' : 'text-slate-400'}`}>{item.body}</p>
+                      {bodyWithoutTitle(item) && (
+                        <p className={`mt-2 line-clamp-2 text-sm leading-6 ${active ? 'text-slate-300' : isClub ? 'text-[#666057]' : 'text-slate-400'}`}>{bodyWithoutTitle(item)}</p>
+                      )}
                       <div className={`mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${active ? 'text-slate-400' : isClub ? 'text-[#8a847b]' : 'text-slate-500'}`}>
                         <span>{item.author?.name || '匿名'} · {item.author?.store || '未提供分店'}</span>
                         <span className="inline-flex items-center gap-1"><ChatBubbleLeftRightIcon className="h-3.5 w-3.5" />{Number(item.commentCount) || 0}</span>
+                        {item.photoUrl && <span className="inline-flex items-center gap-1"><PhotoIcon className="h-3.5 w-3.5" />照片</span>}
                         <span>{formatTime(item.createdAt)}</span>
                       </div>
                     </button>

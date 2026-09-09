@@ -75,6 +75,35 @@ for (const [label, path] of untouched) {
 await check('feedback 仍擋掉亂寫', setDoc(doc(anon, 'feedback/x'), { a: 1 }), false)
 await check('feedback 仍可讀', getDoc(doc(anon, 'feedback/x')), true)
 
+// ── 回饋照片：photoUrl／photoPath 只准指向 Storage 的 feedback/ ────
+const post = (extra) => ({
+  title: 't', body: 'b', category: 'bug', status: 'reviewing',
+  author: { name: '我', store: '中央店' },
+  creatorClientId: 'c1', voterIds: ['c1'], voteCount: 1, commentCount: 0,
+  createdAt: new Date(), updatedAt: new Date(), ...extra,
+})
+const photo = { photoUrl: 'https://firebasestorage.example/o/feedback%2Fa.jpg', photoPath: 'feedback/a.jpg' }
+
+await check('照片：不帶照片可以發文', setDoc(doc(anon, 'feedback/p0'), post({})), true)
+await check('照片：合法照片可以發文', setDoc(doc(anon, 'feedback/p1'), post(photo)), true)
+await check('照片：photoPath 指到別的目錄要擋',
+  setDoc(doc(anon, 'feedback/p2'), post({ ...photo, photoPath: 'menu/page-1.jpg' })), false)
+await check('照片：只給 photoUrl 不給 photoPath 要擋',
+  setDoc(doc(anon, 'feedback/p3'), post({ photoUrl: photo.photoUrl })), false)
+
+const comment = (extra) => ({
+  body: 'hi', author: { name: '我', store: '中央店' },
+  authorClientId: 'c1', authorRole: 'member', createdAt: new Date(), ...extra,
+})
+await check('照片：留言可以附照片',
+  setDoc(doc(anon, 'feedback/p1/comments/c1'), comment(photo)), true)
+await check('照片：只有照片、沒有文字的留言可以送',
+  setDoc(doc(anon, 'feedback/p1/comments/c2'), comment({ ...photo, body: '' })), true)
+await check('照片：沒文字也沒照片的留言要擋',
+  setDoc(doc(anon, 'feedback/p1/comments/c3'), comment({ body: '' })), false)
+await check('照片：留言的 photoPath 亂指要擋',
+  setDoc(doc(anon, 'feedback/p1/comments/c4'), comment({ ...photo, photoPath: '../secret.jpg' })), false)
+
 await env.cleanup()
 const fails = results.filter(([m]) => m === '✗')
 results.forEach(([m, l]) => console.log(' ', m, l))
