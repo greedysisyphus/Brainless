@@ -1,6 +1,4 @@
 import {
-  STRESS_SHIFT_ORDER,
-  STRESS_SHIFT_PRESETS,
   formatMinuteSpan,
   formatStressShiftSpan,
   isStressSlotInSupportPeriod
@@ -18,6 +16,7 @@ const PAD_BOTTOM = 18
  * 曲線 + 一句結論（最忙的一小時、最長的一段空檔）回答的是同一個問題，但看得懂。
  */
 export default function StressCurvePanel({
+  shifts,
   series,
   summary,
   shiftKey,
@@ -67,7 +66,8 @@ export default function StressCurvePanel({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-1" role="group" aria-label="掃描班別">
-        {STRESS_SHIFT_ORDER.map((k) => {
+        {shifts.map((sh) => {
+          const k = sh.key
           const active = shiftKey === k
           return (
             <button
@@ -86,9 +86,9 @@ export default function StressCurvePanel({
               }`}
               style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
             >
-              <span className="block text-xs font-semibold">{STRESS_SHIFT_PRESETS[k].label}</span>
+              <span className="block text-xs font-semibold">{sh.label}</span>
               <span className="mt-0.5 block text-[10px] font-normal leading-tight tabular-nums opacity-75">
-                {formatStressShiftSpan(k)}
+                {formatStressShiftSpan(k, shifts)}
               </span>
             </button>
           )

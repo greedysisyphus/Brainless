@@ -12,6 +12,8 @@ const flatWeights = (families, w) => Object.fromEntries(families.map((f) => [f, 
 const D13_FAMILIES = range(11, 18)
 const D7_FAMILIES = range(5, 18)
 
+const hm = (h, m = 0) => h * 60 + m
+
 export const FLIGHT_STORE_ORDER = Object.freeze(['d13', 'd7'])
 
 export const FLIGHT_STORES = Object.freeze({
@@ -33,6 +35,14 @@ export const FLIGHT_STORES = Object.freeze({
       D_OTHER: 1.2,
       OTHER: 1.0
     }),
+    /** 對應班表頁的店代碼（班別時間與當天人員都從那裡讀） */
+    scheduleStoreCode: 'D13',
+    businessHours: Object.freeze({ startMin: hm(5), endMin: hm(21) }),
+    /** 統計卡的分段：D13 以 17:00 關店為界 */
+    summaryBuckets: Object.freeze([
+      { label: '17:00 前', note: '早段航班量', startMin: 0, endMin: hm(17) },
+      { label: '17:00 後', note: '晚段航班量', startMin: hm(17), endMin: hm(24) }
+    ]),
     /** 晚班要不要留店，看當天最後一班登機時間 */
     nightSupport: true,
     /** D11 不納入晚班支援 */
@@ -57,6 +67,14 @@ export const FLIGHT_STORES = Object.freeze({
       D_OTHER: 0.6,
       OTHER: 0.5
     }),
+    scheduleStoreCode: 'D7',
+    /** 營業 05:00–22:00 */
+    businessHours: Object.freeze({ startMin: hm(5), endMin: hm(22) }),
+    /**
+     * null＝統計卡直接照班表的班別切。D7 沒有「17:00 關店」這件事，
+     * 切 17:00 前後沒有意義；上班的人要問的是「我這班有幾班機」。
+     */
+    summaryBuckets: null,
     /** D7 店下班時間固定，不用算留店到幾點 —— 整組晚班支援 UI 在這家店不顯示 */
     nightSupport: false,
     nightGateIncluded: Object.freeze(flatWeights(D7_FAMILIES, true)),
@@ -90,4 +108,15 @@ export function cacheFlightStoreKeyLocal(key) {
   } catch {
     // ignore
   }
+}
+
+/** 找班別；找不到（例如切店後 key 不存在）就退回第一項（全天） */
+export function getStoreShift(shifts, shiftKey) {
+  return shifts.find((sh) => sh.key === shiftKey) || shifts[0]
+}
+
+/** 班表頁的店代碼（'D7'／'D13'）→ 航班門市設定；一店等沒有航班資料的店回 null */
+export function getFlightStoreByScheduleCode(code) {
+  if (!code) return null
+  return FLIGHT_STORE_ORDER.map((k) => FLIGHT_STORES[k]).find((s) => s.scheduleStoreCode === code) || null
 }

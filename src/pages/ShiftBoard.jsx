@@ -4,17 +4,13 @@ import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwAlert, CwButton, CwCard, CwDateInput, CwSelect, CwSkeleton } from '../components/studio/ui'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { STORES } from './shifts/shiftConstants'
-import { addDays, buildShiftBook, groupPeopleByStore, toDateKey } from './shifts/shiftModel'
-import { resolveSupportShifts } from './shifts/shiftSupport'
-import { applyIdentity, buildIdentity } from './shifts/shiftIdentity'
+import { addDays, groupPeopleByStore, toDateKey } from './shifts/shiftModel'
+import { useShiftBook } from './shifts/useShiftBook'
 import {
   pickupMapFrom,
   saveShiftMonth,
   savePersonSettings,
   saveSupportLinks,
-  subscribePeopleSettings,
-  subscribeShiftMonths,
-  subscribeSupportLinks,
 } from './shifts/shiftFirestore'
 import { listUnresolvedSupport } from './shifts/shiftSupport'
 import ShiftTodayPanel from '../components/shifts/ShiftTodayPanel'
@@ -62,11 +58,20 @@ function describeSaveError(error) {
 }
 
 function ShiftBoard() {
-  const [months, setMonths] = useState([])
-  const [peopleSettings, setPeopleSettings] = useState({})
-  const [supportLinks, setSupportLinks] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
+  const {
+    book,
+    rawBook,
+    months,
+    resolvedMonths,
+    peopleSettings,
+    setPeopleSettings,
+    supportLinks,
+    setSupportLinks,
+    identity,
+    loading,
+    loadError,
+    setLoadError,
+  } = useShiftBook()
   const [saving, setSaving] = useState(false)
 
   const [activeTab, setActiveTab] = useState('today')
@@ -83,54 +88,10 @@ function ShiftBoard() {
     }
   }, [])
 
-  useEffect(() => {
-    let settled = false
-    const unsubscribeMonths = subscribeShiftMonths(
-      (next) => {
-        setMonths(next)
-        if (!settled) {
-          settled = true
-          setLoading(false)
-        }
-      },
-      (error) => {
-        setLoadError(error?.message || '讀取班表失敗')
-        setLoading(false)
-      }
-    )
-    const unsubscribePeople = subscribePeopleSettings(setPeopleSettings, (error) => {
-      setLoadError(error?.message || '讀取同事設定失敗')
-    })
-    const unsubscribeSupport = subscribeSupportLinks(setSupportLinks, (error) => {
-      setLoadError(error?.message || '讀取支援班配對失敗')
-    })
-    return () => {
-      unsubscribeMonths()
-      unsubscribePeople()
-      unsubscribeSupport()
-    }
-  }, [])
-
-  /** 讀進來後再對一次支援班，讓只寫 T3／D7 的補上目的店的實際班別。 */
-  const resolvedMonths = useMemo(
-    () => resolveSupportShifts(months, supportLinks),
-    [months, supportLinks]
-  )
-
+  /** 只寫「T3／D7」還沒對到實際班別的支援班，要跳出來給店長指定 */
   const pendingSupport = useMemo(
     () => listUnresolvedSupport(months, supportLinks),
     [months, supportLinks]
-  )
-
-  const identity = useMemo(() => buildIdentity(peopleSettings), [peopleSettings])
-
-  /** 合併前的名單：設定介面要看得到別名才能合併／解除。 */
-  const rawBook = useMemo(() => buildShiftBook(resolvedMonths), [resolvedMonths])
-
-  /** 套用暱稱與合併之後的班表，畫面與統計都用這一份。 */
-  const book = useMemo(
-    () => buildShiftBook(applyIdentity(resolvedMonths, identity)),
-    [resolvedMonths, identity]
   )
 
   const pickupByPerson = useMemo(
