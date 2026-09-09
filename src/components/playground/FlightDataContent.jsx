@@ -18,7 +18,7 @@ import {
   getFlightStore,
   loadStoredFlightStoreKey
 } from '../../utils/flightData/stores'
-import { loadPrimaryThenFallback } from '../../utils/flightData/dataSource'
+import { loadFlightDataRecord } from '../../utils/flightData/loadFlightDay'
 import {
   mergeGateStressWeights,
   loadStoredGateStressWeights,
@@ -35,44 +35,16 @@ import {
   isNightSupportTargetGate
 } from '../../utils/flightData/nightShiftSupport'
 import {
+  formatStressShiftSpan,
   stressSlotSeriesAcrossDays,
   stressSlotSeriesDay,
   summarizeStressSeries
 } from '../../utils/flightData/stressSlots'
+import { peopleByShiftOn, resolveStoreShifts } from '../../utils/flightData/shiftBridge'
+import { useShiftBook } from '../../pages/shifts/useShiftBook'
 import FlightDataTableRow from './flight/FlightDataTableRow'
 import InfoTipIcon from './flight/InfoTipIcon'
 import StressCurvePanel from './flight/StressCurvePanel'
-
-const FLIGHT_DATA_BASE_PATH = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-
-async function loadFlightDataRecord(date, signal) {
-  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-
-  return loadPrimaryThenFallback(async () => {
-    const snapshot = await getDoc(doc(db, 'flightData', date))
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-    if (snapshot.exists()) {
-      const data = snapshot.data()
-      if (Array.isArray(data?.flights)) {
-        return { data, lastModified: data._stored_at || data.updated_at || null }
-      }
-    }
-    return null
-  }, async () => {
-    const response = await fetch(`${FLIGHT_DATA_BASE_PATH}flight-data-${date}.json`, {
-      signal,
-      cache: 'no-cache'
-    })
-    if (!response.ok) return null
-    const text = await response.text()
-    if (text.trimStart().startsWith('<')) return null
-    try {
-      return { data: JSON.parse(text), lastModified: response.headers.get('last-modified') }
-    } catch {
-      return null
-    }
-  })
-}
 
 const CLASSIC_CHART_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#3b82f6', '#f97316', '#10b981', '#ef4444', '#6366f1']
 const STUDIO_CHART_COLORS = ['#71717a', '#a1a1aa', '#d4d4d8', '#52525b', '#3f3f46', '#e4e4e7', '#94a3b8', '#64748b']
@@ -209,6 +181,22 @@ function FlightDataContent() {
       }
     }
   }, [rawFlightData, store])
+
+  /** 班別時間與當天人員都以班表為準（店長每月匯入的才是權威） */
+  const { book: shiftBook, loading: shiftBookLoading } = useShiftBook()
+  const shiftDateKey = flightData?.date || selectedDate
+  const { shifts: storeShifts, source: shiftSource } = useMemo(
+    () => resolveStoreShifts(store, shiftBook, shiftDateKey),
+    [store, shiftBook, shiftDateKey]
+  )
+  const shiftPeople = useMemo(
+    () => peopleByShiftOn(store, shiftBook, shiftDateKey),
+    [store, shiftBook, shiftDateKey]
+  )
+  useEffect(() => {
+    if (!storeShifts.some((sh) => sh.key === stressShift)) setStressShift(storeShifts[0].key)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeShifts])
 
   const toStoreDay = useCallback(
     (day) => {
@@ -2425,6 +2413,28 @@ function FlightDataContent() {
     )
   }, [flightData, nightShiftCfgMerged, store])
 
+  /**
+   * 統計卡的分段。D13 用 17:00 前後；沒設定分段的店（D7）直接照班表的班別切，
+   * 班別互相重疊所以加總會超過總航班數 —— 每張卡回答的是「我這班有幾班機」。
+   */
+  const bucketCounts = useMemo(() => {
+    const flights = flightData?.flights || []
+    const buckets =
+      store.summaryBuckets ||
+      storeShifts
+        .filter((sh) => sh.key !== 'full')
+        .map((sh) => ({ key: sh.key, label: sh.label, note: formatStressShiftSpan(sh.key, storeShifts) , startMin: sh.startMin, endMin: sh.endMin }))
+    return buckets.map((b) => ({
+      label: b.label,
+      note: b.note,
+      people: b.key ? shiftPeople[b.key] || [] : [],
+      count: flights.filter((f) => {
+        const m = parseHHMMToMinutes(f.time)
+        return m !== null && m >= b.startMin && m < b.endMin
+      }).length
+    }))
+  }, [flightData, store, storeShifts, shiftPeople])
+
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const summaryCards = useMemo(() => {
     if (!flightData || !flightData.summary) return null
@@ -2442,7 +2452,7 @@ function FlightDataContent() {
       : 'text-[11px] sm:text-xs text-white/75 leading-relaxed'
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 ${bucketCounts.length > 2 ? 'lg:grid-cols-5' : 'md:grid-cols-4'}`}>
         <div
           className={`${cardBaseClass} ${
             isStudio ? 'border-l-4 border-l-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]' : 'bg-gradient-to-br from-violet-600/80 via-purple-600/70 to-fuchsia-600/70'
@@ -2458,35 +2468,30 @@ function FlightDataContent() {
           </div>
         </div>
 
-        <div
-          className={`${cardBaseClass} ${
-            isStudio ? 'border-l-4 border-l-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]' : 'bg-gradient-to-br from-rose-500/80 via-pink-500/70 to-orange-500/70'
-          }`}
-        >
-          {!isStudio && <div className="absolute right-0 top-0 h-20 w-20 -translate-y-6 translate-x-6 rounded-full bg-white/15 blur-xl" />}
-          <div className="relative space-y-2">
-            <h3 className={labelClass}>17:00 前</h3>
-            <div className={valueClass}>
-              {flightData.summary['before_17:00'] ?? flightData.summary.before_17_00 ?? 0}
+        {bucketCounts.map(({ label, note, count, people }, i) => (
+          <div
+            key={label}
+            className={`${cardBaseClass} ${
+              isStudio
+                ? 'border-l-4 border-l-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]'
+                : i % 2 === 0
+                  ? 'bg-gradient-to-br from-rose-500/80 via-pink-500/70 to-orange-500/70'
+                  : 'bg-gradient-to-br from-sky-500/80 via-cyan-500/70 to-blue-600/70'
+            }`}
+          >
+            {!isStudio && <div className="absolute right-0 top-0 h-20 w-20 -translate-y-6 translate-x-6 rounded-full bg-white/15 blur-xl" />}
+            <div className="relative space-y-2">
+              <h3 className={labelClass}>{label}</h3>
+              <div className={valueClass}>{count}</div>
+              <div className={noteClass}>{note}</div>
+              {people.length > 0 && (
+                <div className={`${noteClass} font-medium`} title={people.map((p) => p.name).join('、')}>
+                  {people.map((p) => (p.isSupport ? `${p.name}(支)` : p.name)).join('、')}
+                </div>
+              )}
             </div>
-            <div className={noteClass}>早段航班量</div>
           </div>
-        </div>
-
-        <div
-          className={`${cardBaseClass} ${
-            isStudio ? 'border-l-4 border-l-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]' : 'bg-gradient-to-br from-sky-500/80 via-cyan-500/70 to-blue-600/70'
-          }`}
-        >
-          {!isStudio && <div className="absolute right-0 top-0 h-20 w-20 -translate-y-6 translate-x-6 rounded-full bg-white/15 blur-xl" />}
-          <div className="relative space-y-2">
-            <h3 className={labelClass}>17:00 後</h3>
-            <div className={valueClass}>
-              {flightData.summary['after_17:00'] ?? flightData.summary.after_17_00 ?? 0}
-            </div>
-            <div className={noteClass}>晚段航班量</div>
-          </div>
-        </div>
+        ))}
 
         {store.nightSupport && (
         <div
@@ -2547,22 +2552,22 @@ function FlightDataContent() {
         )}
       </div>
     )
-  }, [flightData, nightSupportPlan, nightShiftConfig, store, isStudio])
+  }, [flightData, bucketCounts, nightSupportPlan, nightShiftConfig, store, isStudio])
 
   // 奶酥時刻：當日壓力曲線（槽位日＝班表檔案 date，避免選定日與 fallback 檔不一致時全為 0）
   const stressSeriesToday = useMemo(() => {
     if (!flightData?.flights?.length) return null
     const dayKey = flightData.date || selectedDate
     if (!dayKey) return null
-    return stressSlotSeriesDay(flightData.flights, dayKey, gateStressWeights, store, stressShift)
-  }, [flightData, selectedDate, gateStressWeights, store, stressShift])
+    return stressSlotSeriesDay(flightData.flights, dayKey, gateStressWeights, store, storeShifts, stressShift)
+  }, [flightData, selectedDate, gateStressWeights, store, storeShifts, stressShift])
   const stressSummaryToday = useMemo(() => summarizeStressSeries(stressSeriesToday), [stressSeriesToday])
 
   // 奶酥時刻：多日區間平均（依 multiDayData）
   const stressSeriesMultiDay = useMemo(() => {
     if (!multiDayData.length) return null
-    return stressSlotSeriesAcrossDays(multiDayData, gateStressWeights, store, stressShift)
-  }, [multiDayData, gateStressWeights, store, stressShift])
+    return stressSlotSeriesAcrossDays(multiDayData, gateStressWeights, store, storeShifts, stressShift)
+  }, [multiDayData, gateStressWeights, store, storeShifts, stressShift])
   const stressSummaryMultiDay = useMemo(
     () => summarizeStressSeries(stressSeriesMultiDay),
     [stressSeriesMultiDay]
@@ -3684,6 +3689,7 @@ function FlightDataContent() {
                 ）與航班列表計算。圓形圖示為完整規則；<strong>齒輪</strong>可調登機門權重。
               </p>
               <StressCurvePanel
+                shifts={storeShifts}
                 series={stressSeriesToday}
                 summary={stressSummaryToday}
                 shiftKey={stressShift}
@@ -4068,14 +4074,10 @@ function FlightDataContent() {
                 。含 L／R 與同號共用；儲存後其他裝置即時同步。
               </p>
               <div className="flex flex-wrap gap-3">
-                {[
-                  ...store.gateFamilies.map((g) => [g, g]),
-                  ['D_OTHER', '其他 D（未列舉）'],
-                  ['OTHER', '非 D 登機門']
-                ].map(([key, label]) => (
+                {store.gateFamilies.map((key) => (
                   <label key={key} className="flex flex-col gap-0.5 min-w-[6.5rem] flex-1 sm:max-w-[10rem]">
                     <span className={`text-[11px] leading-tight ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}`}>
-                      {label}
+                      {key}
                     </span>
                     <input
                       type="number"
@@ -4788,6 +4790,7 @@ function FlightDataContent() {
                 )}
               </p>
               <StressCurvePanel
+                shifts={storeShifts}
                 series={stressSeriesMultiDay}
                 summary={stressSummaryMultiDay}
                 shiftKey={stressShift}

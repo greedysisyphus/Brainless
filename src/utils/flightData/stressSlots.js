@@ -1,5 +1,6 @@
 import { formatMinAsHHMM, parseHHMMToMinutes } from './flightTime.js'
 import { resolveGateStressWeight } from './gateStressWeights.js'
+import { getStoreShift } from './stores.js'
 
 /** 奶酥時刻：起飛前 [60,30] 分鐘視為登機壓力窗，與 60 分鐘觀察槽重疊分鐘數 × 登機門權重計分（權重 Firebase 同步，見標題旁齒輪） */
 export const STRESS_BEFORE_DEP_START_MIN = 60
@@ -7,23 +8,18 @@ export const STRESS_BEFORE_DEP_END_MIN = 30
 export const STRESS_WINDOW_MINUTES = STRESS_BEFORE_DEP_START_MIN - STRESS_BEFORE_DEP_END_MIN
 export const SLOT_STEP_MIN = 15
 
-/** 曲線掃描範圍：候選 60 分槽「起點」；lastStartMin 為最後一段槽起點，槽覆蓋至 lastStartMin+60 */
-export const STRESS_SHIFT_PRESETS = Object.freeze({
-  full: { label: '全天', firstStartMin: 5 * 60, lastStartMin: 20 * 60 },
-  morning: { label: '早班', firstStartMin: 5 * 60, lastStartMin: 12 * 60 + 30 },
-  evening: { label: '晚班', firstStartMin: 13 * 60 + 30, lastStartMin: 20 * 60 }
-})
-
-export const STRESS_SHIFT_ORDER = ['full', 'morning', 'evening']
-
-export function stressShiftRange(shiftKey) {
-  const p = STRESS_SHIFT_PRESETS[shiftKey] || STRESS_SHIFT_PRESETS.full
-  return { firstStartMin: p.firstStartMin, lastStartMin: p.lastStartMin }
+/**
+ * 候選 60 分槽的「起點」範圍，由該店的班別決定（見 stores.js）。
+ * 最後一段槽起點是 endMin - 60，槽覆蓋到 endMin，也就是那個班在店的最後一刻。
+ */
+export function stressShiftRange(shiftKey, shifts) {
+  const sh = getStoreShift(shifts, shiftKey)
+  return { firstStartMin: sh.startMin, lastStartMin: Math.max(sh.startMin, sh.endMin - 60) }
 }
 
-export function formatStressShiftSpan(shiftKey) {
-  const { firstStartMin, lastStartMin } = stressShiftRange(shiftKey)
-  return `${formatMinAsHHMM(firstStartMin)}–${formatMinAsHHMM(lastStartMin + 60)}`
+export function formatStressShiftSpan(shiftKey, shifts) {
+  const sh = getStoreShift(shifts, shiftKey)
+  return `${formatMinAsHHMM(sh.startMin)}–${formatMinAsHHMM(sh.endMin)}`
 }
 
 export function isStressSlotInSupportPeriod(startMin, supportFrom, supportUntil) {
@@ -133,8 +129,8 @@ function scoreOneSlotForDay(flights, dateStr, startMinFromMidnight, weights, sto
  * 整段壓力曲線：每 15 分一個點，值為「該點起算 60 分鐘槽」的壓力分數。
  * 舊版只回傳排名前 5 的不重疊槽，看不出一天的形狀，也讓相鄰的同一個峰互相擠掉。
  */
-export function stressSlotSeriesDay(flights, dateStr, weights, store, shiftKey) {
-  const { firstStartMin, lastStartMin } = stressShiftRange(shiftKey)
+export function stressSlotSeriesDay(flights, dateStr, weights, store, shifts, shiftKey) {
+  const { firstStartMin, lastStartMin } = stressShiftRange(shiftKey, shifts)
   return enumerateSlotStarts(firstStartMin, lastStartMin, SLOT_STEP_MIN).map((startMin) => {
     const { score, flightCount } = scoreOneSlotForDay(flights, dateStr, startMin, weights, store)
     return { startMin, score, flightCount, label: formatSlotRange24h(startMin) }
@@ -142,10 +138,10 @@ export function stressSlotSeriesDay(flights, dateStr, weights, store, shiftKey) 
 }
 
 /** 同上，但取多日平均（每天各自算分再除以天數） */
-export function stressSlotSeriesAcrossDays(multiDayData, weights, store, shiftKey) {
+export function stressSlotSeriesAcrossDays(multiDayData, weights, store, shifts, shiftKey) {
   const nDays = multiDayData.length
   if (nDays === 0) return []
-  const { firstStartMin, lastStartMin } = stressShiftRange(shiftKey)
+  const { firstStartMin, lastStartMin } = stressShiftRange(shiftKey, shifts)
   return enumerateSlotStarts(firstStartMin, lastStartMin, SLOT_STEP_MIN).map((startMin) => {
     let sum = 0
     let flights = 0

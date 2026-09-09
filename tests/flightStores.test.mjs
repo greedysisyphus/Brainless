@@ -8,7 +8,12 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { FLIGHT_STORES } from '../src/utils/flightData/stores.js'
 import { gateToFamily, isGateInStore } from '../src/utils/flightData/gates.js'
 import { resolveGateStressWeight } from '../src/utils/flightData/gateStressWeights.js'
-import { stressSlotSeriesDay, summarizeStressSeries } from '../src/utils/flightData/stressSlots.js'
+import { peopleByShiftOn, resolveStoreShifts } from '../src/utils/flightData/shiftBridge.js'
+import {
+  stressShiftRange,
+  stressSlotSeriesDay,
+  summarizeStressSeries
+} from '../src/utils/flightData/stressSlots.js'
 
 const { d7, d13 } = FLIGHT_STORES
 
@@ -30,6 +35,62 @@ assert.ok(d13.gateFamilies.every((g) => d7.gateFamilies.includes(g)), 'D13 範�
 // D7 店下班時間固定，不算留店
 assert.equal(d13.nightSupport, true)
 assert.equal(d7.nightSupport, false)
+
+// 班別以班表為準（stores.js 只留營業時間），沒有匯入檔時退回 shiftConstants 的預設
+for (const store of [d13, d7]) {
+  const { shifts, source } = resolveStoreShifts(store, { months: [] }, '2026-01-02')
+  assert.equal(source, 'default')
+  assert.equal(shifts[0].key, 'full')
+  assert.equal(shifts[0].startMin, store.businessHours.startMin)
+  assert.equal(shifts[0].endMin, store.businessHours.endMin)
+  assert.deepEqual(shifts.slice(1).map((sh) => sh.label), ['早班', '中班', '午班', '晚班'])
+
+  for (const sh of shifts) {
+    const { firstStartMin, lastStartMin } = stressShiftRange(sh.key, shifts)
+    assert.equal(firstStartMin, sh.startMin, `${store.key}/${sh.key} 起點`)
+    assert.equal(lastStartMin + 60, sh.endMin, `${store.key}/${sh.key} 最後一槽要剛好收在 endMin`)
+  }
+  // 切店後帶著別家的 key 進來，要退回全天而不是炸掉
+  assert.deepEqual(stressShiftRange('這個班別不存在', shifts), stressShiftRange('full', shifts))
+}
+
+// D7 營業 05:00–22:00；D13 晚班在班表裡收得比較早
+const d7Shifts = resolveStoreShifts(d7, { months: [] }, '2026-01-02').shifts
+const d13Shifts = resolveStoreShifts(d13, { months: [] }, '2026-01-02').shifts
+assert.equal(d7Shifts[0].startMin, 5 * 60)
+assert.equal(d7Shifts[0].endMin, 22 * 60)
+assert.equal(d7Shifts.find((sh) => sh.label === '早班').startMin, 4 * 60 + 30)
+assert.equal(d7Shifts.find((sh) => sh.label === '晚班').endMin, 22 * 60 + 30)
+assert.equal(d13Shifts.find((sh) => sh.label === '晚班').endMin, 21 * 60 + 30)
+
+// 當月匯入的班表要蓋過預設
+const book = {
+  months: [
+    {
+      monthKey: '2026-01',
+      storeCode: 'D7',
+      shiftTypes: { MORNING: { code: 'MORNING', label: '早班', start: '06:00', end: '15:00' } },
+      people: [{ key: 'p1', name: '小明' }],
+      entries: { p1: { '2026-01-02': { kind: 'WORK', shift: 'MORNING' } } }
+    }
+  ]
+}
+const imported = resolveStoreShifts(d7, book, '2026-01-02')
+assert.equal(imported.source, 'roster')
+assert.deepEqual(imported.shifts.map((sh) => sh.key), ['full', 'MORNING'])
+assert.equal(imported.shifts[1].startMin, 6 * 60)
+assert.equal(imported.shifts[1].endMin, 15 * 60)
+// 別的月份／別家店不該影響
+assert.equal(resolveStoreShifts(d13, book, '2026-01-02').source, 'default')
+assert.equal(resolveStoreShifts(d7, book, '2026-02-02').source, 'default')
+
+// 當天誰上這班
+assert.deepEqual(peopleByShiftOn(d7, book, '2026-01-02').MORNING.map((p) => p.name), ['小明'])
+assert.deepEqual(peopleByShiftOn(d13, book, '2026-01-02'), {})
+
+// 統計卡分段：D13 是 17:00 前後的切分，D7 照班別（會重疊，所以不做加總檢查）
+assert.deepEqual(d13.summaryBuckets.map((b) => b.label), ['17:00 前', '17:00 後'])
+assert.equal(d7.summaryBuckets, null, 'D7 沒有自訂分段，統計卡照班表的班別切')
 
 // 兩家店的雲端設定不能共用同一份文件
 assert.notEqual(d13.stressDocId, d7.stressDocId)
@@ -55,6 +116,7 @@ const summarize = (store) =>
       DATE,
       store.stressWeights,
       store,
+      resolveStoreShifts(store, null, DATE).shifts,
       'full'
     )
   )
@@ -68,6 +130,7 @@ for (const store of [d13, d7]) {
     DATE,
     store.stressWeights,
     store,
+    resolveStoreShifts(store, null, DATE).shifts,
     'full'
   )
   const { maxScore, quiet } = summarizeStressSeries(series)
@@ -78,7 +141,7 @@ for (const store of [d13, d7]) {
 
 // 沒有航班時不能爆掉
 assert.equal(summarizeStressSeries([]), null)
-assert.equal(summarizeStressSeries(stressSlotSeriesDay([], DATE, d13.stressWeights, d13, 'full')).maxScore, 0)
+assert.equal(summarizeStressSeries(stressSlotSeriesDay([], DATE, d13.stressWeights, d13, resolveStoreShifts(d13, null, DATE).shifts, 'full')).maxScore, 0)
 
 // 真實資料只做冒煙測試：跑得完、不丟例外、範圍過濾不會過頭
 const files = readdirSync('data').filter((f) => f.startsWith('flight-data-')).sort()

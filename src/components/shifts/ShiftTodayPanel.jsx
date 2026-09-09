@@ -22,6 +22,7 @@ import {
   getMonthsForDate,
 } from '../../pages/shifts/shiftModel'
 import { ShiftPill, PositionTag, ShuttleBusIcon } from './shiftUi'
+import ShiftFlightLoad, { useFlightDay } from './ShiftFlightLoad'
 
 function HolidayNote({ book, dateKey }) {
   const note = useMemo(() => {
@@ -229,46 +230,12 @@ export function ShiftTodayPanel({ book, dateKey, pickupByPerson, onOpenPickupSet
         ) : (
           <div className="grid items-stretch gap-4 md:grid-cols-3">
             {byStore.map((store) => (
-              <div
+              <StoreDayColumn
                 key={store.storeCode ?? 'unknown-store'}
-                className="flex h-full flex-col rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-mega-surface)] p-4"
-              >
-                <div className="mb-3 flex items-center justify-between gap-2 border-b border-[var(--cw-border-strong)] pb-2">
-                  <span className="font-bold text-[var(--cw-text)]">{store.storeName}</span>
-                  <span className="inline-flex items-center gap-1 text-xs text-[var(--cw-text-muted)]">
-                    <UserGroupIcon className="h-4 w-4" />
-                    {store.total} 人
-                  </span>
-                </div>
-                <div className="space-y-4">
-                  {store.shifts.map((group) => (
-                    <div key={group.shift ?? 'other'}>
-                      <div className="mb-1 flex items-baseline justify-between gap-2 border-b border-[var(--cw-border)] pb-1">
-                        <ShiftPill shift={group.shift} month={monthByStore[store.storeCode]} />
-                        {(() => {
-                          const display = getShiftDisplay(monthByStore[store.storeCode], group.shift)
-                          if (!display?.start || !display?.end) return null
-                          return (
-                            <span className="text-[11px] tabular-nums text-[var(--cw-text-muted)]">
-                              {display.start}–{display.end}
-                              {display.crossesMidnight ? '（跨夜）' : ''}
-                            </span>
-                          )
-                        })()}
-                      </div>
-                      <ul className="pl-0.5">
-                        {group.people.map((person) => (
-                          <PersonLine
-                            key={`${person.personKey}-${person.shift}`}
-                            person={person}
-                            month={monthByStore[store.storeCode]}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                store={store}
+                month={monthByStore[store.storeCode]}
+                dateKey={dateKey}
+              />
             ))}
           </div>
         )}
@@ -292,6 +259,61 @@ export function ShiftTodayPanel({ book, dateKey, pickupByPerson, onOpenPickupSet
         ) : null}
       </CwCard>
 
+    </div>
+  )
+}
+
+/** 一家店的當天名單。D7／D13 另外帶上該班的航班負載。 */
+function StoreDayColumn({ store, month, dateKey }) {
+  const { store: flightStore, flights } = useFlightDay(store.storeCode, dateKey)
+  return (
+    <div
+      className="flex h-full flex-col rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-mega-surface)] p-4"
+    >
+      <div className="mb-3 flex items-center justify-between gap-2 border-b border-[var(--cw-border-strong)] pb-2">
+        <span className="font-bold text-[var(--cw-text)]">{store.storeName}</span>
+        <span className="inline-flex items-center gap-1 text-xs text-[var(--cw-text-muted)]">
+          <UserGroupIcon className="h-4 w-4" />
+          {store.total} 人
+        </span>
+      </div>
+      <div className="space-y-4">
+        {store.shifts.map((group) => (
+          <div key={group.shift ?? 'other'}>
+            <div className="mb-1 flex items-baseline justify-between gap-2 border-b border-[var(--cw-border)] pb-1">
+              <ShiftPill shift={group.shift} month={month} />
+              {(() => {
+                const display = getShiftDisplay(month, group.shift)
+                if (!display?.start || !display?.end) return null
+                return (
+                  <span className="text-[11px] tabular-nums text-[var(--cw-text-muted)]">
+                    {display.start}–{display.end}
+                    {display.crossesMidnight ? '（跨夜）' : ''}
+                  </span>
+                )
+              })()}
+            </div>
+            <div className="mb-1">
+              <ShiftFlightLoad
+                store={flightStore}
+                flights={flights}
+                month={month}
+                shiftCode={group.shift}
+                dateKey={dateKey}
+              />
+            </div>
+            <ul className="pl-0.5">
+              {group.people.map((person) => (
+                <PersonLine
+                  key={`${person.personKey}-${person.shift}`}
+                  person={person}
+                  month={month}
+                />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
