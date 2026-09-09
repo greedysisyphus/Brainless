@@ -10,18 +10,21 @@ import { studioSurfaces } from '../studio/studioSurfaceClasses'
 import { loadEcharts } from '../../utils/flightData/echartsLoader'
 import { CW_ECHARTS_THEME_NAME, registerStudioEchartsTheme } from '../../utils/flightData/studioEchartsTheme'
 import { parseHHMMToMinutes } from '../../utils/flightData/flightTime'
-import { flightRowKey } from '../../utils/flightData/gates'
+import { flightRowKey, gateToFamily, isGateInStore } from '../../utils/flightData/gates'
+import {
+  FLIGHT_STORE_ORDER,
+  FLIGHT_STORES,
+  cacheFlightStoreKeyLocal,
+  getFlightStore,
+  loadStoredFlightStoreKey
+} from '../../utils/flightData/stores'
 import { loadPrimaryThenFallback } from '../../utils/flightData/dataSource'
 import {
-  DEFAULT_GATE_STRESS_WEIGHTS,
-  GATE_STRESS_FIREBASE_DOC_ID,
   mergeGateStressWeights,
   loadStoredGateStressWeights,
   cacheGateStressWeightsLocal
 } from '../../utils/flightData/gateStressWeights'
 import {
-  NIGHT_SHIFT_FIREBASE_DOC_ID,
-  NIGHT_SHIFT_GATE_ORDER,
   mergeNightShiftConfig,
   loadStoredNightShiftConfig,
   cacheNightShiftConfigLocal,
@@ -32,14 +35,13 @@ import {
   isNightSupportTargetGate
 } from '../../utils/flightData/nightShiftSupport'
 import {
-  averageStressSlotsAcrossDays,
-  computeStressSlotsDay,
-  formatStressShiftSpan,
-  isStressSlotInSupportPeriod
+  stressSlotSeriesAcrossDays,
+  stressSlotSeriesDay,
+  summarizeStressSeries
 } from '../../utils/flightData/stressSlots'
 import FlightDataTableRow from './flight/FlightDataTableRow'
 import InfoTipIcon from './flight/InfoTipIcon'
-import StressSlotShiftPanel from './flight/StressSlotShiftPanel'
+import StressCurvePanel from './flight/StressCurvePanel'
 
 const FLIGHT_DATA_BASE_PATH = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
 
@@ -95,7 +97,14 @@ function FlightDataContent() {
     const now = new Date()
     return getLocalDateString(now)
   })
-  const [flightData, setFlightData] = useState(null)
+  const [storeKey, setStoreKey] = useState(loadStoredFlightStoreKey)
+  const store = getFlightStore(storeKey)
+  const selectStore = (key) => {
+    setStoreKey(key)
+    cacheFlightStoreKeyLocal(key)
+  }
+
+  const [rawFlightData, setRawFlightData] = useState(null)
   const [status, setStatus] = useState({ message: '', type: '' })
   const [loading, setLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
@@ -104,10 +113,10 @@ function FlightDataContent() {
   const [lastUpdated, setLastUpdated] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(null)
-  const [multiDayData, setMultiDayData] = useState([]) // 多天數據
-  const [lastWeekData, setLastWeekData] = useState([]) // 上週同期（供歷史趨勢對比）
-  const [lastMonthData, setLastMonthData] = useState([]) // 上月同期（供歷史趨勢對比）
-  const [lastYearData, setLastYearData] = useState([]) // 去年同期（供歷史趨勢對比）
+  const [rawMultiDayData, setRawMultiDayData] = useState([]) // 多天數據
+  const [rawLastWeekData, setRawLastWeekData] = useState([]) // 上週同期（供歷史趨勢對比）
+  const [rawLastMonthData, setRawLastMonthData] = useState([]) // 上月同期（供歷史趨勢對比）
+  const [rawLastYearData, setRawLastYearData] = useState([]) // 去年同期（供歷史趨勢對比）
   const [loadingMultiDay, setLoadingMultiDay] = useState(false)
   const [loadingHistorical, setLoadingHistorical] = useState(false)
   const [hideExpiredFlights, setHideExpiredFlights] = useState(false) // 隱藏已過期航班
@@ -137,9 +146,8 @@ function FlightDataContent() {
   const [selectedChartDetail, setSelectedChartDetail] = useState(null) // 選中的圖表詳細資訊
   /** null | 'today' | 'multi' — 高峰／離峰完整說明 */
   const [stressSlotsHelp, setStressSlotsHelp] = useState(null)
-  /** 高峰／離峰 60 分槽掃描班別：全天 05:00–21:00、早班 05:00–13:30、晚班 13:30–21:00 */
-  const [stressPeakShift, setStressPeakShift] = useState('full')
-  const [stressLowShift, setStressLowShift] = useState('full')
+  /** 壓力曲線掃描班別：全天 05:00–21:00、早班 05:00–13:30、晚班 13:30–21:00（高峰與空檔共用一組，才比得起來） */
+  const [stressShift, setStressShift] = useState('full')
   const [destChartMode, setDestChartMode] = useState('bar') // 'bar' | 'race'（統計分析 目的地）
   const [hourlyChartMode, setHourlyChartMode] = useState('area') // 'area' | 'bar'（統計分析 當天每小時）
   const [gateHeatmapViewMode, setGateHeatmapViewMode] = useState('cards') // 'cards' | 'matrix'
@@ -153,23 +161,69 @@ function FlightDataContent() {
     return getLocalDateString(d)
   })
   const [rangeEndDate, setRangeEndDate] = useState(() => getLocalDateString(new Date()))
-  const [gateStressWeights, setGateStressWeights] = useState(loadStoredGateStressWeights)
+  const [gateStressWeights, setGateStressWeights] = useState(() => loadStoredGateStressWeights(getFlightStore(loadStoredFlightStoreKey())))
   const [gateStressWeightsModalOpen, setGateStressWeightsModalOpen] = useState(false)
-  const [draftGateStressWeights, setDraftGateStressWeights] = useState(() => ({ ...DEFAULT_GATE_STRESS_WEIGHTS }))
+  const [draftGateStressWeights, setDraftGateStressWeights] = useState(() => ({ ...getFlightStore(loadStoredFlightStoreKey()).stressWeights }))
   const [gateStressSaveState, setGateStressSaveState] = useState('idle')
   const [gateStressRemoteError, setGateStressRemoteError] = useState(null)
 
-  const [nightShiftConfig, setNightShiftConfig] = useState(loadStoredNightShiftConfig)
+  const [nightShiftConfig, setNightShiftConfig] = useState(() => loadStoredNightShiftConfig(getFlightStore(loadStoredFlightStoreKey())))
   const [nightShiftModalOpen, setNightShiftModalOpen] = useState(false)
-  const [draftNightShift, setDraftNightShift] = useState(() => mergeNightShiftConfig(null))
+  const [draftNightShift, setDraftNightShift] = useState(() => mergeNightShiftConfig(null, getFlightStore(loadStoredFlightStoreKey())))
   const [nightShiftSaveState, setNightShiftSaveState] = useState('idle')
   const [nightShiftRemoteError, setNightShiftRemoteError] = useState(null)
-  const [nsGateRangeLo, setNsGateRangeLo] = useState(12)
-  const [nsGateRangeHi, setNsGateRangeHi] = useState(18)
+  /** 該店涵蓋的門號（純數字），供「套用起迄」下拉用 */
+  const gateFamilyNumbers = store.gateFamilies.map((f) => Number(f.slice(1)))
+  const [nsGateRangeLo, setNsGateRangeLo] = useState(() => gateFamilyNumbers[0])
+  const [nsGateRangeHi, setNsGateRangeHi] = useState(() => gateFamilyNumbers[gateFamilyNumbers.length - 1])
+  useEffect(() => {
+    setNsGateRangeLo(gateFamilyNumbers[0])
+    setNsGateRangeHi(gateFamilyNumbers[gateFamilyNumbers.length - 1])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store])
   const [nightShiftDraftError, setNightShiftDraftError] = useState(null)
 
+  /**
+   * 原始資料含 D 區全部登機門；各店只看自己涵蓋的範圍。
+   * 過濾放在 memo 而不是載入時，切店才不用重新抓一次資料。
+   */
+  const flightData = useMemo(() => {
+    if (!rawFlightData) return null
+    const flights = (rawFlightData.flights || []).filter((f) => isGateInStore(f.gate, store))
+    let before = 0
+    let after = 0
+    for (const f of flights) {
+      const min = parseHHMMToMinutes(f.time)
+      if (min === null) continue
+      if (min < 17 * 60) before += 1
+      else after += 1
+    }
+    return {
+      ...rawFlightData,
+      flights,
+      summary: {
+        ...rawFlightData.summary,
+        total_flights: flights.length,
+        'before_17:00': before,
+        'after_17:00': after
+      }
+    }
+  }, [rawFlightData, store])
+
+  const toStoreDay = useCallback(
+    (day) => {
+      const flights = (day.flights || []).filter((f) => isGateInStore(f.gate, store))
+      return { ...day, flights, totalFlights: flights.length }
+    },
+    [store]
+  )
+  const multiDayData = useMemo(() => rawMultiDayData.map(toStoreDay), [rawMultiDayData, toStoreDay])
+  const lastWeekData = useMemo(() => rawLastWeekData.map(toStoreDay), [rawLastWeekData, toStoreDay])
+  const lastMonthData = useMemo(() => rawLastMonthData.map(toStoreDay), [rawLastMonthData, toStoreDay])
+  const lastYearData = useMemo(() => rawLastYearData.map(toStoreDay), [rawLastYearData, toStoreDay])
+
   useEffect(() => {
-    const ref = doc(db, 'settings', GATE_STRESS_FIREBASE_DOC_ID)
+    const ref = doc(db, 'settings', store.stressDocId)
     const unsub = onSnapshot(
       ref,
       (snap) => {
@@ -177,14 +231,14 @@ function FlightDataContent() {
         if (snap.exists()) {
           const data = snap.data()
           const raw = data?.weights && typeof data.weights === 'object' ? data.weights : data
-          const merged = mergeGateStressWeights(raw)
+          const merged = mergeGateStressWeights(raw, store)
           setGateStressWeights(merged)
-          cacheGateStressWeightsLocal(merged)
+          cacheGateStressWeightsLocal(merged, store)
           return
         }
-        const seed = mergeGateStressWeights(loadStoredGateStressWeights())
+        const seed = mergeGateStressWeights(loadStoredGateStressWeights(store), store)
         setGateStressWeights(seed)
-        cacheGateStressWeightsLocal(seed)
+        cacheGateStressWeightsLocal(seed, store)
         setDoc(ref, { weights: seed, updatedAt: serverTimestamp() }, { merge: true }).catch((err) => {
           console.error('[gateStressWeights] 建立 Firestore 文件失敗:', err)
           setGateStressRemoteError(err?.message || String(err))
@@ -196,10 +250,11 @@ function FlightDataContent() {
       }
     )
     return () => unsub()
-  }, [])
+  }, [store])
 
   useEffect(() => {
-    const ref = doc(db, 'settings', NIGHT_SHIFT_FIREBASE_DOC_ID)
+    if (!store.nightSupport) return undefined
+    const ref = doc(db, 'settings', store.nightDocId)
     const unsub = onSnapshot(
       ref,
       (snap) => {
@@ -212,14 +267,14 @@ function FlightDataContent() {
             shiftEndMin: data.shiftEndMin,
             closingBufferMin: data.closingBufferMin,
             gateIncluded: data.gateIncluded
-          })
+          }, store)
           setNightShiftConfig(merged)
-          cacheNightShiftConfigLocal(merged)
+          cacheNightShiftConfigLocal(merged, store)
           return
         }
-        const seed = mergeNightShiftConfig(loadStoredNightShiftConfig())
+        const seed = mergeNightShiftConfig(loadStoredNightShiftConfig(store), store)
         setNightShiftConfig(seed)
-        cacheNightShiftConfigLocal(seed)
+        cacheNightShiftConfigLocal(seed, store)
         setDoc(
           ref,
           {
@@ -242,7 +297,7 @@ function FlightDataContent() {
       }
     )
     return () => unsub()
-  }, [])
+  }, [store])
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr + 'T00:00:00')
@@ -299,8 +354,8 @@ function FlightDataContent() {
       }
 
       // 檢查登機門格式
-      if (flight.gate && !/^D1[1-8]R?$/.test(flight.gate)) {
-        warnings.push(`航班 ${index + 1} 登機門不在 D11-D18 範圍: ${flight.gate}`)
+      if (flight.gate && gateToFamily(flight.gate) === null) {
+        warnings.push(`航班 ${index + 1} 登機門不在 D 區: ${flight.gate}`)
       }
     })
 
@@ -532,7 +587,7 @@ function FlightDataContent() {
 
       // 一次性更新資料和狀態，減少重新渲染
       // 使用函數式更新確保狀態更新是原子的
-      setFlightData(prevData => {
+      setRawFlightData(prevData => {
         // 如果資料相同，不更新以避免不必要的重新渲染
         if (prevData && prevData.date === data.date) {
           return prevData
@@ -551,7 +606,7 @@ function FlightDataContent() {
         setStatus({ message: `❌ 錯誤: ${error.message}`, type: 'error' })
       }
       // 只有在錯誤時才清除資料
-      setFlightData(null)
+      setRawFlightData(null)
       setLoading(false)
       setLoadingProgress(0)
     } finally {
@@ -631,11 +686,11 @@ function FlightDataContent() {
       } else {
         setStatus({ message: `✅ 成功載入 ${validData.length} 天資料`, type: 'success' })
       }
-      setMultiDayData(validData)
+      setRawMultiDayData(validData)
     } catch (error) {
       console.error('載入多天數據失敗:', error)
       setStatus({ message: `載入失敗：${error.message}`, type: 'error' })
-      setMultiDayData([])
+      setRawMultiDayData([])
     } finally {
       setLoadingMultiDay(false)
     }
@@ -682,9 +737,9 @@ function FlightDataContent() {
   // 載入上週同期、上月同期、去年同期（與當前期間相同天數與結構，供歷史趨勢對比）
   const loadHistoricalComparisonData = useCallback(async () => {
     if (!multiDayData || multiDayData.length === 0) {
-      setLastWeekData([])
-      setLastMonthData([])
-      setLastYearData([])
+      setRawLastWeekData([])
+      setRawLastMonthData([])
+      setRawLastYearData([])
       return
     }
     setLoadingHistorical(true)
@@ -742,9 +797,9 @@ function FlightDataContent() {
           }
         })
         .filter(Boolean)
-    setLastWeekData(buildList(weekResults))
-    setLastMonthData(buildList(monthResults))
-    setLastYearData(buildList(yearResults))
+    setRawLastWeekData(buildList(weekResults))
+    setRawLastMonthData(buildList(monthResults))
+    setRawLastYearData(buildList(yearResults))
     if (historicalLoadMountedRef.current) setLoadingHistorical(false)
   }, [multiDayData])
 
@@ -754,9 +809,9 @@ function FlightDataContent() {
     if (multiDayData.length > 0) {
       loadHistoricalComparisonData()
     } else {
-      setLastWeekData([])
-      setLastMonthData([])
-      setLastYearData([])
+      setRawLastWeekData([])
+      setRawLastMonthData([])
+      setRawLastYearData([])
     }
     return () => { historicalLoadMountedRef.current = false }
   }, [multiDayData, loadHistoricalComparisonData])
@@ -2084,8 +2139,19 @@ function FlightDataContent() {
       if (gate === 'D15') return 'D15L'
       return gate
     }
-    // 依需求：移除 D11R, D12R, D13R, D16R, D17R, D18R；D14/D15 改為 L
-    const gates = ['D11', 'D12', 'D13', 'D14L', 'D14R', 'D15L', 'D15R', 'D16', 'D17', 'D18']
+    // 列出的門由資料決定（限該店範圍），機場改門號不用回來改常數
+    const seenGates = new Set()
+    const inRange = (gate) => {
+      if (!gate || !isGateInStore(gate, store)) return false
+      seenGates.add(gate)
+      return true
+    }
+    const sortGates = () =>
+      [...seenGates].sort((a, b) => {
+        const fa = Number(gateToFamily(a).slice(1))
+        const fb = Number(gateToFamily(b).slice(1))
+        return fa === fb ? a.localeCompare(b) : fa - fb
+      })
     const dateGateCounts = {}
     const addGateCount = (dateStr, gate) => {
       const key = `${dateStr}|${gate}`
@@ -2101,11 +2167,12 @@ function FlightDataContent() {
       const gateCounts = {}
       flightData.flights.forEach(flight => {
         const gate = normalizeGateForHeatmap(flight.gate)
-        if (!gates.includes(gate)) return
+        if (!inRange(gate)) return
         gateCounts[gate] = (gateCounts[gate] || 0) + 1
         addGateCount(baseDate, gate)
       })
 
+      const gates = sortGates()
       const maxCount = Math.max(...Object.values(gateCounts), 1)
       const data = gates.map(gate => ({
         gate,
@@ -2135,12 +2202,13 @@ function FlightDataContent() {
     multiDayData.forEach(day => {
       day.flights.forEach(flight => {
         const gate = normalizeGateForHeatmap(flight.gate)
-        if (!gates.includes(gate)) return
+        if (!inRange(gate)) return
         gateCounts[gate] = (gateCounts[gate] || 0) + 1
         addGateCount(day.date, gate)
       })
     })
 
+    const gates = sortGates()
     const maxCount = Math.max(...Object.values(gateCounts), 1)
     const dayCount = Math.max(1, multiDayData.length)
     const data = gates.map(gate => ({
@@ -2163,7 +2231,7 @@ function FlightDataContent() {
       matrixData,
       maxCount
     }
-  }, [multiDayData, flightData, selectedDate])
+  }, [multiDayData, flightData, selectedDate, store])
 
   // 登機門熱度卡片：依「總計/平均」與「固定順序/熱度排序」重組，並使用分位數色階
   const gateHeatmapDisplayData = useMemo(() => {
@@ -2326,16 +2394,18 @@ function FlightDataContent() {
 
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const nightSupportPlan = useMemo(() => {
+    if (!store.nightSupport) return null
     if (!flightData?.flights?.length) return null
-    return computeNightSupportPlan(flightData.flights, nightShiftConfig)
-  }, [flightData, nightShiftConfig])
+    return computeNightSupportPlan(flightData.flights, nightShiftConfig, store)
+  }, [flightData, nightShiftConfig, store])
 
   const nightShiftCfgMerged = useMemo(
-    () => mergeNightShiftConfig(nightShiftConfig),
-    [nightShiftConfig]
+    () => mergeNightShiftConfig(nightShiftConfig, store),
+    [nightShiftConfig, store]
   )
 
   const nightSupportLastRowKeys = useMemo(() => {
+    if (!store.nightSupport) return new Set()
     if (!flightData?.flights?.length) return new Set()
     const c = nightShiftCfgMerged
     const eligible = flightData.flights
@@ -2346,14 +2416,14 @@ function FlightDataContent() {
           m != null &&
           m >= c.supportStartMin &&
           m <= c.supportEndMin &&
-          isNightSupportTargetGate(f?.gate, c)
+          isNightSupportTargetGate(f?.gate, c, store)
       )
     if (eligible.length === 0) return new Set()
     const maxM = Math.max(...eligible.map((x) => x.m))
     return new Set(
       eligible.filter((x) => x.m === maxM).map((x) => flightRowKey(x.f))
     )
-  }, [flightData, nightShiftCfgMerged])
+  }, [flightData, nightShiftCfgMerged, store])
 
   // 統計卡片數據（移到頂部，避免在條件性 JSX 中使用 useMemo）
   const summaryCards = useMemo(() => {
@@ -2384,7 +2454,7 @@ function FlightDataContent() {
             <div className={valueClass}>
               {flightData.summary.total_flights ?? 0}
             </div>
-            <div className={noteClass}>當天 D11-D18 全部航班</div>
+            <div className={noteClass}>當天 {store.rangeLabel} 全部航班</div>
           </div>
         </div>
 
@@ -2418,6 +2488,7 @@ function FlightDataContent() {
           </div>
         </div>
 
+        {store.nightSupport && (
         <div
           className={`${cardBaseClass} ${
             isStudio ? 'border-l-4 border-l-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]' : 'bg-gradient-to-br from-indigo-600/85 via-violet-600/75 to-purple-700/70'
@@ -2431,9 +2502,9 @@ function FlightDataContent() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
-                  setDraftNightShift(mergeNightShiftConfig(nightShiftConfig))
-                  setNsGateRangeLo(12)
-                  setNsGateRangeHi(18)
+                  setDraftNightShift(mergeNightShiftConfig(nightShiftConfig, store))
+                  setNsGateRangeLo(gateFamilyNumbers[0])
+                  setNsGateRangeHi(gateFamilyNumbers[gateFamilyNumbers.length - 1])
                   setNightShiftDraftError(null)
                   setNightShiftModalOpen(true)
                 }}
@@ -2473,23 +2544,29 @@ function FlightDataContent() {
             </div>
           </div>
         </div>
+        )}
       </div>
     )
-  }, [flightData, nightSupportPlan, nightShiftConfig, isStudio])
+  }, [flightData, nightSupportPlan, nightShiftConfig, store, isStudio])
 
-  // 奶酥時刻：當日高峰／離峰（槽位日＝班表檔案 date，避免選定日與 fallback 檔不一致時全為 0）
-  const stressSlotsToday = useMemo(() => {
+  // 奶酥時刻：當日壓力曲線（槽位日＝班表檔案 date，避免選定日與 fallback 檔不一致時全為 0）
+  const stressSeriesToday = useMemo(() => {
     if (!flightData?.flights?.length) return null
     const dayKey = flightData.date || selectedDate
     if (!dayKey) return null
-    return computeStressSlotsDay(flightData.flights, dayKey, gateStressWeights, stressPeakShift, stressLowShift)
-  }, [flightData, selectedDate, gateStressWeights, stressPeakShift, stressLowShift])
+    return stressSlotSeriesDay(flightData.flights, dayKey, gateStressWeights, store, stressShift)
+  }, [flightData, selectedDate, gateStressWeights, store, stressShift])
+  const stressSummaryToday = useMemo(() => summarizeStressSeries(stressSeriesToday), [stressSeriesToday])
 
   // 奶酥時刻：多日區間平均（依 multiDayData）
-  const stressSlotsMultiDay = useMemo(() => {
+  const stressSeriesMultiDay = useMemo(() => {
     if (!multiDayData.length) return null
-    return averageStressSlotsAcrossDays(multiDayData, gateStressWeights, stressPeakShift, stressLowShift)
-  }, [multiDayData, gateStressWeights, stressPeakShift, stressLowShift])
+    return stressSlotSeriesAcrossDays(multiDayData, gateStressWeights, store, stressShift)
+  }, [multiDayData, gateStressWeights, store, stressShift])
+  const stressSummaryMultiDay = useMemo(
+    () => summarizeStressSeries(stressSeriesMultiDay),
+    [stressSeriesMultiDay]
+  )
 
   // 檢查即將出發的航班（1小時內）
   const isUpcomingFlight = useCallback((flight) => {
@@ -2759,7 +2836,7 @@ function FlightDataContent() {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; background: #fafafa; color: #1d1d1f;">
         <div style="background: white; border-radius: 20px; padding: 50px; box-shadow: 0 8px 32px rgba(0,0,0,0.08);">
           <div style="text-align: center; margin-bottom: 50px;">
-            <h1 style="color: #1d1d1f; margin: 0 0 12px 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2;">桃園機場 D11-D18 航班資料</h1>
+            <h1 style="color: #1d1d1f; margin: 0 0 12px 0; font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2;">桃園機場 ${store.rangeLabel} 航班資料</h1>
             <p style="color: #86868b; margin: 0; font-size: 17px; font-weight: 400;">${dateStr}</p>
           </div>
           
@@ -3044,10 +3121,10 @@ function FlightDataContent() {
           </div>
           <h1 className="relative mb-2 px-4 text-3xl font-extrabold sm:mb-3 sm:text-4xl md:text-5xl">
             <span className="animate-gradient bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-[length:200%_100%] bg-clip-text text-transparent">
-              桃園機場 D11-D18 航班資料
+              桃園機場 {store.rangeLabel} 航班資料
             </span>
             <span className="absolute inset-0 -z-10 animate-pulse-glow bg-gradient-to-r from-primary via-purple-400 via-blue-400 to-primary bg-clip-text text-transparent opacity-30 blur-xl">
-              桃園機場 D11-D18 航班資料
+              桃園機場 {store.rangeLabel} 航班資料
             </span>
           </h1>
           {lastUpdated && (
@@ -3069,6 +3146,58 @@ function FlightDataContent() {
             : 'rounded-2xl border border-white/10 bg-surface/35 p-4 shadow-md backdrop-blur-md sm:p-6'
         }
       >
+        {/* 門市：只換登機門範圍與權重，資料共用一份，切換不重新抓 */}
+        <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4">
+          <span
+            className={`text-xs font-medium ${
+              isStudio ? 'text-[var(--cw-text-muted)]' : isClub ? 'text-[#76564b]' : 'text-text-secondary'
+            }`}
+          >
+            門市
+          </span>
+          <div
+            role="group"
+            aria-label="選擇門市"
+            className={`inline-flex gap-0.5 rounded-lg p-0.5 ${
+              isStudio
+                ? 'border border-[var(--cw-border)] bg-[var(--cw-bg)]'
+                : isClub
+                  ? 'border border-[#d9b9ad] bg-[#f8eeea]'
+                  : 'border border-white/15 bg-white/5'
+            }`}
+          >
+            {FLIGHT_STORE_ORDER.map((k) => {
+              const s = FLIGHT_STORES[k]
+              const active = k === storeKey
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => selectStore(k)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    active
+                      ? isStudio
+                        ? 'bg-[var(--cw-surface-elevated)] text-[var(--cw-text)] shadow-sm'
+                        : isClub
+                          ? 'bg-[#76564b] text-white shadow-sm'
+                          : 'bg-white/15 text-primary shadow-sm'
+                      : isStudio
+                        ? 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)]'
+                        : isClub
+                          ? 'text-[#76564b] hover:bg-[#f2ddd6]'
+                          : 'text-text-secondary hover:bg-white/10'
+                  }`}
+                  style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                >
+                  {s.label}
+                  <span className="ml-1.5 text-[10px] font-normal tabular-nums opacity-70">{s.rangeLabel}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         <div className={isStudio ? 'mb-4 border-b border-[var(--cw-border)] pb-3' : 'mb-3 sm:mb-4'}>
           <h2
             className={
@@ -3490,7 +3619,7 @@ function FlightDataContent() {
             {summaryCards}
           </div>
 
-          {stressSlotsToday && (
+          {stressSeriesToday && (
             <div
               className={`mt-4 p-4 sm:mt-6 sm:p-5 ${
                 isStudio
@@ -3504,7 +3633,7 @@ function FlightDataContent() {
                     isStudio ? 'text-[var(--cw-text)]' : 'text-primary'
                   }`}
                 >
-                  高峰／離峰時段（當天）
+                  壓力曲線（當天）
                 </h3>
                 <button
                   type="button"
@@ -3514,7 +3643,7 @@ function FlightDataContent() {
                       ? 'border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)] hover:bg-[var(--cw-surface-elevated)]'
                       : 'border-primary/45 bg-primary/15 text-primary hover:bg-primary/28 active:bg-primary/35'
                   }`}
-                  aria-label="高峰與離峰完整說明"
+                  aria-label="壓力曲線完整說明"
                   title="說明"
                   style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                 >
@@ -3554,76 +3683,17 @@ function FlightDataContent() {
                 </code>
                 ）與航班列表計算。圓形圖示為完整規則；<strong>齒輪</strong>可調登機門權重。
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="peak" groupLabel="高峰時段" value={stressPeakShift} onChange={setStressPeakShift} isClub={isClub} />
-                  <div className={`rounded-lg border p-3 sm:p-4 flex-1 min-h-0 ${isClub ? 'border-amber-500/35 bg-amber-50/80' : 'border-amber-500/25 bg-amber-500/5'}`}>
-                    <h4 className={`text-sm font-semibold mb-2 ${isClub ? 'text-amber-800' : 'text-amber-200'}`}>
-                      高峰（{formatStressShiftSpan(stressPeakShift)}，分數最高）
-                    </h4>
-                    <ol className="space-y-2 text-sm">
-                      {stressSlotsToday.peak.map((row, i) => (
-                        <li
-                          key={row.startMin}
-                          className={`flex justify-between gap-2 border-b pb-2 last:border-0 last:pb-0 ${
-                            isStudio ? 'border-[var(--cw-border)]/45' : 'border-white/5'
-                          }`}
-                        >
-                          <span className={isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}>
-                            <span className={isStudio ? 'font-mono text-[var(--cw-text)]' : 'text-primary font-mono'}>
-                              {i + 1}.
-                            </span>{' '}
-                            {row.label}
-                          </span>
-                          <span className={`text-right shrink-0 ${isClub ? 'text-amber-800' : 'text-amber-100/90'}`}>
-                            {row.score.toFixed(2)} <span className={`text-xs ${isClub ? 'text-amber-700' : 'text-text-secondary'}`}>（{row.flightCount} 班）</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} isClub={isClub} />
-                  <div className={`rounded-lg border p-3 sm:p-4 flex-1 min-h-0 ${isClub ? 'border-[#d9b9ad] bg-[#f8eeea]' : 'border-cyan-500/25 bg-cyan-500/5'}`}>
-                    <h4 className={`text-sm font-semibold mb-2 ${isClub ? 'text-[#76564b]' : 'text-cyan-200'}`}>
-                      離峰（{formatStressShiftSpan(stressLowShift)}，分數最低）
-                    </h4>
-                    <ol className="space-y-2 text-sm">
-                      {stressSlotsToday.low.map((row, i) => {
-                        const inSupportPeriod = isStressSlotInSupportPeriod(
-                          row.startMin,
-                          nightSupportPlan?.supportFrom,
-                          nightSupportPlan?.supportUntil
-                        )
-                        return (
-                          <li
-                            key={row.startMin}
-                            className={`flex justify-between gap-2 border-b pb-2 last:border-0 last:pb-0 ${
-                              isStudio ? 'border-[var(--cw-border)]/45' : 'border-white/5'
-                            }`}
-                          >
-                            <span className={isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}>
-                              <span className={isStudio ? 'font-mono text-[var(--cw-text)]' : 'text-primary font-mono'}>
-                                {i + 1}.
-                              </span>{' '}
-                              {row.label}
-                              {inSupportPeriod && (
-                                <span className={`ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] align-middle ${isClub ? 'border-[#d9b9ad] bg-[#fff8f5] text-[#9f3d28]' : 'border-indigo-300/35 bg-indigo-400/10 text-indigo-200'}`}>
-                                  在支援期間
-                                </span>
-                              )}
-                            </span>
-                            <span className={`text-right shrink-0 ${isClub ? 'text-[#76564b]' : 'text-cyan-100/90'}`}>
-                              {row.score.toFixed(2)} <span className={`text-xs ${isClub ? 'text-[#9a7265]' : 'text-text-secondary'}`}>（{row.flightCount} 班）</span>
-                            </span>
-                          </li>
-                        )
-                      })}
-                    </ol>
-                  </div>
-                </div>
-              </div>
+              <StressCurvePanel
+                series={stressSeriesToday}
+                summary={stressSummaryToday}
+                shiftKey={stressShift}
+                onShiftChange={setStressShift}
+                supportFrom={nightSupportPlan?.supportFrom}
+                supportUntil={nightSupportPlan?.supportUntil}
+                showSupport={store.nightSupport}
+                isStudio={isStudio}
+                isClub={isClub}
+              />
             </div>
           )}
 
@@ -3639,7 +3709,7 @@ function FlightDataContent() {
           >
             <div className="flex flex-col">
               <h2 className={`text-xl font-bold sm:text-2xl ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>
-                桃園機場 D11-D18 航班資料
+                桃園機場 {store.rangeLabel} 航班資料
               </h2>
               <p className={`mt-1 text-xs sm:text-sm ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}`}>
                 航班列表
@@ -3739,7 +3809,9 @@ function FlightDataContent() {
                       <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>登機門</th>
                       <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>航班</th>
                       <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>狀態</th>
+                      {store.nightSupport && (
                       <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>晚班支援/留店</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -3755,6 +3827,7 @@ function FlightDataContent() {
                           nightSupportLastRowKeys.size > 0 &&
                           nightSupportLastRowKeys.has(flightRowKey(flight))
                         }
+                        store={store}
                         isStudio={isStudio}
                         isClub={isClub}
                         onSelectFlight={setSelectedFlight}
@@ -3823,7 +3896,7 @@ function FlightDataContent() {
         </div>
       )}
 
-      {/* 高峰／離峰完整說明 */}
+      {/* 壓力曲線完整說明 */}
       {stressSlotsHelp && (
         <div
           className={`fixed inset-0 z-[100] flex items-center justify-center p-4 ${
@@ -3853,7 +3926,7 @@ function FlightDataContent() {
                 id="stress-slots-help-title"
                 className={`pr-2 text-lg font-bold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}
               >
-                {stressSlotsHelp === 'today' ? '高峰／離峰 — 當天版說明' : '高峰／離峰 — 多日平均版說明'}
+                {stressSlotsHelp === 'today' ? '壓力曲線 — 當天版說明' : '壓力曲線 — 多日平均版說明'}
               </h3>
               <button
                 type="button"
@@ -3881,7 +3954,8 @@ function FlightDataContent() {
                   <li>每班航班會看「起飛前 60～30 分鐘」這段登機壓力窗。</li>
                   <li>系統用 60 分鐘觀察槽去掃描，計算壓力窗和觀察槽重疊多少分鐘。</li>
                   <li>重疊分鐘數再乘上登機門權重，累加後就是該時段分數。</li>
-                  <li>分數越高越忙（高峰），越低越鬆（離峰）。</li>
+                  <li>分數越高越忙。曲線每 15 分鐘一根柱子，畫的是一整天的形狀。</li>
+                  <li>橘色柱＝分數最高的那一小時；淺色區塊＝最長的一段連續空檔（分數低於尖峰兩成）。</li>
                 </ul>
               </section>
 
@@ -3981,7 +4055,7 @@ function FlightDataContent() {
                     isStudio ? 'bg-[var(--cw-bg)] text-[var(--cw-text)]' : 'bg-white/10'
                   }`}
                 >
-                  settings/{GATE_STRESS_FIREBASE_DOC_ID}
+                  settings/{store.stressDocId}
                 </code>
                 ，欄位{' '}
                 <code
@@ -3991,18 +4065,11 @@ function FlightDataContent() {
                 >
                   weights
                 </code>
-                。D14-D18 含 L/R 與同號共用；儲存後其他裝置即時同步。
+                。含 L／R 與同號共用；儲存後其他裝置即時同步。
               </p>
               <div className="flex flex-wrap gap-3">
                 {[
-                  ['D11', 'D11'],
-                  ['D12', 'D12'],
-                  ['D13', 'D13'],
-                  ['D14', 'D14'],
-                  ['D15', 'D15'],
-                  ['D16', 'D16'],
-                  ['D17', 'D17'],
-                  ['D18', 'D18'],
+                  ...store.gateFamilies.map((g) => [g, g]),
                   ['D_OTHER', '其他 D（未列舉）'],
                   ['OTHER', '非 D 登機門']
                 ].map(([key, label]) => (
@@ -4049,7 +4116,7 @@ function FlightDataContent() {
                   <CwButton
                     type="button"
                     variant="secondary"
-                    onClick={() => setDraftGateStressWeights({ ...DEFAULT_GATE_STRESS_WEIGHTS })}
+                    onClick={() => setDraftGateStressWeights({ ...store.stressWeights })}
                     className="flex-1"
                   >
                     還原預設（草稿）
@@ -4059,11 +4126,11 @@ function FlightDataContent() {
                     variant="primary"
                     disabled={gateStressSaveState === 'saving'}
                     onClick={async () => {
-                      const merged = mergeGateStressWeights(draftGateStressWeights)
+                      const merged = mergeGateStressWeights(draftGateStressWeights, store)
                       setGateStressSaveState('saving')
                       try {
                         await setDoc(
-                          doc(db, 'settings', GATE_STRESS_FIREBASE_DOC_ID),
+                          doc(db, 'settings', store.stressDocId),
                           { weights: merged, updatedAt: serverTimestamp() },
                           { merge: true }
                         )
@@ -4090,7 +4157,7 @@ function FlightDataContent() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDraftGateStressWeights({ ...DEFAULT_GATE_STRESS_WEIGHTS })}
+                    onClick={() => setDraftGateStressWeights({ ...store.stressWeights })}
                     className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/15 text-primary font-medium hover:bg-white/10 transition-colors"
                   >
                     還原預設（草稿）
@@ -4099,11 +4166,11 @@ function FlightDataContent() {
                     type="button"
                     disabled={gateStressSaveState === 'saving'}
                     onClick={async () => {
-                      const merged = mergeGateStressWeights(draftGateStressWeights)
+                      const merged = mergeGateStressWeights(draftGateStressWeights, store)
                       setGateStressSaveState('saving')
                       try {
                         await setDoc(
-                          doc(db, 'settings', GATE_STRESS_FIREBASE_DOC_ID),
+                          doc(db, 'settings', store.stressDocId),
                           { weights: merged, updatedAt: serverTimestamp() },
                           { merge: true }
                         )
@@ -4126,7 +4193,7 @@ function FlightDataContent() {
       )}
 
       {/* 晚班支援參數（Firestore settings 同步） */}
-      {nightShiftModalOpen && (
+      {nightShiftModalOpen && store.nightSupport && (
         <div
           className={`fixed inset-0 z-[102] flex items-center justify-center p-4 ${
             isStudio ? 'bg-black/70 backdrop-blur-sm' : 'bg-black/70 backdrop-blur-md'
@@ -4271,7 +4338,7 @@ function FlightDataContent() {
               </div>
               <div className={`space-y-2 border-t pt-3 ${isStudio ? 'border-[var(--cw-border)]' : 'border-white/10'}`}>
                 <p className={`text-[11px] font-semibold ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary/90'}`}>
-                  登機門 D11-D18
+                  登機門 {store.rangeLabel}
                 </p>
                 <p
                   className={`text-[10px] leading-relaxed ${
@@ -4300,14 +4367,11 @@ function FlightDataContent() {
                             : 'rounded-lg border border-white/20 bg-surface/50 px-2 py-1.5 text-primary'
                         }
                       >
-                        {NIGHT_SHIFT_GATE_ORDER.map((_, i) => {
-                          const n = 11 + i
-                          return (
-                            <option key={n} value={n}>
-                              {n}
-                            </option>
-                          )
-                        })}
+                        {gateFamilyNumbers.map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
                       </select>
                       <span className={isStudio ? 'text-[var(--cw-text-muted)]/80' : 'text-text-secondary/80'}>至</span>
                       <span className={isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}>D</span>
@@ -4320,14 +4384,11 @@ function FlightDataContent() {
                             : 'rounded-lg border border-white/20 bg-surface/50 px-2 py-1.5 text-primary'
                         }
                       >
-                        {NIGHT_SHIFT_GATE_ORDER.map((_, i) => {
-                          const n = 11 + i
-                          return (
-                            <option key={n} value={n}>
-                              {n}
-                            </option>
-                          )
-                        })}
+                        {gateFamilyNumbers.map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
                       </select>
                       <button
                         type="button"
@@ -4336,7 +4397,7 @@ function FlightDataContent() {
                           const hi = Math.max(nsGateRangeLo, nsGateRangeHi)
                           setDraftNightShift((prev) => {
                             const g = { ...prev.gateIncluded }
-                            for (let n = 11; n <= 18; n += 1) {
+                            for (const n of gateFamilyNumbers) {
                               g[`D${n}`] = n >= lo && n <= hi
                             }
                             return { ...prev, gateIncluded: g }
@@ -4353,7 +4414,7 @@ function FlightDataContent() {
                   套用起迄：區間內打勾、區間外取消；之後可再單獨微調核取方塊。
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                  {NIGHT_SHIFT_GATE_ORDER.map((k) => (
+                  {store.gateFamilies.map((k) => (
                     <label
                       key={k}
                       className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-[12px] ${
@@ -4408,7 +4469,7 @@ function FlightDataContent() {
                     variant="secondary"
                     onClick={() => {
                       setNightShiftDraftError(null)
-                      setDraftNightShift(mergeNightShiftConfig(null))
+                      setDraftNightShift(mergeNightShiftConfig(null, store))
                     }}
                     className="flex-1"
                   >
@@ -4420,16 +4481,16 @@ function FlightDataContent() {
                     disabled={nightShiftSaveState === 'saving'}
                     onClick={async () => {
                       setNightShiftDraftError(null)
-                      const err = validateNightShiftDraftForSave(draftNightShift)
+                      const err = validateNightShiftDraftForSave(draftNightShift, store)
                       if (err) {
                         setNightShiftDraftError(err)
                         return
                       }
-                      const merged = mergeNightShiftConfig(draftNightShift)
+                      const merged = mergeNightShiftConfig(draftNightShift, store)
                       setNightShiftSaveState('saving')
                       try {
                         await setDoc(
-                          doc(db, 'settings', NIGHT_SHIFT_FIREBASE_DOC_ID),
+                          doc(db, 'settings', store.nightDocId),
                           {
                             supportStartMin: merged.supportStartMin,
                             supportEndMin: merged.supportEndMin,
@@ -4468,7 +4529,7 @@ function FlightDataContent() {
                     type="button"
                     onClick={() => {
                       setNightShiftDraftError(null)
-                      setDraftNightShift(mergeNightShiftConfig(null))
+                      setDraftNightShift(mergeNightShiftConfig(null, store))
                     }}
                     className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/15 text-primary font-medium hover:bg-white/10 transition-colors"
                   >
@@ -4479,16 +4540,16 @@ function FlightDataContent() {
                     disabled={nightShiftSaveState === 'saving'}
                     onClick={async () => {
                       setNightShiftDraftError(null)
-                      const err = validateNightShiftDraftForSave(draftNightShift)
+                      const err = validateNightShiftDraftForSave(draftNightShift, store)
                       if (err) {
                         setNightShiftDraftError(err)
                         return
                       }
-                      const merged = mergeNightShiftConfig(draftNightShift)
+                      const merged = mergeNightShiftConfig(draftNightShift, store)
                       setNightShiftSaveState('saving')
                       try {
                         await setDoc(
-                          doc(db, 'settings', NIGHT_SHIFT_FIREBASE_DOC_ID),
+                          doc(db, 'settings', store.nightDocId),
                           {
                             supportStartMin: merged.supportStartMin,
                             supportEndMin: merged.supportEndMin,
@@ -4598,7 +4659,7 @@ function FlightDataContent() {
             </div>
           )}
 
-          {/* 控制選項（置於多日高峰／離峰分析上方，方便先載入區間） */}
+          {/* 控制選項（置於多日壓力曲線上方，方便先載入區間） */}
           <div ref={statsSlotRef} className={`${statsPanelShell} scroll-mt-20`}>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span className={`text-sm whitespace-nowrap ${statsMutedText}`}>快速載入</span>
@@ -4681,10 +4742,10 @@ function FlightDataContent() {
             </div>
           </div>
 
-          {stressSlotsMultiDay && multiDayData.length > 0 && (
+          {stressSeriesMultiDay && multiDayData.length > 0 && (
             <div className={statsPanelShell}>
               <div className="flex flex-wrap items-center gap-1 mb-2">
-                <h3 className={isStudio ? 'text-base sm:text-lg font-bold text-[var(--cw-text)] leading-snug' : 'text-base sm:text-lg font-bold text-primary leading-snug'}>高峰／離峰時段（多日平均）</h3>
+                <h3 className={isStudio ? 'text-base sm:text-lg font-bold text-[var(--cw-text)] leading-snug' : 'text-base sm:text-lg font-bold text-primary leading-snug'}>壓力曲線（多日平均）</h3>
                 <button
                   type="button"
                   onClick={() => setStressSlotsHelp('multi')}
@@ -4693,7 +4754,7 @@ function FlightDataContent() {
                       ? statsIconBtnStudio
                       : 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/45 bg-primary/15 text-primary hover:bg-primary/28 active:bg-primary/35 transition-colors'
                   }
-                  aria-label="高峰與離峰多日平均完整說明"
+                  aria-label="壓力曲線多日平均完整說明"
                   title="說明"
                   style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                 >
@@ -4726,102 +4787,15 @@ function FlightDataContent() {
                   </span>
                 )}
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="peak" groupLabel="高峰時段" value={stressPeakShift} onChange={setStressPeakShift} isClub={isClub} />
-                  <div
-                    className={
-                      isStudio
-                        ? statsStressCardShellStudio
-                        : 'rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 sm:p-4 flex-1 min-h-0'
-                    }
-                  >
-                    <h4
-                      className={
-                        isStudio
-                          ? 'text-sm font-semibold text-[var(--cw-text)] mb-2'
-                          : 'text-sm font-semibold text-amber-200 mb-2'
-                      }
-                    >
-                      高峰（{formatStressShiftSpan(stressPeakShift)}，平均分最高）
-                    </h4>
-                    <ol className="space-y-2 text-sm">
-                      {stressSlotsMultiDay.peak.map((row, i) => (
-                        <li
-                          key={row.startMin}
-                          className={`flex justify-between gap-2 border-b pb-2 last:border-0 last:pb-0 ${
-                            isStudio ? 'border-[var(--cw-border)]' : 'border-white/5'
-                          }`}
-                        >
-                          <span className={statsMutedText}>
-                            <span className={isStudio ? 'font-mono text-[var(--cw-text)]' : 'text-primary font-mono'}>
-                              {i + 1}.
-                            </span>{' '}
-                            {row.label}
-                          </span>
-                          <span
-                            className={
-                              isStudio
-                                ? 'text-right shrink-0 text-[var(--cw-text)]'
-                                : 'text-right shrink-0 text-amber-100/90'
-                            }
-                          >
-                            {row.score.toFixed(2)}{' '}
-                            <span className={`text-xs ${statsMutedText}`}>（均 {row.flightCount.toFixed(1)} 班）</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 min-w-0">
-                  <StressSlotShiftPanel variant="low" groupLabel="離峰時段" value={stressLowShift} onChange={setStressLowShift} isClub={isClub} />
-                  <div
-                    className={
-                      isStudio
-                        ? statsStressCardShellStudio
-                        : 'rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 sm:p-4 flex-1 min-h-0'
-                    }
-                  >
-                    <h4
-                      className={
-                        isStudio
-                          ? 'text-sm font-semibold text-[var(--cw-text)] mb-2'
-                          : 'text-sm font-semibold text-cyan-200 mb-2'
-                      }
-                    >
-                      離峰（{formatStressShiftSpan(stressLowShift)}，平均分最低）
-                    </h4>
-                    <ol className="space-y-2 text-sm">
-                      {stressSlotsMultiDay.low.map((row, i) => (
-                        <li
-                          key={row.startMin}
-                          className={`flex justify-between gap-2 border-b pb-2 last:border-0 last:pb-0 ${
-                            isStudio ? 'border-[var(--cw-border)]' : 'border-white/5'
-                          }`}
-                        >
-                          <span className={statsMutedText}>
-                            <span className={isStudio ? 'font-mono text-[var(--cw-text)]' : 'text-primary font-mono'}>
-                              {i + 1}.
-                            </span>{' '}
-                            {row.label}
-                          </span>
-                          <span
-                            className={
-                              isStudio
-                                ? 'text-right shrink-0 text-[var(--cw-text)]'
-                                : 'text-right shrink-0 text-cyan-100/90'
-                            }
-                          >
-                            {row.score.toFixed(2)}{' '}
-                            <span className={`text-xs ${statsMutedText}`}>（均 {row.flightCount.toFixed(1)} 班）</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-              </div>
+              <StressCurvePanel
+                series={stressSeriesMultiDay}
+                summary={stressSummaryMultiDay}
+                shiftKey={stressShift}
+                onShiftChange={setStressShift}
+                countUnit="班/天"
+                isStudio={isStudio}
+                isClub={isClub}
+              />
             </div>
           )}
 
@@ -4851,95 +4825,61 @@ function FlightDataContent() {
           )}
 
 
-          {/* 多日最繁忙時段 */}
-          {busiestHours && busiestHours.topHours.length > 0 && (
+          {/* 一週各日 × 平日／週末／假期 */}
+          {(weekdayDisplayData.length > 0 || dayTypeDisplayData.length > 0) && (
             <div className={statsPanelShell}>
-              <h3 className={statsTitleClass}>最繁忙時段（多日平均）</h3>
-              <div className="space-y-3">
-                {busiestHours.topHours.map((item, index) => (
-                  <div key={item.hour} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                        index === 0 ? 'bg-yellow-500 text-black' :
-                        index === 1 ? 'bg-gray-400 text-white' :
-                        'bg-amber-600 text-white'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div>
-                        <div className="text-primary font-semibold">{item.hour}</div>
-                        <div className="text-xs text-text-secondary">總計 {item.total} 班</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-primary">{item.average} 班/天</div>
-                      <div className="text-xs text-text-secondary">平均</div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+              {/* 一週各日平均航班量比較 */}
+              {weekdayDisplayData.length > 0 && (
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <h4 className="text-base font-bold text-primary">一週各日平均航班量</h4>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setWeekdaySortMode('fixed')}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${weekdaySortMode === 'fixed' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                      >
+                        固定順序
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWeekdaySortMode('value')}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${weekdaySortMode === 'value' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                      >
+                        熱度排序
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <div ref={busiestHoursRef} className="w-full h-[220px]" />
-                <div className="mt-2 text-xs text-text-secondary">
-                  橘色為最繁忙時段 Top 3，紫色為其餘時段
-                </div>
-              </div>
-
-              {/* 一週各日 × 平日／週末／假期：同一區塊、緊湊排列，大螢幕可並排 */}
-              {(weekdayDisplayData.length > 0 || dayTypeDisplayData.length > 0) && (
-                <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  {/* 一週各日平均航班量比較 */}
-                  {weekdayDisplayData.length > 0 && (
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                        <h4 className="text-base font-bold text-primary">一週各日平均航班量</h4>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setWeekdaySortMode('fixed')}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${weekdaySortMode === 'fixed' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
-                          >
-                            固定順序
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setWeekdaySortMode('value')}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${weekdaySortMode === 'value' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
-                          >
-                            熱度排序
-                          </button>
-                        </div>
-                      </div>
-                      <div ref={weekdayChartRef} className="w-full h-[180px]" />
-                    </div>
-                  )}
-                  {/* 平日／週末／假期 平均航班量 */}
-                  {dayTypeDisplayData.length > 0 && (
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                        <h4 className="text-base font-bold text-primary">平日／週末／假期</h4>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setDayTypeSortMode('fixed')}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${dayTypeSortMode === 'fixed' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
-                          >
-                            固定順序
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDayTypeSortMode('value')}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${dayTypeSortMode === 'value' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
-                          >
-                            熱度排序
-                          </button>
-                        </div>
-                      </div>
-                      <div ref={dayTypeChartRef} className="w-full h-[180px]" />
-                    </div>
-                  )}
+                  <div ref={weekdayChartRef} className="w-full h-[180px]" />
                 </div>
               )}
+              {/* 平日／週末／假期 平均航班量 */}
+              {dayTypeDisplayData.length > 0 && (
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <h4 className="text-base font-bold text-primary">平日／週末／假期</h4>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDayTypeSortMode('fixed')}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${dayTypeSortMode === 'fixed' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                      >
+                        固定順序
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDayTypeSortMode('value')}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${dayTypeSortMode === 'value' ? 'bg-white/15 text-primary' : 'bg-white/5 text-text-secondary hover:bg-white/10'}`}
+                      >
+                        熱度排序
+                      </button>
+                    </div>
+                  </div>
+                  <div ref={dayTypeChartRef} className="w-full h-[180px]" />
+                </div>
+              )}
+              </div>
             </div>
           )}
 

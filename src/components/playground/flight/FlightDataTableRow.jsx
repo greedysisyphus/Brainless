@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { parseHHMMToMinutes } from '../../../utils/flightData/flightTime'
-import { gateToD11D18Family, isNightSupportTargetGate } from '../../../utils/flightData/nightShiftSupport'
+import { isNightSupportTargetGate } from '../../../utils/flightData/nightShiftSupport'
+import { gateToFamily } from '../../../utils/flightData/gates'
 
 function getStatusColor(status, isClub) {
   if (isClub) {
@@ -30,6 +31,7 @@ function FlightDataTableRow({
   idx,
   isUpcoming,
   nsCfg,
+  store,
   keepStoreUntil,
   isLastDefining,
   onSelectFlight,
@@ -42,13 +44,14 @@ function FlightDataTableRow({
   const status = flight.status || ''
   const statusColorClass = getStatusColor(status, isClub)
 
-  const flightMinutes = parseHHMMToMinutes(flight.time)
+  const flightMinutes = store.nightSupport ? parseHHMMToMinutes(flight.time) : null
   const showNightSupportHint =
-    isNightSupportTargetGate(flight.gate, nsCfg) &&
+    store.nightSupport &&
+    isNightSupportTargetGate(flight.gate, nsCfg, store) &&
     flightMinutes !== null &&
     flightMinutes >= nsCfg.supportStartMin &&
     flightMinutes <= nsCfg.supportEndMin
-  const gateFamily = gateToD11D18Family(flight.gate)
+  const gateFamily = gateToFamily(flight.gate)
   const isExcludedFromNightSupport = Boolean(gateFamily && !nsCfg.gateIncluded[gateFamily])
   const isAfterSupportStart = flightMinutes !== null && flightMinutes >= nsCfg.supportStartMin
   const excludedHintCls = isClub ? 'text-[#9f3d28]' : isStudio ? 'text-amber-800' : 'text-amber-200'
@@ -115,6 +118,7 @@ function FlightDataTableRow({
           {status || '未知'}
         </span>
       </td>
+      {store.nightSupport && (
       <td className="px-3 sm:px-5 py-3 sm:py-4">
         {isExcludedFromNightSupport && isAfterSupportStart ? (
           <span className={`text-xs font-semibold sm:text-sm ${excludedHintCls}`}>{gateFamily} 不列入考慮</span>
@@ -129,6 +133,7 @@ function FlightDataTableRow({
           <span className={`text-xs sm:text-sm ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}`}>-</span>
         )}
       </td>
+      )}
     </tr>
   )
 }

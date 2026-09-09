@@ -20,6 +20,7 @@ class TaoyuanAirportTxtAPIScraper:
     """桃園機場文字檔 API 爬蟲"""
     
     TXT_API_URL = "https://www.taoyuan-airport.com/uploads/flightx/a_flight_v4.txt"
+    D_GATE_PATTERN = re.compile(r'D\d{1,2}[LR]?')
     
     def __init__(self):
         """初始化爬蟲"""
@@ -68,24 +69,19 @@ class TaoyuanAirportTxtAPIScraper:
         except Exception as e:
             raise Exception(f"無法獲取資料: {str(e)}")
     
-    def parse_flight_data(self, text: str, target_gates: List[str] = None) -> List[Dict]:
+    def parse_flight_data(self, text: str) -> List[Dict]:
         """
-        解析文字檔資料
-        
+        解析文字檔資料（D 區全部登機門的離境航班）
+
+        門的範圍由前端各店設定決定（src/utils/flightData/stores.js），
+        這裡只負責把 D 區整段抓下來，加開分店不用再動爬蟲。
+
         Args:
             text: 文字檔內容
-            target_gates: 目標登機門列表（如 ['D11', 'D12', ...]），如果為 None 則獲取所有
-        
+
         Returns:
             解析後的航班資料列表
         """
-        if target_gates is None:
-            # 包含 D11-D18 以及 D11R-D18R
-            target_gates = []
-            for i in range(11, 19):
-                target_gates.append(f'D{i}')      # D11, D12, ..., D18
-                target_gates.append(f'D{i}R')     # D11R, D12R, ..., D18R
-        
         flights = []
         lines = text.strip().split('\n')
         
@@ -121,8 +117,8 @@ class TaoyuanAirportTxtAPIScraper:
                 # 優先使用中文城市名稱，如果沒有則使用英文
                 city = city_zh if city_zh and not city_zh.startswith('') else city_en
                 
-                # 只處理目標登機門
-                if gate not in target_gates:
+                # 只處理 D 區登機門（D1–D18，含 L／R）
+                if not self.D_GATE_PATTERN.fullmatch(gate):
                     continue
                 
                 # 只處理離境（出發）航班，忽略抵達航班
@@ -283,18 +279,13 @@ if __name__ == '__main__':
         text_data = scraper.fetch_flight_data()
         print(f'✅ 成功（{len(text_data)} 字元）')
         
-        # 解析資料（只獲取 D11-D18）
-        print('\n📋 正在解析資料（D11-D18 及 D11R-D18R 登機門，僅離境航班）...', end=' ')
-        # 包含 D11-D18 以及 D11R-D18R
-        target_gates = []
-        for i in range(11, 19):
-            target_gates.append(f'D{i}')      # D11, D12, ..., D18
-            target_gates.append(f'D{i}R')     # D11R, D12R, ..., D18R
-        flights = scraper.parse_flight_data(text_data, target_gates=target_gates)
+        # 解析資料（D 區全部登機門，各店範圍由前端 stores.js 決定）
+        print('\n📋 正在解析資料（D 區登機門，含 L／R，僅離境航班）...', end=' ')
+        flights = scraper.parse_flight_data(text_data)
         print(f'✅ 找到 {len(flights)} 筆離境航班資料')
-        
+
         if len(flights) == 0:
-            print('\n⚠️  警告：未找到任何 D11-D18 的航班資料')
+            print('\n⚠️  警告：未找到任何 D 區的航班資料')
             print('   請檢查登機門代號是否正確，或資料格式是否變更')
             sys.exit(1)
         
