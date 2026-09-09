@@ -7,7 +7,7 @@
 import requests
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 import re
 from collections import defaultdict
@@ -333,7 +333,7 @@ if __name__ == '__main__':
                     "after_17:00": formatted_data["summary"]["after_17:00"]
                 },
                 "formatted_display": formatted_display,
-                "updated_at": datetime.now().isoformat()
+                "updated_at": datetime.now(timezone.utc).isoformat()
             }
             
             # 儲存 JSON 檔案
