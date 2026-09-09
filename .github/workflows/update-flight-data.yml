@@ -35,6 +35,9 @@ jobs:
         run: |
           cd scripts/scraper
           pip install -r requirements.txt
+
+      - name: Test flight pipeline failure handling
+        run: python3 -m unittest discover -s scripts/scraper -p 'test_flight_pipeline.py'
       
       - name: Run scraper
         run: |

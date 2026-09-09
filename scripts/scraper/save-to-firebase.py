@@ -5,6 +5,7 @@
 
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,81 +45,52 @@ def init_firebase():
     
     return firestore.client()
 
-# 全局變數存儲 db 實例
-_db_instance = None
-
-def get_db():
-    """獲取 Firebase 資料庫實例"""
-    global _db_instance
-    if _db_instance is None:
-        _db_instance = init_firebase()
-    return _db_instance
-
-def save_single_date_to_firebase(date_key, data):
-    """存儲單個日期的資料到 Firebase"""
-    db = get_db()
-    if not db:
-        return False
-    
-    try:
-        collection_name = "flightData"
-        
-        # 添加存儲時間戳
-        data["_stored_at"] = datetime.now(timezone.utc).isoformat()
-        
-        # 存儲到 Firestore
-        doc_ref = db.collection(collection_name).document(date_key)
-        doc_ref.set(data)
-        
-        print(f"✅ 已存儲到 Firebase: {date_key} ({data.get('summary', {}).get('total_flights', 0)} 班)")
-        return True
-    except Exception as e:
-        print(f"❌ Firebase 存儲失敗: {e}")
-        return False
-
 def save_to_firebase(db, data_dir, requested_files=None):
-    """將指定 JSON 檔案存儲到 Firebase；未指定時才讀取全部。"""
+    """驗證全部 JSON 後原子寫入 Firebase；任一筆失敗就不改動既有資料。"""
     if not db:
         return False
-    
-    collection_name = "flightData"
-    saved_count = 0
-    skipped_count = 0
-    
-    # 讀取 data 目錄中的所有 JSON 檔案
+
     json_files = [Path(path) for path in requested_files] if requested_files else sorted(Path(data_dir).glob("flight-data-*.json"))
-    
     if not json_files:
-        print("⚠️  沒有找到 JSON 檔案")
+        print("❌ 沒有找到 JSON 檔案")
         return False
-    
+
     print(f"📁 找到 {len(json_files)} 個 JSON 檔案")
-    
+    records = []
     for json_file in json_files:
         try:
             with open(json_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
-            # 使用日期作為文檔 ID
+
             date_key = data.get("date")
-            if not date_key:
-                # 從檔案名稱提取日期
-                date_key = json_file.stem.replace("flight-data-", "")
-            
-            if save_single_date_to_firebase(date_key, data):
-                saved_count += 1
-            else:
-                skipped_count += 1
-            
+            expected_date = json_file.stem.replace("flight-data-", "")
+            flights = data.get("flights")
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_key or "") or date_key != expected_date:
+                raise ValueError("檔名與 date 不一致")
+            if not isinstance(flights, list) or not flights:
+                raise ValueError("flights 必須是非空陣列")
+            if data.get("summary", {}).get("total_flights") != len(flights):
+                raise ValueError("summary.total_flights 與 flights 數量不一致")
+            if any(not re.fullmatch(r"D1[1-8]R?", flight.get("gate", "")) or flight.get("type") != "departure" for flight in flights):
+                raise ValueError("包含非 D11-D18 離境航班")
+            records.append((date_key, data))
         except Exception as e:
-            print(f"❌ 存儲 {json_file.name} 失敗: {e}")
-            skipped_count += 1
-    
-    print(f"\n✅ Firebase 存儲完成！")
-    print(f"   - 成功存儲: {saved_count} 個日期")
-    if skipped_count > 0:
-        print(f"   - 跳過/失敗: {skipped_count} 個日期")
-    return skipped_count == 0
+            print(f"❌ 驗證 {json_file.name} 失敗: {e}")
+            return False
+
+    try:
+        batch = db.batch()
+        stored_at = datetime.now(timezone.utc).isoformat()
+        for date_key, data in records:
+            batch.set(db.collection("flightData").document(date_key), {**data, "_stored_at": stored_at})
+        batch.commit()
+        for date_key, data in records:
+            print(f"✅ 已存儲到 Firebase: {date_key} ({len(data['flights'])} 班)")
+        print(f"\n✅ Firebase 存儲完成！\n   - 成功存儲: {len(records)} 個日期")
+        return True
+    except Exception as e:
+        print(f"❌ Firebase 原子寫入失敗: {e}")
+        return False
 
 def main():
     """主函數"""
