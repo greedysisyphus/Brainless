@@ -1,37 +1,31 @@
-import { formatMinAsHHMM, parseHHMMToMinutes } from './flightTime'
+import { formatMinAsHHMM, parseHHMMToMinutes } from './flightTime.js'
+import { gateToFamily } from './gates.js'
 
-/** 晚班支援參數預設（登機門 D12–D18 納入、D11 不納入） */
-export const NIGHT_SHIFT_GATE_ORDER = Object.freeze(['D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18'])
-export const NIGHT_SHIFT_LOCAL_KEY = 'flightNightShiftSupportV1'
-/** Firestore：`settings/{NIGHT_SHIFT_FIREBASE_DOC_ID}` */
-export const NIGHT_SHIFT_FIREBASE_DOC_ID = 'night_shift_support'
-
-export const DEFAULT_NIGHT_SHIFT_SUPPORT = Object.freeze({
+/**
+ * 晚班支援參數：時間欄位全店共用預設，納入哪些登機門由各店設定決定（見 stores.js）。
+ * Firestore：`settings/{store.nightDocId}`
+ */
+export const DEFAULT_NIGHT_SHIFT_TIMES = Object.freeze({
   supportStartMin: 17 * 60, // 17:00 關店／支援起算
   supportEndMin: 21 * 60, // 21:00 前起飛的航班納入晚班支援判斷
   shiftEndMin: 21 * 60 + 30, // 21:30 晚班可支援到的時刻
-  closingBufferMin: 30, // 收班後幾分鐘離店
-  gateIncluded: Object.freeze({
-    D11: false,
-    D12: true,
-    D13: true,
-    D14: true,
-    D15: true,
-    D16: true,
-    D17: true,
-    D18: true
-  })
+  closingBufferMin: 30 // 收班後幾分鐘離店
 })
+
+/** 該店的晚班支援預設（時間 + 登機門開關） */
+export function defaultNightShiftSupport(store) {
+  return { ...DEFAULT_NIGHT_SHIFT_TIMES, gateIncluded: { ...store.nightGateIncluded } }
+}
 
 function clampIntOr(n, min, max, fallback) {
   if (typeof n !== 'number' || !Number.isFinite(n)) return fallback
   return Math.min(max, Math.max(min, Math.round(n)))
 }
 
-export function mergeNightShiftConfig(partial) {
-  const g0 = { ...DEFAULT_NIGHT_SHIFT_SUPPORT.gateIncluded }
+export function mergeNightShiftConfig(partial, store) {
+  const g0 = { ...store.nightGateIncluded }
   if (partial && typeof partial.gateIncluded === 'object' && partial.gateIncluded) {
-    for (const k of NIGHT_SHIFT_GATE_ORDER) {
+    for (const k of store.gateFamilies) {
       if (typeof partial.gateIncluded[k] === 'boolean') g0[k] = partial.gateIncluded[k]
     }
   }
@@ -39,13 +33,13 @@ export function mergeNightShiftConfig(partial) {
     partial?.supportStartMin,
     0,
     24 * 60 - 1,
-    DEFAULT_NIGHT_SHIFT_SUPPORT.supportStartMin
+    DEFAULT_NIGHT_SHIFT_TIMES.supportStartMin
   )
   let supportEndMin = clampIntOr(
     partial?.supportEndMin,
     0,
     24 * 60,
-    DEFAULT_NIGHT_SHIFT_SUPPORT.supportEndMin
+    DEFAULT_NIGHT_SHIFT_TIMES.supportEndMin
   )
   if (supportEndMin <= supportStartMin) {
     supportEndMin = Math.min(24 * 60, supportStartMin + 60)
@@ -54,14 +48,14 @@ export function mergeNightShiftConfig(partial) {
     partial?.shiftEndMin,
     0,
     24 * 60,
-    DEFAULT_NIGHT_SHIFT_SUPPORT.shiftEndMin
+    DEFAULT_NIGHT_SHIFT_TIMES.shiftEndMin
   )
   if (shiftEndMin < supportEndMin) shiftEndMin = supportEndMin
   const closingBufferMin = clampIntOr(
     partial?.closingBufferMin,
     0,
     3 * 60,
-    DEFAULT_NIGHT_SHIFT_SUPPORT.closingBufferMin
+    DEFAULT_NIGHT_SHIFT_TIMES.closingBufferMin
   )
   return {
     supportStartMin,
@@ -72,43 +66,35 @@ export function mergeNightShiftConfig(partial) {
   }
 }
 
-export function loadStoredNightShiftConfig() {
-  if (typeof window === 'undefined') return mergeNightShiftConfig(null)
+export function loadStoredNightShiftConfig(store) {
+  if (typeof window === 'undefined') return mergeNightShiftConfig(null, store)
   try {
-    const raw = localStorage.getItem(NIGHT_SHIFT_LOCAL_KEY)
-    if (!raw) return mergeNightShiftConfig(null)
-    return mergeNightShiftConfig(JSON.parse(raw))
+    const raw = localStorage.getItem(store.nightLocalKey)
+    if (!raw) return mergeNightShiftConfig(null, store)
+    return mergeNightShiftConfig(JSON.parse(raw), store)
   } catch {
-    return mergeNightShiftConfig(null)
+    return mergeNightShiftConfig(null, store)
   }
 }
 
-export function cacheNightShiftConfigLocal(config) {
+export function cacheNightShiftConfigLocal(config, store) {
   try {
-    localStorage.setItem(NIGHT_SHIFT_LOCAL_KEY, JSON.stringify(config))
+    localStorage.setItem(store.nightLocalKey, JSON.stringify(config))
   } catch {
     // ignore
   }
 }
 
-/** 將登機門正規成 D11…D18（L/R 併入同號），不屬於此範圍則 null */
-export function gateToD11D18Family(gateRaw) {
-  if (gateRaw == null || gateRaw === '') return null
-  const g = String(gateRaw).trim().toUpperCase()
-  const m = g.match(/^D(1[1-8])(L|R)?$/)
-  return m ? `D${m[1]}` : null
-}
-
-export function isNightSupportTargetGate(gateRaw, config) {
-  const cfg = mergeNightShiftConfig(config)
-  const fam = gateToD11D18Family(gateRaw)
+export function isNightSupportTargetGate(gateRaw, config, store) {
+  const cfg = mergeNightShiftConfig(config, store)
+  const fam = gateToFamily(gateRaw)
   if (!fam) return false
   return cfg.gateIncluded[fam] === true
 }
 
-export function formatGateIncludedSummary(cfg) {
-  const c = mergeNightShiftConfig(cfg)
-  const on = NIGHT_SHIFT_GATE_ORDER.filter((k) => c.gateIncluded[k])
+export function formatGateIncludedSummary(cfg, store) {
+  const c = mergeNightShiftConfig(cfg, store)
+  const on = store.gateFamilies.filter((k) => c.gateIncluded[k])
   return on.length ? on.join('、') : '（無）'
 }
 
@@ -130,9 +116,9 @@ export function timeInputValueToMinutes(s) {
   return h * 60 + mm
 }
 
-export function validateNightShiftDraftForSave(d) {
-  const c = mergeNightShiftConfig(d)
-  if (!NIGHT_SHIFT_GATE_ORDER.some((k) => c.gateIncluded[k])) {
+export function validateNightShiftDraftForSave(d, store) {
+  const c = mergeNightShiftConfig(d, store)
+  if (!store.gateFamilies.some((k) => c.gateIncluded[k])) {
     return '請至少勾選一個登機門。'
   }
   if (c.supportEndMin <= c.supportStartMin) {
@@ -147,11 +133,11 @@ export function validateNightShiftDraftForSave(d) {
   return null
 }
 
-export function computeNightSupportPlan(flights, config) {
-  const c = mergeNightShiftConfig(config)
+export function computeNightSupportPlan(flights, config, store) {
+  const c = mergeNightShiftConfig(config, store)
   const tStart = formatMinAsHHMM(c.supportStartMin)
   const tEnd = formatMinAsHHMM(c.supportEndMin)
-  const gatesStr = formatGateIncludedSummary(c)
+  const gatesStr = formatGateIncludedSummary(c, store)
   const base = {
     needSupport: false,
     keepStoreUntil: null,
@@ -176,7 +162,7 @@ export function computeNightSupportPlan(flights, config) {
       flight.minutes !== null &&
       flight.minutes >= c.supportStartMin &&
       flight.minutes <= c.supportEndMin &&
-      isNightSupportTargetGate(flight?.gate, c)
+      isNightSupportTargetGate(flight?.gate, c, store)
     ))
 
   const minimumKeepStoreMin = c.supportStartMin + c.closingBufferMin

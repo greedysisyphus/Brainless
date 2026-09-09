@@ -71,8 +71,8 @@ def save_to_firebase(db, data_dir, requested_files=None):
                 raise ValueError("flights 必須是非空陣列")
             if data.get("summary", {}).get("total_flights") != len(flights):
                 raise ValueError("summary.total_flights 與 flights 數量不一致")
-            if any(not re.fullmatch(r"D1[1-8]R?", flight.get("gate", "")) or flight.get("type") != "departure" for flight in flights):
-                raise ValueError("包含非 D11-D18 離境航班")
+            if any(not re.fullmatch(r"D\d{1,2}[LR]?", flight.get("gate", "")) or flight.get("type") != "departure" for flight in flights):
+                raise ValueError("包含非 D 區離境航班")
             records.append((date_key, data))
         except Exception as e:
             print(f"❌ 驗證 {json_file.name} 失敗: {e}")
