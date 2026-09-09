@@ -46,6 +46,12 @@ await check('管理員可以寫班表', setDoc(doc(admin, 'shiftMonths/x'), { a:
 await check('匿名不能寫支援班配對', setDoc(doc(anon, 'shiftSupportLinks/x'), { a: 1 }), false)
 await check('管理員可以寫支援班配對', setDoc(doc(admin, 'shiftSupportLinks/x'), { a: 1 }), true)
 
+// ── 航班：公開讀，只有後端 Admin SDK 能寫 ─────────────────────
+await check('匿名可以讀航班', getDoc(doc(anon, 'flightData/2026-09-09')), true)
+await check('匿名不能寫航班', setDoc(doc(anon, 'flightData/x'), { a: 1 }), false)
+await check('登入但非管理員不能寫航班', setDoc(doc(user, 'flightData/x'), { a: 1 }), false)
+await check('管理員客戶端也不能寫航班', setDoc(doc(admin, 'flightData/x'), { a: 1 }), false)
+
 // ── 其他功能：一行都不能受影響 ────────────────────────────────
 const untouched = [
   ['上車地點設定', 'shiftPeople/somebody'],

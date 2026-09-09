@@ -13,7 +13,7 @@
     "sync-data": "bash scripts/sync-data-for-dev.sh",
     "preview": "vite preview --base /Brainless/",
     "preview:local": "vite preview",
-    "test": "node --test tests/goodsOrderSync.test.js tests/shifts.test.js",
+    "test": "node --test tests/goodsOrderSync.test.js tests/shifts.test.js tests/flightDataSource.test.js",
     "deploy": "npm run build && gh-pages -d docs",
     "test:rules": "JAVA_HOME=$(brew --prefix openjdk@21) PATH=\"$JAVA_HOME/bin:$PATH\" firebase emulators:exec --only firestore --project rules-check \"node tests/firestore-rules.test.mjs\""
   },

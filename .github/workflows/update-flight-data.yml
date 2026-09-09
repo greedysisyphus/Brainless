@@ -2,8 +2,8 @@ name: Update Flight Data
 
 on:
   schedule:
-    # 每 1 小時執行一次
-    - cron: '0 * * * *'
+    # 避開 GitHub Actions 整點排程尖峰
+    - cron: '17 * * * *'
   workflow_dispatch: # 允許手動觸發
   push:
     branches:
@@ -12,7 +12,11 @@ on:
       - '.github/workflows/update-flight-data.yml'
 
 permissions:
-  contents: write  # 允許提交更改
+  contents: read
+
+concurrency:
+  group: update-flight-data
+  cancel-in-progress: true
 
 jobs:
   update-flight-data:
@@ -21,8 +25,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 需要完整歷史以便 compare-data.py 比較舊版本
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -41,77 +43,11 @@ jobs:
       
       - name: Save to Firebase
         run: |
-          cd scripts/scraper
-          python3 save-to-firebase.py
-        env:
-          FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
-          FIREBASE_CLIENT_X509_CERT_URL: ${{ secrets.FIREBASE_CLIENT_X509_CERT_URL }}
-        continue-on-error: true  # 如果 Firebase 失敗，不影響主要流程
-      
-      - name: Compare data to detect real changes
-        id: compare
-        run: |
-          # 設置默認值，以防腳本失敗
-          echo "has_changes=false" >> $GITHUB_OUTPUT
-          echo "changed_count=0" >> $GITHUB_OUTPUT
-          
-          # 運行比較腳本（從倉庫根目錄執行，因為腳本需要訪問 Git 和 data/ 目錄）
-          if python3 scripts/scraper/compare-data.py; then
-            # 腳本成功執行，輸出已經寫入 $GITHUB_OUTPUT
-            echo "✅ 資料比較完成"
-          else
-            EXIT_CODE=$?
-            echo "⚠️  資料比較腳本退出碼: $EXIT_CODE"
-            # 如果退出碼是 1（無變化），這是正常的
-            if [ $EXIT_CODE -eq 1 ]; then
-              echo "ℹ️  無實質變化（這是正常的）"
-            else
-              # 其他錯誤，視為無變化（避免不必要的部署）
-              # 只有在真正有實質變化時才觸發部署
-              echo "has_changes=false" >> $GITHUB_OUTPUT
-              echo "changed_count=0" >> $GITHUB_OUTPUT
-              echo "⚠️  比較腳本出現錯誤，視為無變化（避免不必要的部署）"
-            fi
+          mapfile -t changed_files < <(git ls-files --modified --others --exclude-standard -- 'data/flight-data-*.json')
+          if [ "${#changed_files[@]}" -eq 0 ]; then
+            echo "No generated flight data files"
+            exit 1
           fi
-        continue-on-error: true
-      
-      - name: Commit and push changes
-        id: commit
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add data/
-          
-          # 檢查是否有變更
-          if git diff --staged --quiet; then
-            echo "No changes detected"
-            echo "should_trigger_deploy=false" >> $GITHUB_OUTPUT
-          else
-            # 檢查是否有實質變化（從上一步的輸出）
-            HAS_REAL_CHANGES="${{ steps.compare.outputs.has_changes }}"
-            
-            # 如果輸出為空或未設置，默認視為無實質變化（使用 skip）
-            if [ -z "$HAS_REAL_CHANGES" ]; then
-              HAS_REAL_CHANGES="false"
-              echo "⚠️  無法確定是否有實質變化，默認使用 skip 標記"
-            fi
-            
-            if [ "$HAS_REAL_CHANGES" == "true" ]; then
-              # 有實質變化，不使用 skip 標記，觸發部署
-              git commit -m "Update flight data (實質變化)"
-              echo "✅ 提交資料變更（將觸發部署）"
-              echo "should_trigger_deploy=true" >> $GITHUB_OUTPUT
-            else
-              # 只有 updated_at 變化，使用 skip 標記
-              git commit -m "Update flight data [skip ci] [skip workflow]"
-              echo "⏭️  提交資料更新（僅時間戳變化，不觸發部署）"
-              echo "should_trigger_deploy=false" >> $GITHUB_OUTPUT
-            fi
-            
-            git push
-          fi
+          python3 scripts/scraper/save-to-firebase.py "${changed_files[@]}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}

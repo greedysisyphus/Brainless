@@ -6,7 +6,7 @@
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # 添加父目錄到路徑
@@ -19,20 +19,6 @@ except ImportError:
     print("❌ 請先安裝 firebase-admin: pip install firebase-admin")
     sys.exit(1)
 
-# Firebase 配置
-FIREBASE_CONFIG = {
-    "type": "service_account",
-    "project_id": "brainless-schedule",
-    "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
-    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
-    "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL")
-}
-
 def init_firebase():
     """初始化 Firebase Admin SDK"""
     try:
@@ -40,21 +26,20 @@ def init_firebase():
         firebase_admin.get_app()
         print("✅ Firebase 已經初始化")
     except ValueError:
-        # 如果沒有環境變數，嘗試使用默認憑證
-        if not all([
-            FIREBASE_CONFIG.get("private_key"),
-            FIREBASE_CONFIG.get("client_email")
-        ]):
-            print("⚠️  未設置 Firebase 環境變數，跳過 Firebase 存儲")
+        service_account_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
+        if not service_account_json:
+            print("❌ 未設置 FIREBASE_SERVICE_ACCOUNT_JSON")
             return None
-        
+
         try:
-            cred = credentials.Certificate(FIREBASE_CONFIG)
+            service_account = json.loads(service_account_json)
+            if service_account.get("project_id") != "brainless-schedule":
+                raise ValueError("憑證不屬於 brainless-schedule 專案")
+            cred = credentials.Certificate(service_account)
             firebase_admin.initialize_app(cred)
             print("✅ Firebase 初始化成功")
         except Exception as e:
-            print(f"⚠️  Firebase 初始化失敗: {e}")
-            print("⚠️  將跳過 Firebase 存儲，僅保存到本地 JSON")
+            print(f"❌ Firebase 初始化失敗: {e}")
             return None
     
     return firestore.client()
@@ -79,11 +64,11 @@ def save_single_date_to_firebase(date_key, data):
         collection_name = "flightData"
         
         # 添加存儲時間戳
-        data["_stored_at"] = datetime.now().isoformat()
+        data["_stored_at"] = datetime.now(timezone.utc).isoformat()
         
         # 存儲到 Firestore
         doc_ref = db.collection(collection_name).document(date_key)
-        doc_ref.set(data, merge=True)
+        doc_ref.set(data)
         
         print(f"✅ 已存儲到 Firebase: {date_key} ({data.get('summary', {}).get('total_flights', 0)} 班)")
         return True
@@ -91,21 +76,21 @@ def save_single_date_to_firebase(date_key, data):
         print(f"❌ Firebase 存儲失敗: {e}")
         return False
 
-def save_to_firebase(db, data_dir):
-    """將 JSON 檔案存儲到 Firebase（讀取所有現有的 JSON 文件）"""
+def save_to_firebase(db, data_dir, requested_files=None):
+    """將指定 JSON 檔案存儲到 Firebase；未指定時才讀取全部。"""
     if not db:
-        return
+        return False
     
     collection_name = "flightData"
     saved_count = 0
     skipped_count = 0
     
     # 讀取 data 目錄中的所有 JSON 檔案
-    json_files = sorted(Path(data_dir).glob("flight-data-*.json"))
+    json_files = [Path(path) for path in requested_files] if requested_files else sorted(Path(data_dir).glob("flight-data-*.json"))
     
     if not json_files:
         print("⚠️  沒有找到 JSON 檔案")
-        return
+        return False
     
     print(f"📁 找到 {len(json_files)} 個 JSON 檔案")
     
@@ -133,6 +118,7 @@ def save_to_firebase(db, data_dir):
     print(f"   - 成功存儲: {saved_count} 個日期")
     if skipped_count > 0:
         print(f"   - 跳過/失敗: {skipped_count} 個日期")
+    return skipped_count == 0
 
 def main():
     """主函數"""
@@ -149,9 +135,10 @@ def main():
     
     # 存儲到 Firebase
     if db:
-        save_to_firebase(db, data_dir)
+        if not save_to_firebase(db, data_dir, sys.argv[1:]):
+            sys.exit(1)
     else:
-        print("⚠️  跳過 Firebase 存儲")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

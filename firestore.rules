@@ -94,6 +94,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 航班資料公開讀取，只允許繞過 Rules 的後端 Admin SDK 更新。
+    match /flightData/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // 既有功能暫時維持原權限；feedback 與班表已由上方規則獨立保護。
     //
     // ⚠️ Firestore 的規則是「OR」——只要有任何一條放行就放行。所以上面那兩條限制
@@ -101,7 +107,8 @@ service cloud.firestore {
     match /{collectionId}/{document=**} {
       allow read, write: if collectionId != 'feedback'
         && collectionId != 'shiftMonths'
-        && collectionId != 'shiftSupportLinks';
+        && collectionId != 'shiftSupportLinks'
+        && collectionId != 'flightData';
     }
   }
 }

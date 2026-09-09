@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { PaperAirplaneIcon, ArrowPathIcon, XMarkIcon, ArrowDownTrayIcon, ClockIcon, DocumentTextIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../utils/firebase'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { isPublicHoliday2026, isPreHoliday2026 } from '../../utils/taiwanHolidays2026'
@@ -11,6 +11,7 @@ import { loadEcharts } from '../../utils/flightData/echartsLoader'
 import { CW_ECHARTS_THEME_NAME, registerStudioEchartsTheme } from '../../utils/flightData/studioEchartsTheme'
 import { parseHHMMToMinutes } from '../../utils/flightData/flightTime'
 import { flightRowKey } from '../../utils/flightData/gates'
+import { loadPrimaryThenFallback } from '../../utils/flightData/dataSource'
 import {
   DEFAULT_GATE_STRESS_WEIGHTS,
   GATE_STRESS_FIREBASE_DOC_ID,
@@ -39,7 +40,37 @@ import {
 import FlightDataTableRow from './flight/FlightDataTableRow'
 import InfoTipIcon from './flight/InfoTipIcon'
 import StressSlotShiftPanel from './flight/StressSlotShiftPanel'
-// 觸發部署更新
+
+const FLIGHT_DATA_BASE_PATH = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
+
+async function loadFlightDataRecord(date, signal) {
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+
+  return loadPrimaryThenFallback(async () => {
+    const snapshot = await getDoc(doc(db, 'flightData', date))
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+    if (snapshot.exists()) {
+      const data = snapshot.data()
+      if (Array.isArray(data?.flights)) {
+        return { data, lastModified: data._stored_at || data.updated_at || null }
+      }
+    }
+    return null
+  }, async () => {
+    const response = await fetch(`${FLIGHT_DATA_BASE_PATH}flight-data-${date}.json`, {
+      signal,
+      cache: 'no-cache'
+    })
+    if (!response.ok) return null
+    const text = await response.text()
+    if (text.trimStart().startsWith('<')) return null
+    try {
+      return { data: JSON.parse(text), lastModified: response.headers.get('last-modified') }
+    } catch {
+      return null
+    }
+  })
+}
 
 const CLASSIC_CHART_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#3b82f6', '#f97316', '#10b981', '#ef4444', '#6366f1']
 const STUDIO_CHART_COLORS = ['#71717a', '#a1a1aa', '#d4d4d8', '#52525b', '#3f3f46', '#e4e4e7', '#94a3b8', '#64748b']
@@ -427,21 +458,8 @@ function FlightDataContent() {
     setStatus({ message: '正在載入資料...', type: 'loading' })
     setLoadingProgress(0)
 
-    // 根據實際路徑調整
-    const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-
     const tryLoadDate = async (tryDate) => {
-      const url = `${basePath}flight-data-${tryDate}.json`
-      const response = await fetch(url, { signal: abortSignal, cache: 'no-cache' })
-      if (!response.ok) return null
-      const text = await response.text()
-      if (typeof text === 'string' && text.trimStart().startsWith('<')) return null
-      try {
-        const data = JSON.parse(text)
-        return { data, response }
-      } catch {
-        return null
-      }
+      return loadFlightDataRecord(tryDate, abortSignal)
     }
 
 
@@ -466,7 +484,7 @@ function FlightDataContent() {
       if (!result) {
         throw new Error('找不到航班資料（請執行 npm run pull-data 或確認 data/ 內有 JSON 檔案）')
       }
-      const { data, response } = result
+      const { data, lastModified } = result
       const effectiveDate = data.date || loadedDate
       if (loadedDate !== date) {
         setStatus({ message: `未找到 ${date} 的檔案，已顯示最近可用：${effectiveDate}`, type: 'info' })
@@ -482,7 +500,6 @@ function FlightDataContent() {
       }
       
       // 取得最後更新時間
-      const lastModified = response.headers.get('last-modified')
       let updateTime = null
       
       if (lastModified) {
@@ -587,16 +604,11 @@ function FlightDataContent() {
   const loadMultiDayDataByDateList = useCallback(async (dateList) => {
     setLoadingMultiDay(true)
     try {
-      const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
-      const dataPromises = dateList.map((dateStr) => {
-        const dataUrl = `${basePath}flight-data-${dateStr}.json`
-        return fetch(dataUrl, { cache: 'no-cache' })
-          .then(res => {
-            if (res.ok) return res.json().then(data => ({ data, dateStr }))
-            return null
-          })
+      const dataPromises = dateList.map((dateStr) =>
+        loadFlightDataRecord(dateStr)
+          .then(result => result ? { data: result.data, dateStr } : null)
           .catch(() => null)
-      })
+      )
 
       const results = await Promise.all(dataPromises)
       const validData = results
@@ -676,7 +688,6 @@ function FlightDataContent() {
       return
     }
     setLoadingHistorical(true)
-    const basePath = import.meta.env.PROD ? '/Brainless/data/' : '/data/'
     const toDateStr = (d) => {
       const y = d.getFullYear()
       const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -704,12 +715,8 @@ function FlightDataContent() {
     })
     const fetchOne = async (dateStr) => {
       try {
-        const res = await fetch(`${basePath}flight-data-${dateStr}.json`, { cache: 'no-cache' })
-        if (!res.ok) return null
-        const text = await res.text()
-        if (typeof text === 'string' && text.trimStart().startsWith('<')) return null
-        const data = JSON.parse(text)
-        return { data, dateStr }
+        const result = await loadFlightDataRecord(dateStr)
+        return result ? { data: result.data, dateStr } : null
       } catch {
         return null
       }

@@ -13,7 +13,7 @@
 - **日結報表**：產出各店月報 zip
 - **電子菜單**：店內／公開菜單（完整站台另見 `menu-site/`）
 - **班表**：匯入班表轉換器的 JSON，看三家店的完整班表、今天誰上班、公司車名單（含司機版）與統計；個人月視圖可自訂欄位匯出 .ics 到手機行事曆
-- **航班資料**：桃園機場航班，每小時由 GitHub Actions 更新
+- **航班資料**：桃園機場航班，每小時由 GitHub Actions 更新至 Firestore
 - **回饋中心**：功能許願、問題回報、操作討論
 - **Playground**：舊版班表工具、酒精計算、音樂等實驗／次要工具
 
@@ -30,11 +30,11 @@ npm run build        # 輸出到 docs/，供 GitHub Pages
 
 班表資料存在 Firestore 的 `shiftMonths`（每店每月一份）、`shiftPeople`（上車地點、暱稱、合併）與 `shiftSupportLinks`（支援班的手動配對）；來源是 Brainless-SimpleKaffa-Shifts-Convertor 的 `.json` 或 `.flat.json` 匯出檔，`src/pages/shifts/` 是純函式邏輯，有 `tests/shifts.test.js` 覆蓋。
 
-航班 JSON 的唯一來源是 `data/`。`npm run dev` 會同步到 `public/data/`；正式建置再複製進 `docs/data/`。日結 zip 只追蹤 `public/reports/`。
+航班即時資料讀取 Firestore `flightData/{date}`，`data/` 的 JSON 僅作為離線 fallback。`npm run dev` 會同步到 `public/data/`；正式建置再複製進 `docs/data/`。日結 zip 只追蹤 `public/reports/`。
 
 ## 部署
 
-`main` 推送後由 `.github/workflows/deploy.yml` 建置並部署 GitHub Pages。航班資料由 `.github/workflows/update-flight-data.yml` 每小時寫入 `data/`。
+`main` 推送後由 `.github/workflows/deploy.yml` 建置並部署 GitHub Pages。航班資料由 `.github/workflows/update-flight-data.yml` 每小時寫入 Firestore，不提交資料或重建網站。
 
 ## 相關目錄
 
