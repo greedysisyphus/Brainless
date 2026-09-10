@@ -11,6 +11,7 @@ import { resolveGateStressWeight } from '../src/utils/flightData/gateStressWeigh
 import { peopleByShiftOn, resolveStoreShifts } from '../src/utils/flightData/shiftBridge.js'
 import {
   stressShiftRange,
+  stressSlotFlights,
   stressSlotSeriesDay,
   summarizeStressSeries
 } from '../src/utils/flightData/stressSlots.js'
@@ -137,6 +138,31 @@ for (const store of [d13, d7]) {
   const inQuiet = series.filter((s) => s.startMin >= quiet.startMin && s.startMin + 60 <= quiet.endMin)
   assert.ok(inQuiet.length > 0, '空檔區間至少要蓋到一個槽')
   assert.ok(inQuiet.every((s) => s.score <= maxScore * 0.2), '空檔區間內每一槽都要低於尖峰兩成')
+}
+
+// 曲線上列出的航班數，必須跟同一行顯示的班次數一致
+// （分數看的是「起飛前 60–30 分鐘」的登機窗，不是「在這一小時起飛」）
+{
+  const series = stressSlotSeriesDay(
+    fixture,
+    DATE,
+    d7.stressWeights,
+    d7,
+    resolveStoreShifts(d7, null, DATE).shifts,
+    'full'
+  )
+  for (const slot of series) {
+    assert.equal(
+      stressSlotFlights(fixture, slot.startMin).length,
+      slot.flightCount,
+      `${slot.label} 列出的航班數要等於 flightCount`
+    )
+  }
+  // 08:00 起飛的航班在 07:00–08:00 這一槽登機，不在 08:00–09:00
+  const at0700 = series.find((sl) => sl.label.startsWith('07:00'))
+  assert.ok(stressSlotFlights(fixture, at0700.startMin).some((f) => f.time === '08:00'))
+  // 取消的航班不計分也不列出
+  assert.equal(stressSlotFlights([{ time: '08:00', status: 'CANCELLED' }], at0700.startMin).length, 0)
 }
 
 // 沒有航班時不能爆掉

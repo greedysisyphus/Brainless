@@ -196,3 +196,23 @@ export function summarizeStressSeries(series) {
 export function formatMinuteSpan(startMin, endMin) {
   return `${formatMinAsHHMM(startMin)}–${formatMinAsHHMM(endMin)}`
 }
+
+/**
+ * 計入某一個 60 分槽的航班（給畫面列出來用）。
+ *
+ * 規則必須跟 scoreOneSlotForDay 一致：看的是「起飛前 60–30 分鐘」這段登機壓力窗
+ * 有沒有和槽重疊，不是「在這一小時起飛」。用起飛時間去篩會少列一半，
+ * 跟同一行顯示的班次數對不起來。
+ */
+export function stressSlotFlights(flights, startMin) {
+  if (!Array.isArray(flights) || typeof startMin !== 'number') return []
+  const from = startMin + STRESS_BEFORE_DEP_END_MIN
+  const to = startMin + 60 + STRESS_BEFORE_DEP_START_MIN
+  return flights
+    .filter((f) => {
+      if (isStressCancelledFlight(f)) return false
+      const m = parseHHMMToMinutes(f.time)
+      return m !== null && m > from && m < to
+    })
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+}
