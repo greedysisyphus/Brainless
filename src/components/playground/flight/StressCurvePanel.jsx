@@ -1,7 +1,10 @@
+import { useState } from 'react'
+
 import {
   formatMinuteSpan,
   formatStressShiftSpan,
-  isStressSlotInSupportPeriod
+  isStressSlotInSupportPeriod,
+  stressSlotFlights
 } from '../../../utils/flightData/stressSlots'
 
 const VIEW_W = 600
@@ -22,6 +25,8 @@ export default function StressCurvePanel({
   shiftKey,
   onShiftChange,
   countUnit = '班',
+  /** 當天版才有：滑到／點到某一槽時列出那一小時的航班。多日平均版不傳。 */
+  flights = null,
   supportFrom = null,
   supportUntil = null,
   showSupport = true,
@@ -34,7 +39,11 @@ export default function StressCurvePanel({
   const peakFill = isClub ? '#c84629' : '#f59e0b'
   const quietFill = isClub ? 'rgba(118,86,75,0.14)' : 'rgba(34,211,238,0.16)'
   const supportStroke = isClub ? '#9f3d28' : '#818cf8'
+  const activeFill = isClub ? '#7c4a3d' : isStudio ? 'rgba(60,60,70,0.75)' : 'rgba(255,255,255,0.65)'
   const axisText = isClub ? '#76564b' : isStudio ? 'rgba(90,90,100,0.85)' : 'rgba(255,255,255,0.5)'
+
+  // 滑鼠移動與觸控點擊都走同一條路：手機沒有 pointerleave，點了就留著
+  const [activeIdx, setActiveIdx] = useState(null)
 
   const n = series.length
   const innerW = VIEW_W - PAD_X * 2
@@ -62,6 +71,17 @@ export default function StressCurvePanel({
       ? `最忙 ${summary.peak.label}（${fmtCount(summary.peak.flightCount)} ${countUnit}）· 最鬆 ${formatMinuteSpan(summary.quiet.startMin, summary.quiet.endMin)}`
       : '這個區間沒有航班'
     : ''
+
+  const active = activeIdx != null ? series[activeIdx] : null
+  const activeFlights = active && flights ? stressSlotFlights(flights, active.startMin) : []
+
+  const pickIndex = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (!rect.width || !step) return null
+    const vx = ((event.clientX - rect.left) / rect.width) * VIEW_W
+    const i = Math.floor((vx - PAD_X) / step)
+    return i >= 0 && i < n ? i : null
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -95,14 +115,40 @@ export default function StressCurvePanel({
         })}
       </div>
 
-      <p className={`text-sm font-semibold ${text}`}>{headline}</p>
+      <div className="min-h-[2.5rem]">
+        {active ? (
+          <>
+            <p className={`text-sm font-semibold ${text}`}>
+              {active.label}
+              <span className="mx-1.5 opacity-40">·</span>
+              {fmtCount(active.flightCount)} {countUnit}
+              <span className="mx-1.5 opacity-40">·</span>
+              壓力 {active.score.toFixed(1)}
+            </p>
+            {flights ? (
+              <p className={`mt-0.5 text-[11px] leading-relaxed ${muted}`}>
+                {activeFlights.length
+                  ? activeFlights.map((f) => `${f.time} ${f.gate} ${f.flight_code}`).join('、')
+                  : '這一槽沒有航班在登機'}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p className={`text-sm font-semibold ${text}`}>{headline}</p>
+        )}
+      </div>
 
       <svg
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-        className="w-full"
+        className="w-full touch-manipulation"
         style={{ height: 'auto' }}
         role="img"
         aria-label={headline}
+        onPointerMove={(e) => setActiveIdx(pickIndex(e))}
+        onPointerDown={(e) => setActiveIdx(pickIndex(e))}
+        onPointerLeave={(e) => {
+          if (e.pointerType === 'mouse') setActiveIdx(null)
+        }}
       >
         {quietIdx.length > 0 && (
           <rect
@@ -116,6 +162,7 @@ export default function StressCurvePanel({
         )}
         {series.map((slot, i) => {
           const isPeak = i === peakIdx
+          const isActive = i === activeIdx
           // 最低 1px：0 分的槽也要看得到基線，滑上去才有數字可讀
           const h = Math.max(1, chartH - (yAt(slot.score) - PAD_TOP))
           const inSupport = showSupport && isStressSlotInSupportPeriod(slot.startMin, supportFrom, supportUntil)
@@ -127,7 +174,7 @@ export default function StressCurvePanel({
               width={barW}
               height={h}
               rx={1}
-              fill={isPeak ? peakFill : barFill}
+              fill={isActive ? activeFill : isPeak ? peakFill : barFill}
               stroke={inSupport ? supportStroke : 'none'}
               strokeWidth={inSupport ? 0.6 : 0}
             >
@@ -135,6 +182,16 @@ export default function StressCurvePanel({
             </rect>
           )
         })}
+        {activeIdx != null && (
+          <rect
+            x={xAt(activeIdx) + barW / 2 - 0.25}
+            y={PAD_TOP}
+            width={0.5}
+            height={chartH}
+            fill={activeFill}
+            opacity={0.35}
+          />
+        )}
         {peakIdx >= 0 && summary.maxScore > 0 && (
           <text
             x={Math.min(VIEW_W - PAD_X, Math.max(PAD_X + 34, xAt(peakIdx) + barW / 2))}
@@ -164,7 +221,7 @@ export default function StressCurvePanel({
       </svg>
 
       <p className={`text-[11px] leading-relaxed ${muted}`}>
-        每根柱子是「該時刻起算 60 分鐘」的登機壓力（滑過看班次與分數）。橘色為最忙的一小時，
+        每根柱子是「該時刻起算 60 分鐘」的登機壓力（滑過或點一下看該時段的班次）。橘色為最忙的一小時，
         淺色區塊是最長的一段空檔（低於尖峰兩成）
         {showSupport && supportFrom && supportUntil ? '，外框標示落在晚班支援期間的時段' : ''}。
       </p>

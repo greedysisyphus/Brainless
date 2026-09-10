@@ -3692,6 +3692,7 @@ function FlightDataContent() {
                 shifts={storeShifts}
                 series={stressSeriesToday}
                 summary={stressSummaryToday}
+                flights={flightData?.flights || null}
                 shiftKey={stressShift}
                 onShiftChange={setStressShift}
                 supportFrom={nightSupportPlan?.supportFrom}
