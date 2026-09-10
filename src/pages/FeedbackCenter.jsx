@@ -536,16 +536,14 @@ function ThreadDetail({ feedback, comments, commentsLoading, identity, setIdenti
           <div className="space-y-4">
             {comments.map((item) => {
               const mine = item.authorClientId === clientId
-              const official = item.authorRole === 'admin'
               const bubbleTone = mine
                 ? isClub ? 'bg-[#fff1ed]' : 'bg-primary/20'
                 : isClub ? 'bg-[#f7f6f2]' : 'bg-white/[0.05]'
               return (
                 <div key={item.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`min-w-0 max-w-[85%] rounded-2xl px-4 py-3 ${bubbleTone} ${official ? 'ring-1 ring-inset ring-emerald-400/40' : ''}`}>
+                  <div className={`min-w-0 max-w-[85%] rounded-2xl px-4 py-3 ${bubbleTone}`}>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                       <span className={`font-black ${isClub ? 'text-[#171717]' : 'text-white'}`}>{item.author?.name || '匿名'}</span>
-                      {official && <span className={`rounded-full bg-emerald-400/15 px-2 py-0.5 text-xs font-black ring-1 ring-inset ring-emerald-500/30 ${isClub ? 'text-emerald-700' : 'text-emerald-200'}`}>官方</span>}
                       <span className={`text-xs ${isClub ? 'text-[#8a847b]' : 'text-slate-500'}`}>{item.author?.store || '未提供分店'} · {formatTime(item.createdAt)}</span>
                       {isAdmin && (
                         <button

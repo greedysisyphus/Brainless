@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { Fragment, useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { PaperAirplaneIcon, ArrowPathIcon, XMarkIcon, ArrowDownTrayIcon, ClockIcon, DocumentTextIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../utils/firebase'
@@ -9,7 +9,7 @@ import { CwButton, CwChartPanel, CwDateInput, tryOpenDatePicker } from '../studi
 import { studioSurfaces } from '../studio/studioSurfaceClasses'
 import { loadEcharts } from '../../utils/flightData/echartsLoader'
 import { CW_ECHARTS_THEME_NAME, registerStudioEchartsTheme } from '../../utils/flightData/studioEchartsTheme'
-import { parseHHMMToMinutes } from '../../utils/flightData/flightTime'
+import { formatMinAsHHMM, parseHHMMToMinutes } from '../../utils/flightData/flightTime'
 import { flightRowKey, gateToFamily, isGateInStore } from '../../utils/flightData/gates'
 import {
   FLIGHT_STORE_ORDER,
@@ -42,7 +42,10 @@ import {
 } from '../../utils/flightData/stressSlots'
 import { peopleByShiftOn, resolveStoreShifts } from '../../utils/flightData/shiftBridge'
 import { useShiftBook } from '../../pages/shifts/useShiftBook'
-import FlightDataTableRow from './flight/FlightDataTableRow'
+import FlightRow, {
+  FLIGHT_ROW_GRID,
+  FLIGHT_ROW_GRID_WITH_SUPPORT
+} from './flight/FlightRow'
 import InfoTipIcon from './flight/InfoTipIcon'
 import StressCurvePanel from './flight/StressCurvePanel'
 
@@ -91,14 +94,16 @@ function FlightDataContent() {
   const [rawLastYearData, setRawLastYearData] = useState([]) // 去年同期（供歷史趨勢對比）
   const [loadingMultiDay, setLoadingMultiDay] = useState(false)
   const [loadingHistorical, setLoadingHistorical] = useState(false)
-  const [hideExpiredFlights, setHideExpiredFlights] = useState(false) // 隱藏已過期航班
+  /** 列表時間範圍：全天／接下來 3 小時／尚未起飛（取代原本的「隱藏已過期」勾選，同一件事不做兩個控制） */
+  const [timeFilter, setTimeFilter] = useState('all')
+  /** 只看某幾個登機門；空集合＝全部 */
+  const [gateFilter, setGateFilter] = useState(() => new Set())
   const [selectedFlight, setSelectedFlight] = useState(null) // 選中的航班（用於顯示詳細資料）
   const [dataValidation, setDataValidation] = useState({ warnings: [], errors: [] }) // 資料驗證結果
   const [dataDiff, setDataDiff] = useState(null) // 資料差異
   const [showStatusPanel, setShowStatusPanel] = useState(false) // 狀態與驗證可收合
   const previousFlightDataRef = useRef(null) // 保存上次載入的資料
   const abortControllerRef = useRef(null)
-  const exportTableRef = useRef(null)
   const exportStatisticsRef = useRef(null) // 統計分析匯出用
   const heatmapRef = useRef(null) // 每小時航班數熱力圖（統計分析）
   const dailyTotalChartRef = useRef(null)
@@ -2613,40 +2618,36 @@ function FlightDataContent() {
   }, [selectedDate])
 
   // 過濾航班列表
+  /** 每分鐘跳一次，讓「現在」線與「接下來 3 小時」不會停在載入當下 */
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
+  /** 看的不是今天就沒有「現在」可言 */
+  const nowMinutes = useMemo(() => {
+    const now = new Date(nowTick)
+    if ((flightData?.date || selectedDate) !== getLocalDateString(now)) return null
+    return now.getHours() * 60 + now.getMinutes()
+  }, [nowTick, flightData, selectedDate])
+
   const filteredFlights = useMemo(() => {
-    if (!flightData || !flightData.flights) return []
-    if (!hideExpiredFlights) return flightData.flights
-    return flightData.flights.filter(flight => !isExpiredFlight(flight))
-  }, [flightData, hideExpiredFlights, isExpiredFlight])
-
-  // 匯出為 PNG
-  const exportToPNG = async () => {
-    try {
-      const html2canvas = (await import('html2canvas')).default
-      
-      if (!exportTableRef.current) {
-        alert('找不到要匯出的表格')
-        return
+    if (!flightData?.flights) return []
+    const nowMin = nowMinutes
+    return flightData.flights.filter((flight) => {
+      if (gateFilter.size > 0) {
+        const fam = gateToFamily(flight.gate)
+        if (!fam || !gateFilter.has(fam)) return false
       }
-
-      const canvas = await html2canvas(exportTableRef.current, {
-        backgroundColor: '#fafafa',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-      })
-
-      const link = document.createElement('a')
-      const dateStr = selectedDate.replace(/-/g, '')
-      link.download = `航班資料_${dateStr}.png`
-      link.href = canvas.toDataURL('image/png', 1.0)
-      link.click()
-    } catch (error) {
-      console.error('匯出圖片失敗:', error)
-      alert(`匯出圖片失敗：${error.message}`)
-    }
-  }
+      if (timeFilter === 'upcoming') return !isExpiredFlight(flight)
+      if (timeFilter === 'next3') {
+        if (nowMin == null) return true
+        const m = parseHHMMToMinutes(flight.time)
+        return m !== null && m >= nowMin && m <= nowMin + 180
+      }
+      return true
+    })
+  }, [flightData, timeFilter, gateFilter, nowMinutes, isExpiredFlight])
 
   // 骨架屏組件
   const SkeletonScreen = () => (
@@ -2864,6 +2865,40 @@ function FlightDataContent() {
       </div>
     `
   }
+
+  /** 當天實際出現過的登機門家族，給篩選用（機場排哪些門就顯示哪些） */
+  const gatesInDay = useMemo(() => {
+    const set = new Set()
+    for (const f of flightData?.flights || []) {
+      const fam = gateToFamily(f.gate)
+      if (fam) set.add(fam)
+    }
+    return [...set].sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))
+  }, [flightData])
+
+  /** 現在線插在第一筆「還沒到」的航班之前；全部都過去了就不插 */
+  const nowRowIndex = useMemo(() => {
+    if (nowMinutes == null || filteredFlights.length === 0) return -1
+    const i = filteredFlights.findIndex((f) => {
+      const m = parseHHMMToMinutes(f.time)
+      return m !== null && m >= nowMinutes
+    })
+    return i
+  }, [filteredFlights, nowMinutes])
+
+  const nowRowRef = useRef(null)
+  const scrolledToNowRef = useRef(false)
+  useEffect(() => {
+    // 只在每次換資料後自動捲一次，不然使用者往下看時會被拉回來
+    if (activeTab !== 'data' || nowRowIndex < 0 || !nowRowRef.current) return
+    if (scrolledToNowRef.current) return
+    scrolledToNowRef.current = true
+    nowRowRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [activeTab, nowRowIndex])
+  useEffect(() => {
+    scrolledToNowRef.current = false
+    setGateFilter(new Set())
+  }, [flightData?.date, storeKey])
 
   const handleExportPNG = async () => {
     try {
@@ -3396,24 +3431,6 @@ function FlightDataContent() {
             <label className="flex cursor-pointer touch-manipulation items-center gap-2">
               <input
                 type="checkbox"
-                checked={hideExpiredFlights}
-                onChange={(e) => setHideExpiredFlights(e.target.checked)}
-                className={
-                  isStudio
-                    ? 'h-5 w-5 cursor-pointer rounded accent-zinc-400 focus:ring-[var(--cw-focus-ring)] sm:h-4 sm:w-4'
-                    : 'h-5 w-5 cursor-pointer rounded text-purple-500 focus:ring-purple-500 sm:h-4 sm:w-4'
-                }
-                style={{ WebkitTapHighlightColor: 'transparent' }}
-              />
-              <span
-                className={`text-xs sm:text-sm ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}`}
-              >
-                隱藏已過期航班
-              </span>
-            </label>
-            <label className="flex cursor-pointer touch-manipulation items-center gap-2">
-              <input
-                type="checkbox"
                 checked={autoRefresh}
                 onChange={(e) => setAutoRefresh(e.target.checked)}
                 className={
@@ -3789,60 +3806,187 @@ function FlightDataContent() {
               )}
             </div>
           </div>
+          {/* 篩選：時間範圍與登機門。放在列表正上方，離它影響的東西最近 */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <div
+              role="group"
+              aria-label="時間範圍"
+              className={`inline-flex gap-0.5 rounded-lg p-0.5 ${
+                isStudio
+                  ? 'border border-[var(--cw-border)] bg-[var(--cw-bg)]'
+                  : isClub
+                    ? 'border border-[#d9b9ad] bg-[#f8eeea]'
+                    : 'border border-white/15 bg-white/5'
+              }`}
+            >
+              {[
+                ['all', '全天'],
+                ['next3', '接下來 3 小時'],
+                ['upcoming', '尚未起飛']
+              ].map(([key, label]) => {
+                const active = timeFilter === key
+                const disabled = key === 'next3' && nowMinutes == null
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={active}
+                    disabled={disabled}
+                    title={disabled ? '只有看今天的資料時才有「現在」' : undefined}
+                    onClick={() => setTimeFilter(key)}
+                    className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                      active
+                        ? isStudio
+                          ? 'bg-[var(--cw-surface-elevated)] text-[var(--cw-text)] shadow-sm'
+                          : isClub
+                            ? 'bg-[#76564b] text-white shadow-sm'
+                            : 'bg-white/15 text-primary shadow-sm'
+                        : isStudio
+                          ? 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)]'
+                          : isClub
+                            ? 'text-[#76564b] hover:bg-[#f2ddd6]'
+                            : 'text-text-secondary hover:bg-white/10'
+                    }`}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {gatesInDay.length > 1 && (
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="登機門篩選">
+                {gatesInDay.map((gate) => {
+                  const active = gateFilter.has(gate)
+                  return (
+                    <button
+                      key={gate}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        setGateFilter((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(gate)) next.delete(gate)
+                          else next.add(gate)
+                          return next
+                        })
+                      }
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold tabular-nums transition-colors ${
+                        active
+                          ? isClub
+                            ? 'bg-[#76564b] text-white'
+                            : 'bg-primary/25 text-primary ring-1 ring-inset ring-primary/40'
+                          : isStudio
+                            ? 'border border-[var(--cw-border)] text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)]'
+                            : isClub
+                              ? 'border border-[#d9b9ad] text-[#76564b] hover:bg-[#f2ddd6]'
+                              : 'border border-white/15 text-text-secondary hover:bg-white/10'
+                      }`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      {gate}
+                    </button>
+                  )
+                })}
+                {gateFilter.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setGateFilter(new Set())}
+                    className={`text-[11px] underline underline-offset-2 ${
+                      isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'
+                    }`}
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
+            )}
+
+            <span
+              className={`text-xs tabular-nums sm:ml-auto ${
+                isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'
+              }`}
+            >
+              顯示 {filteredFlights.length} / {flightData.flights.length} 班
+            </span>
+          </div>
+
           {filteredFlights.length === 0 ? (
-            <div className="text-center py-12 text-text-secondary animate-fade-in">
-              <p>當天沒有航班資料</p>
+            <div className={`animate-fade-in py-12 text-center text-sm ${isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'}`}>
+              <p>{flightData.flights.length === 0 ? '當天沒有航班資料' : '這個篩選條件下沒有航班'}</p>
+              {flightData.flights.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimeFilter('all')
+                    setGateFilter(new Set())
+                  }}
+                  className="mt-2 text-xs underline underline-offset-2"
+                >
+                  清除篩選
+                </button>
+              )}
             </div>
           ) : viewMode === 'simple' ? (
             <div
-              ref={exportTableRef}
               className={`overflow-hidden animate-scale-in ${
                 isStudio
                   ? 'rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] bg-[var(--cw-surface)]'
                   : 'rounded-xl border border-white/10 bg-surface/40 shadow-lg backdrop-blur-md'
               }`}
             >
-              <div className="overflow-x-auto -mx-2 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-                <table className="w-full border-collapse min-w-[780px] sm:min-w-0">
-                  <thead>
-                    <tr
-                      className={
-                        isStudio
-                          ? 'border-b border-[var(--cw-border)] bg-[var(--cw-surface-elevated)]'
-                          : 'border-b-2 border-purple-500/40 bg-gradient-to-r from-purple-500/25 via-pink-500/20 to-purple-500/25'
-                      }
-                    >
-                      <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>時間</th>
-                      <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>登機門</th>
-                      <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>航班</th>
-                      <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>狀態</th>
-                      {store.nightSupport && (
-                      <th className={`whitespace-nowrap px-3 py-3 text-left text-xs font-bold tracking-wide sm:px-5 sm:py-4 sm:text-sm ${isStudio ? 'text-[var(--cw-text)]' : 'text-primary'}`}>晚班支援/留店</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredFlights.map((flight, idx) => (
-                      <FlightDataTableRow
-                        key={flightRowKey(flight)}
-                        flight={flight}
-                        idx={idx}
-                        isUpcoming={isUpcomingFlight(flight)}
-                        nsCfg={nightShiftCfgMerged}
-                        keepStoreUntil={nightSupportPlan?.keepStoreUntil ?? null}
-                        isLastDefining={
-                          nightSupportLastRowKeys.size > 0 &&
-                          nightSupportLastRowKeys.has(flightRowKey(flight))
-                        }
-                        store={store}
-                        isStudio={isStudio}
-                        isClub={isClub}
-                        onSelectFlight={setSelectedFlight}
-                      />
-                    ))}
-                  </tbody>
-                </table>
+              {/* 欄標題只有桌機需要；手機是堆疊卡片，標題反而是雜訊 */}
+              <div
+                className={`hidden px-3 py-3 text-xs font-bold tracking-wide sm:px-4 sm:text-sm ${
+                  store.nightSupport ? FLIGHT_ROW_GRID_WITH_SUPPORT : FLIGHT_ROW_GRID
+                } ${
+                  isStudio
+                    ? 'border-b border-[var(--cw-border)] bg-[var(--cw-surface-elevated)] text-[var(--cw-text)]'
+                    : 'border-b-2 border-purple-500/40 bg-gradient-to-r from-purple-500/25 via-pink-500/20 to-purple-500/25 text-primary'
+                }`}
+              >
+                <span>時間</span>
+                <span>登機門</span>
+                <span>航班</span>
+                <span>狀態</span>
+                {store.nightSupport && <span>晚班支援/留店</span>}
               </div>
+              <ul className="list-none">
+                {filteredFlights.map((flight, idx) => (
+                  <Fragment key={flightRowKey(flight)}>
+                    {idx === nowRowIndex && (
+                      <li ref={nowRowRef} aria-hidden="true" className="relative px-3 py-1 sm:px-4">
+                        <div
+                          className={`flex items-center gap-2 text-[11px] font-bold tabular-nums ${
+                            isClub ? 'text-[#c84629]' : 'text-amber-500'
+                          }`}
+                        >
+                          <span className="shrink-0">現在 {formatMinAsHHMM(nowMinutes)}</span>
+                          <span
+                            className={`h-px flex-1 ${isClub ? 'bg-[#c84629]/45' : 'bg-amber-500/45'}`}
+                          />
+                        </div>
+                      </li>
+                    )}
+                    <FlightRow
+                      flight={flight}
+                      idx={idx}
+                      isUpcoming={isUpcomingFlight(flight)}
+                      nsCfg={nightShiftCfgMerged}
+                      keepStoreUntil={nightSupportPlan?.keepStoreUntil ?? null}
+                      isLastDefining={
+                        nightSupportLastRowKeys.size > 0 &&
+                        nightSupportLastRowKeys.has(flightRowKey(flight))
+                      }
+                      store={store}
+                      isStudio={isStudio}
+                      isClub={isClub}
+                      onSelectFlight={setSelectedFlight}
+                    />
+                  </Fragment>
+                ))}
+              </ul>
             </div>
           ) : (
             <div className="space-y-3">

@@ -37,7 +37,9 @@ html[data-app-theme='club'] {
   --club-border: #d8d2c7;
   --club-text: #1c1914;
   --club-muted: #595349;
-  --club-nav-w: 3.5rem;
+  /* 4rem 而非 3.5rem：3.5rem 扣掉 padding 只剩 52px，五個中文字（9px×5=45px）
+     加上 label 自己的 px-0.5 會爆版，「厚片計算器」被斷成「厚片計算／器」。 */
+  --club-nav-w: 4rem;
   --club-nav-min-h: 3rem;
   --club-nav-gap: 0.125rem;
   --club-nav-pad: 0.25rem;
@@ -90,6 +92,19 @@ html[data-app-theme='club'] body {
 
 .club-nav-row {
   gap: var(--club-nav-row-gap);
+}
+
+/* 置中改用 auto margin，不用 justify-content: center。
+   center 搭配 overflow-x: auto 時，溢出會平均推向兩側，左邊那半落在
+   scrollLeft 到不了的負區間 —— 第一個項目會永遠捲不回來、點不到
+   （768px 下實測第一項被切 204px，scrollLeft 歸零也救不回）。
+   auto margin 有空間時吸收成置中，溢出時自動歸零，靠左且完整可捲。 */
+.club-nav-row > :first-child {
+  margin-inline-start: auto;
+}
+
+.club-nav-row > :last-child {
+  margin-inline-end: auto;
 }
 
 .cw-tabular {

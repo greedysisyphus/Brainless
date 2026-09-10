@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useMemo, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
+import { openImageExportWindow, saveCanvasAsPng } from '../../utils/exportImage'
 import { ClipboardDocumentIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import { CwAlert, CwBadge, CwButton, CwCard, CwDateInput, CwSelect } from '../studio/ui'
 import { EXPORT_RANGES, UNSET_PICKUP, getStoreShortName, driverStopName, stopTime } from '../../pages/shifts/shiftConstants'
@@ -83,6 +84,8 @@ export function PickupExportPanel({ book, pickupByPerson, defaultDate, supportWa
 
   const handleDownloadImage = useCallback(async () => {
     if (!tableRef.current) return
+    // 視窗要在點擊的當下同步開，等 html2canvas 跑完才開會被 Safari 擋掉
+    const previewWindow = openImageExportWindow('交通車接送表')
     setBusy(true)
     try {
       const canvas = await html2canvas(tableRef.current, {
@@ -90,12 +93,16 @@ export function PickupExportPanel({ book, pickupByPerson, defaultDate, supportWa
         scale: 2,
         useCORS: true,
       })
-      const link = document.createElement('a')
-      link.download = `${filenameBase}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-      setStatus({ variant: 'success', message: '圖檔已下載。' })
+      await saveCanvasAsPng(canvas, `${filenameBase}.png`, {
+        title: '交通車接送表',
+        previewWindow,
+      })
+      setStatus({
+        variant: 'success',
+        message: previewWindow ? '圖檔已開在新分頁，可長按儲存。' : '圖檔已下載。',
+      })
     } catch (error) {
+      if (previewWindow && !previewWindow.closed) previewWindow.close()
       setStatus({ variant: 'error', message: `產生圖檔失敗：${error.message}` })
     } finally {
       setBusy(false)
