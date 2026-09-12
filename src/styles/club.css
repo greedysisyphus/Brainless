@@ -64,7 +64,8 @@ html[data-app-theme='club'] body {
     --club-nav-pad: clamp(0.35rem, 0.55vw, 0.65rem);
     --club-nav-icon-box: clamp(1.75rem, 2.7vw, 2.5rem);
     --club-nav-icon: clamp(0.95rem, 1.5vw, 1.35rem);
-    --club-nav-label: clamp(10px, 0.95vw, 12px);
+    /* 下限 9px：按鈕會被壓縮時字級要跟著縮，否則五個中文字擠不進去會折行 */
+    --club-nav-label: clamp(9px, 0.95vw, 12px);
     --club-nav-row-gap: clamp(0.35rem, 0.55vw, 0.75rem);
   }
 }
@@ -74,6 +75,21 @@ html[data-app-theme='club'] body {
   min-height: var(--club-nav-min-h);
   gap: var(--club-nav-gap);
   padding: var(--club-nav-pad);
+  /* 手機：固定寬、不壓縮，放不下就橫向捲動 */
+  flex-shrink: 0;
+}
+
+/* 桌機：按鈕跟著視窗一起變小，而不是卡在下限然後溢出。
+   width 當 flex-basis，flex-shrink: 1 讓它們在空間不夠時一起被壓縮；
+   有多餘空間時不會被拉長（沒有 flex-grow），所以 first/last 的 auto margin
+   照樣把整排置中。真的窄到 min-content 以下才會回到橫向捲動。 */
+@media (min-width: 640px) {
+  .club-nav-item {
+    flex-shrink: 1;
+    /* 壓縮下限：再窄下去五個中文字連兩行都放不完，會被 line-clamp 截成
+       「咖啡／豆管…」。到這個寬度就停止壓縮，改回橫向捲動（左右已有漸層提示）。 */
+    min-width: 3.5rem;
+  }
 }
 
 .club-nav-icon-box {

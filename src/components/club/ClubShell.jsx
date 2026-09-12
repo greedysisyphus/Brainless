@@ -10,7 +10,7 @@ function ClubNavItem({ path, label, badge, Icon }) {
     <NavLink
       to={path}
       className={({ isActive }) =>
-        `club-nav-item group relative z-10 flex shrink-0 flex-col items-center justify-center rounded-xl border text-center transition-all duration-200 hover:z-20 focus-visible:z-20 touch-manipulation sm:rounded-2xl ${
+        `club-nav-item group relative z-10 flex flex-col items-center justify-center rounded-xl border text-center transition-all duration-200 hover:z-20 focus-visible:z-20 touch-manipulation sm:rounded-2xl ${
           isActive
             ? 'border-[#171717] bg-[#171717] text-white shadow-[0_8px_16px_rgba(23,23,23,0.16)] sm:shadow-[0_12px_22px_rgba(23,23,23,0.18)]'
             : 'border-black/10 bg-white/55 text-[#4d4d48] hover:-translate-y-0.5 hover:border-[#ec5836] hover:bg-white hover:text-[#171717] hover:shadow-[0_12px_24px_rgba(23,23,23,0.08)]'
