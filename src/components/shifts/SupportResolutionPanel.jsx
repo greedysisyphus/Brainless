@@ -221,6 +221,20 @@ export function SupportResolutionPanel({ book, months, links, onChangeLink, savi
                                 }
                                 month={destinationMonth}
                               />
+                              {/* 備註原文跟定案的人不一樣＝那個名字是推出來的，不是紙本寫的。
+                                  「決定是誰」要查得回去，所以把原文標出來。 */}
+                              {(() => {
+                                const slot = group.slots.find((s) => s.slotId === claim.slotId)
+                                if (!slot?.visitor || slot.visitor === claim.personKey) return null
+                                return (
+                                  <CwBadge
+                                    tone="warning"
+                                    title={`目的店備註原文寫「${slot.visitor}」，比對後定為 ${claim.personKey}`}
+                                  >
+                                    原文「{slot.visitor}」
+                                  </CwBadge>
+                                )
+                              })()}
                               <CwBadge tone={claim.source === 'manual' ? 'brand' : 'neutral'}>
                                 {claim.source === 'visitor'
                                   ? '目的店寫明'

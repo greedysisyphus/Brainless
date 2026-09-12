@@ -2399,3 +2399,28 @@ test('例外的站名也吃舊寫法', () => {
   const map = pickupMapFrom({ 小明: { pickup: '高鐵站', pickupOn: { '2026-09-05': '環西站' } } })
   assert.equal(pickupOf(map, '小明', '2026-09-05'), 'A21環北站')
 })
+
+test('備註原文跟定案的人不同時要留得住，不能只留結果', () => {
+  // D13 備註寫「Yuni」，轉換器比對後定為 Yunni。決定是誰做的必須查得回去。
+  const d13 = normalizeShiftExport(
+    makeExport({
+      storeCode: 'D13',
+      storeName: '桃機D13',
+      employees: ['支援'],
+      entries: [
+        cell('emp01_支援', '2026-09-01', {
+          shift: 'EVENING',
+          visitor: 'Yuni',
+          visitor_resolved: 'Yunni',
+          visitor_match: 'linked',
+          visitor_candidates: ['Yumi', 'Yunni'],
+        }),
+      ],
+    }),
+  )
+  const entry = d13.month.entries['支援']['2026-09-01']
+  assert.equal(entry.visitor, 'Yuni', '原文不能被改寫')
+  assert.equal(entry.visitorResolved, 'Yunni')
+  assert.equal(entry.visitorMatch, 'linked')
+  assert.deepEqual(entry.visitorCandidates, ['Yumi', 'Yunni'])
+})
