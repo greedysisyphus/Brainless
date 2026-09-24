@@ -156,6 +156,17 @@ html[data-app-theme='club'] .cw-date-input::-webkit-calendar-picker-indicator {
   display: none;
 }
 
+/* iOS Safari 的原生日期欄有自己的最小寬度、文字置中：不關掉的話欄位會比給它的寬度還寬，
+   把旁邊的按鈕擠出畫面，文字也壓到右邊的日曆鈕上。 */
+.cw-date-input {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+}
+.cw-date-input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
 @supports (padding: env(safe-area-inset-top)) {
   .cw-pt-safe { padding-top: env(safe-area-inset-top, 0px); }
   .cw-pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }

@@ -50,6 +50,7 @@ import {
   checkMergeSafety,
   normalizeIdentitySettings,
 } from '../src/pages/shifts/shiftIdentity.js'
+import { findMatchingDays } from '../src/pages/shifts/shiftMatch.js'
 import { normalizePersonSettings } from '../src/pages/shifts/shiftFirestore.js'
 import { formatTimestamp, getCrossStoreMoves } from '../src/pages/shifts/shiftModel.js'
 import { mergeVocab, getLeaveDisplay } from '../src/pages/shifts/shiftVocab.js'
@@ -2423,4 +2424,27 @@ test('備註原文跟定案的人不同時要留得住，不能只留結果', ()
   assert.equal(entry.visitorResolved, 'Yunni')
   assert.equal(entry.visitorMatch, 'linked')
   assert.deepEqual(entry.visitorCandidates, ['Yumi', 'Yunni'])
+})
+
+test('找日子：依符合人數排序，湊不齊的日子也列出誰卡住', () => {
+  const book = buildFixtureBook()
+  const key = (name) => book.people.find((p) => p.name === name).key
+  const days = findMatchingDays(book, ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-30'], [
+    { personKey: key('小明'), condition: 'PM_FREE' },
+    { personKey: key('Ann'), condition: 'PM_FREE' },
+    { personKey: key('Ben'), condition: 'MORNING' },
+  ])
+  // 9/1：小明早班、Ann 中班、Ben 早班 → 全中；9/30 沒有任何班表資料，不列
+  assert.deepEqual(
+    days.map((d) => [d.date, d.score]),
+    [
+      ['2026-09-01', 3],
+      ['2026-09-03', 2], // 小明、Ann 都休；Ben 那格空白不算
+      ['2026-09-02', 0], // 小明晚班、Ann 去 D13 支援晚班、Ben 晚班
+    ]
+  )
+  assert.deepEqual(
+    days[1].results.map((r) => r.ok),
+    [true, true, false]
+  )
 })

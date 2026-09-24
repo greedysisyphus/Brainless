@@ -22,11 +22,13 @@ const PeopleSettingsPanel = lazy(() => import('../components/shifts/PeopleSettin
 const PickupExportPanel = lazy(() => import('../components/shifts/PickupExportPanel'))
 const ShiftImportPanel = lazy(() => import('../components/shifts/ShiftImportPanel'))
 const PersonMonthCalendar = lazy(() => import('../components/shifts/PersonMonthCalendar'))
+const ShiftMatchPanel = lazy(() => import('../components/shifts/ShiftMatchPanel'))
 const SupportResolutionPanel = lazy(() => import('../components/shifts/SupportResolutionPanel'))
 
 const TABS = [
   { key: 'today', label: '今天' },
   { key: 'grid', label: '完整班表' },
+  { key: 'match', label: '找日子' },
   { key: 'stats', label: '統計' },
   { key: 'support', label: '支援班' },
   { key: 'pickup', label: '同事與上車' },
@@ -202,8 +204,8 @@ function ShiftBoard() {
       ) : null}
 
       <div
-        // 手機上橫向捲動＋隱藏捲軸＝最後兩個分頁看起來不存在。六個短標籤換行剛好兩排，
-        // 全部看得到，也不必先發現「這裡可以滑」。桌機本來就一排放得下。
+        // 手機上橫向捲動＋隱藏捲軸＝最後兩個分頁看起來不存在。所以寧可換行，全部看得到，
+        // 也不必先發現「這裡可以滑」。七個分頁在手機上要縮一點內距才剛好兩排，不會剩一顆掉到第三排。
         className="-mx-1 flex flex-wrap items-center gap-2 px-1 pb-1"
       >
         {TABS.map((tab) => {
@@ -214,7 +216,7 @@ function ShiftBoard() {
               type="button"
               aria-pressed={active}
               onClick={() => setActiveTab(tab.key)}
-              className={`cw-touch-target rounded-[var(--cw-radius-pill)] border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)] ${
+              className={`cw-touch-target rounded-[var(--cw-radius-pill)] border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)] sm:px-4 ${
                 active
                   ? 'border-[var(--cw-brand)]/40 bg-[var(--cw-brand-muted)] text-[var(--cw-brand-strong)]'
                   : 'border-[var(--cw-border-strong)] text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)]'
@@ -237,30 +239,33 @@ function ShiftBoard() {
         <Suspense fallback={<PanelFallback />}>
           {activeTab === 'today' ? (
             <div className="space-y-5">
-              {/* 日期是次要控制項，不該用一整張卡片吃掉手機的第一個畫面 */}
+              {/* 日期是次要控制項，不該用一整張卡片吃掉手機的第一個畫面。
+                  左右鍵和日期綁成一組不換行：手機上右鍵曾被擠出畫面，只剩往前翻。 */}
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  aria-label="前一天"
-                  onClick={() => setSelectedDate(addDays(selectedDate, -1))}
-                  className="cw-touch-target grid h-11 w-11 place-items-center rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] text-[var(--cw-text)] hover:bg-[var(--cw-mega-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
-                >
-                  <ChevronLeftIcon className="h-5 w-5" />
-                </button>
-                <CwDateInput
-                  name="shift-date"
-                  className="w-[170px]"
-                  value={selectedDate}
-                  onChange={(event) => setSelectedDate(event.target.value)}
-                />
-                <button
-                  type="button"
-                  aria-label="後一天"
-                  onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                  className="cw-touch-target grid h-11 w-11 place-items-center rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] text-[var(--cw-text)] hover:bg-[var(--cw-mega-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
-                >
-                  <ChevronRightIcon className="h-5 w-5" />
-                </button>
+                <div className="flex w-full items-center gap-2 sm:w-80">
+                  <button
+                    type="button"
+                    aria-label="前一天"
+                    onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+                    className="cw-touch-target grid shrink-0 h-11 w-11 place-items-center rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] text-[var(--cw-text)] hover:bg-[var(--cw-mega-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
+                  >
+                    <ChevronLeftIcon className="h-5 w-5" />
+                  </button>
+                  <CwDateInput
+                    name="shift-date"
+                    className="min-w-0 flex-1"
+                    value={selectedDate}
+                    onChange={(event) => setSelectedDate(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    aria-label="後一天"
+                    onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                    className="cw-touch-target grid shrink-0 h-11 w-11 place-items-center rounded-[var(--cw-radius)] border border-[var(--cw-border-strong)] text-[var(--cw-text)] hover:bg-[var(--cw-mega-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
+                  >
+                    <ChevronRightIcon className="h-5 w-5" />
+                  </button>
+                </div>
                 {selectedDate !== toDateKey(new Date()) ? (
                   <CwButton
                     variant="secondary"
@@ -351,6 +356,17 @@ function ShiftBoard() {
                 />
               )}
             </div>
+          ) : null}
+
+          {activeTab === 'match' ? (
+            <ShiftMatchPanel
+              book={book}
+              peopleGroups={peopleGroups}
+              onSelectDate={(dateKey) => {
+                setSelectedDate(dateKey)
+                setActiveTab('today')
+              }}
+            />
           ) : null}
 
           {activeTab === 'stats' ? (
