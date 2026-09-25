@@ -2,10 +2,15 @@ import { formatMinAsHHMM, parseHHMMToMinutes } from './flightTime.js'
 import { resolveGateStressWeight } from './gateStressWeights.js'
 import { getStoreShift } from './stores.js'
 
-/** 奶酥時刻：起飛前 [60,30] 分鐘視為登機壓力窗，與 60 分鐘觀察槽重疊分鐘數 × 登機門權重計分（權重 Firebase 同步，見標題旁齒輪） */
-export const STRESS_BEFORE_DEP_START_MIN = 60
-export const STRESS_BEFORE_DEP_END_MIN = 30
-export const STRESS_WINDOW_MINUTES = STRESS_BEFORE_DEP_START_MIN - STRESS_BEFORE_DEP_END_MIN
+/**
+ * 奶酥時刻：起飛前 [fromMin, toMin] 分鐘視為壓力窗，與 60 分鐘觀察槽重疊分鐘數 × 登機門權重計分（權重 Firebase 同步，見標題旁齒輪）。
+ * 各店可在 stores.js 用 stressWindow 覆寫（客人到店的時間不一樣），沒設就用預設。
+ */
+export const DEFAULT_STRESS_WINDOW = Object.freeze({ fromMin: 60, toMin: 30 })
+
+export function stressWindowOf(store) {
+  return store?.stressWindow || DEFAULT_STRESS_WINDOW
+}
 export const SLOT_STEP_MIN = 15
 
 /**
@@ -106,34 +111,54 @@ function enumerateSlotStarts(firstStart, lastStart, step) {
   return out
 }
 
-function scoreOneSlotForDay(flights, dateStr, startMinFromMidnight, weights, store) {
+/**
+ * 一班大約載多少人：該小時 T2 出發＋轉機離站人數 ÷ 該小時 T2 起飛班數（爬蟲寫進 pax_t2）。
+ * 同一小時每班平均分，不看機型；店在管制區內，轉機旅客也會經過，所以一起算。
+ * 沒有預報或那一小時對不上班數時回 null，曲線照舊只看班數。
+ */
+export function estimateFlightPax(flight, pax) {
+  const min = parseHHMMToMinutes(flight?.time)
+  if (min === null || !pax || !Array.isArray(pax.flights)) return null
+  const h = Math.floor(min / 60)
+  const n = pax.flights[h]
+  if (!(n > 0)) return null
+  return ((pax.departure?.[h] || 0) + (pax.transfer?.[h] || 0)) / n
+}
+
+function scoreOneSlotForDay(flights, dateStr, startMinFromMidnight, weights, store, pax = null) {
   const { start: slot0, end: slot1 } = slotRangeMs(dateStr, startMinFromMidnight)
+  const { fromMin, toMin } = stressWindowOf(store)
+  const windowMin = fromMin - toMin
   let score = 0
   let flightCount = 0
+  let people = pax ? 0 : null
   for (const flight of flights) {
     if (isStressCancelledFlight(flight)) continue
     const depMs = getFlightDepartureMs(dateStr, flight)
     if (depMs == null) continue
-    const p0 = depMs - STRESS_BEFORE_DEP_START_MIN * 60 * 1000
-    const p1 = depMs - STRESS_BEFORE_DEP_END_MIN * 60 * 1000
+    const p0 = depMs - fromMin * 60 * 1000
+    const p1 = depMs - toMin * 60 * 1000
     const ov = overlapMinutesMs(p0, p1, slot0, slot1)
     if (ov <= 0) continue
     const w = resolveGateStressWeight(flight.gate, weights, store)
-    score += w * (ov / STRESS_WINDOW_MINUTES)
+    score += w * (ov / windowMin)
     flightCount += 1
+    // 跟分數同一套重疊比例，不乘登機門權重：這是「這一小時約有多少人在登機」
+    if (pax) people += (estimateFlightPax(flight, pax) || 0) * (ov / windowMin)
   }
-  return { score, flightCount }
+  return { score, flightCount, people }
 }
 
 /**
  * 整段壓力曲線：每 15 分一個點，值為「該點起算 60 分鐘槽」的壓力分數。
  * 舊版只回傳排名前 5 的不重疊槽，看不出一天的形狀，也讓相鄰的同一個峰互相擠掉。
+ * 傳入當天的 pax_t2 時，每一槽多一個 people（估計登機人數）；沒有就是 null。
  */
-export function stressSlotSeriesDay(flights, dateStr, weights, store, shifts, shiftKey) {
+export function stressSlotSeriesDay(flights, dateStr, weights, store, shifts, shiftKey, pax = null) {
   const { firstStartMin, lastStartMin } = stressShiftRange(shiftKey, shifts)
   return enumerateSlotStarts(firstStartMin, lastStartMin, SLOT_STEP_MIN).map((startMin) => {
-    const { score, flightCount } = scoreOneSlotForDay(flights, dateStr, startMin, weights, store)
-    return { startMin, score, flightCount, label: formatSlotRange24h(startMin) }
+    const { score, flightCount, people } = scoreOneSlotForDay(flights, dateStr, startMin, weights, store, pax)
+    return { startMin, score, flightCount, people, label: formatSlotRange24h(startMin) }
   })
 }
 
@@ -200,14 +225,15 @@ export function formatMinuteSpan(startMin, endMin) {
 /**
  * 計入某一個 60 分槽的航班（給畫面列出來用）。
  *
- * 規則必須跟 scoreOneSlotForDay 一致：看的是「起飛前 60–30 分鐘」這段登機壓力窗
+ * 規則必須跟 scoreOneSlotForDay 一致：看的是該店「起飛前 fromMin–toMin 分鐘」這段壓力窗
  * 有沒有和槽重疊，不是「在這一小時起飛」。用起飛時間去篩會少列一半，
  * 跟同一行顯示的班次數對不起來。
  */
-export function stressSlotFlights(flights, startMin) {
+export function stressSlotFlights(flights, startMin, store = null) {
   if (!Array.isArray(flights) || typeof startMin !== 'number') return []
-  const from = startMin + STRESS_BEFORE_DEP_END_MIN
-  const to = startMin + 60 + STRESS_BEFORE_DEP_START_MIN
+  const { fromMin, toMin } = stressWindowOf(store)
+  const from = startMin + toMin
+  const to = startMin + 60 + fromMin
   return flights
     .filter((f) => {
       if (isStressCancelledFlight(f)) return false

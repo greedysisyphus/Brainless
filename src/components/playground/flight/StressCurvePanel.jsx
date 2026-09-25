@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import {
+  estimateFlightPax,
   formatMinuteSpan,
   formatStressShiftSpan,
   isStressSlotInSupportPeriod,
@@ -27,6 +28,10 @@ export default function StressCurvePanel({
   countUnit = '班',
   /** 當天版才有：滑到／點到某一槽時列出那一小時的航班。多日平均版不傳。 */
   flights = null,
+  /** 當天的 pax_t2：有就疊一條估計人數線，並在文字裡帶人數 */
+  pax = null,
+  /** 決定壓力窗（stores.js 的 stressWindow），列出的航班才會跟分數同一套規則 */
+  store = null,
   supportFrom = null,
   supportUntil = null,
   showSupport = true,
@@ -40,6 +45,7 @@ export default function StressCurvePanel({
   const quietFill = isClub ? 'rgba(118,86,75,0.14)' : 'rgba(34,211,238,0.16)'
   const supportStroke = isClub ? '#9f3d28' : '#818cf8'
   const activeFill = isClub ? '#7c4a3d' : isStudio ? 'rgba(60,60,70,0.75)' : 'rgba(255,255,255,0.65)'
+  const peopleStroke = isClub ? '#3f2f2a' : isStudio ? 'var(--cw-text)' : '#67e8f9'
   const axisText = isClub ? '#76564b' : isStudio ? 'rgba(90,90,100,0.85)' : 'rgba(255,255,255,0.5)'
 
   // 滑鼠移動與觸控點擊都走同一條路：手機沒有 pointerleave，點了就留著
@@ -65,15 +71,22 @@ export default function StressCurvePanel({
   // 兩小時一個刻度就夠，再密手機讀不到
   const tickEvery = 8
   const fmtCount = (v) => (Number.isInteger(v) ? v : v.toFixed(1))
+  const hasPeople = series.some((s) => s.people != null)
+  const maxPeople = hasPeople ? Math.max(1, ...series.map((s) => s.people || 0)) : 1
+  // 人數跟分數各用自己的最大值縮放，看的是形狀有沒有對上，不是兩者的絕對大小
+  const peoplePoints = hasPeople
+    ? series.map((s, i) => `${xAt(i) + barW / 2},${PAD_TOP + chartH - ((s.people || 0) / maxPeople) * chartH}`).join(' ')
+    : ''
+  const fmtPeople = (s) => (s?.people != null ? ` · 約 ${Math.round(s.people).toLocaleString()} 人` : '')
 
   const headline = summary
     ? summary.maxScore > 0
-      ? `最忙 ${summary.peak.label}（${fmtCount(summary.peak.flightCount)} ${countUnit}）· 最鬆 ${formatMinuteSpan(summary.quiet.startMin, summary.quiet.endMin)}`
+      ? `最忙 ${summary.peak.label}（${fmtCount(summary.peak.flightCount)} ${countUnit}${fmtPeople(summary.peak)}）· 最鬆 ${formatMinuteSpan(summary.quiet.startMin, summary.quiet.endMin)}`
       : '這個區間沒有航班'
     : ''
 
   const active = activeIdx != null ? series[activeIdx] : null
-  const activeFlights = active && flights ? stressSlotFlights(flights, active.startMin) : []
+  const activeFlights = active && flights ? stressSlotFlights(flights, active.startMin, store) : []
 
   const pickIndex = (event) => {
     const rect = event.currentTarget.getBoundingClientRect()
@@ -122,19 +135,31 @@ export default function StressCurvePanel({
               {active.label}
               <span className="mx-1.5 opacity-40">·</span>
               {fmtCount(active.flightCount)} {countUnit}
+              {fmtPeople(active)}
               <span className="mx-1.5 opacity-40">·</span>
               壓力 {active.score.toFixed(1)}
             </p>
             {flights ? (
               <p className={`mt-0.5 text-[11px] leading-relaxed ${muted}`}>
                 {activeFlights.length
-                  ? activeFlights.map((f) => `${f.time} ${f.gate} ${f.flight_code}`).join('、')
+                  ? activeFlights
+                      .map((f) => {
+                        const n = estimateFlightPax(f, pax)
+                        return `${f.time} ${f.gate} ${f.flight_code}${n != null ? `（約 ${Math.round(n)} 人）` : ''}`
+                      })
+                      .join('、')
                   : '這一槽沒有航班在登機'}
               </p>
             ) : null}
           </>
         ) : (
           <p className={`text-sm font-semibold ${text}`}>{headline}</p>
+        )}
+        {!active && Array.isArray(pax?.departure) && (
+          <p className={`mt-0.5 text-[11px] ${muted}`}>
+            T2 全天預報 {pax.departure.reduce((sum, n, h) => sum + n + (pax.transfer?.[h] || 0), 0).toLocaleString()} 人（出發＋轉機，桃機官方
+            {pax.is_update ? '當日更新版' : ''}）
+          </p>
         )}
       </div>
 
@@ -178,10 +203,21 @@ export default function StressCurvePanel({
               stroke={inSupport ? supportStroke : 'none'}
               strokeWidth={inSupport ? 0.6 : 0}
             >
-              <title>{`${slot.label}｜${fmtCount(slot.flightCount)} ${countUnit}｜分數 ${slot.score.toFixed(2)}`}</title>
+              <title>{`${slot.label}｜${fmtCount(slot.flightCount)} ${countUnit}${fmtPeople(slot)}｜分數 ${slot.score.toFixed(2)}`}</title>
             </rect>
           )
         })}
+        {hasPeople && (
+          <polyline
+            points={peoplePoints}
+            fill="none"
+            stroke={peopleStroke}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            opacity={0.85}
+            pointerEvents="none"
+          />
+        )}
         {activeIdx != null && (
           <rect
             x={xAt(activeIdx) + barW / 2 - 0.25}
@@ -224,6 +260,9 @@ export default function StressCurvePanel({
         每根柱子是「該時刻起算 60 分鐘」的登機壓力（滑過或點一下看該時段的班次）。橘色為最忙的一小時，
         淺色區塊是最長的一段空檔（低於尖峰兩成）
         {showSupport && supportFrom && supportUntil ? '，外框標示落在晚班支援期間的時段' : ''}。
+        {hasPeople
+          ? '細線是估計登機人數：每班人數＝該小時 T2 出發＋轉機預報 ÷ 該小時 T2 班數，只是平均分攤，不看機型。'
+          : ''}
       </p>
     </div>
   )

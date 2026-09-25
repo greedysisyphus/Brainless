@@ -68,6 +68,12 @@ export const FLIGHT_STORES = Object.freeze({
       OTHER: 0.5
     }),
     scheduleStoreCode: 'D7',
+    /**
+     * 客人比起飛早多久到店。2026-09-08～25 的交易紀錄（8,554 筆）對 D5–D18 班數：
+     * 60 分槽的來客數跟「起飛前 90–60 分」的相關 r=0.87，預設的 60–30 分只有 0.79。
+     * D13 店還沒有交易資料，維持預設。
+     */
+    stressWindow: Object.freeze({ fromMin: 90, toMin: 60 }),
     /** 營業 05:00–22:00 */
     businessHours: Object.freeze({ startMin: hm(5), endMin: hm(22) }),
     /**

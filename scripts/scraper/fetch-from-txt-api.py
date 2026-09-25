@@ -172,6 +172,79 @@ class TaoyuanAirportTxtAPIScraper:
         return flights
 
 
+PAX_FORECAST_URL = "https://www.taoyuan-airport.com/uploads/fos/{name}.xls"
+
+
+def parse_t2_departure_pax(content: bytes) -> Optional[Dict[str, List[int]]]:
+    """從官方「航班運量整點人數預報表」取出第二航廈每小時出發、轉機離站人數（各 24 格），格式不對回 None。"""
+    import xlrd
+    sheet = xlrd.open_workbook(file_contents=content).sheet_by_index(0)
+    for r in range(sheet.nrows - 1):
+        titles = sheet.row_values(r)
+        t2 = next((c for c, v in enumerate(titles) if '第二航廈' in str(v)), None)
+        if t2 is None:
+            continue
+        headers = sheet.row_values(r + 1)
+        cols = {name: next((c for c in range(t2, len(headers)) if headers[c] == name), None) for name in ('出發', '轉機離站')}
+        if None in cols.values():
+            return None
+        hourly = {'departure': {}, 'transfer': {}}
+        for rr in range(r + 2, sheet.nrows):
+            m = re.match(r'(\d{2}):00', str(sheet.cell_value(rr, t2)))
+            if not m:
+                continue
+            for key, name in (('departure', '出發'), ('transfer', '轉機離站')):
+                v = sheet.cell_value(rr, cols[name])
+                if isinstance(v, float):
+                    hourly[key][int(m.group(1))] = int(v)
+        if any(len(v) != 24 for v in hourly.values()):
+            return None
+        return {key: [v[h] for h in range(24)] for key, v in hourly.items()}
+    return None
+
+
+def count_t2_departures_by_hour(text: str) -> Dict[str, List[int]]:
+    """
+    第二航廈每小時起飛班數（全部登機門，含 C 區；共掛班號只算一次，取消不算）。
+    前端拿來把整點人數攤到每一班：該小時人數 ÷ 該小時 T2 班數。
+    """
+    counts = defaultdict(lambda: [0] * 24)
+    seen = set()
+    for line in text.splitlines():
+        p = [x.strip() for x in line.split(',')]
+        if len(p) < 14 or p[0] != '2' or p[1] != 'D':
+            continue
+        if 'CANCEL' in p[13].upper() or '取消' in p[13]:
+            continue
+        d = re.match(r'(\d{4})/(\d{1,2})/(\d{1,2})$', p[6])
+        t = re.match(r'(\d{1,2}):\d{2}', p[7])
+        if not d or not t:
+            continue
+        key = (p[6], p[7], p[5], p[10])
+        if key in seen:
+            continue
+        seen.add(key)
+        date_key = '%04d-%02d-%02d' % tuple(map(int, d.groups()))
+        counts[date_key][int(t.group(1))] += 1
+    return dict(counts)
+
+
+def fetch_t2_departure_pax(session, date_key: str) -> Optional[Dict]:
+    """優先抓當天早上發布的更新版；抓不到或解析失敗回 None，不影響航班資料。"""
+    base = date_key.replace('-', '_')
+    for name, is_update in ((f'{base}_update', True), (base, False)):
+        try:
+            res = session.get(PAX_FORECAST_URL.format(name=name), timeout=15)
+            if res.status_code != 200:
+                continue
+            hourly = parse_t2_departure_pax(res.content)
+            if hourly:
+                return {**hourly, "is_update": is_update}
+        except Exception as e:
+            print(f'   ⚠️  {name}.xls 讀取失敗: {e}')
+    return None
+
+
 def format_time_for_display(dt: datetime) -> str:
     """格式化時間為顯示格式"""
     return dt.strftime('%H:%M')
@@ -292,6 +365,7 @@ if __name__ == '__main__':
         # 按日期組織
         print('\n📊 按日期組織資料...')
         date_data = organize_by_date(flights)
+        t2_flights_by_hour = count_t2_departures_by_hour(text_data)
         
         # 儲存每個日期的資料
         for date_key, formatted_data in date_data.items():
@@ -327,6 +401,11 @@ if __name__ == '__main__':
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
             
+            # 官方整點人數預報（第二航廈出發），只提前約兩天發布，缺了照樣存航班
+            pax = fetch_t2_departure_pax(scraper.session, date_key)
+            if pax and date_key in t2_flights_by_hour:
+                output["pax_t2"] = {**pax, "flights": t2_flights_by_hour[date_key]}
+
             # 儲存 JSON 檔案
             date_file = os.path.join(data_dir, f'flight-data-{date_key}.json')
             with open(date_file, 'w', encoding='utf-8') as f:
@@ -336,6 +415,7 @@ if __name__ == '__main__':
             print(f'   - 總航班數: {output["summary"]["total_flights"]} 班')
             print(f'   - 17:00 前: {output["summary"]["before_17:00"]} 班')
             print(f'   - 17:00 後: {output["summary"]["after_17:00"]} 班')
+            print(f'   - T2 出發＋轉機預報: {sum(pax["departure"]) + sum(pax["transfer"]):,} 人' if pax else '   - T2 出發預報: 無')
             
             # 注意：Firebase 存儲將在 GitHub Actions 中單獨執行
             # 這裡不直接存儲，避免重複存儲和依賴問題

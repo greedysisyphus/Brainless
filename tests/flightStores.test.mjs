@@ -10,6 +10,7 @@ import { gateToFamily, isGateInStore } from '../src/utils/flightData/gates.js'
 import { resolveGateStressWeight } from '../src/utils/flightData/gateStressWeights.js'
 import { peopleByShiftOn, resolveStoreShifts } from '../src/utils/flightData/shiftBridge.js'
 import {
+  estimateFlightPax,
   stressShiftRange,
   stressSlotFlights,
   stressSlotSeriesDay,
@@ -140,29 +141,40 @@ for (const store of [d13, d7]) {
   assert.ok(inQuiet.every((s) => s.score <= maxScore * 0.2), '空檔區間內每一槽都要低於尖峰兩成')
 }
 
-// 曲線上列出的航班數，必須跟同一行顯示的班次數一致
-// （分數看的是「起飛前 60–30 分鐘」的登機窗，不是「在這一小時起飛」）
-{
-  const series = stressSlotSeriesDay(
-    fixture,
-    DATE,
-    d7.stressWeights,
-    d7,
-    resolveStoreShifts(d7, null, DATE).shifts,
-    'full'
-  )
+// 曲線上列出的航班數，必須跟同一行顯示的班次數一致（各店壓力窗不同，列出時也要用同一家店的窗）
+for (const store of [d13, d7]) {
+  const series = stressSlotSeriesDay(fixture, DATE, store.stressWeights, store, resolveStoreShifts(store, null, DATE).shifts, 'full')
   for (const slot of series) {
     assert.equal(
-      stressSlotFlights(fixture, slot.startMin).length,
+      stressSlotFlights(fixture, slot.startMin, store).length,
       slot.flightCount,
-      `${slot.label} 列出的航班數要等於 flightCount`
+      `${store.key} ${slot.label} 列出的航班數要等於 flightCount`
     )
   }
-  // 08:00 起飛的航班在 07:00–08:00 這一槽登機，不在 08:00–09:00
-  const at0700 = series.find((sl) => sl.label.startsWith('07:00'))
-  assert.ok(stressSlotFlights(fixture, at0700.startMin).some((f) => f.time === '08:00'))
+}
+{
+  const slotAt = (label) => stressSlotSeriesDay(fixture, DATE, d13.stressWeights, d13, resolveStoreShifts(d13, null, DATE).shifts, 'full').find((sl) => sl.label.startsWith(label))
+  // D13 用預設 60–30：08:00 起飛的航班在 07:00–08:00 這一槽，不在 08:00–09:00
+  assert.ok(stressSlotFlights(fixture, slotAt('07:00').startMin, d13).some((f) => f.time === '08:00'))
+  // D7 用交易紀錄校正的 90–60：同一班落在 06:30 槽，07:00 槽已經不算
+  assert.ok(stressSlotFlights(fixture, slotAt('06:30').startMin, d7).some((f) => f.time === '08:00'))
+  assert.ok(!stressSlotFlights(fixture, slotAt('07:00').startMin, d7).some((f) => f.time === '08:00'))
   // 取消的航班不計分也不列出
-  assert.equal(stressSlotFlights([{ time: '08:00', status: 'CANCELLED' }], at0700.startMin).length, 0)
+  assert.equal(stressSlotFlights([{ time: '08:00', status: 'CANCELLED' }], slotAt('07:00').startMin).length, 0)
+}
+
+// 人數：該小時 T2（出發＋轉機）÷ T2 班數；08:00 起飛的班在 07:00 那一槽整班算進去
+{
+  const pax = { departure: Array(24).fill(0), transfer: Array(24).fill(0), flights: Array(24).fill(0) }
+  pax.departure[8] = 900
+  pax.transfer[8] = 100
+  pax.flights[8] = 4
+  assert.equal(estimateFlightPax({ time: '08:15' }, pax), 250)
+  assert.equal(estimateFlightPax({ time: '09:00' }, pax), null, '那一小時沒有 T2 班數就不猜')
+  assert.equal(estimateFlightPax({ time: '08:15' }, null), null)
+  const series = stressSlotSeriesDay([at('08:00', 'D13')], DATE, d13.stressWeights, d13, resolveStoreShifts(d13, null, DATE).shifts, 'full', pax)
+  assert.equal(series.find((sl) => sl.label.startsWith('07:00')).people, 250)
+  assert.equal(stressSlotSeriesDay([at('08:00', 'D13')], DATE, d13.stressWeights, d13, resolveStoreShifts(d13, null, DATE).shifts, 'full')[0].people, null)
 }
 
 // 沒有航班時不能爆掉

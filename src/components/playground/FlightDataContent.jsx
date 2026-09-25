@@ -38,6 +38,7 @@ import {
   formatStressShiftSpan,
   stressSlotSeriesAcrossDays,
   stressSlotSeriesDay,
+  stressWindowOf,
   summarizeStressSeries
 } from '../../utils/flightData/stressSlots'
 import { peopleByShiftOn, resolveStoreShifts } from '../../utils/flightData/shiftBridge'
@@ -2564,7 +2565,7 @@ function FlightDataContent() {
     if (!flightData?.flights?.length) return null
     const dayKey = flightData.date || selectedDate
     if (!dayKey) return null
-    return stressSlotSeriesDay(flightData.flights, dayKey, gateStressWeights, store, storeShifts, stressShift)
+    return stressSlotSeriesDay(flightData.flights, dayKey, gateStressWeights, store, storeShifts, stressShift, flightData.pax_t2)
   }, [flightData, selectedDate, gateStressWeights, store, storeShifts, stressShift])
   const stressSummaryToday = useMemo(() => summarizeStressSeries(stressSeriesToday), [stressSeriesToday])
 
@@ -3697,10 +3698,12 @@ function FlightDataContent() {
                 ）與航班列表計算。圓形圖示為完整規則；<strong>齒輪</strong>可調登機門權重。
               </p>
               <StressCurvePanel
+                store={store}
                 shifts={storeShifts}
                 series={stressSeriesToday}
                 summary={stressSummaryToday}
                 flights={flightData?.flights || null}
+                pax={flightData?.pax_t2}
                 shiftKey={stressShift}
                 onShiftChange={setStressShift}
                 supportFrom={nightSupportPlan?.supportFrom}
@@ -4093,7 +4096,10 @@ function FlightDataContent() {
                   原理
                 </h4>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>每班航班會看「起飛前 60～30 分鐘」這段登機壓力窗。</li>
+                  <li>
+                    每班航班會看「起飛前 {stressWindowOf(store).fromMin}～{stressWindowOf(store).toMin} 分鐘」這段壓力窗
+                    {store.stressWindow ? '（這家店用交易紀錄校正過）' : ''}。
+                  </li>
                   <li>系統用 60 分鐘觀察槽去掃描，計算壓力窗和觀察槽重疊多少分鐘。</li>
                   <li>重疊分鐘數再乘上登機門權重，累加後就是該時段分數。</li>
                   <li>分數越高越忙。曲線每 15 分鐘一根柱子，畫的是一整天的形狀。</li>
@@ -4926,6 +4932,7 @@ function FlightDataContent() {
                 )}
               </p>
               <StressCurvePanel
+                store={store}
                 shifts={storeShifts}
                 series={stressSeriesMultiDay}
                 summary={stressSummaryMultiDay}
