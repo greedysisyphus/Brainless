@@ -21,6 +21,26 @@ save_script = load_script("save_flight_data", "save-to-firebase.py")
 TaoyuanAirportTxtAPIScraper = fetch_script.TaoyuanAirportTxtAPIScraper
 parse_t2_departure_pax = fetch_script.parse_t2_departure_pax
 count_t2_departures_by_hour = fetch_script.count_t2_departures_by_hour
+build_pax_daily = fetch_script.build_pax_daily
+FIXTURE_XLS = Path(__file__).with_name("fixtures").joinpath("pax-forecast-2026-09-25.xls").read_bytes()
+
+
+class FakeResponse:
+    def __init__(self, status_code, content=b""):
+        self.status_code = status_code
+        self.content = content
+
+
+class FakeSession:
+    """只有原版檔（沒有 _update），記下被抓過哪些日子。"""
+    def __init__(self):
+        self.fetched = []
+
+    def get(self, url, timeout=None):
+        if "_update" in url:
+            return FakeResponse(404)
+        self.fetched.append(url.rsplit("/", 1)[1])
+        return FakeResponse(200, FIXTURE_XLS)
 init_firebase = save_script.init_firebase
 save_to_firebase = save_script.save_to_firebase
 
@@ -36,8 +56,8 @@ class FakeBatch:
         self.writes = []
         self.fail = fail
 
-    def set(self, ref, data):
-        self.writes.append((ref, data))
+    def set(self, ref, data, merge=False):
+        self.writes.append((ref, data, merge))
 
     def commit(self):
         if self.fail:
@@ -88,8 +108,7 @@ class FlightPipelineTests(unittest.TestCase):
         self.assertEqual(flights, [])
 
     def test_pax_forecast_reads_t2_departures(self):
-        content = Path(__file__).with_name("fixtures").joinpath("pax-forecast-2026-09-25.xls").read_bytes()
-        pax = parse_t2_departure_pax(content)
+        pax = parse_t2_departure_pax(FIXTURE_XLS)
         self.assertEqual(pax["departure"][9], 4178)
         self.assertEqual(sum(pax["departure"]), 33926)
         self.assertEqual(pax["transfer"][9], 749)
@@ -106,6 +125,38 @@ class FlightPipelineTests(unittest.TestCase):
         counts = count_t2_departures_by_hour("\n".join(rows))
         self.assertEqual(counts["2026-09-25"][9], 2)
         self.assertEqual(sum(counts["2026-09-25"]), 2)
+
+    def test_pax_daily_refetches_near_days_and_only_backfills_missing(self):
+        from datetime import date
+        session = FakeSession()
+        stored = {"2026-09-20": 1, "2026-09-24": 1}
+        daily = build_pax_daily(session, date(2026, 9, 25), stored, near_days=range(-1, 2), back_days=6)
+        # 9/24 已存但在近日範圍 → 重抓；9/20 已存且較舊 → 跳過
+        self.assertIn("2026_09_24.xls", session.fetched)
+        self.assertNotIn("2026_09_20.xls", session.fetched)
+        self.assertEqual(len(session.fetched), 7)
+        self.assertEqual(daily["2026-09-25"], 33926 + 6582)
+
+    def test_pax_daily_merges_in_same_batch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            flight = write_record(directory)
+            daily = Path(directory) / "pax-t2-daily.json"
+            daily.write_text(json.dumps({"days": {"2026-09-25": 42669}}), encoding="utf-8")
+            db = FakeDb()
+            self.assertTrue(save_to_firebase(db, directory, [flight, daily]))
+            ref, data, merge = db.last_batch.writes[-1]
+            self.assertEqual(ref, "flightData/_pax_t2_daily")
+            self.assertEqual(data["days"], {"2026-09-25": 42669})
+            self.assertTrue(merge)
+
+    def test_bad_pax_daily_blocks_whole_batch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            flight = write_record(directory)
+            daily = Path(directory) / "pax-t2-daily.json"
+            daily.write_text(json.dumps({"days": {"today": -1}}), encoding="utf-8")
+            db = FakeDb()
+            self.assertFalse(save_to_firebase(db, directory, [flight, daily]))
+            self.assertEqual(db.last_batch.writes, [])
 
     def test_invalid_record_never_reaches_firestore(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -18,7 +18,7 @@ import {
   getFlightStore,
   loadStoredFlightStoreKey
 } from '../../utils/flightData/stores'
-import { loadFlightDataRecord } from '../../utils/flightData/loadFlightDay'
+import { loadFlightDataRecord, loadPaxDaily } from '../../utils/flightData/loadFlightDay'
 import {
   mergeGateStressWeights,
   loadStoredGateStressWeights,
@@ -49,6 +49,7 @@ import FlightRow, {
 } from './flight/FlightRow'
 import InfoTipIcon from './flight/InfoTipIcon'
 import StressCurvePanel from './flight/StressCurvePanel'
+import BusyIndexStrip from './flight/BusyIndexStrip'
 
 const CLASSIC_CHART_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#3b82f6', '#f97316', '#10b981', '#ef4444', '#6366f1']
 const STUDIO_CHART_COLORS = ['#71717a', '#a1a1aa', '#d4d4d8', '#52525b', '#3f3f46', '#e4e4e7', '#94a3b8', '#64748b']
@@ -187,6 +188,15 @@ function FlightDataContent() {
       }
     }
   }, [rawFlightData, store])
+
+  const [paxDaily, setPaxDaily] = useState(null)
+  useEffect(() => {
+    let alive = true
+    loadPaxDaily().then((days) => alive && setPaxDaily(days)).catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
 
   /** 班別時間與當天人員都以班表為準（店長每月匯入的才是權威） */
   const { book: shiftBook, loading: shiftBookLoading } = useShiftBook()
@@ -3629,6 +3639,7 @@ function FlightDataContent() {
       {activeTab === 'data' && (
         <>
           {/* 統計卡片 - 添加動畫效果 */}
+          <BusyIndexStrip days={paxDaily} date={flightData?.date || selectedDate} isStudio={isStudio} isClub={isClub} />
           <div className="animate-fade-in">
             {summaryCards}
           </div>

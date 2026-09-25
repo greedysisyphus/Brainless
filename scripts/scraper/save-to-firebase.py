@@ -50,14 +50,27 @@ def save_to_firebase(db, data_dir, requested_files=None):
     if not db:
         return False
 
-    json_files = [Path(path) for path in requested_files] if requested_files else sorted(Path(data_dir).glob("flight-data-*.json"))
+    json_files = [Path(path) for path in requested_files] if requested_files else sorted(Path(data_dir).glob("flight-data-*.json")) + sorted(Path(data_dir).glob("pax-t2-daily.json"))
     if not json_files:
         print("❌ 沒有找到 JSON 檔案")
         return False
 
     print(f"📁 找到 {len(json_files)} 個 JSON 檔案")
     records = []
+    pax_daily = None
     for json_file in json_files:
+        if json_file.name == "pax-t2-daily.json":
+            try:
+                days = json.loads(json_file.read_text(encoding="utf-8")).get("days")
+                if not isinstance(days, dict) or not days:
+                    raise ValueError("days 必須是非空物件")
+                if any(not re.fullmatch(r"\d{4}-\d{2}-\d{2}", k) or not isinstance(v, int) or v <= 0 for k, v in days.items()):
+                    raise ValueError("days 必須是 日期 → 正整數")
+                pax_daily = days
+            except Exception as e:
+                print(f"❌ 驗證 {json_file.name} 失敗: {e}")
+                return False
+            continue
         try:
             with open(json_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -83,6 +96,9 @@ def save_to_firebase(db, data_dir, requested_files=None):
         stored_at = datetime.now(timezone.utc).isoformat()
         for date_key, data in records:
             batch.set(db.collection("flightData").document(date_key), {**data, "_stored_at": stored_at})
+        if pax_daily:
+            # merge：只覆寫這次有的日子，官網刪掉的舊檔在這裡留著，最忙的一天才找得到
+            batch.set(db.collection("flightData").document("_pax_t2_daily"), {"days": pax_daily, "_stored_at": stored_at}, merge=True)
         batch.commit()
         for date_key, data in records:
             print(f"✅ 已存儲到 Firebase: {date_key} ({len(data['flights'])} 班)")

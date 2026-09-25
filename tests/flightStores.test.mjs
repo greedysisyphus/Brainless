@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 
 import { FLIGHT_STORES } from '../src/utils/flightData/stores.js'
+import { busyIndexOn } from '../src/utils/flightData/busyIndex.js'
 import { gateToFamily, isGateInStore } from '../src/utils/flightData/gates.js'
 import { resolveGateStressWeight } from '../src/utils/flightData/gateStressWeights.js'
 import { peopleByShiftOn, resolveStoreShifts } from '../src/utils/flightData/shiftBridge.js'
@@ -175,6 +176,17 @@ for (const store of [d13, d7]) {
   const series = stressSlotSeriesDay([at('08:00', 'D13')], DATE, d13.stressWeights, d13, resolveStoreShifts(d13, null, DATE).shifts, 'full', pax)
   assert.equal(series.find((sl) => sl.label.startsWith('07:00')).people, 250)
   assert.equal(stressSlotSeriesDay([at('08:00', 'D13')], DATE, d13.stressWeights, d13, resolveStoreShifts(d13, null, DATE).shifts, 'full')[0].people, null)
+}
+
+// 忙碌指數：最忙的一天＝100，沒資料回 null
+{
+  const days = { '2026-09-24': 43585, '2026-09-25': 42669, '2026-09-08': 29352 }
+  assert.deepEqual(busyIndexOn(days, '2026-09-24'), { index: 100, total: 43585, peakDate: '2026-09-24', label: '爆' })
+  assert.equal(busyIndexOn(days, '2026-09-25').label, '忙')
+  assert.equal(busyIndexOn(days, '2026-09-08').index, 67)
+  assert.equal(busyIndexOn(days, '2026-09-08').label, '輕鬆')
+  assert.equal(busyIndexOn(days, '2026-10-01'), null)
+  assert.equal(busyIndexOn(null, '2026-09-24'), null)
 }
 
 // 沒有航班時不能爆掉

@@ -245,6 +245,38 @@ def fetch_t2_departure_pax(session, date_key: str) -> Optional[Dict]:
     return None
 
 
+PAX_DAILY_DOC_URL = "https://firestore.googleapis.com/v1/projects/brainless-schedule/databases/(default)/documents/flightData/_pax_t2_daily"
+
+
+def build_pax_daily(session, today, stored: Dict[str, int], near_days: range = range(-1, 3), back_days: int = 30) -> Dict[str, int]:
+    """
+    忙碌指數用的每日 T2 出發＋轉機總數。官網只留約一個月的預報檔，所以要自己累積：
+    近幾天每次都重抓（會出更新版），更早的只補 Firestore 還沒有的日子。
+    """
+    from datetime import timedelta
+    out = {}
+    for offset in range(-back_days, near_days.stop):
+        date_key = (today + timedelta(days=offset)).isoformat()
+        if offset not in near_days and date_key in stored:
+            continue
+        pax = fetch_t2_departure_pax(session, date_key)
+        if pax:
+            out[date_key] = sum(pax["departure"]) + sum(pax["transfer"])
+    return out
+
+
+def load_stored_pax_daily(session) -> Dict[str, int]:
+    """公開讀取目前 Firestore 已存的日子；讀不到就當作空的（最多多抓幾個檔）。"""
+    try:
+        res = session.get(PAX_DAILY_DOC_URL, timeout=10)
+        if res.status_code != 200:
+            return {}
+        fields = res.json().get("fields", {}).get("days", {}).get("mapValue", {}).get("fields", {})
+        return {k: int(v.get("integerValue", 0)) for k, v in fields.items()}
+    except Exception:
+        return {}
+
+
 def format_time_for_display(dt: datetime) -> str:
     """格式化時間為顯示格式"""
     return dt.strftime('%H:%M')
@@ -420,6 +452,15 @@ if __name__ == '__main__':
             # 注意：Firebase 存儲將在 GitHub Actions 中單獨執行
             # 這裡不直接存儲，避免重複存儲和依賴問題
         
+        # 忙碌指數：每日總數另存一份，save-to-firebase 以 merge 寫進 flightData/_pax_t2_daily
+        from zoneinfo import ZoneInfo
+        today = datetime.now(ZoneInfo('Asia/Taipei')).date()
+        daily = build_pax_daily(scraper.session, today, load_stored_pax_daily(scraper.session))
+        if daily:
+            with open(os.path.join(data_dir, 'pax-t2-daily.json'), 'w', encoding='utf-8') as f:
+                json.dump({"days": daily}, f, ensure_ascii=False, indent=2)
+            print(f'✅ 已儲存: pax-t2-daily.json（{len(daily)} 天）')
+
         print(f'\n✅ 完成！共處理 {len(flights)} 筆航班資料，儲存到 {len(date_data)} 個日期檔案')
         
     except Exception as e:

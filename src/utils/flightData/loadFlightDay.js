@@ -40,3 +40,19 @@ export async function loadFlightDataRecord(date, signal) {
     }
   )
 }
+
+/** 每日 T2 預報總數（忙碌指數用），爬蟲以 merge 累積在 flightData/_pax_t2_daily。讀不到回 null。 */
+export async function loadPaxDaily() {
+  const result = await loadPrimaryThenFallback(
+    async () => {
+      const snapshot = await getDoc(doc(db, 'flightData', '_pax_t2_daily'))
+      return snapshot.exists() ? snapshot.data()?.days || null : null
+    },
+    async () => {
+      const response = await fetch(`${FLIGHT_DATA_BASE_PATH}pax-t2-daily.json`, { cache: 'no-cache' }).catch(() => null)
+      if (!response?.ok) return null
+      return (await response.json().catch(() => null))?.days || null
+    }
+  )
+  return result || null
+}
