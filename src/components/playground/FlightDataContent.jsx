@@ -2886,17 +2886,8 @@ function FlightDataContent() {
     return i
   }, [filteredFlights, nowMinutes])
 
-  const nowRowRef = useRef(null)
-  const scrolledToNowRef = useRef(false)
+  // 曾經會自動捲到現在線，但想看上面的航班時每次都要拉回去，反而礙事，所以拿掉了
   useEffect(() => {
-    // 只在每次換資料後自動捲一次，不然使用者往下看時會被拉回來
-    if (activeTab !== 'data' || nowRowIndex < 0 || !nowRowRef.current) return
-    if (scrolledToNowRef.current) return
-    scrolledToNowRef.current = true
-    nowRowRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  }, [activeTab, nowRowIndex])
-  useEffect(() => {
-    scrolledToNowRef.current = false
     setGateFilter(new Set())
   }, [flightData?.date, storeKey])
 
@@ -3956,7 +3947,7 @@ function FlightDataContent() {
                 {filteredFlights.map((flight, idx) => (
                   <Fragment key={flightRowKey(flight)}>
                     {idx === nowRowIndex && (
-                      <li ref={nowRowRef} aria-hidden="true" className="relative px-3 py-1 sm:px-4">
+                      <li aria-hidden="true" className="relative px-3 py-1 sm:px-4">
                         <div
                           className={`flex items-center gap-2 text-[11px] font-bold tabular-nums ${
                             isClub ? 'text-[#c84629]' : 'text-amber-500'
