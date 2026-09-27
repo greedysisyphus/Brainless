@@ -289,8 +289,10 @@ export const APP_CHANGELOG = [
 
 // 版號單一來源：之後發版只需改 APP_CHANGELOG 最上方一筆
 const FALLBACK_VERSION = APP_CHANGELOG[0]?.version ?? '1.6.5'
-const CHANGELOG_STORAGE_KEY = 'appChangelogLastSeenVersion'
-const BANNER_DISMISS_KEY = 'appChangelogBannerDismissedVersion'
+// 想讓已經看過的人再看一次同一版（例如提示改版後），就換 key 的後綴：舊的紀錄等於作廢。
+// 2026-09-27：更新提示改成新的 bar，讓 1.9.1 再出現一次
+const CHANGELOG_STORAGE_KEY = 'appChangelogLastSeenVersion.2'
+const BANNER_DISMISS_KEY = 'appChangelogBannerDismissedVersion.2'
 
 const ChangelogContext = createContext(null)
 
