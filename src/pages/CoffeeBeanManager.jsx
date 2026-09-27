@@ -7,6 +7,7 @@ import logoCat from '../assets/logo-cat.png'
 import BeanTypesSettingsModal from '../components/BeanTypesSettingsModal'
 import ExportLogoPicker, { EXPORT_LOGO_PRESETS } from './coffeeBean/ExportLogoPicker'
 import ClubWeightCalculatorModal from './coffeeBean/ClubWeightCalculatorModal'
+import QuantityRow from './coffeeBean/QuantityRow'
 import { useTheme } from '../contexts/ThemeContext'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwButton, CwCard, CwInput, CwStack } from '../components/studio/ui'
@@ -34,7 +35,7 @@ import {
   stripInventorySyncMeta,
 } from './coffeeBean/coffeeBeanInventorySync'
 import { InventoryConflictModal, InventorySyncBanner } from './coffeeBean/InventorySyncUI'
-import { coffeeBeanStudioTokens, getCoffeeBeanLayoutShells, getCoffeeCellModeBtnClass } from './coffeeBean/coffeeBeanStudioStyles'
+import { coffeeBeanStudioTokens, getCoffeeBeanLayoutShells } from './coffeeBean/coffeeBeanStudioStyles'
 
 const COFFEE_BC = [
   { label: 'Brainless', href: '#/sandwich' },
@@ -1119,6 +1120,86 @@ function CoffeeBeanManager() {
     })
   }
 
+  // 賣豆：更新數量（單次 setInventory；以前先初始化再更新，每打一個字存兩次）
+  const updateRetailQuantity = (beanType, location, index, value) => {
+    setInventory((prev) => {
+      let bean = prev.retail?.[beanType]
+      if (!bean) {
+        const beanLocation = getBeanLocation(beanType, 'retail')
+        bean = {}
+        if (beanLocation.store) bean.store = ['']
+        if (beanLocation.breakRoom) bean.breakRoom = ['']
+        if (beanLocation.dryStorage) bean.dryStorage = ['']
+      }
+      return {
+        ...prev,
+        retail: {
+          ...prev.retail,
+          [beanType]: {
+            ...bean,
+            [location]: (bean[location] || ['']).map((q, i) => (i === index ? value : q)),
+          },
+        },
+      }
+    })
+  }
+
+  // 刪一列後 5 秒內可復原：刪除按鈕變大、好按了，誤刪的機會也跟著變多
+  const [removedRow, setRemovedRow] = useState(null)
+  useEffect(() => {
+    if (!removedRow) return undefined
+    const timer = setTimeout(() => setRemovedRow(null), 5000)
+    return () => clearTimeout(timer)
+  }, [removedRow])
+  useEffect(() => {
+    setRemovedRow(null)
+  }, [selectedStore])
+
+  const removeRowWithUndo = (category, subCategory, beanType, location, index) => {
+    const bean = category === 'retail' ? inventory.retail?.[beanType] : inventory[category]?.[subCategory]?.[beanType]
+    const value = bean?.[location]?.[index] ?? ''
+    const mode = getCellModesArray(beanType, category, subCategory, location)[index] || 'quantity'
+    if (category === 'retail') removeRetailQuantityField(beanType, location, index)
+    else removeQuantityField(category, subCategory, beanType, location, index)
+    setRemovedRow({ category, subCategory, beanType, location, index, value, mode, at: Date.now() })
+  }
+
+  const restoreRemovedRow = () => {
+    const r = removedRow
+    if (!r) return
+    setRemovedRow(null)
+    const modesKey = getCellModesKey(r.beanType, r.category, r.subCategory, r.location)
+    setInventory((prev) => {
+      const insert = (arr) => {
+        const next = [...(arr || [''])]
+        next.splice(Math.min(r.index, next.length), 0, r.value)
+        return next
+      }
+      const modes = [...(prev.modes?.[modesKey] || [])]
+      while (modes.length < r.index) modes.push('quantity')
+      modes.splice(r.index, 0, r.mode)
+      const withModes = { ...prev, modes: { ...(prev.modes || {}), [modesKey]: modes } }
+      if (r.category === 'retail') {
+        const bean = prev.retail?.[r.beanType] || {}
+        return {
+          ...withModes,
+          retail: { ...prev.retail, [r.beanType]: { ...bean, [r.location]: insert(bean[r.location]) } },
+        }
+      }
+      const bean = prev[r.category]?.[r.subCategory]?.[r.beanType] || {}
+      return {
+        ...withModes,
+        [r.category]: {
+          ...prev[r.category],
+          [r.subCategory]: {
+            ...prev[r.category]?.[r.subCategory],
+            [r.beanType]: { ...bean, [r.location]: insert(bean[r.location]) },
+          },
+        },
+      }
+    })
+  }
+
   // 賣豆：新增一列（同步 mode 陣列）
   const addRetailQuantityField = (beanType, location) => {
     initializeRetailBeanType(beanType)
@@ -1990,13 +2071,9 @@ function CoffeeBeanManager() {
   const {
     cwBeanTitle,
     cwBeanDot,
-    cwInvInput,
-    cwInvInputLg,
-    cwCellModeGroup,
     cwBeanFooterShell,
     cwBeanFooterText,
   } = coffeeBeanStudioTokens
-  const cellModeBtnClasses = (active, m) => getCoffeeCellModeBtnClass(isStudio, active, m)
 
   const coffeeInner = (
     <div className="mx-auto w-full max-w-6xl">
@@ -2343,49 +2420,14 @@ function CoffeeBeanManager() {
                             {(beanData?.store || ['']).map((quantity, index) => {
                               const cellMode = getCellInputMode(beanType, 'brewing', 'pourOver', 'store', index)
                               return (
-                                <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                  <input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, e.target.value)}
-                                    placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'}
-                                    className={
-                                      isStudio
-                                        ? `${cwInvInputLg} transition-all`
-                                        : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-3 py-2 text-sm transition-all focus:border-blue-400/50 focus:bg-white/10'
-                                    }
-                                    inputMode="decimal"
-                                  />
-                                  <div
-                                    className={
-                                      isStudio
-                                        ? `${cwCellModeGroup} flex shrink-0 items-center gap-0.5`
-                                        : 'flex shrink-0 items-center gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'
-                                    }
-                                    role="group"
-                                    aria-label="填寫方式"
-                                  >
-                                    {['quantity', 'weightBag', 'weightBox'].map((m) => (
-                                      <button
-                                        key={m}
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          setCellInputMode(beanType, 'brewing', 'pourOver', 'store', index, m)
-                                        }}
-                                        style={{ touchAction: 'manipulation' }}
-                                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}
-                                      >
-                                        {m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  {(beanData?.store || []).length > 1 && (
-                                    <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'store', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0">
-                                      <TrashIcon className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
+                                <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'brewing', 'pourOver', 'store', index, mode)}
+ onRemove={(beanData?.store || []).length > 1 ? () => removeRowWithUndo('brewing', 'pourOver', beanType, 'store', index) : null}
+ />
                               )
                             })}
                           </div>
@@ -2411,17 +2453,14 @@ function CoffeeBeanManager() {
                               {(beanData?.breakRoom || ['']).map((quantity, index) => {
                                 const cellMode = getCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index)
                                 return (
-                                  <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                    <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-green-400/50 focus:bg-white/10'}
-                                      inputMode="decimal"
-                                    />
-                                    <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'} role="group" aria-label="填寫方式">
-                                      {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                        <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
-                                      ))}
-                                    </div>
-                                    {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
-                                  </div>
+                                  <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'brewing', 'pourOver', 'breakRoom', index, mode)}
+ onRemove={(beanData?.breakRoom || []).length > 1 ? () => removeRowWithUndo('brewing', 'pourOver', beanType, 'breakRoom', index) : null}
+ />
                                 )
                               })}
                             </div>
@@ -2444,16 +2483,14 @@ function CoffeeBeanManager() {
                           {(beanData?.dryStorage || ['']).map((quantity, index) => {
                             const cellMode = getCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index)
                             return (
-                              <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-orange-400/50 focus:bg-white/10'}
-                              inputMode="decimal" />
-                                <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'} role="group" aria-label="填寫方式">
-                                  {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
-                                  ))}
-                                </div>
-                                {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'pourOver', beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
-                              </div>
+                              <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'brewing', 'pourOver', 'dryStorage', index, mode)}
+ onRemove={(beanData?.dryStorage || []).length > 1 ? () => removeRowWithUndo('brewing', 'pourOver', beanType, 'dryStorage', index) : null}
+ />
                             )
                           })}
                         </div>
@@ -2509,16 +2546,14 @@ function CoffeeBeanManager() {
                         {(beanData?.store || ['']).map((quantity, index) => {
                           const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'store', index)
                           return (
-                            <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                              <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'store', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-blue-400/50 focus:bg-white/10'}
-                              inputMode="decimal" />
-                              <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
-                                {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                  <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
-                                ))}
-                              </div>
-                              {(beanData?.store || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'store', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
-                            </div>
+                            <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateQuantity('brewing', 'espresso', beanType, 'store', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'brewing', 'espresso', 'store', index, mode)}
+ onRemove={(beanData?.store || []).length > 1 ? () => removeRowWithUndo('brewing', 'espresso', beanType, 'store', index) : null}
+ />
                           )
                         })}
                       </div>
@@ -2538,17 +2573,14 @@ function CoffeeBeanManager() {
                           {(beanData?.breakRoom || ['']).map((quantity, index) => {
                             const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index)
                             return (
-                              <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-green-400/50 focus:bg-white/10'}
-                                      inputMode="decimal"
-                                    />
-                                <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
-                                  {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
-                                  ))}
-                                </div>
-                                {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
-                              </div>
+                              <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'brewing', 'espresso', 'breakRoom', index, mode)}
+ onRemove={(beanData?.breakRoom || []).length > 1 ? () => removeRowWithUndo('brewing', 'espresso', beanType, 'breakRoom', index) : null}
+ />
                             )
                           })}
                         </div>
@@ -2569,16 +2601,14 @@ function CoffeeBeanManager() {
                           {(beanData?.dryStorage || ['']).map((quantity, index) => {
                             const cellMode = getCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index)
                             return (
-                              <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                <input type="number" value={quantity} onChange={(e) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, e.target.value)} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-orange-400/50 focus:bg-white/10'}
-                              inputMode="decimal" />
-                                <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
-                                  {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
-                                  ))}
-                                </div>
-                                {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeQuantityField('brewing', 'espresso', beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
-                              </div>
+                              <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'brewing', 'espresso', 'dryStorage', index, mode)}
+ onRemove={(beanData?.dryStorage || []).length > 1 ? () => removeRowWithUndo('brewing', 'espresso', beanType, 'dryStorage', index) : null}
+ />
                             )
                           })}
                         </div>
@@ -2646,38 +2676,14 @@ function CoffeeBeanManager() {
                       {(beanData?.store || ['']).map((quantity, index) => {
                         const cellMode = getCellInputMode(beanType, 'retail', null, 'store', index)
                         return (
-                          <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                            <input
-                              type="number"
-                              value={quantity}
-                              onChange={(e) => {
-                                initializeRetailBeanType(beanType)
-                                setInventory(prev => ({
-                                  ...prev,
-                                  retail: {
-                                    ...prev.retail,
-                                    [beanType]: {
-                                      ...prev.retail[beanType],
-                                      store: prev.retail[beanType]?.store?.map((q, i) => (i === index ? e.target.value : q)) || ['']
-                                    }
-                                  }
-                                }))
-                              }}
-                              placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'}
-                              className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-blue-400/50 focus:bg-white/10'}
-                              inputMode="decimal"
-                            />
-                            <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
-                              {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'store', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
-                              ))}
-                            </div>
-                            {(beanData?.store || []).length > 1 && (
-                              <button onClick={() => removeRetailQuantityField(beanType, 'store', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0">
-                                <TrashIcon className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
+                          <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateRetailQuantity(beanType, 'store', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'retail', null, 'store', index, mode)}
+ onRemove={(beanData?.store || []).length > 1 ? () => removeRowWithUndo('retail', null, beanType, 'store', index) : null}
+ />
                         )
                       })}
                     </div>
@@ -2699,17 +2705,14 @@ function CoffeeBeanManager() {
                             {(beanData?.breakRoom || ['']).map((quantity, index) => {
                               const cellMode = getCellInputMode(beanType, 'retail', null, 'breakRoom', index)
                               return (
-                                <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                                  <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], breakRoom: prev.retail[beanType]?.breakRoom?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-green-400/50 focus:bg-white/10'}
-                                      inputMode="decimal"
-                                    />
-                                  <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
-                                    {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                      <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'breakRoom', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
-                                    ))}
-                                  </div>
-                                  {(beanData?.breakRoom || []).length > 1 && <button onClick={() => removeRetailQuantityField(beanType, 'breakRoom', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
-                                </div>
+                                <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateRetailQuantity(beanType, 'breakRoom', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'retail', null, 'breakRoom', index, mode)}
+ onRemove={(beanData?.breakRoom || []).length > 1 ? () => removeRowWithUndo('retail', null, beanType, 'breakRoom', index) : null}
+ />
                               )
                             })}
                           </div>
@@ -2732,16 +2735,14 @@ function CoffeeBeanManager() {
                         {(beanData?.dryStorage || ['']).map((quantity, index) => {
                           const cellMode = getCellInputMode(beanType, 'retail', null, 'dryStorage', index)
                           return (
-                            <div key={index} className="flex items-center gap-1.5 flex-wrap">
-                              <input type="number" value={quantity} onChange={(e) => { initializeRetailBeanType(beanType); setInventory(prev => ({ ...prev, retail: { ...prev.retail, [beanType]: { ...prev.retail[beanType], dryStorage: prev.retail[beanType]?.dryStorage?.map((q, i) => (i === index ? e.target.value : q)) || [''] } } })) }} placeholder={cellMode === 'quantity' ? '數量' : cellMode === 'weightBag' ? '總重(g)含袋' : '總重(g)含盒'} className={isStudio ? cwInvInput : 'input-field flex-1 min-w-0 rounded-lg border-white/10 bg-white/5 px-2.5 py-1.5 text-sm focus:border-orange-400/50 focus:bg-white/10'}
-                              inputMode="decimal" />
-                              <div className={isStudio ? cwCellModeGroup : 'flex shrink-0 gap-0.5 rounded border border-white/10 bg-white/5 p-0.5'}>
-                                {['quantity', 'weightBag', 'weightBox'].map(m => (
-                                  <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setCellInputMode(beanType, 'retail', null, 'dryStorage', index, m); }} style={{ touchAction: 'manipulation' }} className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${cellModeBtnClasses(cellMode === m, m)}`}>{m === 'quantity' ? '數' : m === 'weightBag' ? '袋' : '盒'}</button>
-                                ))}
-                              </div>
-                              {(beanData?.dryStorage || []).length > 1 && <button onClick={() => removeRetailQuantityField(beanType, 'dryStorage', index)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors shrink-0"><TrashIcon className="w-3 h-3" /></button>}
-                            </div>
+                            <QuantityRow
+ key={index}
+ value={quantity}
+ mode={cellMode}
+ onChange={(v) => updateRetailQuantity(beanType, 'dryStorage', index, v)}
+ onModeChange={(mode) => setCellInputMode(beanType, 'retail', null, 'dryStorage', index, mode)}
+ onRemove={(beanData?.dryStorage || []).length > 1 ? () => removeRowWithUndo('retail', null, beanType, 'dryStorage', index) : null}
+ />
                           )
                         })}
                       </div>
@@ -2763,6 +2764,23 @@ function CoffeeBeanManager() {
 
       {/* 出杯豆／賣豆 切換：固定在底部中間。以前浮在右上、可拖動，常蓋住清單右上角（豆名那一列），
           拖到哪裡都會擋到東西；底部中間跟右下的計算機同高、不重疊，拇指也最好按 */}
+      {removedRow ? (
+        <div
+          key={removedRow.at}
+          role="status"
+          className="fixed bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)] left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 whitespace-nowrap rounded-full bg-[var(--cw-text)] py-2 pl-4 pr-2 text-sm text-[var(--cw-bg)] shadow-[var(--cw-shadow-sm)] animate-fade-in md:bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+3.5rem)]"
+        >
+          已刪除 {removedRow.beanType} 的一列
+          <button
+            type="button"
+            onClick={restoreRemovedRow}
+            className="!min-h-0 rounded-full px-3 py-1 font-semibold text-[var(--cw-bg)] underline-offset-2 hover:underline"
+          >
+            復原
+          </button>
+        </div>
+      ) : null}
+
       <nav
         aria-label="跳到區域"
         className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex h-11 -translate-x-1/2 items-center gap-0.5 rounded-full border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]/95 p-1 shadow-[var(--cw-shadow-sm)] backdrop-blur md:bottom-[max(1.25rem,env(safe-area-inset-bottom))]"
