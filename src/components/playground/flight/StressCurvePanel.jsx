@@ -208,7 +208,10 @@ export default function StressCurvePanel({
           const inSupport = showSupport && isStressSlotInSupportPeriod(slot.startMin, supportFrom, supportUntil)
           return (
             <rect
-              key={slot.startMin}
+              // key 帶班別：切換班別時柱子重新長一次，滑過去（activeIdx 變動）則不會
+              key={`${shiftKey}-${slot.startMin}`}
+              className="stress-bar"
+              style={{ animationDelay: `${Math.round((i / Math.max(1, n)) * 300)}ms` }}
               x={xAt(i)}
               y={PAD_TOP + chartH - h}
               width={barW}
@@ -224,6 +227,8 @@ export default function StressCurvePanel({
         })}
         {hasPeople && (
           <polyline
+            key={`people-${shiftKey}`}
+            className="stress-line"
             points={peoplePoints}
             fill="none"
             stroke={peopleStroke}

@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+import { animate, useReducedMotion } from 'framer-motion'
 import { busyIndexOn } from '../../../utils/flightData/busyIndex'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
@@ -11,6 +13,29 @@ function shiftDate(date, days) {
 const md = (date) => {
   const d = new Date(`${date}T12:00:00`)
   return `${d.getMonth() + 1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）`
+}
+
+/** 數字從 0 數上來；值變了就從畫面上現在的數字接著數 */
+function CountUp({ value }) {
+  const reduce = useReducedMotion()
+  const [shown, setShown] = useState(reduce ? value : 0)
+  const shownRef = useRef(shown)
+  useEffect(() => {
+    if (reduce) {
+      setShown(value)
+      return undefined
+    }
+    const controls = animate(shownRef.current, value, {
+      duration: 0.7,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (v) => {
+        shownRef.current = v
+        setShown(Math.round(v))
+      },
+    })
+    return () => controls.stop()
+  }, [value, reduce])
+  return shown
 }
 
 /** 選定日與之後兩天的忙碌指數；官方預報約提前兩天，所以後面的日子沒資料就不顯示 */
@@ -40,8 +65,15 @@ export default function BusyIndexStrip({ days, date, isStudio = false, isClub = 
           <div key={d} className={offset === 0 ? '' : 'opacity-75'}>
             <div className={`text-[11px] sm:text-xs ${muted}`}>{md(d)}</div>
             <div className={`text-2xl font-bold tabular-nums sm:text-3xl ${busy.index >= 85 ? hot : text}`}>
-              {busy.index}
-              <span className="ml-1.5 text-sm font-semibold">{busy.label}</span>
+              <CountUp value={busy.index} />
+              {/* 標籤等數字數完才浮出來，key 讓換日期時重播 */}
+              <span
+                key={busy.label}
+                className="ml-1.5 inline-block animate-fade-in text-sm font-semibold"
+                style={{ animationDelay: '0.45s', animationFillMode: 'both' }}
+              >
+                {busy.label}
+              </span>
             </div>
           </div>
         ))}

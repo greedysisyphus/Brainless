@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { useAnimate, useReducedMotion } from 'framer-motion'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwAlert, CwButton, CwCard, CwDateInput, CwSelect, CwSkeleton } from '../components/studio/ui'
 import ErrorBoundary from '../components/ErrorBoundary'
@@ -161,6 +162,19 @@ function ShiftBoard() {
     }
   }, [])
 
+  // 換天時內容從那個方向滑進來：左右滑之後畫面瞬間換掉，很容易沒發現已經換了一天。
+  // 動的是同一個元素，不重建面板，裡面展開／收合的狀態不會被洗掉。
+  const [dayScope, animateDay] = useAnimate()
+  const reduceMotion = useReducedMotion()
+  const previousDateRef = useRef(selectedDate)
+  useEffect(() => {
+    const previous = previousDateRef.current
+    previousDateRef.current = selectedDate
+    if (previous === selectedDate || reduceMotion || !dayScope.current) return
+    const dir = selectedDate > previous ? 1 : -1
+    animateDay(dayScope.current, { x: [dir * 48, 0], opacity: [0.2, 1] }, { duration: 0.24, ease: 'easeOut' })
+  }, [selectedDate, reduceMotion, animateDay, dayScope])
+
   // 手機上左右滑換天：往左滑＝下一天，跟翻頁一樣。
   // 要明顯是橫向（水平位移是垂直的兩倍以上）才算，不然往下捲時手指歪一點就會換天。
   const swipeStartRef = useRef(null)
@@ -296,7 +310,7 @@ function ShiftBoard() {
                   </CwButton>
                 ) : null}
               </div>
-              <div onTouchStart={handleDaySwipeStart} onTouchEnd={handleDaySwipeEnd}>
+              <div ref={dayScope} onTouchStart={handleDaySwipeStart} onTouchEnd={handleDaySwipeEnd}>
                 <ShiftTodayPanel
                   book={book}
                   dateKey={selectedDate}

@@ -4,6 +4,7 @@ import { auth, checkAdminStatus } from '../../utils/firebase'
 import { getNavItems } from '../../config/navigation.jsx'
 import BrainlessLogo from './BrainlessLogo'
 import { ChangelogTrigger, ChangelogUpdateBar } from '../ChangelogNotice'
+import updateCat from '../../assets/update-cat.webp'
 
 function ClubNavItem({ path, label, badge, Icon }) {
   return (
@@ -43,7 +44,18 @@ function ClubNavItem({ path, label, badge, Icon }) {
   )
 }
 
+// 貓的動畫一輪約 3.1 秒（52 格 × 60ms），彩蛋就播一輪
+const CAT_CAMEO_MS = 3200
+
 export default function ClubShell({ children }) {
+  // 彩蛋：點 logo 除了回首頁，旁邊會跑出一隻貓播一輪
+  const [catCameo, setCatCameo] = useState(0)
+  useEffect(() => {
+    if (!catCameo) return undefined
+    const timer = setTimeout(() => setCatCameo(0), CAT_CAMEO_MS)
+    return () => clearTimeout(timer)
+  }, [catCameo])
+
   const [isAdmin, setIsAdmin] = useState(false)
   useEffect(() => {
     let mounted = true
@@ -105,9 +117,19 @@ export default function ClubShell({ children }) {
           <NavLink
             to="/sandwich"
             aria-label="回到厚片計算器"
-            className={`origin-center transition-transform duration-200 ${condensed ? 'scale-[0.58]' : 'scale-100'}`}
+            onClick={() => setCatCameo(Date.now())}
+            className={`relative origin-center transition-transform duration-200 ${condensed ? 'scale-[0.58]' : 'scale-100'}`}
           >
             <BrainlessLogo size={66} />
+            {catCameo ? (
+              <img
+                key={catCameo}
+                src={updateCat}
+                alt=""
+                aria-hidden
+                className="cat-cameo pointer-events-none absolute -right-12 bottom-0 h-11 w-auto sm:-right-14 sm:h-12"
+              />
+            ) : null}
           </NavLink>
         </div>
         <nav className="relative border-t border-black/10 bg-white/35 px-2 py-1.5 sm:px-5 sm:py-3 lg:px-8" aria-label="主要功能">

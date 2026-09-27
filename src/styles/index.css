@@ -590,3 +590,44 @@
   background-size: 400% 400%;
   animation: gradient-shift 15s ease infinite;
 }
+
+/* 壓力曲線：柱子從底部長出來，由左往右掃過去（每根延遲一點點） */
+@keyframes stress-bar-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.stress-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: stress-bar-grow 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes stress-line-in {
+  from { opacity: 0; }
+}
+.stress-line {
+  animation: stress-line-in 0.5s ease-out 0.35s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stress-bar,
+  .stress-line {
+    animation: none;
+  }
+}
+
+/* logo 彩蛋：貓從底下彈出來、播一輪、再縮回去 */
+@keyframes cat-cameo {
+  0% { opacity: 0; transform: translateY(40%) scale(0.6); }
+  10% { opacity: 1; transform: translateY(0) scale(1.06); }
+  16% { transform: translateY(0) scale(1); }
+  88% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(30%) scale(0.7); }
+}
+.cat-cameo {
+  transform-origin: bottom center;
+  animation: cat-cameo 3.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat-cameo {
+    animation: none;
+  }
+}
