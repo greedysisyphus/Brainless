@@ -1,32 +1,35 @@
 import { DocumentTextIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useChangelog } from '../contexts/ChangelogContext'
+import updateCat from '../assets/update-cat.webp'
 
 export function ChangelogUpdateBar() {
   const { showUpdateBanner, latestVersion, latestTitle, openChangelog, dismissBanner } = useChangelog()
 
   if (!showUpdateBanner) return null
 
-  const label = latestTitle ? `v${latestVersion} 更新 · ${latestTitle}` : `v${latestVersion} 更新`
-
   return (
-    <div
-      className="flex min-h-11 items-center gap-2 border-b border-[#c64022]/20 bg-[#fff1ed] px-3 text-[#9f301b] sm:px-5"
-      role="status"
-    >
+    // 細、置中、跟 header 同色系：原本整條粉紅色帶太搶，又看不出能點
+    <div className="relative flex h-10 items-center justify-center border-b border-black/[0.06] bg-white/60 px-11" role="status">
       <button
         type="button"
         onClick={openChangelog}
-        className="cw-touch-target flex min-w-0 flex-1 items-center text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
+        className="group flex !min-h-0 min-w-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-1 text-[13px] text-[#171717] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
       >
-        <span className="truncate text-sm font-semibold">{label}</span>
+        <img src={updateCat} alt="" aria-hidden className="h-5 w-auto shrink-0" />
+        <span className="shrink-0 font-bold text-[#ec5836]">v{latestVersion}</span>
+        {latestTitle ? <span className="min-w-0 truncate font-semibold">{latestTitle}</span> : null}
+        <span className="shrink-0 font-semibold text-[#ec5836] underline-offset-2 group-hover:underline">
+          看更新 →
+        </span>
+        <img src={updateCat} alt="" aria-hidden className="h-5 w-auto shrink-0 -scale-x-100" />
       </button>
       <button
         type="button"
         onClick={dismissBanner}
-        className="cw-touch-target grid h-11 w-11 shrink-0 place-items-center rounded-[var(--cw-radius)] text-[#9f301b] hover:bg-[#c64022]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
+        className="absolute right-1 top-1/2 grid h-9 w-9 !min-h-0 -translate-y-1/2 place-items-center rounded-full text-black/40 hover:bg-black/5 hover:text-black/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cw-focus-ring)]"
         aria-label="關閉更新提示"
       >
-        <XMarkIcon className="h-5 w-5" />
+        <XMarkIcon className="h-4 w-4" />
       </button>
     </div>
   )
