@@ -1110,6 +1110,19 @@ function GoodsOrderManager() {
     }
   }
 
+  /**
+   * 叫貨快照：主文件放「最新一次」（其他地方讀這份），另外每次都存一筆進 history。
+   * 以前每次輸出都覆蓋上一次，快照原本要拿來算消耗量，只剩一筆就算不出來。
+   * history 的編號用這次的時間，重試更新時不會多存一筆。
+   */
+  const saveSnapshot = (storeId, payload) => {
+    const snapshotRef = doc(db, 'settings', getSnapshotDocId(storeId))
+    return Promise.all([
+      setDoc(snapshotRef, payload),
+      setDoc(doc(snapshotRef, 'history', `s_${payload._clientUpdatedAt}`), payload),
+    ])
+  }
+
   const completeNoOrder = async () => {
     const payload = {
       text: '',
@@ -1119,7 +1132,7 @@ function GoodsOrderManager() {
     }
     setIsCopying(true)
     try {
-      await setDoc(doc(db, 'settings', getSnapshotDocId(selectedStore)), payload)
+      await saveSnapshot(selectedStore, payload)
       setSnapshotRetryPayload(null)
       setCopyMessageVariant('success')
       setCopyMessage('盤點完成，本次庫存足夠；快照已更新')
@@ -1199,7 +1212,7 @@ function GoodsOrderManager() {
       _clientUpdatedAt: Date.now(),
     }
     try {
-      await setDoc(doc(db, 'settings', getSnapshotDocId(selectedStore)), payload)
+      await saveSnapshot(selectedStore, payload)
       setSnapshotRetryPayload(null)
       setCopyMessageVariant(isPartial ? 'warning' : 'success')
       setCopyMessage(
@@ -1228,10 +1241,7 @@ function GoodsOrderManager() {
     if (!snapshotRetryPayload) return
     setIsCopying(true)
     try {
-      await setDoc(
-        doc(db, 'settings', getSnapshotDocId(selectedStore)),
-        snapshotRetryPayload
-      )
+      await saveSnapshot(selectedStore, snapshotRetryPayload)
       setSnapshotRetryPayload(null)
       setCopyMessageVariant('success')
       setCopyMessage('快照已更新')
@@ -1465,7 +1475,9 @@ function GoodsOrderManager() {
                       }}
                       name={`goods-current-${item.id}`}
                       type="text"
-                      inputMode="text"
+                      // 數字鍵盤：以前用完整鍵盤是為了能打「1 1/2」，但每次都要切鍵盤；
+                      // 常用的分數有快捷按鈕（½），其他打小數（1.5）即可，解析兩種都吃
+                      inputMode="decimal"
                       enterKeyHint="next"
                       autoComplete="off"
                       value={currentDisplay}
@@ -1476,7 +1488,7 @@ function GoodsOrderManager() {
                       }}
                       onKeyDown={(event) => handleCurrentKeyDown(event, item)}
                       onBlur={() => setFocusedItemId((id) => (id === item.id ? null : id))}
-                      placeholder="例如 0、1/2 或 1 1/2…"
+                      placeholder="例如 0、0.5、1.5"
                       aria-label={`${item.name} 現有數量`}
                       aria-invalid={status === 'invalid'}
                       aria-describedby={status === 'invalid' ? errorId : undefined}
@@ -1601,7 +1613,9 @@ function GoodsOrderManager() {
                       }}
                       name={`goods-current-${item.id}`}
                       type="text"
-                      inputMode="text"
+                      // 數字鍵盤：以前用完整鍵盤是為了能打「1 1/2」，但每次都要切鍵盤；
+                      // 常用的分數有快捷按鈕（½），其他打小數（1.5）即可，解析兩種都吃
+                      inputMode="decimal"
                       enterKeyHint="next"
                       autoComplete="off"
                       className={`${tableInputClass} ${

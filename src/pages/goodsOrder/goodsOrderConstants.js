@@ -295,7 +295,7 @@ export function getCurrentQuantityError(item, countEntry) {
   const currentRaw = countEntry?.current
   const parsed = parseQuantity(currentRaw === 0 || currentRaw ? String(currentRaw) : '')
   if (parsed.kind === 'empty' || parsed.kind === 'incomplete') return ''
-  if (parsed.kind === 'invalid') return '請輸入 0、0.5、1/2 或 1 1/2 這類數量。'
+  if (parsed.kind === 'invalid') return '請輸入 0、0.5、1.5 這類數量。'
   if (parsed.value < 0) return '現有數量不能小於 0。'
   if (!item.allowFraction && !Number.isInteger(parsed.value)) {
     return `${item.unit || '此品項'}只能輸入整數。`
@@ -328,7 +328,7 @@ export function getOrderQuantityError(item, countEntry) {
       ? getEffectiveOrderQty(item, countEntry)
       : countEntry.orderQty
   const parsed = parseQuantity(raw)
-  if (parsed.kind !== 'value') return '請輸入有效的叫貨量，例如 1、1/2 或 2。'
+  if (parsed.kind !== 'value') return '請輸入有效的叫貨量，例如 1、0.5 或 2。'
   if (parsed.value <= 0) return '叫貨量必須大於 0。'
   if (!item.allowFraction && !Number.isInteger(parsed.value)) {
     return `${item.unit || '此品項'}只能輸入整數。`

@@ -36,6 +36,9 @@ export const db = initializeFirestore(app, {
     cacheSizeBytes: CACHE_SIZE_UNLIMITED,
     tabManager: persistentMultipleTabManager(),
   }),
+  // 物件裡某個欄位是 undefined 時直接略過，而不是整份文件被拒（畫面只會看到「無法同步到雲端」）。
+  // 注意：陣列裡的 undefined（空洞）仍會被拒，那種要在送出前自己補值。
+  ignoreUndefinedProperties: true,
 });
 
 export const auth = getAuth(app);
