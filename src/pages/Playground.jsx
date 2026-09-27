@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { MusicalNoteIcon, CloudIcon, CalendarIcon, ChartBarIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
+import { MusicalNoteIcon, CloudIcon, CalendarIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
 import { CocktailIcon } from '../config/navigation.jsx'
 import { Suspense, lazy } from 'react'
 import LoadingPage from './LoadingPage'
@@ -11,7 +11,6 @@ const MusicContent = lazy(() => import('../components/playground/MusicContent'))
 const WeatherContent = lazy(() => import('../components/playground/WeatherContent'))
 const ScheduleExport = lazy(() => import('../components/playground/ScheduleManager'))
 const ScheduleManagerPage = lazy(() => import('../pages/ScheduleManager'))
-const EchartsDemo = lazy(() => import('./EchartsDemo'))
 const AlcoholContent = lazy(() => import('../components/playground/AlcoholContent'))
 
 const PLAY_ROOT_BC = [{ label: 'Brainless', href: '#/sandwich' }, { label: 'Playground', href: '#/playground' }]
@@ -37,11 +36,6 @@ const PAGE_META = {
     title: '班表管理工具',
     description: '編輯、統計與匯出一站式。',
   },
-  charts: {
-    crumb: 'Charts Testing',
-    title: 'Charts Testing',
-    description: 'ECharts／圖表演練區。',
-  },
   studioui: {
     crumb: 'Studio UI',
     title: 'Studio 元件樣板',
@@ -65,7 +59,6 @@ function Playground() {
     else if (hash.includes('#weather')) setCurrentPage('weather')
     else if (hash.includes('#schedule-manager')) setCurrentPage('schedule-manager')
     else if (hash.includes('#schedule')) setCurrentPage('schedule')
-    else if (hash.includes('#charts')) setCurrentPage('charts')
     else if (hash.includes('#studio-ui') || hash.includes('#craft-ui')) setCurrentPage('studioui')
     else if (hash.includes('#alcohol')) setCurrentPage('alcohol')
     else setCurrentPage(null)
@@ -87,7 +80,6 @@ function Playground() {
         { id: 'weather', icon: CloudIcon, label: '天氣', sub: '#weather', accent: 'text-cyan-300' },
         { id: 'schedule-manager', icon: CalendarIcon, label: '班表管理', sub: '#schedule-manager', accent: 'text-emerald-300' },
         { id: 'schedule', icon: CalendarIcon, label: '班表匯出', sub: '#schedule', accent: 'text-teal-300' },
-        { id: 'charts', icon: ChartBarIcon, label: 'Charts Testing', sub: '#charts', accent: 'text-amber-300' },
         { id: 'alcohol', icon: CocktailIcon, label: '酒精計算', sub: '#alcohol', accent: 'text-pink-300' },
         {
           id: 'studioui',
@@ -167,7 +159,6 @@ function Playground() {
         {currentPage === 'weather' && <WeatherContent />}
         {currentPage === 'schedule' && <ScheduleExport />}
         {currentPage === 'schedule-manager' && <ScheduleManagerPage embedded />}
-        {currentPage === 'charts' && <EchartsDemo />}
         {currentPage === 'alcohol' && <AlcoholContent />}
         {currentPage === 'studioui' && studioUiShowcase}
       </Suspense>
