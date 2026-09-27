@@ -62,7 +62,7 @@ const initializeBeanLocation = (beanLocations, beanName, selectedStore) => {
   }
 }
 
-function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) {
+function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central', onRenameBeans }) {
   const { isStudio } = useTheme()
   const [beanTypes, setBeanTypes] = useState(DEFAULT_BEAN_TYPES)
   const [beanLocations, setBeanLocations] = useState(getDefaultBeanLocationsForStore(selectedStore))
@@ -73,6 +73,20 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
   const [selectedSubCategory, setSelectedSubCategory] = useState('pourOver')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  // 這次打開改過哪些名字；按儲存時交給盤點頁，把數量搬到新名字底下（數量是用名字存的）
+  const [renames, setRenames] = useState([])
+  useEffect(() => {
+    if (isOpen) setRenames([])
+  }, [isOpen])
+
+  /** 同一個分類裡已經有這個名字（不算正在改的那一格自己） */
+  const isDuplicateName = (name, category, subCategory, exceptIndex = -1) => {
+    const list = category === 'retail' ? beanTypes.retail : beanTypes.brewing?.[subCategory]
+    return (list || []).some((n, i) => i !== exceptIndex && n === name)
+  }
+
+  /** 淺拷貝到 brewing 這層：以前只拷一層，改 brewing[sub] 會直接改到原本的物件（甚至 DEFAULT 常數） */
+  const cloneBeanTypes = () => ({ ...beanTypes, brewing: { ...beanTypes.brewing } })
 
   // 從 Firebase 載入設定（根據選中的店鋪）
   useEffect(() => {
@@ -178,6 +192,8 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
     setIsSaving(true)
     try {
       const firebaseDocId = `coffeeBeanTypes_${selectedStore}`
+      // 先搬數量再寫品項：品項一寫進雲端，盤點頁就會用新名字去找數量
+      if (renames.length) onRenameBeans?.(renames)
       await setDoc(doc(db, 'settings', firebaseDocId), {
         beanTypes,
         beanLocations,
@@ -220,8 +236,25 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
       : beanTypes[editingItem.category][editingItem.index]
     const newBeanName = editValue.trim()
 
+    if (
+      oldBeanName !== newBeanName &&
+      isDuplicateName(newBeanName, editingItem.category, editingItem.subCategory, editingItem.index)
+    ) {
+      alert(`這個分類已經有「${newBeanName}」了`)
+      return
+    }
+
     // 如果名稱改變，需要更新位置設定（使用分類鍵）
     if (oldBeanName !== newBeanName) {
+      setRenames((list) => [
+        ...list,
+        {
+          category: editingItem.category,
+          subCategory: editingItem.subCategory || null,
+          from: oldBeanName,
+          to: newBeanName,
+        },
+      ])
       // 計算舊鍵和新鍵
       const oldKey = editingItem.subCategory
         ? `brewing.${editingItem.subCategory}.${oldBeanName}`
@@ -246,7 +279,7 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
       })
     }
 
-    const newBeanTypes = { ...beanTypes }
+    const newBeanTypes = cloneBeanTypes()
 
     if (editingItem.subCategory) {
       // 編輯子分類中的品項
@@ -271,8 +304,13 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
       return
     }
 
-    const newBeanTypes = { ...beanTypes }
+    const newBeanTypes = cloneBeanTypes()
     const newBeanName = newItemValue.trim()
+
+    if (isDuplicateName(newBeanName, selectedCategory, selectedSubCategory)) {
+      alert(`這個分類已經有「${newBeanName}」了`)
+      return
+    }
 
     if (selectedCategory === 'retail') {
       newBeanTypes.retail = [...newBeanTypes.retail, newBeanName]
@@ -307,7 +345,7 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central' }) 
       return
     }
 
-    const newBeanTypes = { ...beanTypes }
+    const newBeanTypes = cloneBeanTypes()
 
     if (item.subCategory) {
       newBeanTypes[item.category][item.subCategory] = newBeanTypes[item.category][item.subCategory].filter(

@@ -20,6 +20,9 @@ export function stripInventorySyncMeta(data) {
   return {
     brewing: rest.brewing || { pourOver: {}, espresso: {} },
     retail: rest.retail || {},
+    // 每列是「數／袋／盒」：跟數字放同一份文件才會一起同步。
+    // 舊文件沒有這欄時保持 undefined（不補 {}），頁面靠這點判斷要不要搬舊的本機設定。
+    ...(rest.modes && typeof rest.modes === 'object' ? { modes: rest.modes } : {}),
   }
 }
 
@@ -79,6 +82,9 @@ export function mergeInventoryData(local, remote) {
       espresso: mergeInventoryObjects(remoteClean.brewing?.espresso, localClean.brewing?.espresso),
     },
     retail: mergeInventoryObjects(remoteClean.retail, localClean.retail),
+    ...(remoteClean.modes || localClean.modes
+      ? { modes: mergeInventoryObjects(remoteClean.modes, localClean.modes) }
+      : {}),
   }
 }
 

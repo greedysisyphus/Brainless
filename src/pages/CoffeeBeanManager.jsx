@@ -165,90 +165,6 @@ function CoffeeBeanManager() {
   // 滾動位置保存（用於彈窗關閉時恢復）
   const scrollPositionRef = useRef(0)
   
-  // 浮動區域指示器位置（可拖動）；最小 top 避免壓到 navigation
-  const MIN_INDICATOR_TOP = 200
-  const [indicatorPosition, setIndicatorPosition] = useLocalStorage('coffeeBeanIndicatorPosition', {
-    top: 200,
-    right: 16,
-    left: null
-  })
-  const [isDragging, setIsDragging] = useState(false)
-  const dragStartRef = useRef({ x: 0, y: 0, top: 0, right: 0, left: 0 })
-  
-  // 處理拖動開始
-  const handleIndicatorDragStart = (e) => {
-    setIsDragging(true)
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY
-    
-    // 獲取當前元素的絕對位置
-    const element = e.currentTarget.parentElement
-    const rect = element.getBoundingClientRect()
-    
-    dragStartRef.current = {
-      x: clientX,
-      y: clientY,
-      startX: rect.left,
-      startY: rect.top
-    }
-    
-    e.preventDefault()
-    e.stopPropagation()
-  }
-  
-  // 處理拖動中
-  useEffect(() => {
-    if (!isDragging) return
-    
-    const handleMove = (e) => {
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY
-      
-      const deltaX = clientX - dragStartRef.current.x
-      const deltaY = clientY - dragStartRef.current.y
-      
-      const windowWidth = window.innerWidth
-      const windowHeight = window.innerHeight
-      const elementWidth = 180 // 估計元素寬度
-      
-      // 計算新位置的絕對 left 值
-      let newLeft = dragStartRef.current.startX + deltaX
-      let newTop = dragStartRef.current.startY + deltaY
-      
-      // 限制在視窗範圍內，且不壓到 navigation（min top）
-      newTop = Math.max(MIN_INDICATOR_TOP, Math.min(newTop, windowHeight - 60))
-      newLeft = Math.max(0, Math.min(newLeft, windowWidth - elementWidth))
-      
-      // 判斷應該使用 left 還是 right（根據位置是否超過中線）
-      const centerX = windowWidth / 2
-      const useRight = newLeft > centerX
-      
-      setIndicatorPosition({
-        top: newTop,
-        right: useRight ? windowWidth - newLeft - elementWidth : null,
-        left: useRight ? null : newLeft
-      })
-      
-      e.preventDefault()
-    }
-    
-    const handleEnd = () => {
-      setIsDragging(false)
-    }
-    
-    document.addEventListener('mousemove', handleMove)
-    document.addEventListener('mouseup', handleEnd)
-    document.addEventListener('touchmove', handleMove, { passive: false })
-    document.addEventListener('touchend', handleEnd)
-    
-    return () => {
-      document.removeEventListener('mousemove', handleMove)
-      document.removeEventListener('mouseup', handleEnd)
-      document.removeEventListener('touchmove', handleMove)
-      document.removeEventListener('touchend', handleEnd)
-    }
-  }, [isDragging, setIndicatorPosition])
-  
   // 滾動鎖定：iOS 上不用 body position:fixed，避免關閉 modal 後觸控層錯位、數/袋/盒 按不到
   useEffect(() => {
     const ios = isIOS()
@@ -354,12 +270,16 @@ function CoffeeBeanManager() {
 
   /** 僅調整結構（品項位置變更），不標記為使用者盤點編輯 */
   const setInventoryStructure = (updater) => {
-    applyRemoteInventoryRef.current = true
-    skipInventorySyncEffectRef.current = true
-    if (selectedStore === 'd7') setInventoryD7(updater)
-    else if (selectedStore === 'd13') setInventoryD13(updater)
-    else setInventoryCentral(updater)
-    applyRemoteInventoryRef.current = false
+    // 只有真的改到東西才跳過下一次同步。以前一律先立旗標，但 updater 常常原封不動回傳 prev，
+    // 畫面不重繪、同步 effect 不會跑，旗標就一直卡著 —— 結果使用者下一次真正的修改被跳過、沒存到雲端。
+    const apply = (prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      if (next !== prev) skipInventorySyncEffectRef.current = true
+      return next
+    }
+    if (selectedStore === 'd7') setInventoryD7(apply)
+    else if (selectedStore === 'd13') setInventoryD13(apply)
+    else setInventoryCentral(apply)
   }
 
   useEffect(() => {
@@ -420,8 +340,33 @@ function CoffeeBeanManager() {
     return weightSettingsCentral
   }, [selectedStore, weightSettingsCentral, weightSettingsD7, weightSettingsD13])
 
-  // 每一「列」的填寫方式：同一位置可混用 數量/銀袋/盒子；key 為 beanKey + '.' + location，value 為 mode 陣列與該位置格子一一對應
-  const [beanInputModes, setBeanInputModes] = useLocalStorage('coffeeBeanTableInputModes', {})
+  // 每一「列」的填寫方式：同一位置可混用 數量/銀袋/盒子；key 為 beanKey + '.' + location，value 為 mode 陣列與該位置格子一一對應。
+  // 存在該店盤點文件的 modes 欄，跟數字一起同步。以前只存在本機且三店共用：
+  // 別台手機讀不到，會把用「袋」填的克數當包數加總（例如水洗顯示 7256 包）。
+  const beanInputModes = inventory.modes || {}
+  const setBeanInputModes = (updater) =>
+    setInventory((prev) => ({ ...prev, modes: updater(prev.modes || {}) }))
+
+  // 搬家：這台手機有舊的本機設定、而這家店的雲端文件還沒有 modes 欄 → 把舊設定寫進去一次。
+  // 舊設定在這台手機上本來就套用在三家店，所以搬進去的就是這台手機原本看到的樣子。
+  // 一定要等第一次雲端資料到了才做，不然會跟雲端資料打架（被判成衝突）。
+  const [legacyInputModes] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('coffeeBeanTableInputModes') || '{}')
+      const hasWeight = Object.values(saved).some(
+        (arr) => Array.isArray(arr) && arr.some((m) => m === 'weightBag' || m === 'weightBox')
+      )
+      return hasWeight ? saved : null
+    } catch {
+      return null
+    }
+  })
+  useEffect(() => {
+    if (!legacyInputModes || inventory.modes) return
+    if (!getInventorySyncMeta(selectedStore).hasReceivedInitialRemote) return
+    setInventory((prev) => (prev.modes ? prev : { ...prev, modes: legacyInputModes }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 只看這家店的資料有沒有 modes
+  }, [inventory, selectedStore, legacyInputModes])
 
   const getCellModesKey = (beanName, category, subCategory, location) =>
     `${getBeanKey(beanName, category, subCategory)}.${location}`
@@ -1238,6 +1183,36 @@ function CoffeeBeanManager() {
     }))
   }
 
+  /**
+   * 品項改名後把數量和「數／袋／盒」搬到新名字底下。盤點是用名字存的，
+   * 不搬的話改完名那一欄就變空的，舊數字留在一個再也看不到的名字底下。
+   * 依序套用，所以同一次改兩次（A→B→C）也對。
+   */
+  const renameBeansInInventory = (renames) => {
+    setInventory((prev) => {
+      const next = { ...prev, brewing: { ...prev.brewing }, retail: { ...prev.retail } }
+      if (prev.modes) next.modes = { ...prev.modes }
+      renames.forEach(({ category, subCategory, from, to }) => {
+        const container = category === 'retail' ? next.retail : { ...(next.brewing?.[subCategory] || {}) }
+        if (container[from] !== undefined) {
+          container[to] = container[from]
+          delete container[from]
+        }
+        if (category !== 'retail') next.brewing[subCategory] = container
+        if (next.modes) {
+          const oldPrefix = `${getBeanKey(from, category, subCategory)}.`
+          const newPrefix = `${getBeanKey(to, category, subCategory)}.`
+          Object.keys(next.modes).forEach((key) => {
+            if (!key.startsWith(oldPrefix)) return
+            next.modes[newPrefix + key.slice(oldPrefix.length)] = next.modes[key]
+            delete next.modes[key]
+          })
+        }
+      })
+      return next
+    })
+  }
+
   // 計算總數（純數量加總，用於內部）
   const calculateTotal = (quantities) => {
     return quantities?.reduce((sum, q) => sum + (parseInt(q) || 0), 0) || 0
@@ -1386,13 +1361,15 @@ function CoffeeBeanManager() {
   const resetAllData = async () => {
     const storeId = selectedStore
     const storeName = getStoreName(storeId)
-    if (!confirm(`確定要重置「${storeName}」的盤點數據嗎？此操作無法復原，不會影響其他分店。`)) {
+    if (!confirm(`確定要清空「${storeName}」這次的盤點數字嗎？\n\n會清掉：所有數量、每列的數／袋／盒\n不會動：品項設定、重量設定、其他分店\n\n清空後無法復原。`)) {
       return
     }
 
+    // modes 給 {}（不是省略）：代表「這家店已經有自己的設定」，不會再把舊的本機設定搬進來
     const createEmptyInventory = () => ({
       brewing: { pourOver: {}, espresso: {} },
       retail: {},
+      modes: {},
     })
     const emptyInventory = createEmptyInventory()
     const now = Date.now()
@@ -1412,22 +1389,16 @@ function CoffeeBeanManager() {
     meta.lastLocalEditAt = now
     meta.hasReceivedInitialRemote = true
 
-    setCalculations([{ id: 1, totalWeight: '', estimatedPacks: 0 }])
-    if (storeId === 'd7') setWeightSettingsD7(DEFAULT_WEIGHTS)
-    else if (storeId === 'd13') setWeightSettingsD13(DEFAULT_WEIGHTS)
-    else setWeightSettingsCentral(DEFAULT_WEIGHTS)
-    setWeightMode('bag')
+    // 只清盤點。重量設定（每袋、每盒幾克）是校正值，不是這次盤點的資料；
+    // 換算器的內容三店共用，清掉會連別店算到一半的一起沒了。兩者都保留。
     if (inventoryConflict?.storeId === storeId) setInventoryConflict(null)
     setInventorySyncStatus('syncing')
 
     try {
-      await Promise.all([
-        setDoc(doc(db, 'settings', getInventoryStorageKey(storeId)), {
-          ...createEmptyInventory(),
-          _clientUpdatedAt: now,
-        }),
-        setDoc(doc(db, 'settings', getWeightDocId(storeId)), DEFAULT_WEIGHTS),
-      ])
+      await setDoc(doc(db, 'settings', getInventoryStorageKey(storeId)), {
+        ...createEmptyInventory(),
+        _clientUpdatedAt: now,
+      })
       meta.isDirty = false
       meta.lastSyncedToCloudAt = now
       meta.lastAppliedRemoteAt = now
@@ -2302,7 +2273,7 @@ function CoffeeBeanManager() {
         </div>
         
                           {/* 出杯豆：relative z-10 確保在裝飾層之上，左側 數/袋/盒 可點擊 */}
-        <div id="brewing-section" className="relative z-10 space-y-4">
+        <div id="brewing-section" className="relative z-10 scroll-mt-56 space-y-4">
           <div
             id="brewing-title"
             className={
@@ -2626,7 +2597,7 @@ function CoffeeBeanManager() {
         </div>
 
         {/* 賣豆：relative z-10 確保在裝飾層之上，左側 數/袋/盒 可點擊 */}
-        <div id="retail-section" className="relative z-10 space-y-4 mt-8">
+        <div id="retail-section" className="relative z-10 mt-8 scroll-mt-56 space-y-4 pb-20">
           <div
             id="retail-title"
             className={
@@ -2790,89 +2761,39 @@ function CoffeeBeanManager() {
         </div>
       </div>
 
-      {/* 浮動區域指示器 - 可拖動；僅 pill 區域接收點擊，其餘穿透避免擋住 數/袋/盒 */}
-      <div 
-        className={`fixed z-40 pointer-events-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        style={{
-          top: `${Math.max(MIN_INDICATOR_TOP, indicatorPosition.top)}px`,
-          right: indicatorPosition.right !== null ? `${indicatorPosition.right}px` : 'auto',
-          left: indicatorPosition.left !== null ? `${indicatorPosition.left}px` : 'auto',
-          opacity: isDragging ? 0.8 : 1,
-          transition: isDragging ? 'none' : 'opacity 0.2s'
-        }}
+      {/* 出杯豆／賣豆 切換：固定在底部中間。以前浮在右上、可拖動，常蓋住清單右上角（豆名那一列），
+          拖到哪裡都會擋到東西；底部中間跟右下的計算機同高、不重疊，拇指也最好按 */}
+      <nav
+        aria-label="跳到區域"
+        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex h-11 -translate-x-1/2 items-center gap-0.5 rounded-full border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]/95 p-1 shadow-[var(--cw-shadow-sm)] backdrop-blur md:bottom-[max(1.25rem,env(safe-area-inset-bottom))]"
       >
-        <div
-          className={
-            isStudio
-              ? 'pointer-events-auto select-none rounded-full border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] px-3 py-2 shadow-lg'
-              : 'pointer-events-auto select-none rounded-full border border-white/20 bg-surface/90 px-3 py-2 shadow-lg backdrop-blur-md'
-          }
-          onMouseDown={handleIndicatorDragStart}
-          onTouchStart={handleIndicatorDragStart}
-        >
-          <div className="pointer-events-none flex items-center gap-2">
-            <button 
-              onClick={(e) => {
-                e.stopPropagation()
-                document.getElementById('brewing-section')?.scrollIntoView({ behavior: 'smooth' })
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-              className={`pointer-events-auto flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-all duration-300 ${
-                isStudio
-                  ? currentSection === 'brewing'
-                    ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)]'
-                    : 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]'
-                  : currentSection === 'brewing'
-                    ? 'bg-blue-400/20 text-blue-400'
-                    : 'text-gray-400 hover:text-blue-300'
-              }`}
-            >
-              <div
-                className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                  isStudio
-                    ? currentSection === 'brewing'
-                      ? 'bg-[var(--cw-text)]'
-                      : 'bg-[var(--cw-border-strong)]'
-                    : currentSection === 'brewing'
-                      ? 'bg-blue-400'
-                      : 'bg-gray-400'
-                }`}
-              />
-              <span className="text-xs font-medium sm:text-sm">出杯豆</span>
-            </button>
-            <div className={isStudio ? 'h-4 w-px bg-[var(--cw-border)]' : 'h-4 w-px bg-gray-600'} />
-            <button 
-              onClick={(e) => {
-                e.stopPropagation()
-                document.getElementById('retail-section')?.scrollIntoView({ behavior: 'smooth' })
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-              className={`pointer-events-auto flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-all duration-300 ${
-                isStudio
-                  ? currentSection === 'retail'
-                    ? 'border border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)] text-[var(--cw-text)]'
-                    : 'text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]'
-                  : currentSection === 'retail'
-                    ? 'bg-orange-400/20 text-orange-400'
-                    : 'text-gray-400 hover:text-orange-300'
-              }`}
-            >
-              <div
-                className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                  isStudio
-                    ? currentSection === 'retail'
-                      ? 'bg-[var(--cw-text)]'
-                      : 'bg-[var(--cw-border-strong)]'
-                    : currentSection === 'retail'
-                      ? 'bg-orange-400'
-                      : 'bg-gray-400'
-                }`}
-              />
-              <span className="text-xs font-medium sm:text-sm">賣豆</span>
-            </button>
-          </div>
-        </div>
-      </div>
+          <button
+            type="button"
+            onClick={() => document.getElementById('brewing-section')?.scrollIntoView({ behavior: 'smooth' })}
+            aria-current={currentSection === 'brewing' ? 'true' : undefined}
+            className={`flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors ${
+              currentSection === 'brewing'
+                ? 'bg-[var(--cw-text)] text-[var(--cw-bg)]'
+                : 'text-[var(--cw-text-muted)] hover:text-[var(--cw-text)]'
+            }`}
+            style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+          >
+            出杯豆
+          </button>
+          <button
+            type="button"
+            onClick={() => document.getElementById('retail-section')?.scrollIntoView({ behavior: 'smooth' })}
+            aria-current={currentSection === 'retail' ? 'true' : undefined}
+            className={`flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors ${
+              currentSection === 'retail'
+                ? 'bg-[var(--cw-text)] text-[var(--cw-bg)]'
+                : 'text-[var(--cw-text-muted)] hover:text-[var(--cw-text)]'
+            }`}
+            style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+          >
+            賣豆
+          </button>
+      </nav>
 
       {/* Classic 浮動重量換算捷徑 */}
       {!isStudio ? (
@@ -3444,6 +3365,7 @@ function CoffeeBeanManager() {
         isOpen={showBeanTypesSettings}
         onClose={() => setShowBeanTypesSettings(false)}
         selectedStore={selectedStore}
+        onRenameBeans={renameBeansInInventory}
       />
 
       {/* 使用教學模態視窗 */}
