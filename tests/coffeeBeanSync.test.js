@@ -24,3 +24,11 @@ test('咖啡豆：衝突合併時 modes 也一起合併，本機有填的優先'
   )
   assert.deepEqual(merged.modes, { a: ['weightBag'], b: ['weightBox'] })
 })
+
+test('咖啡豆：modes 陣列有空洞時補成「數」，不然 Firestore 會拒絕整份文件', () => {
+  const holey = []
+  holey[2] = 'weightBag'
+  const clean = stripInventorySyncMeta({ brewing: { pourOver: {}, espresso: {} }, retail: {}, modes: { k: holey, n: [null, 'weightBox'] } })
+  assert.deepEqual(clean.modes, { k: ['quantity', 'quantity', 'weightBag'], n: ['quantity', 'weightBox'] })
+  assert.equal(JSON.stringify(clean).includes('null'), false)
+})

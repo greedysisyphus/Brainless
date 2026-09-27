@@ -12,6 +12,20 @@ export function createInventorySyncMeta() {
   }
 }
 
+/**
+ * 點第 3 列的「袋」而前兩列從沒點過時，陣列前面會是空洞（undefined）。
+ * 以前只存本機沒差；Firestore 看到 undefined 會拒絕整份文件 →「無法同步到雲端」。
+ * 空洞一律補成預設的「數」。
+ */
+function cleanModes(modes) {
+  const out = {}
+  Object.entries(modes).forEach(([key, arr]) => {
+    if (!Array.isArray(arr)) return
+    out[key] = Array.from(arr, (m) => (m === 'weightBag' || m === 'weightBox' ? m : 'quantity'))
+  })
+  return out
+}
+
 export function stripInventorySyncMeta(data) {
   if (!data || typeof data !== 'object') {
     return { brewing: { pourOver: {}, espresso: {} }, retail: {} }
@@ -22,7 +36,7 @@ export function stripInventorySyncMeta(data) {
     retail: rest.retail || {},
     // 每列是「數／袋／盒」：跟數字放同一份文件才會一起同步。
     // 舊文件沒有這欄時保持 undefined（不補 {}），頁面靠這點判斷要不要搬舊的本機設定。
-    ...(rest.modes && typeof rest.modes === 'object' ? { modes: rest.modes } : {}),
+    ...(rest.modes && typeof rest.modes === 'object' ? { modes: cleanModes(rest.modes) } : {}),
   }
 }
 
