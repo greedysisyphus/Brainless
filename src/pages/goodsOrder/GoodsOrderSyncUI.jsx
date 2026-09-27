@@ -37,7 +37,8 @@ export function GoodsOrderConflictModal({
   if (!open) return null
 
   return (
-    <CwModalFrame open={open} onClose={onKeepLocal} title="雲端有較新資料" maxWidthClass="max-w-md">
+    // 點背景或按 Esc 不做任何事：以前關掉＝「保留本機」，只是想關視窗卻把雲端覆蓋掉。三選一一定要明確按
+    <CwModalFrame open={open} onClose={() => {}} title="雲端有較新資料" maxWidthClass="max-w-md">
       <p className="text-sm leading-relaxed text-[var(--cw-text-muted)]">
         {storeName} 的雲端盤點比本機新，且你正在編輯中（本機優先，尚未套用雲端）。
       </p>
@@ -54,7 +55,7 @@ export function GoodsOrderConflictModal({
       <ul className="mt-3 space-y-1 text-xs text-[var(--cw-text-muted)]">
         <li>· <strong className="text-[var(--cw-text)]">保留本機</strong>：以你目前填的為準，稍後覆寫雲端</li>
         <li>· <strong className="text-[var(--cw-text)]">使用雲端</strong>：放棄本機未同步的變更</li>
-        <li>· <strong className="text-[var(--cw-text)]">合併</strong>：以雲端為底，保留本機已填的格子</li>
+        <li>· <strong className="text-[var(--cw-text)]">合併</strong>：以雲端為底，只保留你這次改過的品項</li>
       </ul>
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <CwButton type="button" variant="primary" className="sm:flex-1" onClick={onMerge}>

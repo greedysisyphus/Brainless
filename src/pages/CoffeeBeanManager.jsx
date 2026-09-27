@@ -525,6 +525,8 @@ function CoffeeBeanManager() {
           if (docSnapshot.exists()) {
             handleRemoteInventory(docSnapshot.data(), docSnapshot.metadata)
           } else {
+            // 暫存說沒有不代表雲端沒有（離線／暫存被清過）；這時寫預設值，連線後會蓋掉雲端真正的資料
+            if (docSnapshot.metadata.fromCache) return
             const defaultInventoryData = {
               brewing: { pourOver: {}, espresso: {} },
               retail: {},
@@ -659,6 +661,7 @@ function CoffeeBeanManager() {
             updateWeightSettingsForStore(docSnapshot.data())
           } else {
             // 如果文件不存在，創建預設值
+            if (docSnapshot.metadata.fromCache) return // 同上
             setDoc(docSnapshot.ref, DEFAULT_WEIGHTS)
               .then(() => {
                 if (isMounted) {
@@ -766,6 +769,7 @@ function CoffeeBeanManager() {
             updateBeanLocationsForStore(newBeanLocations)
           } else {
             // 如果文件不存在，使用預設值創建
+            if (docSnapshot.metadata.fromCache) return // 同上
             setDoc(docSnapshot.ref, {
               beanTypes: DEFAULT_BEAN_TYPES,
               beanLocations: DEFAULT_BEAN_LOCATIONS,

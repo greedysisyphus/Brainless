@@ -124,6 +124,35 @@ export function mergeCountsWithPending(local, remote, pendingItemIds = []) {
   return { counts }
 }
 
+/**
+ * 衝突視窗按「合併」：以雲端為底，只蓋上本機「這次改過」的品項，並把待送出的基準對齊這份雲端。
+ *
+ * 以前合併完仍拿舊基準去比，送出時一定又判成衝突，同一個視窗一直跳；
+ * 而且「本機有填的格子一律優先」，連沒改過的品項都會蓋掉雲端較新的數字。
+ */
+export function resolveCountsMerge(local, remote, pending) {
+  const remoteClean = stripSyncMeta(remote)
+  const base = {
+    baseRevision: getRevision(remote),
+    baseUpdatedAt: getUpdatedAt(remote),
+  }
+  if (pending?.replaceAll) {
+    // 整份清空／重填後撞到別人：沒有「改了哪幾項」可依，維持本機有填的格子優先
+    return {
+      merged: mergeCountsData(local, remote),
+      pending: { ...pending, ...base, replaceAll: true, items: {} },
+    }
+  }
+  const items = {}
+  Object.entries(pending?.items || {}).forEach(([itemId, record]) => {
+    items[itemId] = { ...record, baseEntry: stripCountEntryMeta(remoteClean.counts[itemId]) }
+  })
+  return {
+    merged: mergeCountsWithPending(local, remote, Object.keys(items)),
+    pending: { ...pending, ...base, replaceAll: false, items },
+  }
+}
+
 const CATALOG_ITEM_FIELDS = [
   'name',
   'unit',

@@ -5,6 +5,7 @@ import {
   mergeCatalogThreeWay,
   mergeCountsWithPending,
   normalizeCountsPending,
+  resolveCountsMerge,
   stripCountEntryMeta,
 } from '../src/pages/goodsOrder/goodsOrderSync.js'
 import {
@@ -270,4 +271,32 @@ test('快照留下每項當時的現有量與品名，未輸入的品項不入�
     { id: 'lid', name: '蓋', unit: '包', current: 8, minStock: 2, order: 0 },
   ])
   assert.deepEqual(buildSnapshotItems(items, { cup: { current: '' } }), [])
+})
+
+test('叫貨：衝突時按「合併」，送出不會又判成衝突，也不會蓋掉沒改過的品項', () => {
+  // 本機：這次只改了 A（改成 3）；B 是之前同步過的舊值 5
+  const local = { counts: { A: { current: '3' }, B: { current: '5' } } }
+  // 雲端：別人剛把 B 改成 1、A 改成 2，版本已經跳到 7
+  const remote = { counts: { A: { current: '2' }, B: { current: '1' } }, _revision: 7, _clientUpdatedAt: 7000 }
+  const pending = normalizeCountsPending({ items: { A: { editAt: 10, baseEntry: { current: '0' } } }, baseRevision: 5 })
+
+  const { merged, pending: next } = resolveCountsMerge(local, remote, pending)
+  assert.equal(merged.counts.A.current, '3', '我改過的 A 用我的')
+  assert.equal(merged.counts.B.current, '1', '沒改過的 B 要用雲端較新的，不能被本機舊值蓋掉')
+  assert.equal(next.baseRevision, 7)
+
+  // 用合併後的基準送出，對同一份雲端不應再衝突
+  const result = prepareCountsRevision({ remoteData: remote, nextCounts: merged, pending: next, actor: { id: 'x', name: 'x' } })
+  assert.equal(result.counts.A.current, '3')
+  assert.equal(result.counts.B.current, '1')
+  assert.equal(result._revision, 8)
+})
+
+test('叫貨：清空後撞到別人時合併，送出也不會再判成衝突', () => {
+  const remote = { counts: { A: { current: '2' } }, _revision: 4, _clientUpdatedAt: 4000 }
+  const pending = normalizeCountsPending({ replaceAll: true, baseRevision: 2, baseUpdatedAt: 2000 })
+  const { merged, pending: next } = resolveCountsMerge({ counts: {} }, remote, pending)
+  assert.doesNotThrow(() =>
+    prepareCountsRevision({ remoteData: remote, nextCounts: merged, pending: next, actor: { id: 'x', name: 'x' } })
+  )
 })

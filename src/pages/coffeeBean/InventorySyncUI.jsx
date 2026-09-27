@@ -87,8 +87,9 @@ export function InventoryConflictModal({
   )
 
   if (isStudio) {
+    // 點背景或按 Esc 不做任何事：以前關掉＝「保留本機」，只是想關視窗卻把雲端覆蓋掉
     return (
-      <CwModalFrame open={open} onClose={onKeepLocal} title="雲端有較新資料，要合併嗎？" maxWidthClass="max-w-md">
+      <CwModalFrame open={open} onClose={() => {}} title="雲端有較新資料，要合併嗎？" maxWidthClass="max-w-md">
         {body}
       </CwModalFrame>
     )

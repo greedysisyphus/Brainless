@@ -124,6 +124,8 @@ function BeanTypesSettingsModal({ isOpen, onClose, selectedStore = 'central', on
                 setBeanLocations(getDefaultBeanLocationsForStore(selectedStore))
               }
             } else {
+              // 暫存說沒有不代表雲端沒有（離線／暫存被清過）；這時寫預設值，連線後會蓋掉雲端真正的資料
+              if (docSnapshot.metadata.fromCache) return
               // 如果文件不存在，創建預設值（根據店鋪設置不同的預設值）
               const defaultBeanLocations = getDefaultBeanLocationsForStore(selectedStore)
               setDoc(doc(db, 'settings', firebaseDocId), {

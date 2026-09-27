@@ -51,7 +51,7 @@ import {
   getUpdatedAt,
   getUpdatedBy,
   hasCountsPending,
-  mergeCountsData,
+  resolveCountsMerge,
   mergeCountsWithPending,
   normalizeCountsPending,
   resolveCountsSnapshot,
@@ -524,6 +524,9 @@ function GoodsOrderManager() {
         if (!mounted) return
         const meta = getCountsMeta(storeId)
         if (!snap.exists()) {
+          // 手機裡的暫存說「沒有這份文件」不代表雲端真的沒有（離線、暫存被清過都會這樣）。
+          // 這時寫預設值上去，連線後會蓋掉雲端真正的資料 —— 等雲端親口說沒有再建立。
+          if (snap.metadata.fromCache) return
           const empty = { ...createEmptyCounts(), _clientUpdatedAt: Date.now() }
           setDoc(snap.ref, empty).catch(() => {})
           meta.hasReceivedInitialRemote = true
@@ -620,6 +623,7 @@ function GoodsOrderManager() {
           return
         }
         if (!snap.exists()) {
+          if (snap.metadata.fromCache) return // 同上：暫存說沒有，不代表雲端沒有
           const created = createDefaultCatalog(storeId)
           setDoc(snap.ref, created).catch(() => {})
           setCatalogForStore(storeId, created)
@@ -1858,13 +1862,20 @@ function GoodsOrderManager() {
         onMerge={() => {
           if (!conflict) return
           delete countsConflictRef.current[conflict.storeId]
-          const merged = mergeCountsData(countsLatestRef.current, conflict.remoteData)
+          const pending = getCountsPending(conflict.storeId)
+          const { merged, pending: nextPending } = resolveCountsMerge(
+            countsLatestRef.current,
+            conflict.remoteData,
+            pending
+          )
+          // pending 物件本身被 ref 持有，就地更新；markCountsDirty 看到還有待送項目，不會再改基準
+          Object.assign(pending, nextPending)
           countsLatestRef.current = {
             ...merged,
             _revision: getRevision(conflict.remoteData),
             _clientUpdatedAt: getUpdatedAt(conflict.remoteData),
           }
-          markCountsDirty(conflict.storeId, merged, { replaceAll: true })
+          markCountsDirty(conflict.storeId, merged, { replaceAll: nextPending.replaceAll })
           setConflict(null)
         }}
       />
