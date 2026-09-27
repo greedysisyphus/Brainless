@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwAlert, CwButton, CwCard, CwDateInput, CwSelect, CwSkeleton } from '../components/studio/ui'
@@ -161,6 +161,27 @@ function ShiftBoard() {
     }
   }, [])
 
+  // 手機上左右滑換天：往左滑＝下一天，跟翻頁一樣。
+  // 要明顯是橫向（水平位移是垂直的兩倍以上）才算，不然往下捲時手指歪一點就會換天。
+  const swipeStartRef = useRef(null)
+  const handleDaySwipeStart = useCallback((event) => {
+    const touch = event.touches[0]
+    // 會自己橫向捲動的東西（圖表、表格）讓它捲，不換天
+    swipeStartRef.current = event.target.closest?.('.overflow-x-auto')
+      ? null
+      : { x: touch.clientX, y: touch.clientY }
+  }, [])
+  const handleDaySwipeEnd = useCallback((event) => {
+    const start = swipeStartRef.current
+    swipeStartRef.current = null
+    if (!start) return
+    const touch = event.changedTouches[0]
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return
+    setSelectedDate((date) => addDays(date, dx < 0 ? 1 : -1))
+  }, [])
+
   const gridMonth = useMemo(
     () =>
       book.months.find(
@@ -275,12 +296,14 @@ function ShiftBoard() {
                   </CwButton>
                 ) : null}
               </div>
-              <ShiftTodayPanel
-                book={book}
-                dateKey={selectedDate}
-                pickupByPerson={pickupByPerson}
-                onOpenPickupSettings={() => setActiveTab('pickup')}
-              />
+              <div onTouchStart={handleDaySwipeStart} onTouchEnd={handleDaySwipeEnd}>
+                <ShiftTodayPanel
+                  book={book}
+                  dateKey={selectedDate}
+                  pickupByPerson={pickupByPerson}
+                  onOpenPickupSettings={() => setActiveTab('pickup')}
+                />
+              </div>
             </div>
           ) : null}
 

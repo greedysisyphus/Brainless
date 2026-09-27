@@ -1,5 +1,5 @@
 import { SHIFT_META } from './shiftConstants.js'
-import { getDayAssignments } from './shiftModel.js'
+import { addDays, getDayAssignments } from './shiftModel.js'
 
 /**
  * 找日子用的條件：「A 早班、B 休假」這種組合，找哪天湊得最齊。
@@ -14,6 +14,14 @@ export const MATCH_CONDITIONS = [
     key: 'PM_FREE',
     label: '下午有空',
     test: (a) => a.kind === 'LEAVE' || (a.kind === 'WORK' && ['MORNING', 'MID'].includes(a.shift)),
+  },
+  {
+    // 凌晨出去玩：當天上什麼班都行（晚班 22:30 也下班了），要看的是隔天不用早起。
+    // 所以這個條件檢查的是「隔天」那一格；午班 07:30 上班還是太早，不算。
+    key: 'NEXT_LATE',
+    label: '隔天晚班或休假',
+    nextDay: true,
+    test: (a) => a.kind === 'LEAVE' || (a.kind === 'WORK' && a.shift === 'EVENING'),
   },
   ...['MORNING', 'MID', 'NOON', 'EVENING'].map((code) => ({
     key: code,
@@ -42,21 +50,34 @@ export function describeDayStatus(assignment) {
  * @param {object} book
  * @param {string[]} dates
  * @param {{personKey:string, condition:string}[]} wants
- * @returns {{date:string, score:number, results:{personKey:string, ok:boolean, assignment:object|null}[]}[]}
+ * @returns {{date:string, score:number, results:{personKey:string, ok:boolean, assignment:object|null, status:string, nextDay:boolean}[]}[]}
  */
 export function findMatchingDays(book, dates, wants) {
   if (!wants.length) return []
-  return dates
-    .map((date) => {
+  const cache = new Map()
+  const assignmentsOn = (date) => {
+    if (!cache.has(date)) {
       const byPerson = new Map()
       getDayAssignments(book, date).forEach((a) => {
         // 互換班那種同一天兩家店都有格子，有上班的那格才是真的
         if (!byPerson.has(a.personKey) || a.kind === 'WORK') byPerson.set(a.personKey, a)
       })
+      cache.set(date, byPerson)
+    }
+    return cache.get(date)
+  }
+  return dates
+    .map((date) => {
+      const byPerson = assignmentsOn(date)
       const results = wants.map(({ personKey, condition }) => {
-        const assignment = byPerson.get(personKey) || null
-        const ok = !!assignment && !!CONDITION_BY_KEY[condition]?.test(assignment)
-        return { personKey, ok, assignment }
+        const cond = CONDITION_BY_KEY[condition]
+        // 隔天的班沒匯入（月底、下個月還沒出）就不算符合，不猜
+        const subject = cond?.nextDay
+          ? assignmentsOn(addDays(date, 1)).get(personKey) || null
+          : byPerson.get(personKey) || null
+        const ok = !!subject && !!cond.test(subject)
+        const status = cond?.nextDay ? `隔天${describeDayStatus(subject)}` : describeDayStatus(subject)
+        return { personKey, ok, assignment: subject, status, nextDay: !!cond?.nextDay }
       })
       return { date, score: results.filter((r) => r.ok).length, results, hasData: byPerson.size > 0 }
     })

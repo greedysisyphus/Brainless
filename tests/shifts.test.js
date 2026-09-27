@@ -2448,3 +2448,19 @@ test('找日子：依符合人數排序，湊不齊的日子也列出誰卡住',
     [true, true, false]
   )
 })
+
+test('找日子：「隔天晚班或休假」看的是隔天那一格，隔天沒資料就不算', () => {
+  const book = buildFixtureBook()
+  const key = (name) => book.people.find((p) => p.name === name).key
+  const days = findMatchingDays(book, ['2026-09-01', '2026-09-02', '2026-09-03'], [
+    { personKey: key('小明'), condition: 'NEXT_LATE' },
+  ])
+  const byDate = Object.fromEntries(days.map((d) => [d.date, d.results[0]]))
+  // 9/1 晚上：隔天 9/2 晚班 → 可以；9/2 晚上：隔天 9/3 休假 → 可以
+  assert.equal(byDate['2026-09-01'].ok, true)
+  assert.equal(byDate['2026-09-01'].status, '隔天晚班')
+  assert.equal(byDate['2026-09-02'].ok, true)
+  // 9/3 晚上：9/4 的班還沒有 → 不猜
+  assert.equal(byDate['2026-09-03'].ok, false)
+  assert.equal(byDate['2026-09-03'].status, '隔天沒班表')
+})

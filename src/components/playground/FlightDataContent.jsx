@@ -2897,7 +2897,9 @@ function FlightDataContent() {
     return i
   }, [filteredFlights, nowMinutes])
 
-  // 曾經會自動捲到現在線，但想看上面的航班時每次都要拉回去，反而礙事，所以拿掉了
+  // 曾經會自動捲到現在線，但想看上面的航班時每次都要拉回去，反而礙事；
+  // 改成按了才捲（「跳到現在」）
+  const nowRowRef = useRef(null)
   useEffect(() => {
     setGateFilter(new Set())
   }, [flightData?.date, storeKey])
@@ -3713,6 +3715,7 @@ function FlightDataContent() {
                 shifts={storeShifts}
                 series={stressSeriesToday}
                 summary={stressSummaryToday}
+                nowMinutes={nowMinutes}
                 flights={flightData?.flights || null}
                 pax={flightData?.pax_t2}
                 shiftKey={stressShift}
@@ -3909,11 +3912,25 @@ function FlightDataContent() {
             )}
 
             <span
-              className={`text-xs tabular-nums sm:ml-auto ${
+              className={`flex items-center gap-3 text-xs tabular-nums sm:ml-auto ${
                 isStudio ? 'text-[var(--cw-text-muted)]' : 'text-text-secondary'
               }`}
             >
               顯示 {filteredFlights.length} / {flightData.flights.length} 班
+              {viewMode === 'simple' && nowRowIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={() => nowRowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
+                  className={`rounded-full px-2.5 py-1 font-semibold ${
+                    isClub
+                      ? 'border border-[#c84629]/45 text-[#c84629] hover:bg-[#c84629]/10'
+                      : 'border border-amber-500/45 text-amber-500 hover:bg-amber-500/10'
+                  }`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  跳到現在 ↓
+                </button>
+              )}
             </span>
           </div>
 
@@ -3961,7 +3978,7 @@ function FlightDataContent() {
                 {filteredFlights.map((flight, idx) => (
                   <Fragment key={flightRowKey(flight)}>
                     {idx === nowRowIndex && (
-                      <li aria-hidden="true" className="relative px-3 py-1 sm:px-4">
+                      <li ref={nowRowRef} aria-hidden="true" className="relative px-3 py-1 sm:px-4">
                         <div
                           className={`flex items-center gap-2 text-[11px] font-bold tabular-nums ${
                             isClub ? 'text-[#c84629]' : 'text-amber-500'

@@ -5,6 +5,7 @@ import {
   formatMinuteSpan,
   formatStressShiftSpan,
   isStressSlotInSupportPeriod,
+  SLOT_STEP_MIN,
   stressSlotFlights
 } from '../../../utils/flightData/stressSlots'
 
@@ -35,6 +36,8 @@ export default function StressCurvePanel({
   supportFrom = null,
   supportUntil = null,
   showSupport = true,
+  /** 看的是今天才傳：畫一條「現在」線，跟航班列表的現在線同色 */
+  nowMinutes = null,
   isStudio = false,
   isClub = false
 }) {
@@ -46,6 +49,9 @@ export default function StressCurvePanel({
   const supportStroke = isClub ? '#9f3d28' : '#818cf8'
   const activeFill = isClub ? '#7c4a3d' : isStudio ? 'rgba(60,60,70,0.75)' : 'rgba(255,255,255,0.65)'
   const peopleStroke = isClub ? '#3f2f2a' : isStudio ? 'var(--cw-text)' : '#67e8f9'
+  const nowStroke = isClub ? '#c84629' : '#f59e0b'
+  // 字壓在柱子上會糊掉，描一圈跟卡片同色的邊當底
+  const nowHalo = isClub ? '#fffaf6' : isStudio ? 'var(--cw-surface)' : 'rgba(15,15,25,0.85)'
   const axisText = isClub ? '#76564b' : isStudio ? 'rgba(90,90,100,0.85)' : 'rgba(255,255,255,0.5)'
 
   // 滑鼠移動與觸控點擊都走同一條路：手機沒有 pointerleave，點了就留著
@@ -70,6 +76,15 @@ export default function StressCurvePanel({
 
   // 兩小時一個刻度就夠，再密手機讀不到
   const tickEvery = 8
+  // 時間軸的刻度對在柱子中間（柱子＝該時刻起算的一小時），現在線用同一套換算
+  const nowX =
+    nowMinutes != null && n > 0 && nowMinutes >= series[0].startMin && nowMinutes <= series[n - 1].startMin
+      ? xAt(0) + barW / 2 + ((nowMinutes - series[0].startMin) / SLOT_STEP_MIN) * step
+      : null
+  const nowLabel =
+    nowMinutes != null
+      ? `現在 ${String(Math.floor(nowMinutes / 60)).padStart(2, '0')}:${String(nowMinutes % 60).padStart(2, '0')}`
+      : ''
   const fmtCount = (v) => (Number.isInteger(v) ? v : v.toFixed(1))
   const hasPeople = series.some((s) => s.people != null)
   const maxPeople = hasPeople ? Math.max(1, ...series.map((s) => s.people || 0)) : 1
@@ -228,6 +243,32 @@ export default function StressCurvePanel({
             opacity={0.35}
           />
         )}
+        {nowX != null && (
+          <g pointerEvents="none">
+            <line
+              x1={nowX}
+              x2={nowX}
+              y1={PAD_TOP}
+              y2={PAD_TOP + chartH}
+              stroke={nowStroke}
+              strokeWidth={1.25}
+              strokeDasharray="3 2"
+            />
+            <text
+              x={nowX > VIEW_W - 70 ? nowX - 4 : nowX + 4}
+              y={PAD_TOP + 9}
+              textAnchor={nowX > VIEW_W - 70 ? 'end' : 'start'}
+              fontSize="10"
+              fontWeight="700"
+              fill={nowStroke}
+              stroke={nowHalo}
+              strokeWidth={3}
+              paintOrder="stroke"
+            >
+              {nowLabel}
+            </text>
+          </g>
+        )}
         {peakIdx >= 0 && summary.maxScore > 0 && (
           <text
             x={Math.min(VIEW_W - PAD_X, Math.max(PAD_X + 34, xAt(peakIdx) + barW / 2))}
@@ -258,7 +299,7 @@ export default function StressCurvePanel({
 
       <p className={`text-[11px] leading-relaxed ${muted}`}>
         每根柱子是「該時刻起算 60 分鐘」的登機壓力（滑過或點一下看該時段的班次）。橘色為最忙的一小時，
-        淺色區塊是最長的一段空檔（低於尖峰兩成）
+        淺色區塊是最長的一段空檔（低於尖峰兩成）{nowX != null ? '，虛線是現在時間' : ''}
         {showSupport && supportFrom && supportUntil ? '，外框標示落在晚班支援期間的時段' : ''}。
         {hasPeople
           ? '細線是估計登機人數：每班人數＝該小時 T2 出發＋轉機預報 ÷ 該小時 T2 班數，只是平均分攤，不看機型。'

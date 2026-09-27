@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { CwBadge, CwCard, CwSelect } from '../studio/ui'
 import { dateRange, formatDateShort, lastDateOfMonth, personLabel, toDateKey } from '../../pages/shifts/shiftModel'
 import { MATCH_CONDITIONS, describeDayStatus, findMatchingDays } from '../../pages/shifts/shiftMatch'
-import { PersonOptionGroups } from './shiftUi'
+import { PersonOptionGroups, shiftSwatchStyle } from './shiftUi'
 
 const SHOWN_DAYS = 10
 
@@ -12,11 +13,17 @@ const SHOWN_DAYS = 10
  * 只看今天以後 —— 要約的是還沒到的日子。
  */
 export function ShiftMatchPanel({ book, peopleGroups, onSelectDate }) {
-  const [wants, setWants] = useState([])
+  // 點日期會跳去「今天」分頁，回來時條件要還在，不然每看一天就得重選一次
+  const [storedWants, setWants] = useLocalStorage('shiftMatchWants', [])
 
   const nameByKey = useMemo(
     () => Object.fromEntries(book.people.map((p) => [p.key, personLabel(p)])),
     [book.people]
+  )
+  // 存下來的人可能已經不在班表裡（改名、合併），這種就略過
+  const wants = useMemo(
+    () => (Array.isArray(storedWants) ? storedWants : []).filter((w) => nameByKey[w?.personKey]),
+    [storedWants, nameByKey]
   )
 
   const dates = useMemo(() => {
@@ -29,7 +36,7 @@ export function ShiftMatchPanel({ book, peopleGroups, onSelectDate }) {
   const shown = days.slice(0, Math.max(SHOWN_DAYS, fullCount)).filter((d) => d.score > 0)
 
   const update = (index, patch) =>
-    setWants((list) => list.map((w, i) => (i === index ? { ...w, ...patch } : w)))
+    setWants(wants.map((w, i) => (i === index ? { ...w, ...patch } : w)))
 
   return (
     // 桌機左邊設條件、右邊看結果，改條件時結果就在眼前；手機上下疊
@@ -44,7 +51,7 @@ export function ShiftMatchPanel({ book, peopleGroups, onSelectDate }) {
               <CwSelect
                 name={`match-condition-${want.personKey}`}
                 aria-label={`${nameByKey[want.personKey]} 的條件`}
-                className="w-32 shrink-0"
+                className="w-40 shrink-0"
                 value={want.condition}
                 onChange={(event) => update(index, { condition: event.target.value })}
               >
@@ -57,7 +64,7 @@ export function ShiftMatchPanel({ book, peopleGroups, onSelectDate }) {
               <button
                 type="button"
                 aria-label={`移除 ${nameByKey[want.personKey]}`}
-                onClick={() => setWants((list) => list.filter((_, i) => i !== index))}
+                onClick={() => setWants(wants.filter((_, i) => i !== index))}
                 className="cw-touch-target grid h-11 w-11 shrink-0 place-items-center rounded-[var(--cw-radius)] text-[var(--cw-text-muted)] hover:bg-[var(--cw-mega-surface)] hover:text-[var(--cw-text)]"
               >
                 <XMarkIcon className="h-5 w-5" />
@@ -70,7 +77,7 @@ export function ShiftMatchPanel({ book, peopleGroups, onSelectDate }) {
             value=""
             onChange={(event) => {
               const personKey = event.target.value
-              if (personKey) setWants((list) => [...list, { personKey, condition: 'WORK' }])
+              if (personKey) setWants([...wants, { personKey, condition: 'WORK' }])
             }}
           >
             <option value="">＋ 加入同事…</option>
@@ -83,7 +90,7 @@ export function ShiftMatchPanel({ book, peopleGroups, onSelectDate }) {
           </CwSelect>
         </div>
         <p className="mt-3 text-xs text-[var(--cw-text-muted)]">
-          「下午有空」＝休假，或早班、中班（13、14 點下班）。
+          「下午有空」＝休假，或早班、中班（13、14 點下班）。「隔天晚班或休假」＝那天晚上可以玩到凌晨，列出的日期是出去的那一晚。
         </p>
       </CwCard>
 
@@ -111,15 +118,28 @@ export function ShiftMatchPanel({ book, peopleGroups, onSelectDate }) {
                     </span>
                     <span className="flex flex-wrap gap-1.5">
                       {day.results.map((r) => (
+                        // 班別用跟班表其他地方一樣的顏色（晚班紫、休假灰…），一眼分得出誰是哪種；
+                        // 符合與否改用外框／刪除線表示，不再整顆塗綠 —— 全綠就只剩字能分辨
                         <span
                           key={r.personKey}
-                          className={`rounded-[var(--cw-radius-sm)] px-1.5 py-0.5 text-xs ${
+                          className={`inline-flex items-center gap-1 rounded-[var(--cw-radius-sm)] border py-0.5 pl-1.5 pr-0.5 text-xs ${
                             r.ok
-                              ? 'bg-[var(--cw-success-muted)] font-semibold text-[var(--cw-success)]'
-                              : 'text-[var(--cw-text-muted)] line-through'
+                              ? 'border-[var(--cw-success)]/50 font-semibold text-[var(--cw-text)]'
+                              : 'border-transparent text-[var(--cw-text-muted)] line-through opacity-70'
                           }`}
                         >
-                          {nameByKey[r.personKey]} {describeDayStatus(r.assignment)}
+                          {nameByKey[r.personKey]}
+                          <span
+                            className="rounded-[3px] px-1 font-semibold"
+                            style={
+                              r.assignment?.kind === 'WORK'
+                                ? shiftSwatchStyle(r.assignment.shift)
+                                : shiftSwatchStyle(null)
+                            }
+                          >
+                            {r.nextDay ? <span className="mr-0.5 font-normal opacity-70">隔天</span> : null}
+                            {describeDayStatus(r.assignment)}
+                          </span>
                         </span>
                       ))}
                     </span>
