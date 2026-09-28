@@ -2,7 +2,9 @@ import { CwAlert, CwButton, CwModalFrame } from '../../components/studio/ui'
 import { formatVersionTime } from './goodsOrderSync'
 
 export function GoodsOrderSyncBanner({ status, onRetry }) {
-  if (!status || status === 'idle' || status === 'synced') return null
+  // 「同步中」不顯示：每改一格就出現、1 秒後又消失，會把整個清單推下去再彈回來。
+  // 這條只留給要人處理的狀況（失敗、離線、衝突）
+  if (!status || status === 'idle' || status === 'synced' || status === 'syncing') return null
 
   const messages = {
     syncing: '盤點同步中…',

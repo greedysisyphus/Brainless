@@ -2079,6 +2079,12 @@ function CoffeeBeanManager() {
     cwBeanFooterText,
   } = coffeeBeanStudioTokens
 
+  // 判斷「這列是不是填錯單位」用：這家店空袋／空盒各幾克
+  const emptyWeights = {
+    bag: weightSettingsForInventory?.bagWeight,
+    box: weightSettingsForInventory?.[getBoxWeightKey(selectedStore)],
+  }
+
   const coffeeInner = (
     <div className="mx-auto w-full max-w-6xl">
       <InventorySyncBanner
@@ -2426,6 +2432,7 @@ function CoffeeBeanManager() {
                               return (
                                 <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateQuantity('brewing', 'pourOver', beanType, 'store', index, v)}
@@ -2459,6 +2466,7 @@ function CoffeeBeanManager() {
                                 return (
                                   <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateQuantity('brewing', 'pourOver', beanType, 'breakRoom', index, v)}
@@ -2489,6 +2497,7 @@ function CoffeeBeanManager() {
                             return (
                               <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateQuantity('brewing', 'pourOver', beanType, 'dryStorage', index, v)}
@@ -2552,6 +2561,7 @@ function CoffeeBeanManager() {
                           return (
                             <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateQuantity('brewing', 'espresso', beanType, 'store', index, v)}
@@ -2579,6 +2589,7 @@ function CoffeeBeanManager() {
                             return (
                               <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateQuantity('brewing', 'espresso', beanType, 'breakRoom', index, v)}
@@ -2607,6 +2618,7 @@ function CoffeeBeanManager() {
                             return (
                               <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateQuantity('brewing', 'espresso', beanType, 'dryStorage', index, v)}
@@ -2682,6 +2694,7 @@ function CoffeeBeanManager() {
                         return (
                           <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateRetailQuantity(beanType, 'store', index, v)}
@@ -2711,6 +2724,7 @@ function CoffeeBeanManager() {
                               return (
                                 <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateRetailQuantity(beanType, 'breakRoom', index, v)}
@@ -2741,6 +2755,7 @@ function CoffeeBeanManager() {
                           return (
                             <QuantityRow
  key={index}
+ emptyWeights={emptyWeights}
  value={quantity}
  mode={cellMode}
  onChange={(v) => updateRetailQuantity(beanType, 'dryStorage', index, v)}

@@ -32,3 +32,14 @@ test('咖啡豆：modes 陣列有空洞時補成「數」，不然 Firestore 會
   assert.deepEqual(clean.modes, { k: ['quantity', 'quantity', 'weightBag'], n: ['quantity', 'weightBox'] })
   assert.equal(JSON.stringify(clean).includes('null'), false)
 })
+
+test('咖啡豆：數字跟數／袋／盒對不上時提醒', async () => {
+  const { checkRowPlausibility } = await import('../src/pages/coffeeBean/coffeeBeanConstants.js')
+  const empty = { bag: 150, box: 365 }
+  assert.equal(checkRowPlausibility('16', 'quantity', empty), null)
+  assert.deepEqual(checkRowPlausibility('1250', 'quantity', empty).suggest, ['weightBag', 'weightBox'])
+  assert.deepEqual(checkRowPlausibility('16', 'weightBag', empty).suggest, ['quantity'])
+  assert.equal(checkRowPlausibility('1250', 'weightBag', empty), null)
+  assert.deepEqual(checkRowPlausibility('300', 'weightBox', empty).suggest, ['quantity'])
+  assert.equal(checkRowPlausibility('', 'quantity', empty), null)
+})

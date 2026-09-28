@@ -74,3 +74,34 @@ export const getPacksFromWeight = (totalG, weightSettings, containerType) => {
   const result = beanWeight / Number(perPack)
   return Number.isFinite(result) ? result : 0
 }
+
+/** 一列「數」超過這個數字，大概是把重量填成了包數 */
+export const MAX_PLAUSIBLE_PACKS = 100
+
+/**
+ * 這一列的數字跟數／袋／盒對不對得上，對不上就回傳提醒和建議改成的模式。
+ * - 數：包數很少超過 100，太大多半是重量（之前水洗 7256 包就是這樣來的）
+ * - 袋／盒：比空袋／空盒還輕的重量不可能，多半其實是包數
+ * @param {string|number} value
+ * @param {'quantity'|'weightBag'|'weightBox'} mode
+ * @param {{ bag: number, box: number }} emptyWeights 各店重量設定裡的空袋／空盒重量（g）
+ * @returns {null | { message: string, suggest: string[] }}
+ */
+export function checkRowPlausibility(value, mode, emptyWeights) {
+  const v = typeof value === 'number' ? value : parseFloat(value)
+  if (!Number.isFinite(v) || v <= 0) return null
+  if (mode === 'weightBag' || mode === 'weightBox') {
+    const empty = Number(mode === 'weightBag' ? emptyWeights?.bag : emptyWeights?.box) || 0
+    if (empty > 0 && v < empty) {
+      return {
+        message: `比空${mode === 'weightBag' ? '袋' : '盒'} ${empty}g 還輕，是包數？`,
+        suggest: ['quantity'],
+      }
+    }
+    return null
+  }
+  if (v > MAX_PLAUSIBLE_PACKS) {
+    return { message: `超過 ${MAX_PLAUSIBLE_PACKS} 包，是重量？`, suggest: ['weightBag', 'weightBox'] }
+  }
+  return null
+}
