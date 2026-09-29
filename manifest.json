@@ -1,7 +1,7 @@
 {
-  "name": "桃園機場 D11-D18 航班資料",
+  "name": "桃園機場 D 區航班資料",
   "short_name": "航班資料",
-  "description": "桃園機場 D11-D18 登機門航班即時資訊與統計分析",
+  "description": "桃園機場 D 區登機門航班即時資訊與統計分析",
   "start_url": "/Brainless/",
   "display": "standalone",
   "background_color": "#1e1e2e",
