@@ -4,18 +4,60 @@
   --MORNING: #efd6b8; --MID: #cfdde6; --NOON: #d6e2bf; --EVENING: #dccfe4; --SUPPORT: #f0cdc4; --OTHER: #e2dccf;
   --warn: #8a5a12; --bad: #8a2b1c;
 }
-/* 沿用舊版面板元件的分頁：把 Club 的 --cw-* 色票對到新版顏色，元件本身不用改 */
+/* 找日子、統計、支援班、同事與上車、匯入：邏輯沿用舊版的面板元件（功能、資料、寫入完全相同），
+   外觀在這裡重畫成跟「今天」「完整班表」同一套語言：沒有卡片與圓角方框，用橫線分段、
+   明體標題、底線式欄位、膠囊按鈕。做法是把 Club 的 --cw-* 色票對到新版顏色，
+   再用元件上的掛鉤 class（cw-card、cw-btn、cw-field…）改形狀。 */
 .bl-shifts {
-  --cw-bg: var(--oat); --cw-surface: var(--paper); --cw-surface-elevated: #fbf8f1; --cw-mega-surface: #f1ebdf; --cw-header-bg: var(--oat);
+  --cw-bg: var(--oat); --cw-surface: var(--oat); --cw-surface-elevated: var(--paper); --cw-mega-surface: rgba(42, 33, 28, 0.045); --cw-header-bg: var(--oat);
   --cw-text: var(--ink); --cw-text-muted: var(--soft); --cw-border: var(--line); --cw-border-strong: rgba(42, 33, 28, 0.32);
   --cw-brand: var(--plum); --cw-brand-strong: #3b1f40; --cw-brand-muted: rgba(79, 45, 85, 0.1); --cw-accent: var(--plum); --cw-accent-contrast: var(--paper);
   --cw-fg-emphasis: var(--ink); --cw-fg-emphasis-contrast: var(--paper); --cw-focus-ring: rgba(79, 45, 85, 0.5);
-  --cw-radius-sm: 3px; --cw-radius: 4px; --cw-radius-lg: 6px; --cw-shadow-sm: none;
+  --cw-warning: #8a5a12; --cw-warning-muted: rgba(138, 90, 18, 0.1); --cw-danger: #8a2b1c; --cw-danger-muted: rgba(138, 43, 28, 0.1);
+  --cw-success: #2f6b3f; --cw-success-muted: rgba(47, 107, 63, 0.1);
+  --cw-radius-sm: 3px; --cw-radius: 0px; --cw-radius-lg: 0px; --cw-shadow-sm: none;
 }
-.bl-shifts .legacy { padding-top: 18px; }
-.bl-shifts .legacy h2, .bl-shifts .legacy h3 { font-family: var(--serif); letter-spacing: 0.03em; }
-.bl-shifts .legacy .stack > * + * { margin-top: 20px; }
+.bl-shifts .legacy { padding-top: 4px; }
+.bl-shifts .legacy .stack > * + * { margin-top: 12px; }
 .bl-shifts .legacy :focus-visible { outline-color: var(--plum); }
+
+/* 卡片 → 橫線分段 */
+.bl-shifts .legacy .cw-card { padding: 18px 0 10px; border: 0; border-top: 1px solid var(--ink); border-radius: 0; background: none; }
+.bl-shifts .legacy > .cw-card:first-child, .bl-shifts .legacy > div > .cw-card:first-child, .bl-shifts .legacy .stack > .cw-card:first-child { border-top: 0; }
+.bl-shifts .legacy .cw-card .cw-card { padding: 14px 0 6px; border-top-color: var(--line); }
+.bl-shifts .legacy .cw-card-title { font-family: var(--serif); font-weight: 600; font-size: 1.375rem; letter-spacing: 0.04em; }
+.bl-shifts .legacy .cw-card .cw-card .cw-card-title { font-size: 1.125rem; }
+.bl-shifts .legacy h2, .bl-shifts .legacy h3, .bl-shifts .legacy h4 { font-family: var(--serif); letter-spacing: 0.03em; }
+
+/* 按鈕 → 膠囊；次要動作是細線膠囊，最弱的是底線文字 */
+.bl-shifts .legacy .cw-btn { border-radius: 999px; font-weight: 500; }
+.bl-shifts .legacy .cw-btn-primary:hover { opacity: 1; background: var(--plum); }
+.bl-shifts .legacy .cw-btn-secondary { border-color: var(--ink); }
+.bl-shifts .legacy .cw-btn-secondary:hover { background: var(--wash); }
+.bl-shifts .legacy .cw-btn-ghost { padding-left: 2px; padding-right: 2px; text-decoration: underline; text-underline-offset: 4px; }
+.bl-shifts .legacy .cw-btn-ghost:hover { background: none; color: var(--plum); }
+.bl-shifts .legacy .cw-btn-brand { background: none; border-color: var(--plum); }
+.bl-shifts .legacy .cw-btn-brand:hover { background: var(--plum); color: var(--paper); }
+
+/* 欄位 → 底線式；標籤用明體茄紫 */
+.bl-shifts .legacy .cw-label { margin-bottom: 2px; font-family: var(--serif); font-weight: 400; font-size: 0.8125rem; text-transform: none; letter-spacing: 0.2em; color: var(--plum); }
+.bl-shifts .legacy .cw-field { padding-left: 2px; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; background-color: transparent; box-shadow: none; }
+.bl-shifts .legacy .cw-field:focus { border-bottom-color: var(--plum); box-shadow: 0 2px 0 var(--plum); --tw-ring-shadow: 0 0 #0000; }
+.bl-shifts .legacy textarea.cw-field { padding: 10px; border: 1px solid var(--line); border-bottom: 1.5px solid var(--ink); }
+.bl-shifts .legacy input[type='checkbox'], .bl-shifts .legacy input[type='radio'] { accent-color: var(--plum); }
+
+/* 徽章、提示、空狀態、表格 */
+.bl-shifts .legacy .cw-badge { border-radius: 999px; text-transform: none; letter-spacing: 0.02em; font-size: 0.75rem; }
+.bl-shifts .legacy .cw-alert { padding: 12px 0; border: 0; border-top: 1px solid var(--tone); border-bottom: 1px solid var(--tone); border-radius: 0; background: none; color: var(--tone); }
+.bl-shifts .legacy .cw-alert-warning { --tone: var(--cw-warning); }
+.bl-shifts .legacy .cw-alert-error { --tone: var(--cw-danger); }
+.bl-shifts .legacy .cw-alert-success { --tone: var(--cw-success); }
+.bl-shifts .legacy .cw-alert-neutral { --tone: var(--line); color: var(--ink); }
+.bl-shifts .legacy .cw-empty { align-items: flex-start; padding: 40px 0; border: 0; background: none; text-align: left; }
+.bl-shifts .legacy .cw-empty > div:first-child { font-family: var(--serif); }
+.bl-shifts .legacy .cw-table { border: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.bl-shifts .legacy thead { text-transform: none; }
+/* 元件裡自己畫的圓角膠囊群（切換鈕）維持膠囊；其餘方框在色票那邊已經歸零成直角細線框 */
 .bl-shifts button, .bl-shifts select { font: inherit; color: inherit; }
 .bl-shifts button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .bl-shifts .num { font-family: var(--didone); font-variation-settings: 'opsz' 18; }

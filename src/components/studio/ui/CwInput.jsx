@@ -18,14 +18,14 @@ export const CwInput = forwardRef(function CwInput({
   return (
     <label className={`block ${className}`} htmlFor={inputId}>
       {label ? (
-        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
+        <span className="cw-label mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
           {label}
         </span>
       ) : null}
       <input
         ref={ref}
         id={inputId}
-        className={`w-full min-h-11 rounded-[var(--cw-radius)] border bg-[var(--cw-bg)] px-3 py-2.5 text-base text-[var(--cw-text)] placeholder:text-[var(--cw-text-muted)] focus:outline-none focus:ring-1 ${
+        className={`cw-field w-full min-h-11 rounded-[var(--cw-radius)] border bg-[var(--cw-bg)] px-3 py-2.5 text-base text-[var(--cw-text)] placeholder:text-[var(--cw-text-muted)] focus:outline-none focus:ring-1 ${
           error
             ? 'border-[var(--cw-danger)] focus:border-[var(--cw-danger)] focus:ring-[var(--cw-danger)]'
             : 'border-[var(--cw-border)] focus:border-[var(--cw-border-strong)] focus:ring-[var(--cw-focus-ring)]'
@@ -53,13 +53,13 @@ export function CwTextarea({ label, id, hint, className = '', textareaClassName 
   return (
     <label className={`block ${className}`} htmlFor={inputId}>
       {label ? (
-        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
+        <span className="cw-label mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
           {label}
         </span>
       ) : null}
       <textarea
         id={inputId}
-        className={`w-full resize-y rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2.5 text-sm text-[var(--cw-text)] placeholder:text-[var(--cw-text-muted)] focus:border-[var(--cw-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--cw-focus-ring)] ${textareaClassName}`}
+        className={`cw-field w-full resize-y rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2.5 text-sm text-[var(--cw-text)] placeholder:text-[var(--cw-text-muted)] focus:border-[var(--cw-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--cw-focus-ring)] ${textareaClassName}`}
         {...props}
       />
       {hint ? (
@@ -74,13 +74,13 @@ export function CwSelect({ label, id, hint, children, className = '', selectClas
   return (
     <label className={`block ${className}`} htmlFor={inputId}>
       {label ? (
-        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
+        <span className="cw-label mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--cw-text-muted)]">
           {label}
         </span>
       ) : null}
       <select
         id={inputId}
-        className={`w-full min-h-11 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2 text-sm text-[var(--cw-text)] focus:border-[var(--cw-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--cw-focus-ring)] ${selectClassName}`}
+        className={`cw-field w-full min-h-11 rounded-[var(--cw-radius)] border border-[var(--cw-border)] bg-[var(--cw-bg)] px-3 py-2 text-sm text-[var(--cw-text)] focus:border-[var(--cw-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--cw-focus-ring)] ${selectClassName}`}
         {...props}
       >
         {children}

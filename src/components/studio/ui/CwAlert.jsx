@@ -8,7 +8,7 @@ export function CwAlert({ variant = 'warning', title, children, className = '' }
   }
   return (
     <div
-      className={`rounded-[var(--cw-radius-lg)] border p-4 text-sm ${styles[variant]} ${className}`}
+      className={`cw-alert cw-alert-${variant} rounded-[var(--cw-radius-lg)] border p-4 text-sm ${styles[variant]} ${className}`}
       role={variant === 'error' ? 'alert' : 'status'}
     >
       {title ? <div className="mb-2 font-semibold">{title}</div> : null}

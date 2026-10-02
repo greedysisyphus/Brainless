@@ -11,7 +11,7 @@ export function CwBadge({ children, tone = 'neutral', className = '' }) {
   }
   return (
     <span
-      className={`inline-flex items-center rounded-[var(--cw-radius-sm)] border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${tones[tone] ?? tones.neutral} ${className}`}
+      className={`cw-badge inline-flex items-center rounded-[var(--cw-radius-sm)] border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${tones[tone] ?? tones.neutral} ${className}`}
     >
       {children}
     </span>

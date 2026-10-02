@@ -8,7 +8,7 @@ export function CwButton({
   ...rest
 }) {
   const base =
-    'cw-touch-target inline-flex items-center justify-center gap-2 rounded-[var(--cw-radius)] px-4 py-2.5 text-sm font-semibold transition-[color,background-color,border-color,opacity] duration-150 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50'
+    'cw-btn cw-touch-target inline-flex items-center justify-center gap-2 rounded-[var(--cw-radius)] px-4 py-2.5 text-sm font-semibold transition-[color,background-color,border-color,opacity] duration-150 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50'
   const variants = {
     primary:
       'bg-[var(--cw-fg-emphasis)] text-[var(--cw-fg-emphasis-contrast)] hover:opacity-90 focus-visible:outline-[var(--cw-focus-ring)]',
@@ -26,7 +26,7 @@ export function CwButton({
   }
   const v = variants[variant] ?? variants.primary
   return (
-    <button type={type} disabled={disabled} className={`${base} ${v} ${className}`} {...rest}>
+    <button type={type} disabled={disabled} className={`${base} cw-btn-${variant} ${v} ${className}`} {...rest}>
       {children}
     </button>
   )

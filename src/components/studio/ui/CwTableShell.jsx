@@ -2,7 +2,7 @@
 export function CwTableShell({ children, className = '' }) {
   return (
     <div
-      className={`overflow-x-auto rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] ${className}`}
+      className={`cw-table overflow-x-auto rounded-[var(--cw-radius-lg)] border border-[var(--cw-border)] ${className}`}
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <table className="min-w-full border-collapse text-left text-sm text-[var(--cw-text)]">
