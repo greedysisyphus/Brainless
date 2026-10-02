@@ -1,5 +1,4 @@
 /* 新版厚片計算器（/home/sandwich） */
-.bl-sandwich h1 { padding-top: clamp(20px, 4vh, 40px); }
 .bl-sandwich .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; }
 .bl-sandwich .split > * { min-width: 0; }
 .bl-sandwich button, .bl-sandwich input { font: inherit; color: inherit; }
@@ -76,7 +75,7 @@
 
 @media (min-width: 860px) {
   .bl-sandwich .split { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(28px, 3.5vw, 52px); align-items: start; }
-  .bl-sandwich .result { border-left: 1px solid var(--line); padding-left: clamp(28px, 3.5vw, 52px); padding-top: clamp(20px, 4vh, 40px); position: sticky; top: 24px; }
+  .bl-sandwich .result { border-left: 1px solid var(--line); padding-left: clamp(28px, 3.5vw, 52px); padding-top: 20px; position: sticky; top: 24px; }
   .bl-sandwich .dock { display: none; }
   .bl-sandwich .page { padding-bottom: 48px; }
 }

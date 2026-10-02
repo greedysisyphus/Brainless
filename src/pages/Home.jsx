@@ -15,7 +15,7 @@ const WEEKDAYS = '日一二三四五六'
 /** 量尺畫到 110，讓「爆」（100 以上）還有位置 */
 const METER_MAX = 110
 /** 已經有新版的工具：舊路徑 → 新路徑。其餘的連回 Club 版 */
-const NEW_PAGES = { '/sandwich': '/home/sandwich' }
+const NEW_PAGES = { '/sandwich': '/home/sandwich', '/cashier': '/home/cashier' }
 
 function greetingOf(hour) {
   if (hour < 5) return '夜深了'

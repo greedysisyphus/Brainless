@@ -1,0 +1,112 @@
+/* 新版收銀管理（/home/cashier） */
+
+/* Didone 的負號是一條極細的線，「−$20,000」幾乎看不出是負的；金額的負號另外用粗的 */
+@font-face { font-family: 'Bl Sturdy Minus'; src: local('Helvetica Neue Medium'), local('Helvetica Neue'), local('Arial'); unicode-range: U+2212; }
+.bl-cashier {
+  --didone: 'Bl Sturdy Minus', 'Bodoni Moda', 'Noto Serif TC', serif;
+  --ok: #2f6b3f; --over: #8a5a12; --short: #8a2b1c;
+}
+.bl-cashier button, .bl-cashier input, .bl-cashier select { font: inherit; color: inherit; }
+.bl-cashier input, .bl-cashier select { width: 100%; min-width: 0; }
+.bl-cashier button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.bl-cashier .text { border: 0; padding: 0; background: none; min-height: 44px; font-size: 0.875rem; color: var(--soft); text-decoration: underline; text-underline-offset: 4px; }
+.bl-cashier .text:hover { color: var(--plum); }
+
+.bl-cashier .page { padding-bottom: 120px; transition: padding-bottom 0.3s; }
+.bl-cashier.keys .page { padding-bottom: 420px; }
+.bl-cashier .top { padding-bottom: 14px; border-bottom: 1px solid var(--ink); }
+.bl-cashier .top p { margin: 0 0 8px; color: var(--soft); font-size: 0.9375rem; }
+.bl-cashier .acts { margin-left: auto; display: flex; gap: 22px; }
+
+.bl-cashier .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.bl-cashier .split > * { min-width: 0; }
+.bl-cashier .boxes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 clamp(24px, 3vw, 44px); }
+.bl-cashier section { padding-top: 20px; animation: bl-fade 0.9s var(--out) backwards; }
+.bl-cashier .sec-head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 6px; }
+.bl-cashier .sec-head h2 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 1.375rem; letter-spacing: 0.04em; }
+.bl-cashier .sec-head b { margin-left: auto; font-family: var(--didone); font-weight: 400; font-size: 1.75rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+
+/* 點鈔：一個面額一列，點了用下方數字鍵盤輸入張數 */
+.bl-cashier .den { display: grid; grid-template-columns: 4.2em 1fr auto; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 4px 10px 4px 6px; border: 0; border-top: 1px solid var(--line); background: linear-gradient(var(--wash), var(--wash)) no-repeat 0 0 / 0% 100%; text-align: left; transition: background-size 0.4s var(--out); }
+.bl-cashier .den:hover { background-size: 4px 100%; }
+.bl-cashier .den[aria-pressed='true'] { background-size: 100% 100%; }
+.bl-cashier .den .face { font-family: var(--didone); font-size: 1.5rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl-cashier .den .count { justify-self: start; display: inline-flex; align-items: baseline; gap: 6px; font-size: 0.875rem; color: var(--soft); }
+.bl-cashier .den .count b { min-width: 2ch; font-family: var(--didone); font-weight: 400; font-size: 1.75rem; line-height: 1; color: var(--ink); font-variation-settings: 'opsz' 18; border-bottom: 1.5px solid var(--line); text-align: center; }
+.bl-cashier .den .count b.zero { color: rgba(42, 33, 28, 0.3); }
+.bl-cashier .den[aria-pressed='true'] .count b { border-bottom-color: var(--plum); }
+.bl-cashier .den[aria-pressed='true'] .count b::after,
+.bl-cashier .slot[aria-pressed='true']::after { content: ''; display: inline-block; width: 1.5px; height: 0.8em; margin-left: 2px; background: var(--plum); animation: bl-caret 1s steps(2, jump-none) infinite; }
+@keyframes bl-caret { 50% { opacity: 0; } }
+.bl-cashier .den .sub { font-size: 0.9375rem; color: var(--soft); }
+
+/* 外幣 */
+.bl-cashier .fx-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.bl-cashier .fx-form label, .bl-cashier .fx-form .f { display: grid; gap: 2px; font-size: 0.8125rem; color: var(--soft); }
+.bl-cashier .fx-form label { grid-column: 1 / -1; }
+.bl-cashier .fx-form select, .bl-cashier .slot { min-height: 48px; padding: 0 2px; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; background: none; text-align: left; font-size: 1.0625rem; color: var(--ink); }
+.bl-cashier .slot { font-family: var(--didone); font-size: 1.5rem; font-variation-settings: 'opsz' 18; }
+.bl-cashier .slot.empty { font-family: var(--sans); font-size: 0.9375rem; color: rgba(42, 33, 28, 0.45); }
+.bl-cashier .slot[aria-pressed='true'] { border-bottom-color: var(--plum); background: var(--wash); }
+.bl-cashier .add { grid-column: 1 / -1; min-height: 48px; border: 1px solid var(--ink); border-radius: 999px; background: none; transition: background-color 0.25s, color 0.25s; }
+.bl-cashier .add:hover { background: var(--ink); color: var(--paper); }
+.bl-cashier .tx { display: flex; align-items: center; gap: 10px; min-height: 48px; border-top: 1px solid var(--line); font-size: 0.9375rem; }
+.bl-cashier .tx b { font-weight: 500; }
+.bl-cashier .tx span { color: var(--soft); }
+.bl-cashier .tx em { margin-left: auto; font-style: normal; font-family: var(--didone); font-size: 1.25rem; font-variation-settings: 'opsz' 18; }
+.bl-cashier .x { flex: none; width: 44px; height: 44px; margin-right: -12px; border: 0; background: none; color: var(--soft); display: grid; place-items: center; }
+.bl-cashier .x:hover { color: var(--short); }
+
+/* 日結 */
+.bl-cashier .actual { padding: 4px 0 12px; }
+.bl-cashier .actual b { display: block; font-family: var(--didone); font-weight: 400; font-size: clamp(3.25rem, 5.4vw, 4.75rem); line-height: 1; white-space: nowrap; font-variation-settings: 'opsz' 40; }
+.bl-cashier .sum-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 0; border-top: 1px solid var(--line); }
+.bl-cashier .sum-row span { color: var(--soft); }
+.bl-cashier .sum-row b { font-family: var(--didone); font-weight: 400; font-size: 1.375rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl-cashier .pos { display: grid; gap: 2px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 0.8125rem; color: var(--soft); }
+.bl-cashier .pos input { min-height: 52px; padding: 0 2px; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; background: none; font-family: var(--didone); font-size: 2rem; font-variation-settings: 'opsz' 18; color: var(--ink); }
+.bl-cashier .pos input::placeholder, .bl-cashier dialog input::placeholder { font-family: var(--sans); font-size: 0.9375rem; color: rgba(42, 33, 28, 0.45); }
+.bl-cashier .pos input:focus, .bl-cashier dialog input:focus { outline: none; border-bottom-color: var(--plum); box-shadow: 0 2px 0 var(--plum); }
+.bl-cashier .diff { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); color: var(--tone, var(--soft)); font-weight: 500; }
+.bl-cashier .diff b { font-family: var(--didone); font-weight: 400; font-size: 2.5rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+
+/* 底部：平常是一條摘要，選到格子就長出數字鍵盤 */
+.bl-cashier .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--ink); color: var(--paper); padding: 0 max(22px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left)); }
+.bl-cashier .dock > div { max-width: 440px; margin: 0 auto; }
+.bl-cashier .bar { display: flex; align-items: baseline; gap: 10px; min-height: 52px; padding-top: 10px; font-size: 0.9375rem; }
+.bl-cashier .bar b { font-family: var(--didone); font-weight: 400; font-size: 1.75rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl-cashier .bar .r { margin-left: auto; color: var(--tone, #cfc4b6); }
+.bl-cashier .bar .down { flex: none; width: 44px; height: 44px; margin: -10px -12px -10px 0; align-self: center; border: 0; background: none; color: #cfc4b6; display: grid; place-items: center; }
+.bl-cashier .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px 0 4px; }
+.bl-cashier .pad button { min-height: 54px; border: 0; border-radius: 10px; background: #3d322c; color: var(--paper); font-family: var(--didone); font-size: 1.75rem; font-variation-settings: 'opsz' 18; transition: background-color 0.15s, scale 0.15s; display: grid; place-items: center; }
+.bl-cashier .pad button:active { background: #57493f; scale: 0.96; }
+.bl-cashier .pad .next { grid-column: 1 / -1; background: var(--wash); color: var(--ink); font-family: var(--serif); font-weight: 600; font-size: 1.125rem; letter-spacing: 0.1em; }
+.bl-cashier .pad .next:active { background: #c5c87a; }
+
+/* 外幣找零 */
+.bl-cashier dialog { width: min(92vw, 440px); padding: 24px; border: 0; border-radius: 4px; background: var(--paper); color: var(--ink); box-shadow: 0 30px 80px -20px rgba(42, 33, 28, 0.6); }
+.bl-cashier dialog::backdrop { background: rgba(42, 33, 28, 0.5); }
+.bl-cashier dialog h2 { margin: 0 0 12px; font-family: var(--serif); font-weight: 600; font-size: 1.5rem; display: flex; align-items: center; }
+.bl-cashier dialog h2 .x { margin-left: auto; }
+.bl-cashier dialog label { display: grid; gap: 2px; margin-top: 12px; font-size: 0.8125rem; color: var(--soft); }
+.bl-cashier dialog input { min-height: 48px; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; background: none; font-family: var(--didone); font-size: 1.5rem; font-variation-settings: 'opsz' 18; color: var(--ink); }
+.bl-cashier .rates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.bl-cashier .rates > span { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; }
+.bl-cashier .rates > span button { min-height: 40px; border: 0; background: none; }
+.bl-cashier .rates .use { padding: 0 4px 0 14px; font-family: var(--didone); font-size: 1.125rem; font-variation-settings: 'opsz' 18; }
+.bl-cashier .rates .del { width: 36px; color: var(--soft); display: grid; place-items: center; }
+.bl-cashier .rates .del:hover { color: var(--short); }
+.bl-cashier .change { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--ink); color: var(--tone, var(--soft)); font-weight: 500; }
+.bl-cashier .change b { display: block; font-family: var(--didone); font-weight: 400; font-size: 3.5rem; line-height: 1; font-variation-settings: 'opsz' 40; color: var(--ink); }
+.bl-cashier .change small { color: var(--soft); font-weight: 400; }
+
+@media (min-width: 620px) {
+  .bl-cashier .boxes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bl-cashier .fx-form { grid-template-columns: 1.2fr 1fr 1fr auto; align-items: end; }
+  .bl-cashier .fx-form label, .bl-cashier .add { grid-column: auto; }
+  .bl-cashier .add { padding: 0 22px; }
+}
+@media (min-width: 1000px) {
+  .bl-cashier .split { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: clamp(28px, 3.5vw, 52px); align-items: start; }
+  .bl-cashier .summary { position: sticky; top: 12px; border-left: 1px solid var(--line); padding-left: clamp(28px, 3.5vw, 52px); }
+}

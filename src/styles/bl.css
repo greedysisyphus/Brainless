@@ -34,6 +34,7 @@
 .bl-tool .all svg { rotate: 180deg; }
 .bl-tool .all span { display: none; }
 .bl-tool header time { font-family: var(--didone); font-size: 1.25rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl-tool .top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 24px; padding-top: clamp(18px, 3.5vh, 36px); }
 .bl-tool h1 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: clamp(2.25rem, 4.6vw, 3.75rem); line-height: 1.2; letter-spacing: 0.03em; }
 .bl-tool h1 span { display: inline-block; view-transition-name: bl-tool-title; }
 @media (min-width: 620px) {

@@ -60,7 +60,7 @@ export function BlLink({ to, state, onBefore, children, ...props }) {
 }
 
 /** 內頁外殼：貓是回首頁的按鈕，右邊是「所有工具」與時鐘 */
-export function ToolPage({ path, section, title, className = '', children }) {
+export function ToolPage({ path, section, title, titleExtra = null, className = '', children }) {
   useBlFonts()
   const now = useNow()
   const home = { to: '/home', state: { from: path } }
@@ -80,9 +80,12 @@ export function ToolPage({ path, section, title, className = '', children }) {
           <time>{clockOf(now)}</time>
         </header>
         <main>
-          <h1>
-            <span>{title}</span>
-          </h1>
+          <div className="top">
+            <h1>
+              <span>{title}</span>
+            </h1>
+            {titleExtra}
+          </div>
           {children}
         </main>
       </div>
