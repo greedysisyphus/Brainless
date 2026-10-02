@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ToolPage } from '../../components/bl/shared'
+import ShiftFlightLoad, { useFlightDay } from '../../components/shifts/ShiftFlightLoad'
+import { PersonOptionGroups } from '../../components/shifts/shiftUi'
 import {
   CAR_LABELS,
   STORES,
@@ -19,21 +20,38 @@ import {
   getDayAssignments,
   getMonthsForDate,
   getWorkingAssignments,
+  groupPeopleByStore,
   groupWorkingByStore,
   parseDateKey,
   pickupMapFrom,
   toDateKey,
 } from '../shifts/shiftModel'
 import { describeEntry, getLeaveDisplay, getShiftDisplay } from '../shifts/shiftVocab'
+import { savePersonSettings, saveShiftMonth, saveSupportLinks } from '../shifts/shiftFirestore'
+import { listUnresolvedSupport } from '../shifts/shiftSupport'
+import { parseHHMMToMinutes } from '../../utils/flightData/flightTime'
 import { useShiftBook } from '../shifts/useShiftBook'
 import '../../styles/bl-shifts.css'
 
-// 這一版只做最常用的兩個分頁，資料與判讀規則完全沿用舊版的 shiftModel；其餘分頁先連回舊版。
+// 「今天」與「完整班表」是新版畫面；其餘五個分頁沿用舊版的面板元件（功能與資料完全相同），
+// 只把顏色換成新版的色票（見 bl-shifts.css 的 --cw-* 對照），之後再逐個重畫。
+const ShiftMatchPanel = lazy(() => import('../../components/shifts/ShiftMatchPanel'))
+const ShiftStatsPanel = lazy(() => import('../../components/shifts/ShiftStatsPanel'))
+const SupportResolutionPanel = lazy(() => import('../../components/shifts/SupportResolutionPanel'))
+const PickupExportPanel = lazy(() => import('../../components/shifts/PickupExportPanel'))
+const PeopleSettingsPanel = lazy(() => import('../../components/shifts/PeopleSettingsPanel'))
+const ShiftImportPanel = lazy(() => import('../../components/shifts/ShiftImportPanel'))
+const PersonMonthCalendar = lazy(() => import('../../components/shifts/PersonMonthCalendar'))
+
 const TABS = [
   ['today', '今天'],
   ['grid', '完整班表'],
+  ['match', '找日子'],
+  ['stats', '統計'],
+  ['support', '支援班'],
+  ['pickup', '同事與上車'],
+  ['import', '匯入'],
 ]
-const OLD_TABS = ['找日子', '統計', '支援班', '同事與上車', '匯入']
 const KNOWN_TINTS = ['MORNING', 'MID', 'NOON', 'EVENING', 'SUPPORT']
 const tintOf = (code) => `var(--${KNOWN_TINTS.includes(code) ? code : 'OTHER'})`
 
@@ -52,7 +70,80 @@ function flagsOf(person) {
   ].filter(Boolean)
 }
 
-function TodayPanel({ book, dateKey, setDateKey, pickupByPerson }) {
+/** 這一班現在的狀態：on＝上班中、done＝已下班、next＝還沒開始；看的不是今天就不標 */
+function statusOf(display, isToday, nowMinutes) {
+  if (!isToday) return ''
+  const start = parseHHMMToMinutes(display?.start)
+  let end = parseHHMMToMinutes(display?.end)
+  if (start == null || end == null) return ''
+  if (end <= start) end += 24 * 60
+  if (nowMinutes >= end) return 'done'
+  return nowMinutes >= start ? 'on' : 'next'
+}
+
+function StoreBlock({ store, codes, month, dateKey, isToday, off }) {
+  // 每個班別旁邊帶這一班有幾班機、最忙哪一小時（中央店沒有對應的登機門，不會顯示）
+  const { store: flightStore, flights } = useFlightDay(store.storeCode, dateKey)
+  const now = new Date()
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  return (
+    <div className="block">
+      <h3>
+        {store.storeCode ? getStoreShortName(store.storeCode) : store.storeName}
+        <small>
+          <b>{store.total}</b> 人
+        </small>
+      </h3>
+      {codes.map((code) => {
+        const display = code ? getShiftDisplay(month, code) : null
+        const people = store.shifts.find((s) => s.shift === code)?.people || []
+        const status = statusOf(display, isToday, nowMinutes)
+        return (
+          <div className={`shift ${status}`} key={code ?? 'none'}>
+            <span className="chip" style={{ background: tintOf(code) }}>
+              {display?.label || '班別未定'}
+            </span>
+            <time>
+              {display?.start && display?.end ? `${display.start}–${display.end}` : ''}
+              {status === 'on' ? <em>上班中</em> : null}
+            </time>
+            {people.length ? (
+              <ul>
+                {people.map((person) => {
+                  const flags = flagsOf(person)
+                  return (
+                    <li key={person.personKey}>
+                      {person.name}
+                      <span>
+                        {flags.length ? <em title={flags.join(' · ')}>{flags[0]}　</em> : null}
+                        {person.positionLabel}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <span className="none">沒有排人</span>
+            )}
+            {code && people.length ? (
+              <div className="load">
+                <ShiftFlightLoad store={flightStore} flights={flights} month={month} shiftCode={code} dateKey={dateKey} />
+              </div>
+            ) : null}
+          </div>
+        )
+      })}
+      <p className="off">
+        休假：
+        {off.length
+          ? off.map((a) => `${a.name}${a.leave && a.leave !== 'OFF' ? `（${getLeaveDisplay(month, a.leave)?.label}）` : ''}`).join('、')
+          : '無'}
+      </p>
+    </div>
+  )
+}
+
+function TodayPanel({ book, dateKey, setDateKey, pickupByPerson, onOpenTab }) {
   const todayKey = toDateKey(new Date())
   const date = parseDateKey(dateKey)
   const months = getMonthsForDate(book, dateKey)
@@ -93,8 +184,25 @@ function TodayPanel({ book, dateKey, setDateKey, pickupByPerson }) {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [setDateKey])
 
+  // 手機左右滑換日；在可橫向捲動的區塊上不觸發
+  const swipe = useRef(null)
+  const onTouchStart = (e) => {
+    const t = e.touches[0]
+    swipe.current = e.target.closest?.('.scroll') ? null : { x: t.clientX, y: t.clientY }
+  }
+  const onTouchEnd = (e) => {
+    const start = swipe.current
+    swipe.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return
+    setDateKey((d) => addDays(d, dx < 0 ? 1 : -1))
+  }
+
   return (
-    <div className="panel">
+    <div className="panel" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="datebar">
         <div className="nav">
           <button type="button" className="round" aria-label="前一天" onClick={() => setDateKey(addDays(dateKey, -1))}>
@@ -107,6 +215,10 @@ function TodayPanel({ book, dateKey, setDateKey, pickupByPerson }) {
             <Chevron d="M9 6l6 6-6 6" />
           </button>
         </div>
+        <label className="jump">
+          <span>跳到日期</span>
+          <input type="date" value={dateKey} onChange={(e) => e.target.value && setDateKey(e.target.value)} />
+        </label>
         {holiday ? <span className="holiday">{holiday}</span> : null}
         {dateKey !== todayKey ? (
           <button type="button" className="text" onClick={() => setDateKey(todayKey)}>
@@ -123,63 +235,25 @@ function TodayPanel({ book, dateKey, setDateKey, pickupByPerson }) {
       {!months.length ? (
         <div className="empty">
           <p>這個月份還沒有匯入任何一家店的班表。</p>
-          <Link className="text" to="/shifts">
-            到舊版班表的「匯入」分頁上傳
-          </Link>
+          <button type="button" className="text" onClick={() => onOpenTab('import')}>
+            到「匯入」分頁上傳
+          </button>
         </div>
       ) : (
-        <div className="today">
+        <div className="today" key={dateKey}>
           <section aria-label="誰上班">
             <div className="stores" style={{ '--cols': view.columns.length, '--rows': view.codes.length + 2 }}>
-              {view.columns.map((store) => {
-                const off = view.leave.filter((a) => a.homeStore === store.storeCode)
-                return (
-                  <div className="block" key={store.storeCode ?? 'unknown'}>
-                    <h3>
-                      {store.storeCode ? getStoreShortName(store.storeCode) : store.storeName}
-                      <small>
-                        <b>{store.total}</b> 人
-                      </small>
-                    </h3>
-                    {view.codes.map((code) => {
-                      const display = code ? getShiftDisplay(monthOf(store.storeCode), code) : null
-                      const people = store.shifts.find((s) => s.shift === code)?.people || []
-                      return (
-                        <div className="shift" key={code ?? 'none'}>
-                          <span className="chip" style={{ background: tintOf(code) }}>
-                            {display?.label || '班別未定'}
-                          </span>
-                          <time>{display?.start && display?.end ? `${display.start}–${display.end}` : ''}</time>
-                          {people.length ? (
-                            <ul>
-                              {people.map((person) => {
-                                const flags = flagsOf(person)
-                                return (
-                                  <li key={person.personKey}>
-                                    {person.name}
-                                    <span>
-                                      {flags.length ? <em title={flags.join(' · ')}>{flags[0]}　</em> : null}
-                                      {person.positionLabel}
-                                    </span>
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          ) : (
-                            <span className="none">沒有排人</span>
-                          )}
-                        </div>
-                      )
-                    })}
-                    <p className="off">
-                      休假：
-                      {off.length
-                        ? off.map((a) => `${a.name}${a.leave && a.leave !== 'OFF' ? `（${getLeaveDisplay(monthOf(a.homeStore), a.leave)?.label}）` : ''}`).join('、')
-                        : '無'}
-                    </p>
-                  </div>
-                )
-              })}
+              {view.columns.map((store) => (
+                <StoreBlock
+                  key={store.storeCode ?? 'unknown'}
+                  store={store}
+                  codes={view.codes}
+                  month={monthOf(store.storeCode)}
+                  dateKey={dateKey}
+                  isToday={dateKey === todayKey}
+                  off={view.leave.filter((a) => a.homeStore === store.storeCode)}
+                />
+              ))}
             </div>
           </section>
 
@@ -215,9 +289,9 @@ function TodayPanel({ book, dateKey, setDateKey, pickupByPerson }) {
                   )}
                   {car.skipped.length ? <p>不搭車：{car.skipped.map((a) => a.name).join('、')}</p> : null}
                   {unset ? (
-                    <Link className="text" to="/shifts">
-                      {unset.riders.length} 人還沒設定上車地點，到舊版「同事與上車」設定
-                    </Link>
+                    <button type="button" className="text" onClick={() => onOpenTab('pickup')}>
+                      {unset.riders.length} 人還沒設定上車地點，去設定
+                    </button>
                   ) : null}
                 </div>
               )
@@ -257,11 +331,14 @@ function datesOfMonth(month) {
   return Array.from({ length: total }, (_, i) => `${month.monthKey}-${String(i + 1).padStart(2, '0')}`)
 }
 
-function GridPanel({ book }) {
+function GridPanel({ book, onOpenTab, onPickDate }) {
   const todayKey = toDateKey(new Date())
   const [storeCode, setStoreCode] = useState(STORES[0].code)
   const [monthKey, setMonthKey] = useState('')
   const [detail, setDetail] = useState(null) // title 在手機上不存在，格子要能點開看細節
+  const [personKey, setPersonKey] = useState('')
+  const peopleGroups = useMemo(() => groupPeopleByStore(book.people), [book.people])
+  const person = book.people.find((p) => p.key === personKey) || null
   const activeMonthKey = book.monthKeys.includes(monthKey)
     ? monthKey
     : book.monthKeys.includes(todayKey.slice(0, 7))
@@ -306,19 +383,25 @@ function GridPanel({ book }) {
   return (
     <div className="panel">
       <div className="gridbar">
-        <div className="seg" role="group" aria-label="分店">
-          {STORES.map((store) => (
-            <button key={store.code} type="button" aria-pressed={store.code === storeCode} onClick={() => setStoreCode(store.code)}>
-              {store.short}
-            </button>
-          ))}
-        </div>
+        {person ? null : (
+          <div className="seg" role="group" aria-label="分店">
+            {STORES.map((store) => (
+              <button key={store.code} type="button" aria-pressed={store.code === storeCode} onClick={() => setStoreCode(store.code)}>
+                {store.short}
+              </button>
+            ))}
+          </div>
+        )}
         <select aria-label="月份" value={activeMonthKey} onChange={(e) => setMonthKey(e.target.value)}>
           {book.monthKeys.map((key) => (
             <option key={key} value={key}>
               {key.replace('-', ' 年 ').replace(/^(\d+ 年 )0?/, '$1')} 月
             </option>
           ))}
+        </select>
+        <select aria-label="同事" className="who" value={personKey} onChange={(e) => setPersonKey(e.target.value)}>
+          <option value="">全部同事</option>
+          <PersonOptionGroups groups={peopleGroups} />
         </select>
         <div className="legend">
           {legend.map((d) => (
@@ -330,12 +413,19 @@ function GridPanel({ book }) {
         </div>
       </div>
 
-      {!month ? (
+      {person ? (
+        // 單一同事：月曆視圖（跨店顯示他實際上班的地方，可匯出到手機行事曆）
+        <div className="legacy">
+          <Suspense fallback={<p className="detail">讀取中…</p>}>
+            <PersonMonthCalendar book={book} person={person} monthKey={activeMonthKey} onSelectDate={onPickDate} />
+          </Suspense>
+        </div>
+      ) : !month ? (
         <div className="empty">
           <p>這個月份還沒有這家店的班表。</p>
-          <Link className="text" to="/shifts">
-            到舊版班表的「匯入」分頁上傳
-          </Link>
+          <button type="button" className="text" onClick={() => onOpenTab('import')}>
+            到「匯入」分頁上傳
+          </button>
         </div>
       ) : (
         <>
@@ -348,7 +438,7 @@ function GridPanel({ book }) {
                   </th>
                   {dates.map((date) => {
                     const day = parseDateKey(date)
-                    const weekend = month.days?.[date]?.isWeekend ?? (day.getDay() === 0 || day.getDay() === 6)
+                    const weekend = day.getDay() === 0 || day.getDay() === 6
                     const note = month.holidays?.[date]
                     return (
                       <th key={date} scope="col" title={note || undefined} className={`${weekend ? 'we' : ''}${note ? ' hol' : ''}${date === todayKey ? ' now' : ''}`}>
@@ -375,6 +465,9 @@ function GridPanel({ book }) {
                         const entry = byDate[date]
                         const text = describeEntry(entry, month)
                         const now = date === todayKey ? ' now' : ''
+                        const dow = parseDateKey(date).getDay()
+                        const weekend = dow === 0 || dow === 6 ? ' we' : ''
+                        const picked = detail?.date === date && detail?.name === person.name ? ' picked' : ''
                         let mark = null
                         if (entry?.kind === 'WORK') {
                           work += 1
@@ -388,7 +481,7 @@ function GridPanel({ book }) {
                         } else if (entry?.kind === 'LEAVE') mark = getLeaveDisplay(month, entry.leave)?.marker || '休'
                         else if (entry?.kind === 'UNKNOWN') mark = <i className="review">?</i>
                         return (
-                          <td key={date} className={`${entry?.kind === 'LEAVE' ? 'lv' : ''}${now}`}>
+                          <td key={date} className={`${entry?.kind === 'LEAVE' ? 'lv' : ''}${weekend}${now}${picked}`}>
                             <button
                               type="button"
                               title={text || undefined}
@@ -445,30 +538,101 @@ function GridPanel({ book }) {
   )
 }
 
+/** 班表只有管理員能寫（Firestore 規則）；沒登入時 Firebase 只丟一句英文，翻成人話 */
+function describeSaveError(error) {
+  const code = error?.code || ''
+  if (code === 'permission-denied' || /insufficient permissions/i.test(error?.message || '')) {
+    return '沒有權限寫入班表。班表只有管理員能改，請先到「管理」登入後再試一次。'
+  }
+  return error?.message || '未知錯誤'
+}
+
 export default function Shifts() {
-  const { book, peopleSettings, identity, loading, loadError } = useShiftBook()
+  const {
+    book,
+    rawBook,
+    months,
+    resolvedMonths,
+    peopleSettings,
+    setPeopleSettings,
+    supportLinks,
+    setSupportLinks,
+    identity,
+    loading,
+    loadError,
+    setLoadError,
+  } = useShiftBook()
   const [tab, setTab] = useState('today')
   const [dateKey, setDateKey] = useState(() => toDateKey(new Date()))
+  const [saving, setSaving] = useState(false)
+  const [statsPersonKey, setStatsPersonKey] = useState(null)
   const pickupByPerson = useMemo(() => pickupMapFrom(peopleSettings, identity), [peopleSettings, identity])
+  const peopleGroups = useMemo(() => groupPeopleByStore(book.people), [book.people])
+  /** 只寫「T3／D7」還沒對到實際班別的支援班 */
+  const pendingSupport = useMemo(() => listUnresolvedSupport(months, supportLinks), [months, supportLinks])
+  const pickDate = (key) => {
+    setDateKey(key)
+    setTab('today')
+  }
+
+  // 以下三個寫入動作照舊版 ShiftBoard 的做法（舊版退場後這裡就是唯一一份）
+  const saveMonths = useCallback(async (monthsToSave) => {
+    setSaving(true)
+    try {
+      for (const month of monthsToSave) await saveShiftMonth(month)
+    } catch (error) {
+      throw new Error(describeSaveError(error))
+    } finally {
+      setSaving(false)
+    }
+  }, [])
+  const changeSupportLink = useCallback(
+    async ({ monthKey, date, atStore, personKey, slotId }) => {
+      const next = supportLinks.filter((link) => !(link.date === date && link.atStore === atStore && link.personKey === personKey))
+      if (slotId) next.push({ date, atStore, personKey, slotId })
+      setSupportLinks(next) // 樂觀更新，onSnapshot 回來會覆蓋
+      setSaving(true)
+      try {
+        await saveSupportLinks(monthKey, next.filter((link) => link.date.startsWith(monthKey)))
+      } catch (error) {
+        setLoadError(`儲存支援班配對失敗：${describeSaveError(error)}`)
+      } finally {
+        setSaving(false)
+      }
+    },
+    [supportLinks, setSupportLinks, setLoadError]
+  )
+  const changePersonSettings = useCallback(
+    async (personKey, settings) => {
+      setPeopleSettings((prev) => ({ ...prev, [personKey]: settings }))
+      setSaving(true)
+      try {
+        await savePersonSettings(personKey, settings)
+      } catch (error) {
+        setLoadError(`儲存同事設定失敗：${error.message}`)
+      } finally {
+        setSaving(false)
+      }
+    },
+    [setPeopleSettings, setLoadError]
+  )
 
   return (
     <ToolPage className="bl-shifts" path="/shifts" section="人事與航班" title="班表">
       {loadError ? (
         <p className="alert" role="alert">
-          {loadError}
+          {loadError}　
+          <button type="button" className="text" onClick={() => setLoadError('')}>
+            知道了
+          </button>
         </p>
       ) : null}
       <div className="tabs" role="group" aria-label="班表分頁">
         {TABS.map(([key, label]) => (
           <button key={key} type="button" aria-pressed={key === tab} onClick={() => setTab(key)}>
             {label}
+            {key === 'support' && pendingSupport.length ? <i>{pendingSupport.length}</i> : null}
           </button>
-        ))}
-        {OLD_TABS.map((label) => (
-          <Link key={label} to="/shifts" title="這個分頁還沒有新版，會開舊版班表">
-            {label}
-            <i>舊版</i>
-          </Link>
         ))}
       </div>
       {loading ? (
@@ -476,9 +640,49 @@ export default function Shifts() {
           <p>班表讀取中…</p>
         </div>
       ) : tab === 'today' ? (
-        <TodayPanel book={book} dateKey={dateKey} setDateKey={setDateKey} pickupByPerson={pickupByPerson} />
+        <TodayPanel book={book} dateKey={dateKey} setDateKey={setDateKey} pickupByPerson={pickupByPerson} onOpenTab={setTab} />
+      ) : tab === 'grid' ? (
+        <GridPanel book={book} onOpenTab={setTab} onPickDate={pickDate} />
       ) : (
-        <GridPanel book={book} />
+        <div className="panel legacy">
+          <Suspense fallback={<p className="detail">讀取中…</p>}>
+            {tab === 'match' ? <ShiftMatchPanel book={book} peopleGroups={peopleGroups} onSelectDate={pickDate} /> : null}
+            {tab === 'stats' ? (
+              <ShiftStatsPanel book={book} peopleSettings={peopleSettings} selectedPersonKey={statsPersonKey} onSelectPerson={setStatsPersonKey} />
+            ) : null}
+            {tab === 'support' ? (
+              <SupportResolutionPanel book={book} months={months} links={supportLinks} onChangeLink={changeSupportLink} saving={saving} />
+            ) : null}
+            {tab === 'pickup' ? (
+              <div className="stack">
+                <PickupExportPanel
+                  book={book}
+                  pickupByPerson={pickupByPerson}
+                  defaultDate={dateKey}
+                  supportWarning={
+                    pendingSupport.length ? (
+                      <p className="alert">
+                        {pendingSupport.length} 天的跨店支援還沒指定是哪一班。如果其中有早班或中班，那些人不會出現在下面的名單裡。
+                        <button type="button" className="text" onClick={() => setTab('support')}>
+                          去「支援班」確認
+                        </button>
+                      </p>
+                    ) : null
+                  }
+                />
+                <PeopleSettingsPanel
+                  rawPeople={rawBook.people}
+                  identity={identity}
+                  peopleSettings={peopleSettings}
+                  months={resolvedMonths}
+                  onChange={changePersonSettings}
+                  saving={saving}
+                />
+              </div>
+            ) : null}
+            {tab === 'import' ? <ShiftImportPanel existingMonths={months} onSave={saveMonths} saving={saving} /> : null}
+          </Suspense>
+        </div>
       )}
     </ToolPage>
   )
