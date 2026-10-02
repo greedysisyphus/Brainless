@@ -23,7 +23,7 @@
 
 /* ── 內頁外殼 ── */
 .bl-tool .page { max-width: 1320px; margin: 0 auto; padding: 0 max(22px, env(safe-area-inset-right)) 48px max(22px, env(safe-area-inset-left)); }
-.bl-tool header { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.bl-tool .page > header { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .bl-tool .home { display: flex; align-items: center; gap: 12px; min-height: 48px; }
 .bl-tool .home img { width: 46px; height: auto; transition: rotate 0.6s var(--out), scale 0.6s var(--out); }
 .bl-tool .home:hover img, .bl-tool .home:focus-visible img { rotate: -8deg; scale: 1.08; }
@@ -33,10 +33,88 @@
 .bl-tool .all:hover, .bl-tool .all:focus-visible { color: var(--plum); }
 .bl-tool .all svg { rotate: 180deg; }
 .bl-tool .all span { display: none; }
-.bl-tool header time { font-family: var(--didone); font-size: 1.25rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl-tool .page > header time { font-family: var(--didone); font-size: 1.25rem; line-height: 1; font-variation-settings: 'opsz' 18; }
 .bl-tool .top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 24px; padding-top: clamp(18px, 3.5vh, 36px); }
-.bl-tool h1 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: clamp(2.25rem, 4.6vw, 3.75rem); line-height: 1.2; letter-spacing: 0.03em; }
-.bl-tool h1 span { display: inline-block; view-transition-name: bl-tool-title; }
+.bl-tool .top h1 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: clamp(2.25rem, 4.6vw, 3.75rem); line-height: 1.2; letter-spacing: 0.03em; }
+.bl-tool .top h1 span { display: inline-block; view-transition-name: bl-tool-title; }
+/* ── 沿用舊版元件的頁面與分頁（班表其餘五個分頁、咖啡豆、叫貨、報表、航班…）──
+   邏輯沿用舊版（功能、資料、寫入完全相同），外觀在這裡重畫成新版的語言：沒有卡片與圓角方框，用橫線分段、
+   明體標題、底線式欄位、膠囊按鈕。做法是把 Club 的 --cw-* 色票對到新版顏色，
+   再用元件上的掛鉤 class（cw-card、cw-btn、cw-field…）改形狀。 */
+.bl-tool {
+  --cw-bg: var(--oat); --cw-surface: var(--oat); --cw-surface-elevated: var(--paper); --cw-mega-surface: rgba(42, 33, 28, 0.045); --cw-header-bg: var(--oat);
+  --cw-text: var(--ink); --cw-text-muted: var(--soft); --cw-border: var(--line); --cw-border-strong: rgba(42, 33, 28, 0.32);
+  --cw-brand: var(--plum); --cw-brand-strong: #3b1f40; --cw-brand-muted: rgba(79, 45, 85, 0.1); --cw-accent: var(--plum); --cw-accent-contrast: var(--paper);
+  --cw-fg-emphasis: var(--ink); --cw-fg-emphasis-contrast: var(--paper); --cw-focus-ring: rgba(79, 45, 85, 0.5);
+  --cw-warning: #8a5a12; --cw-warning-muted: rgba(138, 90, 18, 0.1); --cw-danger: #8a2b1c; --cw-danger-muted: rgba(138, 43, 28, 0.1);
+  --cw-success: #2f6b3f; --cw-success-muted: rgba(47, 107, 63, 0.1);
+  --cw-radius-sm: 3px; --cw-radius: 0px; --cw-radius-lg: 0px; --cw-shadow-sm: none;
+}
+.bl-tool .legacy { padding-top: 4px; }
+.bl-tool .legacy .stack > * + * { margin-top: 12px; }
+.bl-tool .legacy :focus-visible { outline-color: var(--plum); }
+
+/* 卡片 → 橫線分段 */
+.bl-tool .legacy .cw-card { padding: 18px 0 10px; border: 0; border-top: 1px solid var(--ink); border-radius: 0; background: none; }
+.bl-tool .legacy > .cw-card:first-child, .bl-tool .legacy > div > .cw-card:first-child, .bl-tool .legacy .stack > .cw-card:first-child { border-top: 0; }
+.bl-tool .legacy .cw-card .cw-card { padding: 14px 0 6px; border-top-color: var(--line); }
+.bl-tool .legacy .cw-card-title { font-family: var(--serif); font-weight: 600; font-size: 1.375rem; letter-spacing: 0.04em; }
+.bl-tool .legacy .cw-card .cw-card .cw-card-title { font-size: 1.125rem; }
+.bl-tool .legacy h2, .bl-tool .legacy h3, .bl-tool .legacy h4 { font-family: var(--serif); letter-spacing: 0.03em; }
+
+/* 按鈕 → 膠囊；次要動作是細線膠囊，最弱的是底線文字 */
+.bl-tool .legacy .cw-btn { border-radius: 999px; font-weight: 500; }
+.bl-tool .legacy .cw-btn-primary:hover { opacity: 1; background: var(--plum); }
+.bl-tool .legacy .cw-btn-secondary { border-color: var(--ink); }
+.bl-tool .legacy .cw-btn-secondary:hover { background: var(--wash); }
+.bl-tool .legacy .cw-btn-ghost { padding-left: 2px; padding-right: 2px; text-decoration: underline; text-underline-offset: 4px; }
+.bl-tool .legacy .cw-btn-ghost:hover { background: none; color: var(--plum); }
+.bl-tool .legacy .cw-btn-brand { background: none; border-color: var(--plum); }
+.bl-tool .legacy .cw-btn-brand:hover { background: var(--plum); color: var(--paper); }
+
+/* 欄位 → 底線式；標籤用明體茄紫 */
+.bl-tool .legacy .cw-label { margin-bottom: 2px; font-family: var(--serif); font-weight: 400; font-size: 0.8125rem; text-transform: none; letter-spacing: 0.2em; color: var(--plum); }
+.bl-tool .legacy .cw-field { padding-left: 2px; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; background-color: transparent; box-shadow: none; }
+.bl-tool .legacy .cw-field:focus { border-bottom-color: var(--plum); box-shadow: 0 2px 0 var(--plum); --tw-ring-shadow: 0 0 #0000; }
+.bl-tool .legacy textarea.cw-field { padding: 10px; border: 1px solid var(--line); border-bottom: 1.5px solid var(--ink); }
+.bl-tool .legacy input[type='checkbox'], .bl-tool .legacy input[type='radio'] { accent-color: var(--plum); }
+
+/* 徽章、提示、空狀態、表格 */
+.bl-tool .legacy .cw-badge { border-radius: 999px; text-transform: none; letter-spacing: 0.02em; font-size: 0.75rem; }
+.bl-tool .legacy .cw-alert { padding: 12px 0; border: 0; border-top: 1px solid var(--tone); border-bottom: 1px solid var(--tone); border-radius: 0; background: none; color: var(--tone); }
+.bl-tool .legacy .cw-alert-warning { --tone: var(--cw-warning); }
+.bl-tool .legacy .cw-alert-error { --tone: var(--cw-danger); }
+.bl-tool .legacy .cw-alert-success { --tone: var(--cw-success); }
+.bl-tool .legacy .cw-alert-neutral { --tone: var(--line); color: var(--ink); }
+.bl-tool .legacy .cw-empty { align-items: flex-start; padding: 40px 0; border: 0; background: none; text-align: left; }
+.bl-tool .legacy .cw-empty > div:first-child { font-family: var(--serif); }
+.bl-tool .legacy .cw-table { border: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.bl-tool .legacy thead { text-transform: none; }
+/* 元件裡自己畫的圓角膠囊群（切換鈕）維持膠囊；其餘方框在色票那邊已經歸零成直角細線框 */
+/* 外殼已經有標題與回首頁，頁面自己的大標題和「離開」不重複顯示 */
+.bl-tool .legacy h1, .bl-tool .legacy [aria-label='離開貨物叫貨'] { display: none; }
+
+/* 有些舊頁面（回饋中心等）的顏色是直接寫死的 Club 色，不走 --cw-* 色票；這裡把那幾個顏色對到新版。
+   選擇器只認「本身」的 class（開頭或前面有空白），不會誤中 hover:bg-… 這類狀態 class。 */
+.bl-tool .legacy :is([class^='bg-white'], [class*=' bg-white']):not([class*='bg-white/']) { background-color: var(--paper); box-shadow: none; }
+.bl-tool .legacy :is([class^='bg-[#f7f6f2]'], [class*=' bg-[#f7f6f2]']) { background-color: var(--oat); box-shadow: none; }
+.bl-tool .legacy :is(article, section, div, li, button)[class*='rounded-2xl'] { border-radius: 6px; }
+.bl-tool .legacy :is(article, li)[class*=' bg-white'], .bl-tool .legacy :is(article, li)[class^='bg-white'] { border: 1px solid var(--line); }
+.bl-tool .legacy :is([class^='bg-[#ec5836]'], [class*=' bg-[#ec5836]']) { background-color: var(--plum); }
+.bl-tool .legacy :is([class^='bg-[#fff1ed]'], [class*=' bg-[#fff1ed]']) { background-color: rgba(79, 45, 85, 0.1); }
+.bl-tool .legacy :is([class^='text-[#b3381e]'], [class*=' text-[#b3381e]'], [class^='text-[#ec5836]'], [class*=' text-[#ec5836]']) { color: var(--plum); }
+.bl-tool .legacy :is([class^='border-[#ec5836]'], [class*=' border-[#ec5836]']) { border-color: var(--plum); }
+.bl-tool .legacy :is([class^='text-[#171717]'], [class*=' text-[#171717]']) { color: var(--ink); }
+.bl-tool .legacy button:is([class^='bg-[#171717]'], [class*=' bg-[#171717]']) { background-color: var(--ink); border-radius: 999px; }
+/* 回饋中心的深色橫幅：收成一列說明加主要按鈕 */
+.bl-tool .legacy section:is([class^='bg-[#171717]'], [class*=' bg-[#171717]']) { padding: 14px 0 6px; border-radius: 0; background: none; box-shadow: none; color: var(--soft); }
+.bl-tool .legacy section:is([class^='bg-[#171717]'], [class*=' bg-[#171717]']) > [aria-hidden] { display: none; }
+.bl-tool .legacy section:is([class^='bg-[#171717]'], [class*=' bg-[#171717]']) p { color: var(--soft); }
+
+.bl-tool .legacy .bl-desc { margin: 6px 0 0; max-width: 42em; font-size: 0.9375rem; color: var(--soft); }
+.bl-tool .legacy .studio-root > .bl-desc + * { margin-top: 14px; }
+.bl-tool > .page > main > .legacy { border-top: 1px solid var(--ink); margin-top: 12px; }
+
 @media (min-width: 620px) {
   .bl-tool .crumb { display: block; }
   .bl-tool .all span { display: inline; }

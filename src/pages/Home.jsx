@@ -14,8 +14,8 @@ import '../styles/home.css'
 const WEEKDAYS = '日一二三四五六'
 /** 量尺畫到 110，讓「爆」（100 以上）還有位置 */
 const METER_MAX = 110
-/** 已經有新版的工具：舊路徑 → 新路徑。其餘的連回 Club 版 */
-const NEW_PAGES = { '/sandwich': '/home/sandwich', '/cashier': '/home/cashier', '/shifts': '/home/shifts' }
+/** 新版裡每個工具的路徑都是 /home 加上原本的路徑（原生新版或沿用舊元件的外殼版，見 pages/bl） */
+const newPathOf = (path) => `/home${path}`
 
 function greetingOf(hour) {
   if (hour < 5) return '夜深了'
@@ -94,7 +94,7 @@ function Roster({ book, dateKey, loading }) {
       <p className="note">
         {loading ? '班表讀取中…' : (
           <>
-            今天沒有班表資料。<Link to="/shifts">到班表匯入</Link>
+            今天沒有班表資料。<Link to="/home/shifts">到班表匯入</Link>
           </>
         )}
       </p>
@@ -147,14 +147,7 @@ function ToolLink({ item, cameFrom }) {
       <Arrow />
     </>
   )
-  const to = NEW_PAGES[item.path]
-  if (!to) {
-    return (
-      <Link className="item" to={item.path}>
-        {inner}
-      </Link>
-    )
-  }
+  const to = newPathOf(item.path)
   // 拍下舊畫面之前，把被點的名稱標成要變形成下一頁標題的那個元素（同名只能有一個）
   const mark = (e) => {
     document.querySelectorAll('.bl-home .item span').forEach((el) => (el.style.viewTransitionName = ''))
@@ -245,7 +238,7 @@ export default function Home() {
                 {busy ? <u /> : null}
               </div>
               {nextFlight ? (
-                <Link className="next" to="/flight-data">
+                <Link className="next" to="/home/flight-data">
                   <span className="label">下一班</span>
                   <span>
                     <b>{nextFlight.time}</b>　{nextFlight.city}　{nextFlight.flight_code} · {nextFlight.gate}
@@ -285,7 +278,7 @@ export default function Home() {
               <span>版本</span>
               <b>{latest.version}</b>
               <span>{latest.title}</span>
-              <Link className="link" to="/feedback">
+              <Link className="link" to="/home/feedback">
                 回饋與許願
               </Link>
             </p>

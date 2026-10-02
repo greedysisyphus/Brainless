@@ -1,0 +1,47 @@
+/* 沿用舊版元件的頁面裡，個別頁面需要另外整理版面的地方。
+   每頁外殼上有 bl-legacy-<路徑> 這個 class 可以對準。 */
+
+/* ── 叫貨功能 ──
+   舊版是一個自成一格的全螢幕畫面（自己的標題列、置中的窄欄）。放進新外殼後重新排過：
+   分店頁籤在左、同步與進度在右，細進度條貼在下面；內容左右對齊外殼；底部改成跟收銀一樣的深色列。 */
+.bl-legacy-goods-order-test .legacy { margin-top: 0; border-top: 0; }
+.bl-legacy-goods-order-test .legacy header > div,
+.bl-legacy-goods-order-test .legacy main,
+.bl-legacy-goods-order-test .legacy footer > div { max-width: none; padding-left: 0; padding-right: 0; }
+
+.bl-legacy-goods-order-test .legacy header { border-bottom: 0; background: var(--oat); backdrop-filter: none; }
+.bl-legacy-goods-order-test .legacy header > div { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 4px; padding-bottom: 0; }
+/* 分店：文字頁籤（跟厚片、班表一樣） */
+.bl-legacy-goods-order-test .legacy header [class*='grid-cols-3'] { order: 1; display: flex; gap: 26px; margin: 0; padding: 0; border-radius: 0; background: none; }
+.bl-legacy-goods-order-test .legacy header [class*='grid-cols-3'] button { min-height: 48px; padding: 0; border-radius: 0; background: none; box-shadow: inset 0 -3px 0 transparent; font-family: var(--serif); font-weight: 400; font-size: 1.125rem; letter-spacing: 0.06em; color: var(--soft); }
+.bl-legacy-goods-order-test .legacy header [class*='grid-cols-3'] button[aria-pressed='true'] { font-weight: 600; color: var(--ink); box-shadow: inset 0 -3px 0 var(--plum); }
+/* 同步狀態、已盤幾項、設定：排成一列 */
+.bl-legacy-goods-order-test .legacy header > div > div:first-child { order: 2; gap: 14px; min-height: 44px; }
+.bl-legacy-goods-order-test .legacy header > div > div:first-child > .flex-1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
+.bl-legacy-goods-order-test .legacy header > div > div:first-child > .flex-1 p { order: -1; margin: 0; font-size: 0.9375rem; color: var(--ink); }
+.bl-legacy-goods-order-test .legacy header [role='progressbar'] { order: 3; height: 3px; margin: 0; border-radius: 0; background: var(--line); }
+.bl-legacy-goods-order-test .legacy header [role='progressbar'] > div { border-radius: 0; }
+
+.bl-legacy-goods-order-test .legacy main { padding-top: 14px; }
+/* 品項表：不要底色方塊，用橫線 */
+.bl-legacy-goods-order-test .legacy main > :is(ul, div)[class*='overflow-hidden'] { border-top: 1px solid var(--ink); border-radius: 0; background: none; box-shadow: none; }
+.bl-legacy-goods-order-test .legacy main > div[class*='overflow-hidden'] > div { padding-left: 4px; padding-right: 4px; }
+.bl-legacy-goods-order-test .legacy main > div[class*='overflow-hidden'] > div:first-child { background: none; border-bottom-color: var(--ink); font-family: var(--serif); font-weight: 400; font-size: 0.8125rem; letter-spacing: 0.2em; color: var(--plum); }
+.bl-legacy-goods-order-test .legacy main > ul[class*='overflow-hidden'] > li { padding-left: 0; padding-right: 0; }
+
+/* 底部：深色列，主要按鈕用黃綠 */
+.bl-legacy-goods-order-test .legacy footer {
+  --cw-text: var(--paper); --cw-text-muted: #cfc4b6; --cw-fg-emphasis: var(--wash); --cw-fg-emphasis-contrast: var(--ink);
+  border-top: 0; background: var(--ink); backdrop-filter: none;
+  padding-left: max(22px, env(safe-area-inset-left)); padding-right: max(22px, env(safe-area-inset-right));
+}
+.bl-legacy-goods-order-test .legacy footer > div { max-width: 1276px; }
+.bl-legacy-goods-order-test .legacy footer .cw-btn-primary:hover { background: #c5c87a; }
+
+@media (min-width: 760px) {
+  .bl-legacy-goods-order-test .legacy header > div { grid-template-columns: auto minmax(0, 1fr); column-gap: 28px; align-items: center; }
+  .bl-legacy-goods-order-test .legacy header [class*='grid-cols-3'] { grid-column: 1; grid-row: 1; }
+  .bl-legacy-goods-order-test .legacy header > div > div:first-child { grid-column: 2; grid-row: 1; justify-content: flex-end; }
+  .bl-legacy-goods-order-test .legacy header > div > div:first-child > .flex-1 { flex: none; justify-content: flex-end; }
+  .bl-legacy-goods-order-test .legacy header [role='progressbar'] { grid-column: 1 / -1; grid-row: 2; }
+}

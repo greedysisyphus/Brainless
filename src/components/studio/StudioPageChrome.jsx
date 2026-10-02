@@ -1,7 +1,20 @@
+import { useContext } from 'react'
+import { InBlShell } from '../bl/chrome'
+
 /**
  * Club 頁面 chrome — Classic routes must not wrap with this component.
  */
 export function StudioPageChrome({ breadcrumbs = [], title, description, children }) {
+  // 在新版外殼裡：標題由外殼畫，這裡只留說明文字與內容
+  const inBlShell = useContext(InBlShell)
+  if (inBlShell) {
+    return (
+      <div className="studio-root">
+        {description ? <p className="bl-desc">{description}</p> : null}
+        {children}
+      </div>
+    )
+  }
   return (
     <div className="studio-root">
       {(breadcrumbs.length > 0 || title) && (
