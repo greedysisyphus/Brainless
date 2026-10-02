@@ -1,0 +1,82 @@
+/* 新版厚片計算器（/home/sandwich） */
+.bl-sandwich h1 { padding-top: clamp(20px, 4vh, 40px); }
+.bl-sandwich .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; }
+.bl-sandwich .split > * { min-width: 0; }
+.bl-sandwich button, .bl-sandwich input { font: inherit; color: inherit; }
+.bl-sandwich button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.bl-sandwich .num { font-family: var(--didone); font-variation-settings: 'opsz' 18; }
+
+/* 分店：文字頁籤 */
+.bl-sandwich .stores { display: flex; gap: 26px; margin-top: 14px; border-bottom: 1px solid var(--ink); }
+.bl-sandwich .stores button { min-height: 48px; padding: 0; border: 0; background: none; font-family: var(--serif); font-size: 1.125rem; letter-spacing: 0.06em; color: var(--soft); box-shadow: inset 0 -3px 0 transparent; transition: color 0.3s, box-shadow 0.3s; }
+.bl-sandwich .stores button[aria-pressed='true'] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -3px 0 var(--plum); }
+.bl-sandwich .sync { margin: 10px 0 0; font-size: 0.8125rem; color: #8a5a12; }
+
+/* 輸入：一種厚片一列，數字用步進器（現場單手好按） */
+.bl-sandwich .field { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 16px; padding: 14px 0; border-bottom: 1px solid var(--line); animation: bl-fade 0.9s var(--out) backwards; animation-delay: calc(0.1s + var(--k) * 70ms); }
+.bl-sandwich .field label { font-family: var(--serif); font-weight: 600; font-size: 1.375rem; letter-spacing: 0.04em; }
+.bl-sandwich .field small { grid-column: 1; font-size: 0.875rem; color: var(--soft); }
+.bl-sandwich .step { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 6px; }
+.bl-sandwich .step button { width: 48px; height: 48px; border: 1px solid var(--line); border-radius: 50%; background: none; display: grid; place-items: center; transition: background-color 0.25s, border-color 0.25s, scale 0.2s var(--out); }
+.bl-sandwich .step button:hover { background: var(--wash); border-color: var(--ink); }
+.bl-sandwich .step button:active { scale: 0.92; }
+.bl-sandwich .step input { width: 3.2ch; padding: 0; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; background: none; text-align: center; font-family: var(--didone); font-size: 2.5rem; line-height: 1.1; font-variation-settings: 'opsz' 18; -moz-appearance: textfield; appearance: textfield; }
+.bl-sandwich .step input::-webkit-outer-spin-button, .bl-sandwich .step input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.bl-sandwich .step input::placeholder { color: rgba(42, 33, 28, 0.3); }
+.bl-sandwich .step input:focus { outline: none; border-bottom-color: var(--plum); box-shadow: 0 2px 0 var(--plum); }
+
+.bl-sandwich .choice { padding: 16px 0 14px; border-bottom: 1px solid var(--line); }
+.bl-sandwich .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.bl-sandwich .chips button { min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: none; font-size: 0.9375rem; transition: background-color 0.25s, color 0.25s, border-color 0.25s; }
+.bl-sandwich .chips button:hover { border-color: var(--ink); }
+.bl-sandwich .chips button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.bl-sandwich .chips button:disabled { opacity: 0.4; cursor: default; }
+
+/* 基本設定：目標量各店共用（存在 Firestore），展開才改 */
+.bl-sandwich details { padding: 4px 0; border-bottom: 1px solid var(--line); }
+.bl-sandwich summary { display: flex; align-items: baseline; gap: 12px; min-height: 48px; padding-top: 12px; cursor: pointer; list-style: none; font-size: 0.875rem; color: var(--soft); }
+.bl-sandwich summary::-webkit-details-marker { display: none; }
+.bl-sandwich summary u { margin-left: auto; color: var(--ink); text-underline-offset: 4px; }
+.bl-sandwich .sets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; padding: 8px 0 12px; }
+.bl-sandwich .sets label { display: grid; gap: 4px; font-size: 0.875rem; color: var(--soft); }
+.bl-sandwich .sets input { width: 100%; min-width: 0; min-height: 44px; padding: 0 2px; border: 0; border-bottom: 1px solid var(--ink); border-radius: 0; background: none; font-family: var(--didone); font-size: 1.5rem; font-variation-settings: 'opsz' 18; }
+.bl-sandwich .save { min-height: 44px; margin-bottom: 14px; padding: 0 20px; border: 1px solid var(--ink); border-radius: 999px; background: none; font-size: 0.9375rem; transition: background-color 0.25s, color 0.25s; }
+.bl-sandwich .save:hover { background: var(--ink); color: var(--paper); }
+.bl-sandwich .reset { margin-top: 14px; min-height: 44px; padding: 0; border: 0; background: none; font-size: 0.875rem; color: var(--soft); text-decoration: underline; text-underline-offset: 4px; }
+.bl-sandwich .reset:hover { color: var(--plum); }
+
+/* 結果：最大的數字是「要開幾條吐司」 */
+.bl-sandwich .result { animation: bl-fade 1s 0.25s var(--out) backwards; }
+.bl-sandwich .hero { display: flex; align-items: baseline; gap: 12px; padding: 6px 0 14px; border-bottom: 1px solid var(--ink); }
+.bl-sandwich .hero > b { font-family: var(--didone); font-weight: 400; font-size: clamp(6rem, 13vw, 10rem); line-height: 0.85; font-variation-settings: 'opsz' 40; }
+.bl-sandwich .hero > span { font-family: var(--serif); font-weight: 600; font-size: 1.75rem; }
+.bl-sandwich .hero p { margin: 0 0 0 auto; text-align: right; font-size: 0.9375rem; line-height: 1.6; color: var(--soft); }
+.bl-sandwich .hero p b { font-family: var(--didone); font-weight: 400; font-size: 1.5rem; line-height: 1; color: var(--ink); font-variation-settings: 'opsz' 18; }
+.bl-sandwich .line { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) auto; align-items: center; gap: 6px 18px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.bl-sandwich .line h3 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 1.375rem; letter-spacing: 0.04em; }
+.bl-sandwich .line .make { font-family: var(--didone); font-size: 2.75rem; line-height: 1; font-variation-settings: 'opsz' 18; text-align: right; }
+.bl-sandwich .line .make i { font-family: var(--serif); font-style: normal; font-weight: 600; font-size: 1rem; margin-left: 4px; }
+.bl-sandwich .line small { grid-column: 2 / -1; font-size: 0.8125rem; color: var(--soft); }
+/* 進度條：茄紫＝現有，黃綠＝這次要做 */
+.bl-sandwich .bar { display: flex; height: 12px; background: rgba(42, 33, 28, 0.08); overflow: hidden; }
+.bl-sandwich .bar i { display: block; height: 100%; transition: flex-basis 0.7s var(--out); }
+.bl-sandwich .bar .have { background: var(--plum); }
+.bl-sandwich .bar .todo { background: var(--wash); }
+.bl-sandwich .verdict { margin: 14px 0 0; font-size: 0.9375rem; color: var(--soft); }
+.bl-sandwich .verdict b { font-family: var(--didone); font-weight: 400; font-size: 1.25rem; color: var(--ink); font-variation-settings: 'opsz' 18; }
+.bl-sandwich .verdict.warn { color: #8a2b1c; }
+.bl-sandwich .legend { display: flex; gap: 18px; margin-top: 12px; font-size: 0.8125rem; color: var(--soft); }
+.bl-sandwich .legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; }
+
+/* 手機：結果在輸入下方，底部固定一條摘要，邊按邊看得到 */
+.bl-sandwich .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; align-items: baseline; gap: 10px; padding: 10px max(22px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left)); background: var(--ink); color: var(--paper); font-size: 0.9375rem; }
+.bl-sandwich .dock b { font-family: var(--didone); font-weight: 400; font-size: 2rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl-sandwich .dock span:last-child { margin-left: auto; color: #cfc4b6; }
+.bl-sandwich .page { padding-bottom: 96px; }
+
+@media (min-width: 860px) {
+  .bl-sandwich .split { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(28px, 3.5vw, 52px); align-items: start; }
+  .bl-sandwich .result { border-left: 1px solid var(--line); padding-left: clamp(28px, 3.5vw, 52px); padding-top: clamp(20px, 4vh, 40px); position: sticky; top: 24px; }
+  .bl-sandwich .dock { display: none; }
+  .bl-sandwich .page { padding-bottom: 48px; }
+}

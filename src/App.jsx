@@ -23,6 +23,10 @@ const PublicMenuPage = lazy(() => import('./pages/PublicMenuPage'))
 const DataFormatTester = lazy(() => import('./pages/DataFormatTester'))
 const FeedbackCenter = lazy(() => import('./pages/FeedbackCenter'))
 const ShiftBoard = lazy(() => import('./pages/ShiftBoard'))
+// 新版頁面放同一個 chunk：首頁載好後點工具不會再等載入，轉場才接得起來
+const loadBl = () => import('./pages/bl')
+const Home = lazy(() => loadBl().then((m) => ({ default: m.Home })))
+const BlSandwich = lazy(() => loadBl().then((m) => ({ default: m.Sandwich })))
 
 function AppContent() {
   const [firebaseStatus, setFirebaseStatus] = useState({
@@ -60,6 +64,8 @@ function AppContent() {
           <Suspense fallback={<LoadingPage />}>
             <Routes>
           <Route path="/" element={<Navigate to="/sandwich" replace />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/home/sandwich" element={<BlSandwich />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />
               <Route path="/cashier" element={<CashierManagement />} />
               <Route path="/alcohol" element={<Navigate to="/playground#alcohol" replace />} />

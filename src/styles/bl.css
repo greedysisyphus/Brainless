@@ -1,0 +1,45 @@
+/* 新版頁面（/home 底下）共用的基礎與內頁外殼。全部收在 .bl 底下，不影響 Club 主題的頁面。
+   顏色取自水彩貓：紙、墨、毛的茄紫、胸口的黃綠。 */
+.bl {
+  --oat: #ece5d8; --paper: #f6f1e7; --ink: #2a211c; --soft: #6b5d52; --plum: #4f2d55; --wash: #d9db8f; --line: rgba(42, 33, 28, 0.18);
+  --out: cubic-bezier(0.16, 1, 0.3, 1);
+  --serif: 'Noto Serif TC', 'Songti TC', serif; --sans: 'Noto Sans TC', 'PingFang TC', sans-serif; --didone: 'Bodoni Moda', 'Noto Serif TC', serif;
+  min-height: 100dvh; overflow-x: clip; background: var(--oat); color: var(--ink);
+  font-family: var(--sans); line-height: 1.7; font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+}
+.bl ::selection { background: var(--plum); color: var(--paper); }
+.bl a { color: inherit; text-decoration: none; }
+.bl :focus-visible { outline: 2px solid var(--plum); outline-offset: 3px; }
+.bl .label { display: block; font-family: var(--serif); font-size: 0.875rem; color: var(--plum); letter-spacing: 0.3em; }
+.bl .link { font-size: 0.875rem; white-space: nowrap; padding: 12px 0; background: linear-gradient(currentColor, currentColor) no-repeat 0 calc(100% - 8px) / 0% 1px; transition: background-size 0.5s var(--out), color 0.3s; }
+.bl .link:hover, .bl .link:focus-visible { background-size: 100% 1px; color: var(--plum); }
+@keyframes bl-lift { from { translate: 0 110%; } }
+@keyframes bl-fade { from { opacity: 0; translate: 0 14px; } }
+
+/* 換頁轉場：貓縮進頁首、工具名稱放大成標題（只有 BlLink 會啟動轉場） */
+::view-transition-group(*) { animation-duration: 0.65s; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+.bl .vt-cat { view-transition-name: bl-cat; }
+.bl .vt-brand { view-transition-name: bl-brand; }
+
+/* ── 內頁外殼 ── */
+.bl-tool .page { max-width: 1320px; margin: 0 auto; padding: 0 max(22px, env(safe-area-inset-right)) 48px max(22px, env(safe-area-inset-left)); }
+.bl-tool header { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.bl-tool .home { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.bl-tool .home img { width: 46px; height: auto; transition: rotate 0.6s var(--out), scale 0.6s var(--out); }
+.bl-tool .home:hover img, .bl-tool .home:focus-visible img { rotate: -8deg; scale: 1.08; }
+.bl-tool .home b { font-family: var(--didone); font-style: italic; font-weight: 400; font-size: 1.75rem; line-height: 1; }
+.bl-tool .crumb { display: none; font-size: 0.875rem; color: var(--soft); letter-spacing: 0.06em; }
+.bl-tool .all { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 0.875rem; transition: color 0.3s; }
+.bl-tool .all:hover, .bl-tool .all:focus-visible { color: var(--plum); }
+.bl-tool .all svg { rotate: 180deg; }
+.bl-tool .all span { display: none; }
+.bl-tool header time { font-family: var(--didone); font-size: 1.25rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl-tool h1 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: clamp(2.25rem, 4.6vw, 3.75rem); line-height: 1.2; letter-spacing: 0.03em; }
+.bl-tool h1 span { display: inline-block; view-transition-name: bl-tool-title; }
+@media (min-width: 620px) {
+  .bl-tool .crumb { display: block; }
+  .bl-tool .all span { display: inline; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bl *, .bl *::before, .bl *::after { animation: none !important; transition-duration: 0.01ms !important; }
+}

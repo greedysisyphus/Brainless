@@ -5,6 +5,8 @@ import { ChangelogUpdateBar } from '../ChangelogNotice'
 
 function AppLayoutSwitcher({ children }) {
   const { pathname } = useLocation()
+  // 新版頁面（/home 底下）有自己的版面，不套 Club 外殼
+  if (pathname === '/home' || pathname.startsWith('/home/')) return children
   const isFocusedGoodsOrder = pathname === '/goods-order-test'
   if (isFocusedGoodsOrder) {
     return (
