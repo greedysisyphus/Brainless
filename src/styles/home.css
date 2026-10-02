@@ -32,7 +32,7 @@
 .bl-home .day { margin: 0; padding-top: 12px; display: flex; align-items: baseline; gap: 14px; font-family: var(--serif); font-weight: 600; font-size: 1.125rem; letter-spacing: 0.06em; }
 .bl-home .stats { display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; gap: 16px; padding: 10px 0 14px; }
 .bl-home .stats > div + div { padding-left: 16px; border-left: 1px solid var(--line); }
-.bl-home .stats b { display: block; font-family: var(--didone); font-weight: 400; font-size: clamp(2.25rem, 3.6vw, 3rem); line-height: 1.05; font-variation-settings: 'opsz' 18; }
+.bl-home .stats b { display: block; white-space: nowrap; font-family: var(--didone); font-weight: 400; font-size: clamp(1.75rem, 3.4vw, 3rem); line-height: 1.05; font-variation-settings: 'opsz' 18; }
 .bl-home .stats b i { font-family: var(--serif); font-style: normal; font-weight: 600; font-size: 0.9375rem; margin-left: 4px; letter-spacing: 0.04em; }
 .bl-home .stats b.none { color: rgba(42, 33, 28, 0.3); }
 /* 忙碌度量尺：刻度是 busyIndex.js 的分級門檻 */
@@ -50,6 +50,7 @@
 .bl-home .roster thead th { padding: 0 0 6px; font-weight: 600; color: var(--ink); letter-spacing: 0.06em; font-size: 0.9375rem; }
 .bl-home .roster tbody th { width: 3.4em; }
 .bl-home .roster td span { white-space: nowrap; }
+.bl-home .roster td span i { font-style: normal; }
 .bl-home .roster td, .bl-home .roster tbody th { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
 .bl-home .note { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.875rem; color: var(--soft); }
 .bl-home .note a { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
@@ -58,6 +59,7 @@
 .bl-home .menu { margin-top: clamp(24px, 4vh, 44px); border-top: 1px solid var(--ink); }
 .bl-home .group { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px 20px; padding: 12px 0 10px; border-bottom: 1px solid var(--line); animation: bl-fade 1s var(--out) backwards; animation-delay: calc(0.45s + var(--k) * 70ms); }
 .bl-home .group h2 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 0.8125rem; color: var(--plum); letter-spacing: 0.3em; }
+.bl-home .group h2 .short { display: none; }
 .bl-home .group ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
 .bl-home .item { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; font-family: var(--serif); font-weight: 600; font-size: clamp(1.375rem, 2.1vw, 1.75rem); letter-spacing: 0.04em; white-space: nowrap; transition: translate 0.5s var(--out); -webkit-tap-highlight-color: transparent; }
 .bl-home .item span { background: linear-gradient(var(--wash), var(--wash)) no-repeat 0 82% / 0% 46%; padding: 0 3px; margin: 0 -3px; transition: background-size 0.55s var(--out); }
@@ -81,7 +83,72 @@
   .bl-home .split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(28px, 3.5vw, 52px); padding-top: clamp(20px, 4vh, 44px); }
   .bl-home .body { padding-left: clamp(28px, 3.5vw, 52px); }
   .bl-home .art { max-width: 460px; }
-  .bl-home .peek img { width: min(84%, 30vh); }
+  .bl-home .peek img { width: min(84%, 27vh); }
   .bl-home .group { grid-template-columns: 7em minmax(0, 1fr); align-items: baseline; padding: 3px 0; }
   .bl-home .item { min-height: clamp(44px, 5.6vh, 60px); }
 }
+
+/* ── 手機（720 以下）：重新排過，不是桌機版直接疊成一欄 ──
+   順序：問候＋小貓並排 → 今天的三個數字、忙碌量尺、下一班 → 工具（兩欄連續排）→ 今天上班 → 版本。
+   打開第一個畫面就看得到今天的狀況和大部分工具。 */
+@media (max-width: 719px) {
+  .bl-home .page { padding-bottom: 32px; }
+  .bl-home header { padding: 16px 0 14px; }
+  .bl-home .split { grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding-top: 16px; align-items: center; }
+  .bl-home .body, .bl-home .today { display: contents; }
+  .bl-home .split :is(.day, .stats, .meter, .next, .roster, .note, .menu, .colophon) { grid-column: 1 / -1; }
+
+  .bl-home h1 { grid-column: 1; order: 1; font-size: clamp(1.625rem, 7.6vw, 2.125rem); }
+  .bl-home .peek { grid-column: 2; order: 2; width: clamp(96px, 30vw, 128px); }
+  .bl-home .peek img { width: 100%; }
+  .bl-home .peek::after { width: 60%; height: 10px; margin: -4px auto 0; }
+
+  .bl-home .day { order: 3; margin-top: 14px; padding-top: 12px; border-top: 1.5px solid var(--ink); font-size: 1.125rem; animation: bl-fade 1.2s 0.4s var(--out) backwards; }
+  .bl-home .stats { order: 4; gap: 10px; padding: 6px 0 12px; }
+  .bl-home .stats > div + div { padding-left: 10px; }
+  .bl-home .stats .label { font-size: 0.8125rem; letter-spacing: 0.08em; white-space: nowrap; color: var(--soft); }
+  .bl-home .stats b { font-size: clamp(1.625rem, 7.4vw, 2rem); white-space: nowrap; }
+  .bl-home .stats b i { font-size: 0.9375rem; margin-left: 3px; }
+  .bl-home .meter { order: 5; height: 28px; }
+  .bl-home .meter i::after { font-size: 0.8125rem; color: var(--ink); }
+  .bl-home .meter u { width: 12px; height: 12px; top: -7px; margin-left: -6px; }
+  .bl-home .next { order: 6; margin-top: 8px; min-height: 48px; align-items: center; font-size: 1rem; }
+  .bl-home .next .label { font-size: 0.875rem; letter-spacing: 0.12em; }
+
+  /* 工具是這頁最主要的動作。手機沒有滑鼠停留，所以做成清單：一列一個、整列都能按、箭頭常駐、按下去有回饋 */
+  .bl-home .menu { order: 7; display: grid; grid-template-columns: minmax(0, 1fr); margin-top: 16px; border-top: 1.5px solid var(--ink); }
+  .bl-home .group, .bl-home .group ul { display: contents; }
+  .bl-home .group h2 { margin: 0; padding: 18px 0 2px; font-size: 0.875rem; letter-spacing: 0.2em; }
+  .bl-home .group.solo h2 { display: none; }
+  .bl-home .group.solo-first h2 { display: block; }
+  .bl-home .group.solo-first h2 .full { display: none; }
+  .bl-home .group.solo-first h2 .short { display: inline; }
+  .bl-home .item { display: flex; justify-content: space-between; gap: 8px; min-height: 54px; padding: 0 4px; border-bottom: 1px solid var(--line); font-size: 1.3125rem; transition: background-color 0.2s; }
+  .bl-home .item:hover, .bl-home .item:focus-visible { translate: none; }
+  .bl-home .item:active { background: var(--wash); }
+  .bl-home .item span { flex: 1; min-width: 0; margin: 0; padding: 0; background: none; overflow: hidden; text-overflow: ellipsis; }
+  .bl-home .item i { flex: none; font-size: 0.8125rem; }
+  .bl-home .item svg { width: 20px; height: 20px; opacity: 0.6; translate: none; }
+
+  .bl-home .roster, .bl-home .note { order: 8; }
+  /* 今天上班：欄位窄，名字一人一行往下排（不用頓號），店名欄對齊名字 */
+  .bl-home .roster { margin-top: 26px; font-size: 1rem; line-height: 1.45; }
+  .bl-home .roster caption { padding: 12px 0 8px; border-top: 1.5px solid var(--ink); }
+  .bl-home .roster thead th { padding-bottom: 8px; font-size: 1rem; }
+  .bl-home .roster tbody th { width: 3em; font-size: 0.875rem; letter-spacing: 0.08em; }
+  .bl-home .roster td, .bl-home .roster tbody th { padding: 10px 6px 10px 0; }
+  .bl-home .roster td span { display: block; }
+  .bl-home .roster td span i { display: none; }
+  .bl-home .colophon { order: 9; margin: 0; padding-top: 18px; }
+}
+
+/* 很窄的手機（舊 iPhone SE 等，360 以下）：字再小一級、工具磚拿掉箭頭，名稱才不會被截掉 */
+@media (max-width: 359px) {
+  .bl-home .page { padding-left: 16px; padding-right: 16px; }
+  .bl-home h1 { font-size: 1.5rem; }
+  .bl-home .peek { width: 84px; }
+  .bl-home .stats b { font-size: 1.5rem; }
+  .bl-home .stats b i { font-size: 0.8125rem; }
+  .bl-home .next { flex-wrap: wrap; row-gap: 0; padding: 6px 0; }
+}
+

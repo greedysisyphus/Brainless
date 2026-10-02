@@ -121,10 +121,11 @@ function Roster({ book, dateKey, loading }) {
             <th scope="row">{labelOf[code]}</th>
             {STORE_CODES.map((store) => (
               <td key={store}>
-                {cell(store, code).map((name, i) => (
+                {/* 頓號跟著前一個名字（放行首會讓整格無法換行）；手機上一人一行，頓號用 CSS 藏掉 */}
+                {cell(store, code).map((name, i, list) => (
                   <span key={name}>
-                    {i ? '、' : ''}
                     {name}
+                    {i < list.length - 1 ? <i>、</i> : null}
                   </span>
                 ))}
               </td>
@@ -177,6 +178,12 @@ export default function Home() {
   const { book, loading } = useShiftBook()
   const nextFlight = flights?.find((f) => f.time >= clock) || null
   const latest = APP_CHANGELOG[0]
+  // 只有一個工具的分類標成 solo：手機上把它們併成一組「其他」，不讓三個小標各佔一行
+  const groups = getNavSections().map((section) => ({ section, items: itemsForSection(section) }))
+  groups.forEach((group, i) => {
+    group.solo = group.items.length === 1
+    group.soloFirst = group.solo && !groups.slice(0, i).some((g) => g.solo)
+  })
 
   // 貓歪頭看游標；摸一下點頭
   const peekRef = useRef(null)
@@ -221,7 +228,7 @@ export default function Home() {
               </h2>
               <div className="stats">
                 <Stat label="D 區班機" value={flights ? flights.length : null} unit="班" />
-                <Stat label="T2 預報人數" value={busy ? busy.total.toLocaleString() : null} unit="人" />
+                <Stat label="T2 預報" value={busy ? busy.total.toLocaleString() : null} unit="人" />
                 <Stat label="忙碌度" value={busy ? busy.index : null} unit={busy?.label} />
               </div>
               <div
@@ -258,11 +265,14 @@ export default function Home() {
               </span>
             </h1>
             <nav className="menu" aria-label="工具">
-              {getNavSections().map((section, k) => (
-                <section className="group" key={section} style={{ '--k': k }}>
-                  <h2>{section}</h2>
+              {groups.map(({ section, items, solo, soloFirst }, k) => (
+                <section className={`group${solo ? ' solo' : ''}${soloFirst ? ' solo-first' : ''}`} key={section} style={{ '--k': k }}>
+                  <h2>
+                    <span className="full">{section}</span>
+                    <span className="short">其他</span>
+                  </h2>
                   <ul>
-                    {itemsForSection(section).map((item) => (
+                    {items.map((item) => (
                       <li key={item.path}>
                         <ToolLink item={item} cameFrom={cameFrom} />
                       </li>
