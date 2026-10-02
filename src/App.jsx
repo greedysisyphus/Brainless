@@ -28,6 +28,7 @@ const loadBl = () => import('./pages/bl')
 const Home = lazy(() => loadBl().then((m) => ({ default: m.Home })))
 const BlSandwich = lazy(() => loadBl().then((m) => ({ default: m.Sandwich })))
 const BlCashier = lazy(() => loadBl().then((m) => ({ default: m.Cashier })))
+const BlShifts = lazy(() => loadBl().then((m) => ({ default: m.Shifts })))
 
 function AppContent() {
   const [firebaseStatus, setFirebaseStatus] = useState({
@@ -68,6 +69,7 @@ function AppContent() {
               <Route path="/home" element={<Home />} />
               <Route path="/home/sandwich" element={<BlSandwich />} />
               <Route path="/home/cashier" element={<BlCashier />} />
+              <Route path="/home/shifts" element={<BlShifts />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />
               <Route path="/cashier" element={<CashierManagement />} />
               <Route path="/alcohol" element={<Navigate to="/playground#alcohol" replace />} />
