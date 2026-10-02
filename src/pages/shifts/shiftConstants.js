@@ -7,7 +7,8 @@ export const SUPPORTED_EXPORT_SCHEMA_MAJOR = 1
 
 /** 三家店。code 對齊 Brainless-SimpleKaffa-Shifts-Convertor 匯出檔的 store.code */
 export const STORES = [
-  { code: 'central', name: '桃機一店', short: '一店', fullName: '超級棧 - 桃機一店' },
+  // fullName 是轉換器匯出檔裡的店名寫法，要跟外部檔案對得上，所以維持「桃機一店」
+  { code: 'central', name: '桃機中央店', short: '中央店', fullName: '超級棧 - 桃機一店' },
   { code: 'D7', name: '桃機D7', short: 'D7', fullName: '超級棧 - 桃機D7' },
   { code: 'D13', name: '桃機D13', short: 'D13', fullName: '超級棧 - 桃機D13' },
 ]

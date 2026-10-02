@@ -360,9 +360,9 @@ test('匯出：文字與表格都帶上車地點與人數', () => {
   assert.match(text, /早班車 03:45 發車（2 人）/)
   // 預設只寫名字：店別與支援與否都不影響誰上哪一台車
   assert.match(text, /A21環北站：小明、Ben/)
-  assert.doesNotMatch(text, /（一店）|（支援）/)
+  assert.doesNotMatch(text, /（中央店）|（支援）/)
   // 要的話還是叫得出來
-  assert.match(renderPickupText(table, { withStore: true }), /小明（一店）/)
+  assert.match(renderPickupText(table, { withStore: true }), /小明（中央店）/)
   assert.match(text, /中秋節/)
   assert.match(text, /今日無人搭車/)
 
@@ -627,8 +627,8 @@ test('行事曆匯出：有時間的班用時段事件，時間走本地時間',
   assert.equal(morning.startInputType, 'local')
   assert.equal(morning.startOutputType, 'local')
   assert.match(morning.title, /早班/)
-  assert.match(morning.title, /桃機一店/)
-  assert.equal(morning.location, '桃機一店')
+  assert.match(morning.title, /桃機中央店/)
+  assert.equal(morning.location, '桃機中央店')
 
   // 預設不含休假
   assert.equal(events.length, 2)
@@ -1419,8 +1419,8 @@ test('匯出選項：店名與崗位可以各自關掉，休假可選要不要�
     includePosition: true,
   })
   const morning = all.find((e) => e.start.length === 5 && e.start[2] === 1)
-  assert.equal(morning.title, '早班 · 桃機一店 · 主吧')
-  assert.equal(morning.location, '桃機一店')
+  assert.equal(morning.title, '早班 · 桃機中央店 · 主吧')
+  assert.equal(morning.location, '桃機中央店')
 
   const noStore = buildPersonIcsEvents(book, '小明', {
     monthKeys: ['2026-09'],
