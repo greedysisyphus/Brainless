@@ -29,6 +29,7 @@ const Home = lazy(() => loadBl().then((m) => ({ default: m.Home })))
 const BlSandwich = lazy(() => loadBl().then((m) => ({ default: m.Sandwich })))
 const BlCashier = lazy(() => loadBl().then((m) => ({ default: m.Cashier })))
 const BlShifts = lazy(() => loadBl().then((m) => ({ default: m.Shifts })))
+const BlBeans = lazy(() => loadBl().then((m) => ({ default: m.Beans })))
 const BlLegacyTool = lazy(() => loadBl().then((m) => ({ default: m.LegacyTool })))
 
 function AppContent() {
@@ -71,6 +72,7 @@ function AppContent() {
               <Route path="/home/sandwich" element={<BlSandwich />} />
               <Route path="/home/cashier" element={<BlCashier />} />
               <Route path="/home/shifts" element={<BlShifts />} />
+              <Route path="/home/coffee-beans" element={<BlBeans />} />
               <Route path="/home/:tool" element={<BlLegacyTool />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />
               <Route path="/cashier" element={<CashierManagement />} />
