@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { setSiteTheme } from '../../utils/siteTheme'
 import { auth, checkAdminStatus } from '../../utils/firebase'
 import { getNavItems } from '../../config/navigation.jsx'
 import BrainlessLogo from './BrainlessLogo'
@@ -48,6 +49,7 @@ function ClubNavItem({ path, label, badge, Icon }) {
 const CAT_CAMEO_MS = 3200
 
 export default function ClubShell({ children }) {
+  const navigate = useNavigate()
   // 彩蛋：點 logo 除了回首頁，旁邊會跑出一隻貓播一輪
   const [catCameo, setCatCameo] = useState(0)
   useEffect(() => {
@@ -114,6 +116,16 @@ export default function ClubShell({ children }) {
           }`}
         >
           <ChangelogTrigger />
+          <button
+            type="button"
+            onClick={() => {
+              setSiteTheme('new')
+              navigate('/home')
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-black/15 bg-white/60 px-2.5 py-1.5 sm:px-3 text-xs font-semibold text-[#171717] transition-colors hover:bg-white sm:right-8 lg:right-12"
+          >
+            <span className="hidden sm:inline">切換</span>新版
+          </button>
           <NavLink
             to="/sandwich"
             aria-label="回到厚片計算器"

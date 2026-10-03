@@ -2,7 +2,8 @@
 .bl-home .page { max-width: 1320px; margin: 0 auto; padding: 0 max(22px, env(safe-area-inset-right)) 40px max(22px, env(safe-area-inset-left)); }
 .bl-home header { display: flex; align-items: baseline; gap: 20px; padding: 22px 0 20px; border-bottom: 1px solid var(--line); }
 .bl-home header b { font-family: var(--didone); font-style: italic; font-weight: 400; font-size: 1.75rem; line-height: 1; }
-.bl-home header time { margin-left: auto; font-family: var(--didone); font-size: 1.25rem; line-height: 1; white-space: nowrap; font-variation-settings: 'opsz' 18; }
+.bl-home header .old { margin-left: auto; font-size: 0.75rem; color: var(--soft); padding: 4px 0; }
+.bl-home header time { font-family: var(--didone); font-size: 1.25rem; line-height: 1; white-space: nowrap; font-variation-settings: 'opsz' 18; }
 
 /* 左欄：貓與今天的狀況。右欄：問候與工具清單。手機上依 order 排成貓 → 問候與工具 → 今天 */
 .bl-home .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; padding-top: 28px; }
@@ -47,8 +48,8 @@
 .bl-home .meter i { position: absolute; top: 0; height: 6px; border-left: 1px solid var(--ink); font-style: normal; }
 .bl-home .meter i::after { content: attr(data-t); position: absolute; top: 7px; left: 0; translate: -50% 0; font-size: 0.75rem; line-height: 1; color: var(--soft); white-space: nowrap; }
 .bl-home .meter i:first-child::after { translate: 0 0; }
-.bl-home .meter u { position: absolute; top: -5px; left: calc(var(--v) / 110 * 100%); width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--plum); opacity: 0; scale: 0.4; left: 0; transition: left 1.3s var(--out), opacity 0.5s, scale 0.6s var(--out); }
-.bl-home .meter u.on { left: calc(var(--v) / 110 * 100%); opacity: 1; scale: 1; }
+.bl-home .meter u { position: absolute; top: -5px; left: calc(var(--v) * 1%); width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--plum); opacity: 0; scale: 0.4; left: 0; transition: left 1.3s var(--out), opacity 0.5s, scale 0.6s var(--out); }
+.bl-home .meter u.on { left: calc(var(--v) * 1%); opacity: 1; scale: 1; }
 .bl-home .next { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 0.9375rem; transition: color 0.3s; }
 .bl-home .next b { font-family: var(--didone); font-weight: 400; font-size: 1.25rem; line-height: 1; font-variation-settings: 'opsz' 18; }
 .bl-home .next:hover, .bl-home .next:focus-visible { color: var(--plum); }

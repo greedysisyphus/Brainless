@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 
 import { FLIGHT_STORES } from '../src/utils/flightData/stores.js'
-import { busyIndexOn } from '../src/utils/flightData/busyIndex.js'
+import { busyIndexOn, formatBusyDiff } from '../src/utils/flightData/busyIndex.js'
 import { gateToFamily, isGateInStore } from '../src/utils/flightData/gates.js'
 import { resolveGateStressWeight } from '../src/utils/flightData/gateStressWeights.js'
 import { peopleByShiftOn, resolveStoreShifts } from '../src/utils/flightData/shiftBridge.js'
@@ -178,13 +178,18 @@ for (const store of [d13, d7]) {
   assert.equal(stressSlotSeriesDay([at('08:00', 'D13')], DATE, d13.stressWeights, d13, resolveStoreShifts(d13, null, DATE).shifts, 'full')[0].people, null)
 }
 
-// 忙碌指數：最忙的一天＝100，沒資料回 null
+// 忙碌指數：100＝前 91 天的中位數；連假不會拉高基準；沒資料回 null
 {
-  const days = { '2026-09-24': 43585, '2026-09-25': 42669, '2026-09-08': 29352 }
-  assert.deepEqual(busyIndexOn(days, '2026-09-24'), { index: 100, total: 43585, peakDate: '2026-09-24', label: '爆' })
-  assert.equal(busyIndexOn(days, '2026-09-25').label, '忙')
-  assert.equal(busyIndexOn(days, '2026-09-08').index, 67)
-  assert.equal(busyIndexOn(days, '2026-09-08').label, '輕鬆')
+  const days = {}
+  for (let i = 1; i <= 20; i += 1) days[`2026-09-${String(i).padStart(2, '0')}`] = 32000
+  Object.assign(days, { '2026-09-21': 29000, '2026-09-22': 34500, '2026-09-24': 43585, '2026-09-25': 32000 })
+  assert.deepEqual(busyIndexOn(days, '2026-09-24'), { index: 136, diff: 36, total: 43585, baseline: 32000, label: '爆' })
+  assert.equal(busyIndexOn(days, '2026-09-25').diff, 0, '前一天是連假也不影響基準')
+  assert.equal(formatBusyDiff(36) + formatBusyDiff(-9) + formatBusyDiff(0), '+36%−9%±0%')
+  assert.equal(busyIndexOn(days, '2026-09-25').label, '普通')
+  assert.equal(busyIndexOn(days, '2026-09-22').label, '忙')
+  assert.equal(busyIndexOn(days, '2026-09-21').label, '輕鬆')
+  assert.equal(busyIndexOn(days, '2026-09-02').baseline, 32000, '前面不到 14 天就用全部紀錄')
   assert.equal(busyIndexOn(days, '2026-10-01'), null)
   assert.equal(busyIndexOn(null, '2026-09-24'), null)
 }

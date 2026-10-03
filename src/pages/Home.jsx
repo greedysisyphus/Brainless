@@ -3,17 +3,20 @@ import { Link, useLocation } from 'react-router-dom'
 import { Arrow, BlLink, catHead, clockOf, useBlFonts, useNow } from '../components/bl/shared'
 import { getNavSections, itemsForSection } from '../config/navigation.jsx'
 import { APP_CHANGELOG } from '../contexts/ChangelogContext'
-import { BUSY_LEVELS, busyIndexOn } from '../utils/flightData/busyIndex'
+import { BUSY_LEVELS, busyIndexOn, formatBusyDiff } from '../utils/flightData/busyIndex'
 import { loadFlightDataRecord, loadPaxDaily } from '../utils/flightData/loadFlightDay'
 import { STORE_CODES, getStoreShortName } from './shifts/shiftConstants'
 import { getMonthsForDate, getWorkingAssignments, groupWorkingByStore, toDateKey } from './shifts/shiftModel'
 import { getShiftDisplay } from './shifts/shiftVocab'
 import { useShiftBook } from './shifts/useShiftBook'
+import { setSiteTheme } from '../utils/siteTheme'
 import '../styles/home.css'
 
 const WEEKDAYS = '日一二三四五六'
-/** 量尺畫到 110，讓「爆」（100 以上）還有位置 */
-const METER_MAX = 110
+/** 量尺畫 80–135：平常日大多落在 90–112，連假到 130 多；100＝平常的一天 */
+const METER_MIN = 80
+const METER_MAX = 135
+const meterPct = (index) => Math.min(100, Math.max(0, ((index - METER_MIN) / (METER_MAX - METER_MIN)) * 100))
 /** 新版裡每個工具的路徑都是 /home 加上原本的路徑（原生新版或沿用舊元件的外殼版，見 pages/bl） */
 const newPathOf = (path) => `/home${path}`
 
@@ -96,14 +99,14 @@ function Reveal({ show, className = '', children }) {
   )
 }
 
-function Stat({ label, value, unit }) {
+function Stat({ label, value, unit, format = (v) => v.toLocaleString('en-US') }) {
   const shown = useCountUp(value)
   return (
     <div>
       <span className="label">{label}</span>
       {/* 還沒讀到時留一個同樣大小的「—」佔位，數字進來時原地淡入，版面不會動 */}
       <b className={shown == null ? 'none' : 'in'}>
-        {shown == null ? '—' : shown.toLocaleString('en-US')}
+        {shown == null ? '—' : format(shown)}
         <i>{shown == null ? '' : unit}</i>
       </b>
     </div>
@@ -208,8 +211,34 @@ function ToolLink({ item, cameFrom }) {
   )
 }
 
+// 橫向大螢幕（iPad 橫放、較矮的筆電）：整頁比視窗高時按比例縮小到一頁放得下，不用上下滑。
+// 用 zoom 不用 transform：版面跟著重排、字不會糊。最小縮到 MIN_FIT，再矮就照常捲動（字太小、按鈕太小不如滑一下）。
+const MIN_FIT = 0.72
+function useFitToViewport(ref) {
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    const fit = () => {
+      el.style.zoom = ''
+      if (!window.matchMedia('(min-width: 960px)').matches) return
+      // visualViewport 是 Safari 扣掉分頁列、網址列後真正看得到的高度；往下取整再留一點餘量，避免四捨五入多出 1px 又能滑
+      const visible = window.visualViewport?.height ?? window.innerHeight
+      const z = Math.floor((visible / el.scrollHeight) * 1000) / 1000 - 0.004
+      if (z < 1) el.style.zoom = Math.max(MIN_FIT, z).toFixed(3)
+    }
+    fit()
+    const ro = new ResizeObserver(fit) // 班表、下一班晚一點才展開，高度變了要重算
+    ro.observe(el)
+    window.addEventListener('resize', fit)
+    window.visualViewport?.addEventListener('resize', fit)
+    return () => { ro.disconnect(); window.removeEventListener('resize', fit); window.visualViewport?.removeEventListener('resize', fit) }
+  }, [ref])
+}
+
 export default function Home() {
   useBlFonts()
+  const pageRef = useRef(null)
+  useFitToViewport(pageRef)
   // 從工具頁回來時帶著是哪一頁，讓那個工具名稱接住轉場
   const cameFrom = useLocation().state?.from
   const now = useNow()
@@ -243,9 +272,12 @@ export default function Home() {
 
   return (
     <div className="bl bl-home">
-      <div className="page">
+      <div className="page" ref={pageRef}>
         <header>
           <b className="vt-brand">Brainless</b>
+          <Link className="old link" to="/sandwich" onClick={() => setSiteTheme('club')}>
+            舊版
+          </Link>
           <time>{clock}</time>
         </header>
         <main className="split">
@@ -270,18 +302,18 @@ export default function Home() {
               <div className="stats">
                 <Stat label="D 區班機" value={flights ? flights.length : null} unit="班" />
                 <Stat label="T2 預報" value={busy ? busy.total : null} unit="人" />
-                <Stat label="忙碌度" value={busy ? busy.index : null} unit={busy?.label} />
+                <Stat label="比平常" value={busy ? busy.diff : null} unit={busy?.label} format={formatBusyDiff} />
               </div>
               <div
                 className="meter"
-                style={{ '--v': busy ? Math.min(busy.index, METER_MAX) : 0 }}
+                style={{ '--v': busy ? meterPct(busy.index) : 0 }}
                 role="img"
-                aria-label={busy ? `忙碌指數 ${busy.index}，等級：${busy.label}` : '忙碌指數：還沒有資料'}
+                aria-label={busy ? `忙碌度：比平常 ${formatBusyDiff(busy.diff)}，等級：${busy.label}` : '忙碌指數：還沒有資料'}
               >
                 {BUSY_LEVELS.slice()
                   .reverse()
                   .map((level) => (
-                    <i key={level.label} style={{ left: `${(level.min / METER_MAX) * 100}%` }} data-t={level.label} />
+                    <i key={level.label} style={{ left: `${meterPct(level.min)}%` }} data-t={level.label} />
                   ))}
                 <u className={busy ? 'on' : ''} />
               </div>

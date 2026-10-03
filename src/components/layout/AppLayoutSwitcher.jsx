@@ -1,12 +1,16 @@
 import { memo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import ClubShell from '../club/ClubShell'
 import { ChangelogUpdateBar } from '../ChangelogNotice'
+import { getSiteTheme, newPathFor } from '../../utils/siteTheme'
 
 function AppLayoutSwitcher({ children }) {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   // 新版頁面（/home 底下）有自己的版面，不套 Club 外殼
   if (pathname === '/home' || pathname.startsWith('/home/')) return children
+  // 預設新版：還沒選過 Club 版的裝置，開舊網址（書籤、加到主畫面的捷徑）會帶到新版的同一個工具
+  const newPath = getSiteTheme() === 'new' ? newPathFor(pathname) : null
+  if (newPath) return <Navigate to={`${newPath}${hash}`} replace />
   const isFocusedGoodsOrder = pathname === '/goods-order-test'
   if (isFocusedGoodsOrder) {
     return (

@@ -49,7 +49,7 @@ export default function BusyIndexStrip({ days, date, isStudio = false, isClub = 
   const text = isStudio ? 'text-[var(--cw-text)]' : isClub ? 'text-[#3f2f2a]' : 'text-primary'
   const muted = isStudio ? 'text-[var(--cw-text-muted)]' : isClub ? 'text-[#76564b]' : 'text-text-secondary'
   const hot = isClub ? 'text-[#c84629]' : 'text-amber-500'
-  const { peakDate } = items[0].busy
+  const { baseline } = items[0].busy
 
   return (
     <div
@@ -64,8 +64,9 @@ export default function BusyIndexStrip({ days, date, isStudio = false, isClub = 
         {items.map(({ offset, date: d, busy }) => (
           <div key={d} className={offset === 0 ? '' : 'opacity-75'}>
             <div className={`text-[11px] sm:text-xs ${muted}`}>{md(d)}</div>
-            <div className={`text-2xl font-bold tabular-nums sm:text-3xl ${busy.index >= 85 ? hot : text}`}>
-              <CountUp value={busy.index} />
+            <div className={`text-2xl font-bold tabular-nums sm:text-3xl ${busy.index >= 106 ? hot : text}`}>
+              {busy.diff > 0 ? '+' : busy.diff < 0 ? '−' : '±'}
+              <CountUp value={Math.abs(busy.diff)} />%
               {/* 標籤等數字數完才浮出來，key 讓換日期時重播 */}
               <span
                 key={busy.label}
@@ -79,8 +80,8 @@ export default function BusyIndexStrip({ days, date, isStudio = false, isClub = 
         ))}
       </div>
       <p className={`mt-2 text-[11px] leading-relaxed sm:text-xs ${muted}`}>
-        100＝目前紀錄中最忙的 {md(peakDate)}（T2 預報 {days[peakDate].toLocaleString()} 人）。依桃機 T2 出發＋轉機預報，約提前兩天出來；
-        有更忙的一天就會成為新的 100。
+        跟平常的一天比（前三個月 T2 人數的中位數，約 {baseline.toLocaleString()} 人）；+10% 就是比平常多一成。依桃機 T2
+        出發＋轉機預報，約提前兩天出來。
       </p>
     </div>
   )
