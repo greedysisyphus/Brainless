@@ -84,24 +84,24 @@
 /* ── 底部鍵盤：點一格才長出來 ── */
 .bl-beans .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--ink); color: var(--paper); translate: 0 105%; visibility: hidden; transition: translate 0.45s var(--out), visibility 0.45s; }
 .bl-beans .dock.on { translate: 0 0; visibility: visible; }
-.bl-beans .dock > div { max-width: 480px; margin: 0 auto; padding: 4px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
-.bl-beans .dock .head { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.bl-beans .dock > div { max-width: 480px; margin: 0 auto; padding: 4px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.bl-beans .dock .head { display: flex; align-items: center; gap: 10px; min-height: 42px; }
 .bl-beans .dock .what { flex: 1; min-width: 0; font-size: 0.875rem; color: #cfc4b6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bl-beans .dock .what b { font-family: var(--serif); font-weight: 600; font-size: 1.0625rem; color: var(--paper); margin-right: 8px; letter-spacing: 0.04em; }
 .bl-beans .dock .down { flex: none; width: 44px; height: 44px; margin-right: -10px; border: 0; background: none; color: #cfc4b6; display: grid; place-items: center; }
-.bl-beans .dock .calc { display: flex; align-items: baseline; justify-content: flex-end; gap: 6px; min-height: 34px; font-size: 0.8125rem; color: #cfc4b6; white-space: nowrap; }
-.bl-beans .dock .calc .how { min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-right: auto; }
-.bl-beans .dock .calc b { font-family: var(--didone); font-weight: 400; font-size: 1.875rem; line-height: 1; color: var(--paper); font-variation-settings: 'opsz' 18; }
-.bl-beans .dock .calc.warn { justify-content: flex-start; font-size: 0.9375rem; color: #f0b9a8; }
+.bl-beans .dock .calc { flex: none; display: flex; align-items: baseline; gap: 6px; font-size: 0.8125rem; color: #cfc4b6; white-space: nowrap; }
+.bl-beans .dock .calc .how { display: none; }
+.bl-beans .dock .calc b { font-family: var(--didone); font-weight: 400; font-size: 1.625rem; line-height: 1; color: var(--paper); font-variation-settings: 'opsz' 18; }
+.bl-beans .dock .calc.warn { font-size: 0.875rem; color: #f0b9a8; }
 /* 數／袋／盒：一排三格，選中的那塊紙色底用滑的 */
-.bl-beans .modes { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin: 6px 0 8px; padding: 3px; border-radius: 999px; background: #3d322c; }
+.bl-beans .modes { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin: 2px 0 7px; padding: 3px; border-radius: 999px; background: #3d322c; }
 .bl-beans .modes::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / 3); border-radius: 999px; background: var(--paper); translate: calc(var(--i) * 100%) 0; transition: translate 0.4s var(--out); }
-.bl-beans .modes button { position: relative; min-height: 44px; padding: 0; border: 0; border-radius: 999px; background: none; color: #cfc4b6; font-size: 1rem; white-space: nowrap; transition: color 0.3s; }
+.bl-beans .modes button { position: relative; min-height: 38px; padding: 0; border: 0; border-radius: 999px; background: none; color: #cfc4b6; font-size: 1rem; white-space: nowrap; transition: color 0.3s; }
 .bl-beans .modes button small { margin-left: 5px; font-size: 0.75rem; opacity: 0.75; }
 .bl-beans .modes button[aria-pressed='true'] { color: var(--ink); font-weight: 500; }
 .bl-beans .dock .hint { display: none; padding: 2px 0 10px; font-size: 0.8125rem; color: #cfc4b6; text-align: center; }
 /* 鍵盤開著時，頁面底部多留一段，最後幾列才捲得到鍵盤上面 */
-.bl-beans:has(.dock.on) .page { padding-bottom: 470px; }
+.bl-beans:has(.dock.on) .page { padding-bottom: 400px; }
 .bl-beans .undo { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); z-index: 30; translate: -50% 0; display: flex; align-items: center; gap: 14px; padding: 0 8px 0 18px; min-height: 48px; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.9375rem; white-space: nowrap; box-shadow: 0 10px 30px rgba(42, 33, 28, 0.25); animation: bl-fade 0.5s var(--out) backwards; }
 .bl-beans .undo button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--wash); color: var(--ink); font-weight: 500; }
 
@@ -109,6 +109,7 @@
 .bl-beans .modals { padding: 0; }
 
 @media (min-width: 620px) {
+  .bl-beans .dock .calc .how { display: inline; }
   .bl-beans .bean { grid-template-columns: 12.5rem minmax(0, 1fr) 5.5rem; align-items: start; }
   .bl-beans .bean h3 { padding-top: 5px; }
   .bl-beans .locs { grid-column: 2; grid-row: 1; margin-top: 0; }

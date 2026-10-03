@@ -300,3 +300,17 @@ test('叫貨：清空後撞到別人時合併，送出也不會再判成衝突',
     prepareCountsRevision({ remoteData: remote, nextCounts: merged, pending: next, actor: { id: 'x', name: 'x' } })
   )
 })
+
+test('pressQty：頁內鍵盤可打小數與分數，結果都是 parseQuantity 讀得懂的', async () => {
+  const { pressQty } = await import('../src/pages/goodsOrder/goodsOrderKeys.js')
+  const { parseQuantity } = await import('../src/pages/goodsOrder/goodsOrderConstants.js')
+  const type = (keys, start = '', fresh = false) => keys.reduce((text, key, i) => pressQty(text, key, fresh && i === 0), start)
+  assert.equal(type(['1', '.', '5']), '1.5')
+  assert.equal(type(['half']), '1/2')
+  assert.equal(type(['2', 'half']), '2 1/2')
+  assert.equal(parseQuantity(type(['2', 'half'])).value, 2.5)
+  assert.equal(type(['back'], '2 1/2'), '2', '倒退拿掉分數那一段')
+  assert.equal(type(['3'], '1/2'), '3', '已經有分數時數字鍵等於重打')
+  assert.equal(type(['half'], '1.5'), '1.5', '小數後面不能再加 ½')
+  assert.equal(type(['7'], '12', true), '7', '剛選到這一格，第一個數字取代原本的值')
+})

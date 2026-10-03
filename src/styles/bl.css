@@ -38,10 +38,10 @@
 .bl-tool .top h1 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: clamp(2.25rem, 4.6vw, 3.75rem); line-height: 1.2; letter-spacing: 0.03em; }
 .bl-tool .top h1 span { display: inline-block; view-transition-name: bl-tool-title; }
 /* 頁內數字鍵盤（components/bl/Keypad）：深色底上的 3×4 數字鍵，最後一列放動作鍵 */
-.bl .bl-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.bl .bl-pad button { min-height: 52px; padding: 0; border: 0; border-radius: 10px; background: #3d322c; color: var(--paper); font: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; display: grid; place-items: center; transition: background-color 0.15s, scale 0.15s; }
+.bl .bl-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.bl .bl-pad button { min-height: 46px; padding: 0; border: 0; border-radius: 10px; background: #3d322c; color: var(--paper); font: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; display: grid; place-items: center; transition: background-color 0.15s, scale 0.15s; }
 .bl .bl-pad button:active { background: #57493f; scale: 0.96; }
-.bl .bl-pad .k { font-family: var(--didone); font-size: 1.75rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl .bl-pad .k { font-family: var(--didone); font-size: 1.625rem; line-height: 1; font-variation-settings: 'opsz' 18; }
 .bl .bl-pad .next { background: var(--wash); color: var(--ink); font-family: var(--serif); font-weight: 600; font-size: 1.0625rem; letter-spacing: 0.1em; }
 .bl .bl-pad .next:active { background: #c5c87a; }
 .bl .bl-pad .wide { grid-column: span 2; }

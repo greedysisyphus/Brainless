@@ -1,19 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Keypad } from '../../components/bl/Keypad'
 import { ToolPage } from '../../components/bl/shared'
 import { InBlShell } from '../../components/bl/chrome'
 import { CwAlert, CwButton } from '../../components/studio/ui'
 import { FILTERS, STORES, displayCurrentInput, formatQuantity, getDefaultOrderStoreName, getStoreName, parseQuantity } from '../goodsOrder/goodsOrderConstants'
+import { pressQty } from '../goodsOrder/goodsOrderKeys'
 import { GoodsOrderSyncBanner } from '../goodsOrder/GoodsOrderSyncUI'
 import { formatVersionTime, getUpdatedBy } from '../goodsOrder/goodsOrderSync'
 import { GoodsOrderDialogs } from '../GoodsOrderDialogs'
-import { quickCountValues, selectQuantityOnFocus, useGoodsOrderManager } from '../useGoodsOrderManager'
+import { quickCountValues, useGoodsOrderManager } from '../useGoodsOrderManager'
 import '../../styles/bl-order.css'
 
 // 新版叫貨。資料、多人同步、輸出流程全部用舊版同一份邏輯（useGoodsOrderManager）和同一組彈窗，
 // 這裡只重畫畫面：點貨表（一項一列）＋一張跟著長出來的叫貨單。
+// 點「現有」或叫貨量，底部長出數字鍵盤（不叫系統鍵盤）；可以打小數（1.5）也可以打分數（1 1/2）。
 const FILTER_LABELS = { all: '全部', uncounted: '還沒盤', order: '要叫', later: '夠了' }
 const WEEKDAYS = '日一二三四五六'
 const pad = (n) => String(n).padStart(2, '0')
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 
 const Tick = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
@@ -23,7 +28,11 @@ const Tick = () => (
 
 export default function Order() {
   const m = useGoodsOrderManager()
-  const { selectedStore, catalog, progress, rows, allRows, filter, syncStatus, focusedItemId } = m
+  const { selectedStore, catalog, progress, rows, allRows, filter, syncStatus } = m
+  const rootRef = useRef(null)
+  const dockRef = useRef(null)
+  const [cur, setCur] = useState(null) // 鍵盤現在打的是哪一項的哪一格：{ id, field: 'current' | 'order' }
+  const fresh = useRef(false) // 剛選到這一格：第一個數字直接取代原本的值
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30000)
@@ -43,10 +52,74 @@ export default function Order() {
     m.handleOrderQtyChange(row.item, formatQuantity(next))
   }
 
+  const curRow = cur ? allRows.find((r) => r.item.id === cur.id) : null
+  const select = (id, field) => {
+    fresh.current = true
+    setCur({ id, field })
+  }
+  const textOf = (row, field) => (field === 'order' ? String(row.orderDisplay ?? '') : displayCurrentInput(row.entry.current))
+  const write = (row, field, text) => (field === 'order' ? m.handleOrderQtyChange(row.item, text) : m.handleCurrentChange(row.item, text))
+  const press = (key) => {
+    if (!curRow) return
+    const isFresh = fresh.current
+    fresh.current = false
+    if (key === 'half' && cur.field === 'order' && !curRow.item.allowFraction) return
+    write(curRow, cur.field, pressQty(textOf(curRow, cur.field), key, isFresh))
+  }
+  // 下一項：往下找畫面上下一個還沒盤（或格式有誤）的品項；沒有了就收起鍵盤
+  const next = () => {
+    if (!cur) return
+    const at = rows.findIndex((r) => r.item.id === cur.id)
+    const ordered = [...rows.slice(at + 1), ...rows.slice(0, Math.max(at, 0))]
+    const target = ordered.find((r) => r.item.id !== cur.id && (r.status === 'uncounted' || r.status === 'invalid'))
+    if (target) select(target.item.id, 'current')
+    else setCur(null)
+  }
+  // 快捷鍵：一按就填好這一項，直接跳下一項
+  const quick = (value) => {
+    if (!curRow) return
+    m.handleCurrentChange(curRow.item, value)
+    next()
+  }
+
+  // 實體鍵盤（桌機、接了鍵盤的 iPad）：直接打。正在彈窗的輸入框裡打字時不攔。
+  const live = useRef({})
+  live.current = { press, next, cur }
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (!live.current.cur || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable], .modals')) return
+      if (/^[0-9.]$/.test(e.key)) live.current.press(e.key)
+      else if (e.key === '/') live.current.press('half')
+      else if (e.key === 'Backspace') live.current.press('back')
+      else if (e.key === 'Enter') live.current.next()
+      else if (e.key === 'Escape') setCur(null)
+      else return
+      e.preventDefault()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+  // 正在填的那一項如果被底部鍵盤擋住，捲到鍵盤上方看得到的地方
+  const curKey = cur ? `${cur.id}|${cur.field}` : ''
+  useEffect(() => {
+    if (!curKey) return undefined
+    const timer = setTimeout(() => {
+      const el = rootRef.current?.querySelector('.item.on')
+      const dockTop = dockRef.current?.getBoundingClientRect().top ?? window.innerHeight
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      if (r.bottom > dockTop - 12 || r.top < 130) window.scrollBy({ top: r.top + r.height / 2 - (130 + dockTop) / 2, behavior: reducedMotion() ? 'auto' : 'smooth' })
+    }, 320) // 等鍵盤長出來才知道它多高
+    return () => clearTimeout(timer)
+  }, [curKey])
+  // 換店、換篩選：正在填的那一項可能不在畫面上了
+  useEffect(() => setCur(null), [selectedStore, filter])
+
   return (
     <ToolPage className="bl-order" path="/goods-order-test" section="庫存與報表" title="叫貨">
       <InBlShell.Provider value={true}>
-        <div className="order">
+        <div className="order" ref={rootRef}>
           <div className="stores" role="group" aria-label="分店">
             {STORES.map((s) => (
               <button key={s.id} type="button" aria-pressed={selectedStore === s.id} onClick={() => m.setSelectedStore(s.id)}>
@@ -117,7 +190,7 @@ export default function Order() {
                 const skipped = status === 'later' && entry.forceInclude === false
                 const errorId = `bl-order-error-${item.id}`
                 return (
-                  <div className="item" key={item.id} data-s={status}>
+                  <div className={`item${cur?.id === item.id ? ' on' : ''}`} key={item.id} data-s={status}>
                     <div className="name">
                       <h3>
                         {item.name}
@@ -131,31 +204,17 @@ export default function Order() {
                         {item.note}
                       </p>
                     </div>
-                    <label className={`have${status === 'invalid' ? ' bad' : ''}`}>
-                      <input
-                        ref={(node) => {
-                          m.quantityInputRefs.current[`table:${item.id}`] = node
-                        }}
-                        name={`goods-current-${item.id}`}
-                        type="text"
-                        inputMode="decimal"
-                        enterKeyHint="next"
-                        autoComplete="off"
-                        placeholder="現有"
-                        value={displayCurrentInput(entry.current)}
-                        aria-label={`${item.name} 現有幾${item.unit}`}
-                        aria-invalid={status === 'invalid'}
-                        aria-describedby={status === 'invalid' ? errorId : undefined}
-                        onChange={(e) => m.handleCurrentChange(item, e.target.value)}
-                        onFocus={(e) => {
-                          m.setFocusedItemId(item.id)
-                          selectQuantityOnFocus(e)
-                        }}
-                        onBlur={() => m.setFocusedItemId((id) => (id === item.id ? null : id))}
-                        onKeyDown={(e) => m.handleCurrentKeyDown(e, item)}
-                      />
+                    <button
+                      type="button"
+                      className={`have${status === 'invalid' ? ' bad' : ''}${cur?.id === item.id && cur.field === 'current' ? ' cur' : ''}`}
+                      aria-pressed={cur?.id === item.id && cur.field === 'current'}
+                      aria-label={`${item.name} 現有：${displayCurrentInput(entry.current) || '還沒盤'} ${item.unit}`}
+                      aria-describedby={status === 'invalid' ? errorId : undefined}
+                      onClick={() => select(item.id, 'current')}
+                    >
+                      <b className={displayCurrentInput(entry.current) ? '' : 'blank'}>{displayCurrentInput(entry.current) || '現有'}</b>
                       <u>{item.unit}</u>
-                    </label>
+                    </button>
                     <span className="min" aria-label="最低庫存">
                       {formatQuantity(item.minStock)}
                     </span>
@@ -173,19 +232,15 @@ export default function Order() {
                             <button type="button" aria-label={`少叫一點`} onClick={() => step(row, -1)}>
                               −
                             </button>
-                            <input
-                              name={`goods-order-${item.id}`}
-                              type="text"
-                              inputMode="decimal"
-                              enterKeyHint="done"
-                              autoComplete="off"
-                              value={orderDisplay}
-                              aria-label={`${item.name} 叫貨量`}
-                              aria-invalid={Boolean(orderError)}
-                              style={{ width: `${Math.max(2, String(orderDisplay).length + 0.6)}ch` }}
-                              onFocus={selectQuantityOnFocus}
-                              onChange={(e) => m.handleOrderQtyChange(item, e.target.value)}
-                            />
+                            <button
+                              type="button"
+                              className={`n${cur?.id === item.id && cur.field === 'order' ? ' cur' : ''}`}
+                              aria-pressed={cur?.id === item.id && cur.field === 'order'}
+                              aria-label={`${item.name} 叫貨量：${orderDisplay} ${item.unit}`}
+                              onClick={() => select(item.id, 'order')}
+                            >
+                              {orderDisplay || '0'}
+                            </button>
                             <i>{item.unit}</i>
                             <button type="button" aria-label={`多叫一點`} onClick={() => step(row, 1)}>
                               ＋
@@ -214,25 +269,6 @@ export default function Order() {
                       )}
                     </div>
                     {orderError ? <p className="err wide">{orderError}</p> : null}
-                    {/* 正在填的那一項：常用數字一按就填（0、½、最低−1、最低），填完自動跳下一項 */}
-                    {focusedItemId === item.id ? (
-                      <div className="quick" aria-label={`${item.name} 快速輸入`}>
-                        {quickCountValues(item).map((q) => (
-                          <button
-                            key={q}
-                            type="button"
-                            onPointerDown={(e) => {
-                              // 在按鈕搶走焦點、這排消失之前就填進去
-                              e.preventDefault()
-                              m.applyCurrentQuick(item, q)
-                            }}
-                            onClick={(e) => e.detail === 0 && m.applyCurrentQuick(item, q)}
-                          >
-                            {q}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
                   </div>
                 )
               })}
@@ -289,6 +325,59 @@ export default function Order() {
                 </p>
               ) : null}
             </aside>
+          </div>
+
+          {/* 底部鍵盤：點「現有」或叫貨量才長出來 */}
+          <div className={`dock${curRow ? ' on' : ''}`} ref={dockRef} inert={curRow ? undefined : ''}>
+            <div>
+              <div className="head">
+                <p className="what">
+                  {curRow ? (
+                    <>
+                      <b>{curRow.item.name}</b>
+                      {cur.field === 'order' ? '叫貨量' : '現有'}（{curRow.item.unit}）
+                    </>
+                  ) : null}
+                </p>
+                <button type="button" className="down" aria-label="收起鍵盤" onClick={() => setCur(null)}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+              <p className={`calc${curRow && (curRow.status === 'invalid' || curRow.orderError) ? ' warn' : ''}`} aria-live="polite">
+                {!curRow
+                  ? null
+                  : curRow.status === 'invalid'
+                    ? curRow.currentError
+                    : cur.field === 'order' && curRow.orderError
+                      ? curRow.orderError
+                      : `最低 ${formatQuantity(curRow.item.minStock)} ${curRow.item.unit}${curRow.item.note ? ` · ${curRow.item.note}` : ''}`}
+              </p>
+              <div className="quick">
+                {curRow && cur.field === 'current'
+                  ? quickCountValues(curRow.item).map((q) => (
+                      <button key={q} type="button" onClick={() => quick(q)}>
+                        {q}
+                      </button>
+                    ))
+                  : null}
+                {curRow && (cur.field === 'current' || curRow.item.allowFraction) ? (
+                  <button type="button" className="half" aria-label="加二分之一" onClick={() => press('half')}>
+                    ＋½
+                  </button>
+                ) : null}
+              </div>
+              <p className="hint">直接用鍵盤輸入，/ 是 ½，Enter 下一項，Esc 收起</p>
+              <Keypad onKey={press}>
+                <button type="button" onClick={() => curRow && write(curRow, cur.field, '')}>
+                  清空
+                </button>
+                <button type="button" className="next wide" onClick={next}>
+                  下一項
+                </button>
+              </Keypad>
+            </div>
           </div>
 
           <div className="foot">

@@ -399,30 +399,30 @@ export default function Beans() {
                   </>
                 ) : null}
               </p>
+              <p className={`calc${curHint ? ' warn' : ''}`} aria-live="polite">
+                {!cur ? null : curHint ? (
+                  curHint.message
+                ) : !(curNum > 0) ? (
+                  '還沒填'
+                ) : curMode === 'quantity' ? (
+                  <>
+                    <b>{curValue}</b> 包
+                  </>
+                ) : (
+                  <>
+                    <span className="how">
+                      {curValue} 克 − {curMode === 'weightBag' ? '袋' : '盒'} {curMode === 'weightBag' ? weights?.bagWeight : boxWeight} ÷ {weights?.beanWeightPerPack} ＝
+                    </span>
+                    <b>{curPacks.toFixed(1)}</b> 包
+                  </>
+                )}
+              </p>
               <button type="button" className="down" aria-label="收起鍵盤" onClick={() => setCur(null)}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
             </div>
-            <p className={`calc${curHint ? ' warn' : ''}`} aria-live="polite">
-              {!cur ? null : curHint ? (
-                curHint.message
-              ) : !(curNum > 0) ? (
-                '還沒填'
-              ) : curMode === 'quantity' ? (
-                <>
-                  <b>{curValue}</b> 包
-                </>
-              ) : (
-                <>
-                  <span className="how">
-                    {curValue} 克 − {curMode === 'weightBag' ? '袋' : '盒'} {curMode === 'weightBag' ? weights?.bagWeight : boxWeight} ÷ {weights?.beanWeightPerPack} ＝
-                  </span>
-                  <b>{curPacks.toFixed(1)}</b> 包
-                </>
-              )}
-            </p>
             <div className="modes" role="group" aria-label="填寫方式" style={{ '--i': Math.max(0, MODES.findIndex(([id]) => id === curMode)) }}>
               {MODES.map(([id, text, sub]) => (
                 <button key={id} type="button" aria-pressed={id === curMode} onClick={() => cur && setMode(id)}>
