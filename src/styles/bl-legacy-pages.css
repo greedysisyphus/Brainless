@@ -97,3 +97,56 @@
 /* 小計：每一塊最底下一條黃綠色帶，是這支豆的結論，要最顯眼 */
 .bl-legacy-coffee-beans .legacy div[class*='mt-3'][class*='rounded-lg'][class*='bg-[var(--cw-mega-surface)]'] { margin: auto -14px 0; padding: 10px 14px; border: 0; border-radius: 0; background: var(--wash); }
 .bl-legacy-coffee-beans .legacy div[class*='mt-3'][class*='rounded-lg'][class*='bg-[var(--cw-mega-surface)]'] span { font-size: 1.0625rem; font-weight: 600; }
+
+/* ── 共用：分店／模式這種「換範圍」的按鈕群，改成文字頁籤（形狀總則）──
+   用法：把選擇器加進下面兩組。.cw-btn-primary 是目前選中的那一個。 */
+.bl-legacy-daily-reports .legacy .studio-root > div > .cw-card:nth-child(2) .cw-btn,
+.bl-legacy-poursteady .legacy .studio-root > div > .grid .cw-btn {
+  min-height: 48px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: inset 0 -3px 0 transparent;
+  font-family: var(--serif); font-weight: 400; font-size: 1.125rem; letter-spacing: 0.06em; color: var(--soft);
+}
+.bl-legacy-daily-reports .legacy .studio-root > div > .cw-card:nth-child(2) .cw-btn-primary,
+.bl-legacy-poursteady .legacy .studio-root > div > .grid .cw-btn-primary { font-weight: 600; color: var(--ink); box-shadow: inset 0 -3px 0 var(--plum); }
+
+/* ── 報表生成器 ── 分店頁籤移到最上面，跟其他頁同一個位置 */
+.bl-legacy-daily-reports .legacy { margin-top: 0; border-top: 0; }
+.bl-legacy-daily-reports .legacy .studio-root > .bl-desc + * { margin-top: 0; gap: 0; }
+.bl-legacy-daily-reports .legacy .studio-root > div > .cw-card:nth-child(2) { order: -1; padding: 0; border: 0; border-bottom: 1px solid var(--ink); }
+.bl-legacy-daily-reports .legacy .studio-root > div > .cw-card:nth-child(2) > div:first-child { display: none; }
+.bl-legacy-daily-reports .legacy .studio-root > div > .cw-card:nth-child(2) .flex { gap: 26px; }
+.bl-legacy-daily-reports .legacy .studio-root > div > .cw-card:first-child { border-top: 0; }
+.bl-legacy-daily-reports .legacy .studio-root > div > .grid { gap: 0 clamp(24px, 3vw, 44px); }
+
+/* ── 手沖機調整 ── 熱／冰手沖是頁籤；每一段注水是一列（說明在左、數字在右，手機也不換行） */
+.bl-legacy-poursteady .legacy { margin-top: 0; border-top: 0; }
+.bl-legacy-poursteady .legacy .studio-root > .bl-desc + * { margin-top: 0; gap: 0; }
+.bl-legacy-poursteady .legacy .studio-root > div > .grid { order: -1; display: flex; gap: 26px; max-width: none; border-bottom: 1px solid var(--ink); }
+.bl-legacy-poursteady .legacy .studio-root > div > .flex.flex-wrap { justify-content: flex-end; min-height: 44px; }
+.bl-legacy-poursteady .legacy .studio-root > div > .flex.flex-wrap .cw-badge { display: none; }
+.bl-legacy-poursteady .legacy .space-y-3 > * + * { margin-top: 0; }
+.bl-legacy-poursteady .legacy .space-y-3 > .cw-card { padding: 12px 0; border-top-color: var(--line); }
+.bl-legacy-poursteady .legacy .space-y-3 > .cw-card:first-child { border-top: 1px solid var(--ink); }
+.bl-legacy-poursteady .legacy .space-y-3 > .cw-card .flex-col { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; }
+.bl-legacy-poursteady .legacy .space-y-3 > .cw-card .flex-col > :last-child { flex: none; width: 7.5rem; }
+.bl-legacy-poursteady .legacy .space-y-3 > .cw-card input { text-align: center; font-family: var(--didone); font-size: 1.5rem; font-variation-settings: 'opsz' 18; }
+.bl-legacy-poursteady .legacy .studio-root > div > .cw-card:last-child { border-top-color: var(--ink); }
+
+/* ── 航班資料 ── 內容對齊外殼；門市是頁籤；篩選區不要外框和多餘的小標 */
+.bl-tool .legacy .studio-root > .mx-auto[class*='max-w-6xl'] { max-width: none; }
+.bl-legacy-flight-data .legacy { margin-top: 0; border-top: 0; }
+.bl-legacy-flight-data .legacy .space-y-6 > div:first-child { padding: 0; border-bottom: 0; }
+.bl-legacy-flight-data .legacy .space-y-6 > div:first-child > span { padding: 0; border: 0; background: none; color: var(--soft); }
+.bl-legacy-flight-data .legacy .space-y-6 > div:nth-child(2) { margin-top: 4px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+/* 門市切換 → 文字頁籤 */
+.bl-legacy-flight-data .legacy .space-y-6 > div:nth-child(2) > div:first-child { margin: 0 0 14px; border-bottom: 1px solid var(--ink); }
+.bl-legacy-flight-data .legacy .space-y-6 > div:nth-child(2) > div:first-child > span { display: none; }
+.bl-legacy-flight-data .legacy .space-y-6 > div:nth-child(2) > div:first-child > div { gap: 26px; padding: 0; border: 0; border-radius: 0; background: none; }
+.bl-legacy-flight-data .legacy .space-y-6 > div:nth-child(2) > div:first-child button { min-height: 48px; padding: 0; border-radius: 0; background: none; box-shadow: inset 0 -3px 0 transparent; font-family: var(--serif); font-weight: 400; font-size: 1.125rem; letter-spacing: 0.06em; color: var(--soft); }
+.bl-legacy-flight-data .legacy .space-y-6 > div:nth-child(2) > div:first-child button[class*='bg-[var(--cw-surface-elevated)]'] { font-weight: 600; color: var(--ink); box-shadow: inset 0 -3px 0 var(--plum); }
+.bl-legacy-flight-data .legacy .space-y-6 > div:nth-child(2) > div:first-child button span { font-family: var(--sans); font-size: 0.75rem; letter-spacing: 0; }
+/* 「篩選與操作」小標：下面就是日期和按鈕，不用再說一次 */
+.bl-legacy-flight-data .legacy .space-y-6 > div:nth-child(2) > div:nth-child(2) { display: none; }
+.bl-legacy-flight-data .legacy h3 { font-family: var(--serif); letter-spacing: 0.04em; }
+/* 報表：頁籤那條線跟標題同寬；下面的表單維持好讀的寬度 */
+.bl-legacy-daily-reports .legacy .studio-root > div { max-width: none; }
+.bl-legacy-daily-reports .legacy .studio-root > div > :not(.cw-card:nth-child(2)) { max-width: 56rem; }
