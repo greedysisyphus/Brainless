@@ -1,8 +1,9 @@
 /* 新版咖啡豆管理（/home/coffee-beans）。一張盤點表＋本次盤點的總計。 */
 .bl-beans .page { padding-bottom: 150px; }
 .bl-beans .beans { position: relative; }
-.bl-beans button, .bl-beans input { font: inherit; color: inherit; }
-.bl-beans button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* 沿用舊版的彈窗（.legacy 裡）有自己的按鈕樣式，這裡的重設不能蓋到它們 */
+.bl-beans :where(button, input):not(:where(.legacy *)) { font: inherit; color: inherit; }
+.bl-beans :where(button):not(:where(.legacy *)) { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .bl-beans p { margin: 0; }
 
 /* 分店：文字頁籤；品項設定放同一列右邊，一進來就看得到 */

@@ -9,7 +9,6 @@ import '../../styles/bl-legacy-pages.css'
 // 還沒有原生新版的工具：把舊版頁面原封不動放進新版外殼。
 // 功能、資料、寫入都是舊版那一份；外觀由 bl.css 的 .legacy 規則重畫。
 const PAGES = {
-  '/goods-order-test': lazy(() => import('../GoodsOrderManager')),
   '/daily-reports': lazy(() => import('../DailyReportGenerator')),
   '/menu': lazy(() => import('../PublicMenuPage')),
   '/flight-data': lazy(() => import('../FlightData')),
