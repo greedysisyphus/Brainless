@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Keypad } from '../../components/bl/Keypad'
-import { ToolPage } from '../../components/bl/shared'
+import { ToolPage, jumpTo } from '../../components/bl/shared'
 import BeanTypesSettingsModal from '../../components/BeanTypesSettingsModal'
 import { pressDecimalKey } from '../../components/cashier/cashMath'
 import ClubWeightCalculatorModal from '../coffeeBean/ClubWeightCalculatorModal'
@@ -254,7 +254,7 @@ export default function Beans() {
         <p className="prog">
           <b>{doneCount}</b>
           <span>／ {allBeans.length} 種已盤</span>
-          <a href="#bl-beans-sum">總計與匯出 ↓</a>
+          <a href="#bl-beans-sum" onClick={jumpTo('bl-beans-sum')}>總計與匯出 ↓</a>
         </p>
         <div className="bar" aria-hidden="true">
           <i style={{ width: `${allBeans.length ? (doneCount / allBeans.length) * 100 : 0}%` }} />
@@ -278,7 +278,7 @@ export default function Beans() {
             <ul className="totals">
               {rows.map(({ sec, beans }) => (
                 <li key={sec.id}>
-                  <a href={`#bl-beans-${sec.id}`}>
+                  <a href={`#bl-beans-${sec.id}`} onClick={jumpTo(`bl-beans-${sec.id}`)}>
                     <span>{sec.title}</span>
                     <small>{beans.length} 種</small>
                     <b>

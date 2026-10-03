@@ -94,4 +94,10 @@ export function ToolPage({ path, section, title, titleExtra = null, className = 
   )
 }
 
+/** 頁內跳轉。網址的 # 是路由在用的，連結照預設行為走會被當成換頁，所以攔下來自己捲。 */
+export const jumpTo = (id) => (event) => {
+  event.preventDefault()
+  document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+}
+
 export { catHead }

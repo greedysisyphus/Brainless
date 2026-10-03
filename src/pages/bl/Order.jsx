@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Keypad } from '../../components/bl/Keypad'
-import { ToolPage } from '../../components/bl/shared'
+import { ToolPage, jumpTo } from '../../components/bl/shared'
 import { InBlShell } from '../../components/bl/chrome'
 import { CwAlert, CwButton } from '../../components/studio/ui'
 import { FILTERS, STORES, displayCurrentInput, formatQuantity, getDefaultOrderStoreName, getStoreName, parseQuantity } from '../goodsOrder/goodsOrderConstants'
@@ -384,7 +384,7 @@ export default function Order() {
             <span>要叫</span>
             <b>{lines.length}</b>
             <span>項</span>
-            <a href="#bl-order-slip">看叫貨單 ↓</a>
+            <a href="#bl-order-slip" onClick={jumpTo('bl-order-slip')}>看叫貨單 ↓</a>
           </div>
 
           <div className="legacy modals">
