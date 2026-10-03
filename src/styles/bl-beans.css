@@ -67,85 +67,45 @@
 .bl-beans .loc { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); align-items: start; gap: 8px; }
 .bl-beans .loc > span { line-height: 44px; font-family: var(--serif); font-size: 0.8125rem; color: var(--plum); letter-spacing: 0.12em; white-space: nowrap; }
 .bl-beans .ents { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-/* 一筆：直接打數字；單位寫在框裡（包／克·袋／克·盒） */
-.bl-beans .ent { position: relative; display: flex; align-items: baseline; gap: 3px; height: 44px; padding: 0 9px 0 11px; border: 1px solid rgba(42, 33, 28, 0.3); border-radius: 7px; background: var(--paper); transition: border-color 0.25s, box-shadow 0.25s; }
-.bl-beans .ent:focus-within { border-color: var(--plum); box-shadow: 0 0 0 1px var(--plum); }
-.bl-beans .ent input { width: 4.6ch; height: 42px; padding: 0; border: 0; border-radius: 0; background: none; outline: 0; box-shadow: none; font-family: var(--didone); font-size: 1.375rem; font-variation-settings: 'opsz' 18; -moz-appearance: textfield; appearance: textfield; }
-.bl-beans .ent input::placeholder { color: rgba(42, 33, 28, 0.28); }
-.bl-beans .ent input::-webkit-outer-spin-button, .bl-beans .ent input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.bl-beans .ent .unit { font-size: 0.75rem; color: var(--soft); white-space: nowrap; pointer-events: none; }
+/* 一筆：一顆按鈕，顯示數字和單位（包／克·袋／克·盒）。點了底部長出鍵盤，選中的框線變茄紫 */
+.bl-beans .ent { display: flex; align-items: baseline; gap: 5px; min-width: 76px; height: 44px; padding: 0 10px 0 12px; border: 1px solid rgba(42, 33, 28, 0.3); border-radius: 7px; background: var(--paper); text-align: left; transition: border-color 0.25s, box-shadow 0.25s, background-color 0.25s; }
+.bl-beans .ent b { flex: 1; font-family: var(--didone); font-weight: 400; font-size: 1.375rem; line-height: 42px; font-variation-settings: 'opsz' 18; white-space: nowrap; }
+.bl-beans .ent b.empty { color: rgba(42, 33, 28, 0.28); }
+.bl-beans .ent .unit { font-size: 0.75rem; color: var(--soft); white-space: nowrap; }
+.bl-beans .ent.cur { border-color: var(--plum); box-shadow: 0 0 0 2px var(--plum); background: #fffdf7; }
+/* 游標：讓人知道現在打的字會進這一格 */
+.bl-beans .ent.cur b::after { content: ''; display: inline-block; width: 1.5px; height: 1.1em; margin-left: 2px; vertical-align: -0.16em; background: var(--plum); animation: bl-beans-caret 1.1s steps(1) infinite; }
+@keyframes bl-beans-caret { 50% { opacity: 0; } }
 .bl-beans .ent.warn { border-color: #8a2b1c; box-shadow: 0 0 0 1px #8a2b1c; }
-/* 正在填的那一格展開：單位換成「數／袋／盒」，就在數字旁邊。選中的墨色圓點用滑的 */
-.bl-beans .ent .pick { position: relative; display: none; align-self: center; gap: 2px; margin-right: -5px; padding: 2px; border-radius: 999px; background: rgba(42, 33, 28, 0.08); }
-.bl-beans .ent .pick::before { content: ''; position: absolute; left: 2px; top: 2px; width: 36px; height: 34px; border-radius: 999px; background: var(--ink); translate: calc(var(--i) * 38px) 0; transition: translate 0.4s var(--out); }
-.bl-beans .ent .pick button { position: relative; width: 36px; height: 34px; padding: 0; border: 0; border-radius: 999px; background: none; font-size: 0.875rem; color: var(--soft); transition: color 0.3s; }
-.bl-beans .ent .pick button[aria-pressed='true'] { color: var(--paper); }
-.bl-beans .ent.cur .unit { display: none; }
-.bl-beans .ent.cur .pick { display: flex; animation: bl-beans-pick 0.45s var(--out) backwards; }
-@keyframes bl-beans-pick { from { opacity: 0; translate: -10px 0; } }
-.bl-beans .ghost { position: absolute; z-index: 15; margin: 0; pointer-events: none; }
-.bl-beans .ghost .pick { animation: none; }
 .bl-beans .add { width: 44px; height: 44px; border: 1px dashed rgba(42, 33, 28, 0.35); border-radius: 50%; background: none; display: grid; place-items: center; color: var(--soft); transition: background-color 0.25s, border-color 0.25s, color 0.25s, scale 0.2s var(--out); }
 .bl-beans .add:hover { background: var(--wash); border-color: var(--ink); border-style: solid; color: var(--ink); }
 .bl-beans .add:active { scale: 0.92; }
 
-/* ── 編輯列 ── */
-.bl-beans .dock { position: fixed; left: 0; right: 0; bottom: var(--kb, 0px); z-index: 20; background: var(--ink); color: var(--paper); translate: 0 110%; transition: translate 0.45s var(--out); }
-.bl-beans .dock.on { translate: 0 0; }
-.bl-beans .dock > div { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 14px; padding: 10px max(22px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left)); }
-.bl-beans .dock .what { display: none; font-size: 0.875rem; color: #cfc4b6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bl-beans .dock .what b { font-family: var(--serif); font-weight: 600; font-size: 1rem; color: var(--paper); margin-right: 8px; letter-spacing: 0.04em; }
-.bl-beans .dock .calc { padding-right: 6px; font-size: 0.8125rem; color: #cfc4b6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bl-beans .dock .calc b { font-family: var(--didone); font-weight: 400; font-size: 1.625rem; line-height: 1; color: var(--paper); font-variation-settings: 'opsz' 18; margin-left: 6px; }
-.bl-beans .dock .calc.warn { font-size: 0.9375rem; color: #f0b9a8; }
-.bl-beans .acts { display: flex; gap: 6px; justify-self: end; }
-.bl-beans .acts button { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 0 14px; border: 1px solid rgba(246, 241, 231, 0.35); border-radius: 999px; background: none; color: var(--paper); font-size: 0.9375rem; white-space: nowrap; transition: background-color 0.25s, color 0.25s; }
-.bl-beans .acts button:hover { background: rgba(246, 241, 231, 0.14); }
-.bl-beans .acts .next { background: var(--wash); border-color: var(--wash); color: var(--ink); }
-.bl-beans .acts .next:hover { background: #e6e8a3; }
-.bl-beans .undo { position: fixed; left: 50%; bottom: calc(max(18px, env(safe-area-inset-bottom)) + var(--kb, 0px)); z-index: 30; translate: -50% 0; display: flex; align-items: center; gap: 14px; padding: 0 8px 0 18px; min-height: 48px; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.9375rem; white-space: nowrap; box-shadow: 0 10px 30px rgba(42, 33, 28, 0.25); animation: bl-fade 0.5s var(--out) backwards; }
+/* ── 底部鍵盤：點一格才長出來 ── */
+.bl-beans .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--ink); color: var(--paper); translate: 0 105%; visibility: hidden; transition: translate 0.45s var(--out), visibility 0.45s; }
+.bl-beans .dock.on { translate: 0 0; visibility: visible; }
+.bl-beans .dock > div { max-width: 480px; margin: 0 auto; padding: 4px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.bl-beans .dock .head { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.bl-beans .dock .what { flex: 1; min-width: 0; font-size: 0.875rem; color: #cfc4b6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bl-beans .dock .what b { font-family: var(--serif); font-weight: 600; font-size: 1.0625rem; color: var(--paper); margin-right: 8px; letter-spacing: 0.04em; }
+.bl-beans .dock .down { flex: none; width: 44px; height: 44px; margin-right: -10px; border: 0; background: none; color: #cfc4b6; display: grid; place-items: center; }
+.bl-beans .dock .calc { display: flex; align-items: baseline; justify-content: flex-end; gap: 6px; min-height: 34px; font-size: 0.8125rem; color: #cfc4b6; white-space: nowrap; }
+.bl-beans .dock .calc .how { min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-right: auto; }
+.bl-beans .dock .calc b { font-family: var(--didone); font-weight: 400; font-size: 1.875rem; line-height: 1; color: var(--paper); font-variation-settings: 'opsz' 18; }
+.bl-beans .dock .calc.warn { justify-content: flex-start; font-size: 0.9375rem; color: #f0b9a8; }
+/* 數／袋／盒：一排三格，選中的那塊紙色底用滑的 */
+.bl-beans .modes { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin: 6px 0 8px; padding: 3px; border-radius: 999px; background: #3d322c; }
+.bl-beans .modes::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / 3); border-radius: 999px; background: var(--paper); translate: calc(var(--i) * 100%) 0; transition: translate 0.4s var(--out); }
+.bl-beans .modes button { position: relative; min-height: 44px; padding: 0; border: 0; border-radius: 999px; background: none; color: #cfc4b6; font-size: 1rem; white-space: nowrap; transition: color 0.3s; }
+.bl-beans .modes button small { margin-left: 5px; font-size: 0.75rem; opacity: 0.75; }
+.bl-beans .modes button[aria-pressed='true'] { color: var(--ink); font-weight: 500; }
+.bl-beans .dock .hint { display: none; padding: 2px 0 10px; font-size: 0.8125rem; color: #cfc4b6; text-align: center; }
+/* 鍵盤開著時，頁面底部多留一段，最後幾列才捲得到鍵盤上面 */
+.bl-beans:has(.dock.on) .page { padding-bottom: 470px; }
+.bl-beans .undo { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); z-index: 30; translate: -50% 0; display: flex; align-items: center; gap: 14px; padding: 0 8px 0 18px; min-height: 48px; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.9375rem; white-space: nowrap; box-shadow: 0 10px 30px rgba(42, 33, 28, 0.25); animation: bl-fade 0.5s var(--out) backwards; }
 .bl-beans .undo button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--wash); color: var(--ink); font-weight: 500; }
 
-/* ── 重量換算：右下角常駐，點開是一塊小面板，不擋住盤點表，可以開著邊秤邊填 ── */
-.bl-beans .fab { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: calc(max(18px, env(safe-area-inset-bottom)) + var(--kb, 0px)); z-index: 25; display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 18px 0 16px; border: 1px solid var(--ink); border-radius: 999px; background: var(--paper); box-shadow: 0 6px 18px rgba(42, 33, 28, 0.16); font-size: 0.9375rem; transition: translate 0.45s var(--out), background-color 0.25s, color 0.25s, opacity 0.3s; }
-.bl-beans .fab:hover { background: var(--ink); color: var(--paper); }
-.bl-beans .dock.on ~ .fab, .bl-beans .dock.on ~ .scale { translate: 0 -74px; }
-.bl-beans .fab[aria-expanded='true'] { opacity: 0; pointer-events: none; }
-.bl-beans .scale { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: calc(max(18px, env(safe-area-inset-bottom)) + var(--kb, 0px)); z-index: 26; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px 14px; width: 340px; padding: 16px 18px 18px; border: 1px solid var(--ink); border-radius: 8px; background: var(--paper); box-shadow: 0 14px 40px rgba(42, 33, 28, 0.22); transform-origin: 100% 100%; transition: translate 0.45s var(--out), scale 0.4s var(--out), opacity 0.3s, visibility 0.4s; }
-.bl-beans .scale[data-open='false'] { visibility: hidden; opacity: 0; scale: 0.9; pointer-events: none; }
-.bl-beans .scale h2 { align-self: center; margin: 0; font-family: var(--serif); font-weight: 600; font-size: 1.125rem; letter-spacing: 0.06em; }
-.bl-beans .scale .x { justify-self: end; margin: -8px -10px -8px 0; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; display: grid; place-items: center; }
-.bl-beans .scale .x:hover { background: rgba(42, 33, 28, 0.08); }
-.bl-beans .scale .cont { grid-column: 1 / -1; display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(42, 33, 28, 0.08); }
-.bl-beans .scale .cont button { flex: 1; min-height: 40px; padding: 0 12px; border: 0; border-radius: 999px; background: none; font-size: 0.9375rem; color: var(--soft); white-space: nowrap; transition: background-color 0.25s, color 0.25s; }
-.bl-beans .scale .cont button small { margin-left: 4px; font-size: 0.75rem; opacity: 0.75; }
-.bl-beans .scale .cont button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
-.bl-beans .scale label { display: grid; gap: 4px; font-size: 0.8125rem; color: var(--soft); }
-.bl-beans .scale input { width: 100%; min-width: 0; height: 52px; padding: 0 12px; border: 1px solid rgba(42, 33, 28, 0.3); border-radius: 7px; background: var(--oat); color: var(--ink); font-family: var(--didone); font-size: 1.75rem; font-variation-settings: 'opsz' 18; -moz-appearance: textfield; appearance: textfield; }
-.bl-beans .scale input::placeholder { font-family: var(--sans); font-size: 1rem; color: rgba(42, 33, 28, 0.35); }
-.bl-beans .scale input:focus { outline: 0; border-color: var(--plum); box-shadow: 0 0 0 1px var(--plum); }
-.bl-beans .scale input::-webkit-outer-spin-button, .bl-beans .scale input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.bl-beans .scale output { display: block; text-align: right; white-space: nowrap; font-family: var(--didone); font-size: 2.75rem; line-height: 52px; font-variation-settings: 'opsz' 40; }
-.bl-beans .scale output i { font-family: var(--serif); font-style: normal; font-weight: 600; font-size: 0.9375rem; margin-left: 4px; }
-.bl-beans .scale p { grid-column: 1 / -1; font-size: 0.8125rem; color: var(--soft); }
-.bl-beans .scale p button, .bl-beans .rule button { padding: 0; border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
-.bl-beans .rule button { margin-left: 8px; min-height: 32px; }
-/* 手機：換算收成貼在底部的一列（跟編輯列疊在一起），不蓋住正在填的那一列 */
-@media (max-width: 619px) {
-  .bl-beans .scale { left: 0; right: 0; bottom: var(--kb, 0px); width: auto; grid-template-columns: auto minmax(0, 1fr) auto 44px; align-items: center; gap: 8px; padding: 8px max(14px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); border: 0; border-top: 1px solid var(--ink); border-radius: 0; box-shadow: 0 -10px 30px rgba(42, 33, 28, 0.16); transform-origin: 50% 100%; }
-  .bl-beans .scale[data-open='false'] { scale: 1; translate: 0 110%; }
-  .bl-beans .dock.on ~ .scale { translate: 0 -64px; padding-bottom: 8px; }
-  .bl-beans .scale h2, .bl-beans .scale p, .bl-beans .scale label span, .bl-beans .scale .cont small { display: none; }
-  .bl-beans .scale .cont { grid-column: auto; }
-  .bl-beans .scale .cont button { min-height: 38px; padding: 0 14px; }
-  .bl-beans .scale input { height: 44px; font-size: 1.375rem; }
-  .bl-beans .scale output { font-size: 1.75rem; line-height: 44px; }
-  .bl-beans .scale output i { font-size: 0.8125rem; }
-  .bl-beans .scale .x { grid-column: 4; grid-row: 1; margin: 0; }
-  /* 窄螢幕放不下整條算式，只留結果 */
-  .bl-beans .dock .calc .how { display: none; }
-  .bl-beans .dock .calc b { margin-left: 0; }
-}
+.bl-beans .rule button { margin-left: 8px; min-height: 32px; padding: 0; border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
 .bl-beans .modals { padding: 0; }
 
 @media (min-width: 620px) {
@@ -153,9 +113,6 @@
   .bl-beans .bean h3 { padding-top: 5px; }
   .bl-beans .locs { grid-column: 2; grid-row: 1; margin-top: 0; }
   .bl-beans .bean .tot { grid-column: 3; padding-top: 6px; }
-  .bl-beans .dock > div { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .bl-beans .dock .what { display: block; }
-  .bl-beans .dock .calc { min-width: 15em; text-align: right; }
 }
 @media (min-width: 1000px) {
   .bl-beans .prog, .bl-beans .prog + .bar { display: none; }
@@ -164,4 +121,10 @@
   .bl-beans .sum { position: sticky; top: 16px; margin-top: 26px; padding: 22px 0 0 clamp(28px, 3.5vw, 52px); border-top: 0; border-left: 1px solid var(--line); }
   .bl-beans .sum .done { display: flex; }
   .bl-beans .sum > .bar { display: block; }
+}
+/* 有滑鼠和實體鍵盤的電腦：不顯示數字鍵，只留填寫方式和動作，數字直接打 */
+@media (hover: hover) and (pointer: fine) {
+  .bl-beans .dock .bl-pad .k { display: none; }
+  .bl-beans .dock .hint { display: block; }
+  .bl-beans:has(.dock.on) .page { padding-bottom: 260px; }
 }

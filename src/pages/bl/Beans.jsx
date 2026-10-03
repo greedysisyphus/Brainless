@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Keypad } from '../../components/bl/Keypad'
 import { ToolPage } from '../../components/bl/shared'
 import BeanTypesSettingsModal from '../../components/BeanTypesSettingsModal'
+import { pressDecimalKey } from '../../components/cashier/cashMath'
 import ClubWeightCalculatorModal from '../coffeeBean/ClubWeightCalculatorModal'
 import { STORES, checkRowPlausibility, getBoxWeightKey, getPacksFromWeight, getStoreName } from '../coffeeBean/coffeeBeanConstants'
 import ExportLogoPicker from '../coffeeBean/ExportLogoPicker'
@@ -9,16 +11,17 @@ import { useCoffeeBeanManager } from '../useCoffeeBeanManager'
 import '../../styles/bl-beans.css'
 
 // 新版咖啡豆管理。資料、同步、匯出全部用舊版同一份邏輯（useCoffeeBeanManager），這裡只重畫畫面：
-// 一張盤點表（一種豆一列）＋本次盤點的總計；正在填的那一格展開「數／袋／盒」。
+// 一張盤點表（一種豆一列）＋本次盤點的總計。點一格，底部長出數字鍵盤和「數／袋／盒」，
+// 不叫系統鍵盤（位置會跳、會蓋住正在填的那一列）。接了實體鍵盤也可以直接打。
 const LOCS = [
   ['store', '店面'],
   ['breakRoom', '員休室'],
   ['dryStorage', '乾倉'],
 ]
 const MODES = [
-  ['quantity', '數'],
-  ['weightBag', '袋'],
-  ['weightBox', '盒'],
+  ['quantity', '數', '包'],
+  ['weightBag', '袋', '秤重'],
+  ['weightBox', '盒', '秤重'],
 ]
 const UNIT = { quantity: '包', weightBag: '克·袋', weightBox: '克·盒' }
 const WEEKDAYS = '日一二三四五六'
@@ -28,7 +31,7 @@ const keyOf = (c) => (c ? `${c.sec}|${c.bean}|${c.loc}|${c.i}` : '')
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /**
- * 版面會變的動作（展開、收起、加一筆、刪一筆）先呼叫 capture() 記下每個東西的位置，
+ * 加一筆、刪一筆時先呼叫 capture() 記下每個東西的位置，
  * 畫面更新後讓它們從舊位置滑到新位置，不是直接跳過去。
  */
 function useFlip(rootRef) {
@@ -37,14 +40,7 @@ function useFlip(rootRef) {
     const root = rootRef.current
     if (!root || reducedMotion()) return
     const items = new Map()
-    root.querySelectorAll('[data-flip]').forEach((el) => {
-      let ghost = null
-      if (el.classList.contains('cur')) {
-        ghost = el.cloneNode(true)
-        ghost.querySelector('input').value = el.querySelector('input').value
-      }
-      items.set(el.dataset.flip, { r: el.getBoundingClientRect(), ghost })
-    })
+    root.querySelectorAll('[data-flip]').forEach((el) => items.set(el.dataset.flip, el.getBoundingClientRect()))
     snap.current = { items, at: performance.now() }
   }
   useLayoutEffect(() => {
@@ -53,17 +49,15 @@ function useFlip(rootRef) {
     if (!before || !root) return
     snap.current = null
     if (performance.now() - before.at > 400) return // 隔太久（中間可能捲動過），舊位置不能用了
-    const rootRect = root.getBoundingClientRect()
     const rowShift = new Map()
     root.querySelectorAll('[data-flip]').forEach((el) => {
-      const was = before.items.get(el.dataset.flip)
+      const a = before.items.get(el.dataset.flip)
       const now = el.getBoundingClientRect()
-      if (!was) {
+      if (!a) {
         // 新加的一筆：原地長出來
         if (el.classList.contains('ent')) el.animate([{ opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1 }], { duration: DUR, easing: EASE })
         return
       }
-      const a = was.r
       const dx = a.left - now.left
       let dy = a.top - now.top
       if (el.classList.contains('bean')) rowShift.set(el, dy)
@@ -71,34 +65,7 @@ function useFlip(rootRef) {
         const row = el.closest('.bean')
         if (row) dy -= rowShift.get(row) || 0
       }
-      const grow = now.width - a.width
-      const isEnt = el.classList.contains('ent')
-      if (isEnt && grow < -1 && was.ghost) {
-        // 收起：留一個舊樣子的影子往左收，真的那格最後才浮出來
-        const ghost = was.ghost
-        ghost.removeAttribute('data-flip')
-        ghost.className = 'ent cur ghost'
-        Object.assign(ghost.style, { left: `${a.left - rootRect.left}px`, top: `${a.top - rootRect.top}px`, width: `${a.width}px` })
-        root.append(ghost)
-        const closed = `inset(-3px ${-grow}px -3px -3px round 9px)`
-        ghost.animate(
-          [
-            { clipPath: 'inset(-3px -3px -3px -3px round 9px)', translate: '0 0', opacity: 1 },
-            { clipPath: closed, translate: `${-dx}px ${-dy}px`, opacity: 1, offset: 0.8 },
-            { clipPath: closed, translate: `${-dx}px ${-dy}px`, opacity: 0 },
-          ],
-          { duration: DUR, easing: EASE }
-        ).onfinish = () => ghost.remove()
-        el.animate([{ opacity: 0 }, { opacity: 0, offset: 0.75 }, { opacity: 1 }], { duration: DUR })
-        return
-      }
-      const frames = [{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }]
-      const opens = isEnt && grow > 1 // 展開：從原本的寬度往右拉開
-      if (opens) {
-        frames[0].clipPath = `inset(-3px ${grow}px -3px -3px round 9px)`
-        frames[1].clipPath = 'inset(-3px -3px -3px -3px round 9px)'
-      }
-      if (opens || Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) el.animate(frames, { duration: DUR, easing: EASE })
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) el.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }], { duration: DUR, easing: EASE })
     })
   })
   return capture
@@ -110,75 +77,14 @@ const Cross = () => (
   </svg>
 )
 
-/** 重量換算小面板：不是彈窗，開著也能繼續填盤點表 */
-function Scale({ weights, boxType, onSettings }) {
-  const [open, setOpen] = useState(false)
-  const [cont, setCont] = useState('box')
-  const [grams, setGrams] = useState('')
-  const inputRef = useRef(null)
-  const boxWeight = boxType === 'muji' ? weights?.mujiBoxWeight ?? weights?.ikeaBoxWeight : weights?.ikeaBoxWeight
-  const packs = getPacksFromWeight(grams, weights, cont === 'bag' ? 'bag' : boxType)
-  useEffect(() => {
-    if (!open) return undefined
-    const timer = setTimeout(() => inputRef.current?.focus(), 60)
-    const onKey = (e) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-  return (
-    <>
-      <button className="fab" type="button" aria-expanded={open} aria-controls="bl-scale" onClick={() => setOpen(true)}>
-        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-          <path d="M3 6.5h12l-1.2 8.5H4.2zM6 6.5a3 3 0 0 1 6 0M9 9.2v2.4" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-        </svg>
-        重量換算
-      </button>
-      <section className="scale" id="bl-scale" aria-label="重量換算" data-open={open} inert={open ? undefined : ''}>
-        <h2>重量換算</h2>
-        <button type="button" className="x" aria-label="關閉重量換算" onClick={() => setOpen(false)}>
-          <Cross />
-        </button>
-        <div className="cont" role="group" aria-label="容器">
-          {[
-            ['bag', '袋', weights?.bagWeight],
-            ['box', '盒', boxWeight],
-          ].map(([id, label, w]) => (
-            <button key={id} type="button" aria-pressed={cont === id} onPointerDown={(e) => e.preventDefault()} onClick={() => setCont(id)}>
-              {label}
-              <small>{w ?? '—'} 克</small>
-            </button>
-          ))}
-        </div>
-        <label>
-          <span>秤上總重（克）</span>
-          {/* 開頭多打的 0 拿掉（02500 → 2500） */}
-          <input ref={inputRef} type="number" inputMode="decimal" min="0" placeholder="克" value={grams} onChange={(e) => setGrams(e.target.value.replace(/^0+(?=\d)/, ''))} />
-        </label>
-        <output>
-          {packs > 0 ? packs.toFixed(1) : 0}
-          <i>包</i>
-        </output>
-        <p>
-          一包 {weights?.beanWeightPerPack ?? '—'} 克 ·{' '}
-          <button type="button" onClick={onSettings}>
-            改換算設定
-          </button>
-        </p>
-      </section>
-    </>
-  )
-}
-
 export default function Beans() {
   const m = useCoffeeBeanManager()
   const { selectedStore, inventory, beanTypes } = m
   const rootRef = useRef(null)
+  const dockRef = useRef(null)
   const capture = useFlip(rootRef)
   const [cur, setCur] = useState(null)
-  const pendingFocus = useRef(null)
+  const fresh = useRef(false) // 剛選到這一格：第一個數字直接取代原本的值（等於全選後重打）
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000)
@@ -218,15 +124,14 @@ export default function Beans() {
   const doneCount = allBeans.filter((b) => b.done).length
 
   const modeOf = (c) => m.getCellInputMode(c.bean, secOf(c.sec).cat, secOf(c.sec).sub, c.loc, c.i)
-  const valueOf = (c) => secOf(c.sec).data[c.bean]?.[c.loc]?.[c.i] ?? ''
+  const valueOf = (c) => String(secOf(c.sec).data[c.bean]?.[c.loc]?.[c.i] ?? '')
   const update = (c, value) => {
     const s = secOf(c.sec)
     if (s.cat === 'retail') m.updateRetailQuantity(c.bean, c.loc, c.i, value)
     else m.updateQuantity(s.cat, s.sub, c.bean, c.loc, c.i, value)
   }
   const select = (c) => {
-    if (keyOf(c) === keyOf(cur)) return
-    capture()
+    fresh.current = true
     setCur(c)
   }
   // 新的一筆沿用同位置上一筆的填寫方式：同一種豆通常都用同一種容器
@@ -242,9 +147,7 @@ export default function Beans() {
       for (let j = 0; j < count; j += 1) m.setCellInputMode(c.bean, s.cat, s.sub, c.loc, j, m.getCellInputMode(c.bean, s.cat, s.sub, c.loc, j))
       m.setCellInputMode(c.bean, s.cat, s.sub, c.loc, count, lastMode)
     }
-    const next = { ...c, i: count }
-    pendingFocus.current = keyOf(next)
-    setCur(next)
+    select({ ...c, i: count })
   }
   const remove = (c) => {
     const s = secOf(c.sec)
@@ -252,34 +155,49 @@ export default function Beans() {
     if ((s.data[c.bean]?.[c.loc]?.length || 1) > 1) m.removeRowWithUndo(s.cat, s.sub, c.bean, c.loc, c.i)
     else update(c, '')
     setCur(null)
-    document.activeElement?.blur?.()
   }
+  // 下一筆：這一格有填就在同位置再開一筆；還空著就當作填完了
   const next = () => {
     if (!cur) return
-    if (valueOf(cur) === '') document.activeElement?.blur?.()
+    if (valueOf(cur) === '') setCur(null)
     else add(cur)
   }
+  const press = (key) => {
+    if (!cur) return
+    const isFresh = fresh.current
+    fresh.current = false
+    update(cur, pressDecimalKey(valueOf(cur), key, isFresh))
+  }
 
-  // 新加的一筆畫出來之後才把游標放進去
+  // 實體鍵盤（桌機、接了鍵盤的 iPad）：直接打數字。正在別的輸入框（彈窗裡）打字時不攔。
+  const live = useRef({})
+  live.current = { press, next, cur }
   useEffect(() => {
-    if (!pendingFocus.current) return
-    const el = rootRef.current?.querySelector(`[data-flip="${CSS.escape(`ent|${pendingFocus.current}`)}"] input`)
-    if (el) {
-      pendingFocus.current = null
-      el.focus()
+    const onKeyDown = (e) => {
+      if (!live.current.cur || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable], .modals')) return
+      if (/^[0-9.]$/.test(e.key)) live.current.press(e.key)
+      else if (e.key === 'Backspace') live.current.press('back')
+      else if (e.key === 'Enter') live.current.next()
+      else if (e.key === 'Escape') setCur(null)
+      else return
+      e.preventDefault()
     }
-  })
-  // 正在填的那一格如果被底部的編輯列、換算列或鍵盤擋住，捲到看得到的地方
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  // 正在填的那一格如果被底部鍵盤擋住，捲到鍵盤上方看得到的地方
   const curKey = keyOf(cur)
   useEffect(() => {
     if (!curKey) return undefined
     const timer = setTimeout(() => {
       const el = rootRef.current?.querySelector('.ent.cur')
+      const dockTop = dockRef.current?.getBoundingClientRect().top ?? window.innerHeight
       if (!el) return
       const r = el.getBoundingClientRect()
-      const visible = window.visualViewport?.height ?? window.innerHeight
-      if (r.bottom > visible - 150 || r.top < 60) el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' })
-    }, 350) // 等鍵盤和編輯列出來
+      if (r.bottom > dockTop - 16 || r.top < 70) window.scrollBy({ top: r.top + r.height / 2 - (70 + dockTop) / 2, behavior: reducedMotion() ? 'auto' : 'smooth' })
+    }, 320) // 等鍵盤長出來才知道它多高
     return () => clearTimeout(timer)
   }, [curKey])
 
@@ -289,26 +207,17 @@ export default function Beans() {
   // 不然切到 D7／D13 時用的是這台裝置上存的舊值，別人改過設定也不會知道。
   const { setSelectedWeightStore } = m
   useEffect(() => setSelectedWeightStore(selectedStore), [selectedStore, setSelectedWeightStore])
-  // iOS 鍵盤跳出時，把底部的編輯列和換算面板墊到鍵盤上面
-  useEffect(() => {
-    const vv = window.visualViewport
-    const root = rootRef.current
-    if (!vv || !root) return undefined
-    const lift = () => root.style.setProperty('--kb', `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`)
-    vv.addEventListener('resize', lift)
-    vv.addEventListener('scroll', lift)
-    return () => {
-      vv.removeEventListener('resize', lift)
-      vv.removeEventListener('scroll', lift)
-    }
-  }, [])
 
   const curMode = cur ? modeOf(cur) : null
   const curValue = cur ? valueOf(cur) : ''
   const curNum = parseFloat(curValue)
   const curHint = cur ? checkRowPlausibility(curValue, curMode, emptyWeights) : null
-  const curEmpty = curMode === 'weightBag' ? weights?.bagWeight : weights?.[getBoxWeightKey(selectedStore)]
+  const boxWeight = weights?.[getBoxWeightKey(selectedStore)]
   const curPacks = cur && curMode !== 'quantity' ? getPacksFromWeight(curValue, weights, curMode === 'weightBag' ? 'bag' : boxType) : 0
+  const setMode = (id) => {
+    const s = secOf(cur.sec)
+    m.setCellInputMode(cur.bean, s.cat, s.sub, cur.loc, cur.i, id)
+  }
 
   return (
     <ToolPage className="bl-beans" path="/coffee-beans" section="庫存與報表" title="咖啡豆管理">
@@ -419,10 +328,10 @@ export default function Beans() {
                   <small>{sec.note}</small>
                 </h2>
                 {beans.length === 0 ? <p className="none">這一類還沒有品項，到「品項設定」新增。</p> : null}
-                {beans.map(({ bean, locs, total, done }, b) => {
+                {beans.map(({ bean, locs, total, done }) => {
                   const active = cur && cur.sec === sec.id && cur.bean === bean
                   return (
-                    <div className={`bean${active ? ' on' : ''}`} key={bean} data-flip={`bean|${sec.id}|${bean}`} style={{ '--k': b }}>
+                    <div className={`bean${active ? ' on' : ''}`} key={bean} data-flip={`bean|${sec.id}|${bean}`}>
                       <h3>{bean}</h3>
                       <div className="locs">
                         {locs.map(({ loc, label, values }) => (
@@ -432,39 +341,23 @@ export default function Beans() {
                               {values.map((value, i) => {
                                 const c = { sec: sec.id, bean, loc, i }
                                 const mode = modeOf(c)
-                                const isCur = keyOf(c) === keyOf(cur)
+                                const isCur = keyOf(c) === curKey
                                 const warn = !isCur && checkRowPlausibility(value, mode, emptyWeights)
+                                const text = String(value ?? '')
                                 return (
-                                  <label className={`ent${isCur ? ' cur' : ''}${warn ? ' warn' : ''}`} key={i} data-flip={`ent|${keyOf(c)}`} title={warn ? warn.message : undefined}>
-                                    <input
-                                      type="number"
-                                      inputMode="decimal"
-                                      min="0"
-                                      placeholder="0"
-                                      value={value ?? ''}
-                                      data-ent
-                                      aria-label={`${bean} ${label} 第 ${i + 1} 筆`}
-                                      aria-invalid={warn ? true : undefined}
-                                      onChange={(e) => update(c, e.target.value)}
-                                      onFocus={() => select(c)}
-                                      onBlur={() => setTimeout(() => !document.activeElement?.hasAttribute?.('data-ent') && select(null), 0)}
-                                      onKeyDown={(e) => {
-                                        if (e.key !== 'Enter') return
-                                        e.preventDefault()
-                                        next()
-                                      }}
-                                      onWheel={(e) => e.currentTarget.blur()}
-                                    />
+                                  <button
+                                    type="button"
+                                    className={`ent${isCur ? ' cur' : ''}${warn ? ' warn' : ''}`}
+                                    key={i}
+                                    data-flip={`ent|${keyOf(c)}`}
+                                    aria-pressed={isCur}
+                                    aria-label={`${bean} ${label} 第 ${i + 1} 筆：${text || '還沒填'} ${UNIT[mode]}${warn ? `，${warn.message}` : ''}`}
+                                    title={warn ? warn.message : undefined}
+                                    onClick={() => select(c)}
+                                  >
+                                    <b className={text ? '' : 'empty'}>{text || '0'}</b>
                                     <span className="unit">{UNIT[mode]}</span>
-                                    {/* 按這排不能讓數字框失去焦點（不然鍵盤會收起來、這一格也會跟著收合） */}
-                                    <span className="pick" role="group" aria-label="填寫方式" style={{ '--i': MODES.findIndex(([id]) => id === mode) }} onPointerDown={(e) => e.preventDefault()}>
-                                      {MODES.map(([id, text]) => (
-                                        <button key={id} type="button" tabIndex={-1} aria-pressed={id === mode} onClick={() => m.setCellInputMode(bean, sec.cat, sec.sub, loc, i, id)}>
-                                          {text}
-                                        </button>
-                                      ))}
-                                    </span>
-                                  </label>
+                                  </button>
                                 )
                               })}
                               <button className="add" type="button" data-flip={`add|${sec.id}|${bean}|${loc}`} aria-label={`${bean} ${label} 再加一筆`} onClick={() => add({ sec: sec.id, bean, loc, i: values.length - 1 })}>
@@ -494,39 +387,59 @@ export default function Beans() {
           </div>
         </div>
 
-        {/* 編輯列：點到哪一筆，下面就出現它的換算結果、刪除、下一筆 */}
-        <div className={`dock${cur ? ' on' : ''}`} aria-live="polite" onPointerDown={(e) => e.preventDefault()}>
+        {/* 底部鍵盤：點一格才長出來。上面是這一格的換算結果和填寫方式，下面是數字鍵 */}
+        <div className={`dock${cur ? ' on' : ''}`} ref={dockRef} inert={cur ? undefined : ''}>
           <div>
-            <p className="what">
-              <b>{cur?.bean}</b>
-              {cur ? `${secOf(cur.sec).title} · ${LOCS.find(([l]) => l === cur.loc)[1]} 第 ${cur.i + 1} 筆` : ''}
-            </p>
-            <p className={`calc${curHint ? ' warn' : ''}`}>
+            <div className="head">
+              <p className="what">
+                {cur ? (
+                  <>
+                    <b>{cur.bean}</b>
+                    {secOf(cur.sec).title} · {LOCS.find(([l]) => l === cur.loc)[1]} 第 {cur.i + 1} 筆
+                  </>
+                ) : null}
+              </p>
+              <button type="button" className="down" aria-label="收起鍵盤" onClick={() => setCur(null)}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+            <p className={`calc${curHint ? ' warn' : ''}`} aria-live="polite">
               {!cur ? null : curHint ? (
                 curHint.message
               ) : !(curNum > 0) ? (
                 '還沒填'
               ) : curMode === 'quantity' ? (
                 <>
-                  <b>{curNum}</b> 包
+                  <b>{curValue}</b> 包
                 </>
               ) : (
                 <>
                   <span className="how">
-                    {curNum} − {curMode === 'weightBag' ? '袋' : '盒'} {curEmpty} ÷ {weights?.beanWeightPerPack} ＝
+                    {curValue} 克 − {curMode === 'weightBag' ? '袋' : '盒'} {curMode === 'weightBag' ? weights?.bagWeight : boxWeight} ÷ {weights?.beanWeightPerPack} ＝
                   </span>
                   <b>{curPacks.toFixed(1)}</b> 包
                 </>
               )}
             </p>
-            <div className="acts">
+            <div className="modes" role="group" aria-label="填寫方式" style={{ '--i': Math.max(0, MODES.findIndex(([id]) => id === curMode)) }}>
+              {MODES.map(([id, text, sub]) => (
+                <button key={id} type="button" aria-pressed={id === curMode} onClick={() => cur && setMode(id)}>
+                  {text}
+                  <small>{sub}</small>
+                </button>
+              ))}
+            </div>
+            <p className="hint">直接用鍵盤輸入數字，Enter 下一筆，Esc 收起</p>
+            <Keypad onKey={press}>
               <button type="button" aria-label="刪除這一筆" onClick={() => cur && remove(cur)}>
                 <Cross />
               </button>
-              <button type="button" className="next" onClick={next}>
-                下一筆 ↵
+              <button type="button" className="next wide" onClick={next}>
+                下一筆
               </button>
-            </div>
+            </Keypad>
           </div>
         </div>
 
@@ -538,8 +451,6 @@ export default function Beans() {
             </button>
           </p>
         ) : null}
-
-        <Scale weights={weights} boxType={boxType} onSettings={m.openWeightCalculator} />
 
         {/* 沿用舊版的彈窗：品項設定、換算設定、同步衝突 */}
         <div className="legacy modals">
