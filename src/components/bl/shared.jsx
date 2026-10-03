@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom'
 import { useHref, useNavigate } from 'react-router-dom'
 import catHead from '../../assets/cat-head.webp'
 import '../../styles/bl.css'
+import '../../styles/bl-shapes.css'
 
 const FONTS_HREF =
   'https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;600&display=swap'

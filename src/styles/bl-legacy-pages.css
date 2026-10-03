@@ -45,3 +45,55 @@
   .bl-legacy-goods-order-test .legacy header > div > div:first-child > .flex-1 { flex: none; justify-content: flex-end; }
   .bl-legacy-goods-order-test .legacy header [role='progressbar'] { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* ── 咖啡豆管理 ──
+   舊版是一層包一層的方框（外框 → 區段橫幅 → 小分類 → 每支豆 → 輸入框 → 小計框），而且整塊置中、比外殼窄。
+   重新整理：內容對齊外殼；分店頁籤與工具同一列；方框全部拆掉改用橫線與標題層級來分段。 */
+.bl-legacy-coffee-beans .legacy { margin-top: 0; border-top: 0; }
+.bl-legacy-coffee-beans .legacy .studio-root > .mx-auto { max-width: none; }
+.bl-legacy-coffee-beans .legacy .studio-root > .bl-desc + * { margin-top: 0; }
+
+/* 第一列：分店頁籤在左，重量換算／品項設定／重置在右 */
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] { flex-direction: row; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0 24px; margin-bottom: 18px; border-bottom: 1px solid var(--ink); }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .cw-card { padding: 0; border: 0; }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .cw-card > div:first-child { display: none; }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .cw-card .flex { gap: 26px; }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .cw-card .cw-btn { min-height: 48px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: inset 0 -3px 0 transparent; font-family: var(--serif); font-weight: 400; font-size: 1.125rem; letter-spacing: 0.06em; color: var(--soft); }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .cw-card .cw-btn-primary { font-weight: 600; color: var(--ink); box-shadow: inset 0 -3px 0 var(--plum); }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .flex { gap: 4px 20px; }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .flex .cw-btn { min-height: 44px; padding: 0 2px; border: 0; border-radius: 0; background: none; font-size: 0.875rem; color: var(--soft); text-decoration: underline; text-underline-offset: 4px; }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .flex .cw-btn:hover { color: var(--plum); }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .flex .cw-btn-danger { color: #8a2b1c; }
+.bl-legacy-coffee-beans .legacy [class*='gap-[var(--cw-stack-gap)]'] > .flex .cw-btn svg { display: none; }
+
+/* 盤點表外框拆掉；標題列只留標題與匯出 */
+.bl-legacy-coffee-beans .legacy [class*='overflow-hidden'][class*='border-[var(--cw-border-strong)]'][class*='bg-[var(--cw-surface)]'] { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+.bl-legacy-coffee-beans .legacy h2 { font-family: var(--serif); font-weight: 600; font-size: 1.375rem; letter-spacing: 0.04em; }
+.bl-legacy-coffee-beans .legacy .flex.items-center.gap-3 > div[class*='p-2']:first-child { display: none; }
+
+/* 區段（出杯豆、賣豆）：粗線加大標題 */
+.bl-legacy-coffee-beans .legacy div[class*='mb-4'][class*='items-center'][class*='rounded-[var(--cw-radius-lg)]'] { margin: 26px 0 0; padding: 16px 0 6px; border: 0; border-top: 1.5px solid var(--ink); border-radius: 0; background: none; }
+.bl-legacy-coffee-beans .legacy div[class*='mb-4'][class*='items-center'][class*='rounded-[var(--cw-radius-lg)]'] > div[class*='w-0.5'] { display: none; }
+.bl-legacy-coffee-beans .legacy h3 { font-family: var(--serif); font-weight: 600; font-size: 1.75rem; letter-spacing: 0.04em; }
+/* 小分類（手沖豆、義式豆…）：茄紫小標 */
+.bl-legacy-coffee-beans .legacy div[class*='mb-3'][class*='items-center'][class*='rounded-[var(--cw-radius)]'] { margin: 18px 0 0; padding: 0 0 10px; border: 0; border-radius: 0; background: none; }
+.bl-legacy-coffee-beans .legacy div[class*='mb-3'][class*='items-center'][class*='rounded-[var(--cw-radius)]'] > div[class*='rounded-full'] { display: none; }
+.bl-legacy-coffee-beans .legacy h4 { font-family: var(--serif); font-weight: 600; font-size: 1.1875rem; letter-spacing: 0.12em; color: var(--plum); }
+
+/* 每支豆一塊：有底色、有邊界，一眼分得出哪些數字屬於哪支豆。
+   （試過全部拆成橫線，十幾支豆加幾十個輸入框排在一起會糊成一片，很難讀。外層多餘的框拆掉就夠了。） */
+.bl-legacy-coffee-beans .legacy [class*='grid-cols-1'][class*='md:grid-cols-2'] { gap: 14px; }
+.bl-legacy-coffee-beans .legacy [class*='grid-cols-1'][class*='md:grid-cols-2'] > div[class*='p-3'] { display: flex; flex-direction: column; padding: 14px 14px 0; border: 1px solid rgba(42, 33, 28, 0.2); border-radius: 8px; background: var(--paper); overflow: hidden; }
+/* 豆名：這一塊最大的字 */
+.bl-legacy-coffee-beans .legacy h5 { font-family: var(--serif); font-weight: 600; font-size: 1.375rem; line-height: 1.3; letter-spacing: 0.03em; }
+.bl-legacy-coffee-beans .legacy h5 + div[class*='rounded-full'] { display: none; }
+/* 店面庫存／員休室庫存：兩組之間用線隔開，小標夠大、夠深 */
+.bl-legacy-coffee-beans .legacy [class*='md:grid-cols-2'] > div[class*='p-3'] > div.mb-3 + div.mb-3 { padding-top: 12px; border-top: 1px solid var(--line); }
+.bl-legacy-coffee-beans .legacy h6 { gap: 6px; font-size: 0.9375rem; font-weight: 500; color: var(--ink); }
+.bl-legacy-coffee-beans .legacy h6 > div[class*='rounded-full'] { width: 8px; height: 8px; background: var(--plum); }
+.bl-legacy-coffee-beans .legacy h6 > div[class*='bg-green-400'] { background: #7d8a3a; }
+.bl-legacy-coffee-beans .legacy button[class*='text-blue-400'], .bl-legacy-coffee-beans .legacy button[class*='text-green-400'] { color: var(--plum); }
+.bl-legacy-coffee-beans .legacy [class*='md:grid-cols-2'] > div[class*='p-3'] input { background: var(--oat); font-size: 1.0625rem; }
+/* 小計：每一塊最底下一條黃綠色帶，是這支豆的結論，要最顯眼 */
+.bl-legacy-coffee-beans .legacy div[class*='mt-3'][class*='rounded-lg'][class*='bg-[var(--cw-mega-surface)]'] { margin: auto -14px 0; padding: 10px 14px; border: 0; border-radius: 0; background: var(--wash); }
+.bl-legacy-coffee-beans .legacy div[class*='mt-3'][class*='rounded-lg'][class*='bg-[var(--cw-mega-surface)]'] span { font-size: 1.0625rem; font-weight: 600; }
