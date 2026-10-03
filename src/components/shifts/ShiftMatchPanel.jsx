@@ -1,42 +1,16 @@
-import { useMemo } from 'react'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useShiftMatch } from './useShiftPanels'
+import { formatDateShort } from '../../pages/shifts/shiftModel'
+import { MATCH_CONDITIONS, describeDayStatus } from '../../pages/shifts/shiftMatch'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { CwBadge, CwCard, CwSelect } from '../studio/ui'
-import { dateRange, formatDateShort, lastDateOfMonth, personLabel, toDateKey } from '../../pages/shifts/shiftModel'
-import { MATCH_CONDITIONS, describeDayStatus, findMatchingDays } from '../../pages/shifts/shiftMatch'
 import { PersonOptionGroups, shiftSwatchStyle } from './shiftUi'
-
-const SHOWN_DAYS = 10
 
 /**
  * 找日子：挑幾個人、各自設條件（上班／休假／下午有空…），列出從今天起湊得最齊的日子。
  * 只看今天以後 —— 要約的是還沒到的日子。
  */
 export function ShiftMatchPanel({ book, peopleGroups, onSelectDate }) {
-  // 點日期會跳去「今天」分頁，回來時條件要還在，不然每看一天就得重選一次
-  const [storedWants, setWants] = useLocalStorage('shiftMatchWants', [])
-
-  const nameByKey = useMemo(
-    () => Object.fromEntries(book.people.map((p) => [p.key, personLabel(p)])),
-    [book.people]
-  )
-  // 存下來的人可能已經不在班表裡（改名、合併），這種就略過
-  const wants = useMemo(
-    () => (Array.isArray(storedWants) ? storedWants : []).filter((w) => nameByKey[w?.personKey]),
-    [storedWants, nameByKey]
-  )
-
-  const dates = useMemo(() => {
-    const lastMonth = book.monthKeys[book.monthKeys.length - 1]
-    return lastMonth ? dateRange(toDateKey(new Date()), lastDateOfMonth(lastMonth)) : []
-  }, [book.monthKeys])
-
-  const days = useMemo(() => findMatchingDays(book, dates, wants), [book, dates, wants])
-  const fullCount = days.filter((d) => d.score === wants.length).length
-  const shown = days.slice(0, Math.max(SHOWN_DAYS, fullCount)).filter((d) => d.score > 0)
-
-  const update = (index, patch) =>
-    setWants(wants.map((w, i) => (i === index ? { ...w, ...patch } : w)))
+  const { nameByKey, wants, setWants, days, fullCount, shown, update } = useShiftMatch(book)
 
   return (
     // 桌機左邊設條件、右邊看結果，改條件時結果就在眼前；手機上下疊

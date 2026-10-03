@@ -1,118 +1,24 @@
-import { useCallback, useRef, useState } from 'react'
+import { useShiftImport } from './useShiftPanels'
 import { ArrowUpTrayIcon, CheckCircleIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { CwAlert, CwBadge, CwButton, CwCard, CwTextarea } from '../studio/ui'
 import { getStoreName } from '../../pages/shifts/shiftConstants'
 import { formatTimestamp } from '../../pages/shifts/shiftModel'
-import { normalizeShiftExport } from '../../pages/shifts/shiftImport'
-import { resolveSupportShifts } from '../../pages/shifts/shiftSupport'
 
-function summarize(month) {
-  const people = (month.people || []).filter((p) => !p.placeholder)
-  let work = 0
-  let leave = 0
-  let needsReview = 0
-  let linked = 0
-  Object.values(month.entries || {}).forEach((byDate) => {
-    Object.values(byDate).forEach((entry) => {
-      if (entry.kind === 'WORK') work += 1
-      else if (entry.kind === 'LEAVE') leave += 1
-      if (entry.needsReview) needsReview += 1
-      // 轉換器 --link 後處理留下的痕跡。有沒有這個，決定支援班是「目的店寫明是誰」
-      // 還是只能靠一對一自動湊——同一個月份的舊檔新檔長得很像，這是唯一分得出來的地方。
-      if (
-        entry.visitorMatch === 'linked' ||
-        entry.atStoreSource === 'linked' ||
-        entry.duplicateOf
-      ) {
-        linked += 1
-      }
-    })
-  })
-  return { headcount: people.length, work, leave, needsReview, linked }
-}
 
 /** 匯入 Brainless-SimpleKaffa-Shifts-Convertor 的 JSON 匯出檔（可一次選三家店）。 */
 export function ShiftImportPanel({ existingMonths, onSave, saving }) {
-  const [pending, setPending] = useState([])
-  const [errors, setErrors] = useState([])
-  const [pasteText, setPasteText] = useState('')
-  const [result, setResult] = useState(null)
-  const fileInputRef = useRef(null)
-
-  const addRaw = useCallback((raw, label) => {
-    const parsed = normalizeShiftExport(raw, { fileName: label })
-    if (!parsed.ok) {
-      setErrors((prev) => [...prev, `${label}：${parsed.error}`])
-      return
-    }
-    setPending((prev) => {
-      const next = prev.filter(
-        (item) =>
-          !(
-            item.month.monthKey === parsed.month.monthKey &&
-            item.month.storeCode === parsed.month.storeCode
-          )
-      )
-      return [...next, { label, month: parsed.month, summary: summarize(parsed.month) }]
-    })
-  }, [])
-
-  const handleFiles = useCallback(
-    async (fileList) => {
-      setErrors([])
-      setResult(null)
-      const files = [...(fileList || [])]
-      for (const file of files) {
-        try {
-          const text = await file.text()
-          addRaw(JSON.parse(text), file.name)
-        } catch (error) {
-          setErrors((prev) => [...prev, `${file.name}：不是有效的 JSON（${error.message}）`])
-        }
-      }
-    },
-    [addRaw]
-  )
-
-  const handlePaste = useCallback(() => {
-    setErrors([])
-    setResult(null)
-    if (!pasteText.trim()) {
-      setErrors(['請先貼上 JSON 內容'])
-      return
-    }
-    try {
-      addRaw(JSON.parse(pasteText), '貼上的內容')
-      setPasteText('')
-    } catch (error) {
-      setErrors([`貼上的內容不是有效的 JSON（${error.message}）`])
-    }
-  }, [addRaw, pasteText])
-
-  const handleSave = useCallback(async () => {
-    if (!pending.length) return
-    setErrors([])
-    // 同一批一起解析 T3，支援班才對得到 D13 的實際班別
-    const sameMonthExisting = existingMonths.filter((month) =>
-      pending.some(
-        (item) =>
-          item.month.monthKey === month.monthKey && item.month.storeCode !== month.storeCode
-      )
-    )
-    const resolved = resolveSupportShifts([...pending.map((item) => item.month), ...sameMonthExisting])
-    const toSave = resolved.filter((month) =>
-      pending.some(
-        (item) => item.month.monthKey === month.monthKey && item.month.storeCode === month.storeCode
-      )
-    )
-    try {
-      await onSave(toSave)
-      setResult(`已同步 ${toSave.length} 份班表到 Firebase。`)
-      setPending([])
-    } catch (error) {
-      setErrors([`儲存失敗：${error.message}`])
-    }
-  }, [existingMonths, onSave, pending])
+  const {
+    pending,
+    setPending,
+    errors,
+    pasteText,
+    setPasteText,
+    result,
+    fileInputRef,
+    handleFiles,
+    handlePaste,
+    handleSave,
+  } = useShiftImport({ existingMonths, onSave })
 
   return (
     <div className="space-y-5">

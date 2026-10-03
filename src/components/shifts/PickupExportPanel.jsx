@@ -1,6 +1,5 @@
+import { usePickupExport } from './useShiftPanels'
 import { Fragment, useCallback, useMemo, useRef, useState } from 'react'
-import html2canvas from 'html2canvas'
-import { openImageExportWindow, saveCanvasAsPng } from '../../utils/exportImage'
 import { ClipboardDocumentIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import { CwAlert, CwBadge, CwButton, CwCard, CwDateInput, CwSelect } from '../studio/ui'
 import { EXPORT_RANGES, UNSET_PICKUP, getStoreShortName, driverStopName, stopTime } from '../../pages/shifts/shiftConstants'
@@ -20,17 +19,6 @@ function riderText(rider) {
   return `${rider.name}（${getStoreShortName(rider.workStore)}${rider.isSupport ? '·支援' : ''}）`
 }
 
-function downloadBlob(filename, content, type) {
-  const blob = new Blob([content], { type })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
 
 /** 匯出上車地點名單：一週／二週／整月，文字檔或表格圖檔。 */
 const AUDIENCES = [
@@ -39,75 +27,25 @@ const AUDIENCES = [
 ]
 
 export function PickupExportPanel({ book, pickupByPerson, defaultDate, supportWarning }) {
-  const [audience, setAudience] = useState('store')
-  const [rangeKey, setRangeKey] = useState('week')
-  const [startDate, setStartDate] = useState(defaultDate)
-  const [status, setStatus] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const tableRef = useRef(null)
-
-  const range = useMemo(() => resolveExportRange(rangeKey, startDate), [rangeKey, startDate])
-  const table = useMemo(
-    () => buildPickupTable(book, { ...range, pickupByPerson }),
-    [book, range, pickupByPerson]
-  )
-  const missing = useMemo(
-    () => findMissingPickups(book, { ...range, pickupByPerson }),
-    [book, range, pickupByPerson]
-  )
-
-  const forDriver = audience === 'driver'
-  const filenameBase = `${forDriver ? '交通車接送表_司機版' : '交通車上車名單'}_${range.from}_${range.to}`
-  // 司機版直接用店長平常傳給司機的排班寫法，貼進聊天室就能發
-  const renderText = forDriver ? renderDriverSchedule : renderPickupText
-  const renderTsv = forDriver ? renderDriverTsv : renderPickupTsv
-
-  const handleCopy = useCallback(async () => {
-    const text = renderText(table)
-    try {
-      await navigator.clipboard.writeText(text)
-      setStatus({ variant: 'success', message: '已複製文字名單，可直接貼到群組。' })
-    } catch {
-      setStatus({ variant: 'error', message: '瀏覽器不允許複製，請改用下載文字檔。' })
-    }
-  }, [table, renderText])
-
-  const handleDownloadText = useCallback(() => {
-    downloadBlob(`${filenameBase}.txt`, renderText(table), 'text/plain;charset=utf-8')
-    setStatus({ variant: 'success', message: '文字檔已下載。' })
-  }, [filenameBase, table, renderText])
-
-  const handleDownloadTsv = useCallback(() => {
-    downloadBlob(`${filenameBase}.tsv`, renderTsv(table), 'text/tab-separated-values;charset=utf-8')
-    setStatus({ variant: 'success', message: '表格檔已下載，可貼進試算表。' })
-  }, [filenameBase, table, renderTsv])
-
-  const handleDownloadImage = useCallback(async () => {
-    if (!tableRef.current) return
-    // 視窗要在點擊的當下同步開，等 html2canvas 跑完才開會被 Safari 擋掉
-    const previewWindow = openImageExportWindow('交通車接送表')
-    setBusy(true)
-    try {
-      const canvas = await html2canvas(tableRef.current, {
-        backgroundColor: '#fffdfa',
-        scale: 2,
-        useCORS: true,
-      })
-      await saveCanvasAsPng(canvas, `${filenameBase}.png`, {
-        title: '交通車接送表',
-        previewWindow,
-      })
-      setStatus({
-        variant: 'success',
-        message: previewWindow ? '圖檔已開在新分頁，可長按儲存。' : '圖檔已下載。',
-      })
-    } catch (error) {
-      if (previewWindow && !previewWindow.closed) previewWindow.close()
-      setStatus({ variant: 'error', message: `產生圖檔失敗：${error.message}` })
-    } finally {
-      setBusy(false)
-    }
-  }, [filenameBase])
+  const {
+    audience,
+    setAudience,
+    rangeKey,
+    setRangeKey,
+    startDate,
+    setStartDate,
+    status,
+    busy,
+    tableRef,
+    range,
+    table,
+    missing,
+    forDriver,
+    handleCopy,
+    handleDownloadText,
+    handleDownloadTsv,
+    handleDownloadImage,
+  } = usePickupExport({ book, pickupByPerson, defaultDate })
 
   return (
     <CwCard

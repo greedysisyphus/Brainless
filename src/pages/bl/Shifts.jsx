@@ -31,16 +31,11 @@ import { savePersonSettings, saveShiftMonth, saveSupportLinks } from '../shifts/
 import { listUnresolvedSupport } from '../shifts/shiftSupport'
 import { parseHHMMToMinutes } from '../../utils/flightData/flightTime'
 import { useShiftBook } from '../shifts/useShiftBook'
+import { MatchPanel, StatsPanel, tintOf } from './ShiftsMore'
+import { ImportPanel, PeoplePanel, PickupPanel, SupportPanel } from './ShiftsAdmin'
 import '../../styles/bl-shifts.css'
 
-// 「今天」與「完整班表」是新版畫面；其餘五個分頁沿用舊版的面板元件（功能與資料完全相同），
-// 只把顏色換成新版的色票（見 bl-shifts.css 的 --cw-* 對照），之後再逐個重畫。
-const ShiftMatchPanel = lazy(() => import('../../components/shifts/ShiftMatchPanel'))
-const ShiftStatsPanel = lazy(() => import('../../components/shifts/ShiftStatsPanel'))
-const SupportResolutionPanel = lazy(() => import('../../components/shifts/SupportResolutionPanel'))
-const PickupExportPanel = lazy(() => import('../../components/shifts/PickupExportPanel'))
-const PeopleSettingsPanel = lazy(() => import('../../components/shifts/PeopleSettingsPanel'))
-const ShiftImportPanel = lazy(() => import('../../components/shifts/ShiftImportPanel'))
+// 七個分頁都是新版畫面；資料、算法與寫入跟 Club 版共用（pages/shifts、components/shifts/useShiftPanels）。
 const PersonMonthCalendar = lazy(() => import('../../components/shifts/PersonMonthCalendar'))
 
 const TABS = [
@@ -52,8 +47,6 @@ const TABS = [
   ['pickup', '同事與上車'],
   ['import', '匯入'],
 ]
-const KNOWN_TINTS = ['MORNING', 'MID', 'NOON', 'EVENING', 'SUPPORT']
-const tintOf = (code) => `var(--${KNOWN_TINTS.includes(code) ? code : 'OTHER'})`
 
 const Chevron = ({ d }) => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -643,46 +636,33 @@ export default function Shifts() {
         <TodayPanel book={book} dateKey={dateKey} setDateKey={setDateKey} pickupByPerson={pickupByPerson} onOpenTab={setTab} />
       ) : tab === 'grid' ? (
         <GridPanel book={book} onOpenTab={setTab} onPickDate={pickDate} />
-      ) : (
-        <div className="panel legacy">
-          <Suspense fallback={<p className="detail">讀取中…</p>}>
-            {tab === 'match' ? <ShiftMatchPanel book={book} peopleGroups={peopleGroups} onSelectDate={pickDate} /> : null}
-            {tab === 'stats' ? (
-              <ShiftStatsPanel book={book} peopleSettings={peopleSettings} selectedPersonKey={statsPersonKey} onSelectPerson={setStatsPersonKey} />
-            ) : null}
-            {tab === 'support' ? (
-              <SupportResolutionPanel book={book} months={months} links={supportLinks} onChangeLink={changeSupportLink} saving={saving} />
-            ) : null}
-            {tab === 'pickup' ? (
-              <div className="stack">
-                <PickupExportPanel
-                  book={book}
-                  pickupByPerson={pickupByPerson}
-                  defaultDate={dateKey}
-                  supportWarning={
-                    pendingSupport.length ? (
-                      <p className="alert">
-                        {pendingSupport.length} 天的跨店支援還沒指定是哪一班。如果其中有早班或中班，那些人不會出現在下面的名單裡。
-                        <button type="button" className="text" onClick={() => setTab('support')}>
-                          去「支援班」確認
-                        </button>
-                      </p>
-                    ) : null
-                  }
-                />
-                <PeopleSettingsPanel
-                  rawPeople={rawBook.people}
-                  identity={identity}
-                  peopleSettings={peopleSettings}
-                  months={resolvedMonths}
-                  onChange={changePersonSettings}
-                  saving={saving}
-                />
-              </div>
-            ) : null}
-            {tab === 'import' ? <ShiftImportPanel existingMonths={months} onSave={saveMonths} saving={saving} /> : null}
-          </Suspense>
+      ) : tab === 'match' ? (
+        <MatchPanel book={book} peopleGroups={peopleGroups} onSelectDate={pickDate} />
+      ) : tab === 'stats' ? (
+        <StatsPanel book={book} peopleSettings={peopleSettings} selectedPersonKey={statsPersonKey} onSelectPerson={setStatsPersonKey} />
+      ) : tab === 'support' ? (
+        <SupportPanel months={months} links={supportLinks} onChangeLink={changeSupportLink} saving={saving} />
+      ) : tab === 'pickup' ? (
+        <div className="panel">
+          <PickupPanel
+            book={book}
+            pickupByPerson={pickupByPerson}
+            defaultDate={dateKey}
+            supportWarning={
+              pendingSupport.length ? (
+                <p className="alert soft">
+                  {pendingSupport.length} 天的跨店支援還沒指定是哪一班。如果其中有早班或中班，那些人不會出現在下面的名單裡。　
+                  <button type="button" className="text" onClick={() => setTab('support')}>
+                    去「支援班」確認
+                  </button>
+                </p>
+              ) : null
+            }
+          />
+          <PeoplePanel rawPeople={rawBook.people} identity={identity} peopleSettings={peopleSettings} months={resolvedMonths} onChange={changePersonSettings} saving={saving} />
         </div>
+      ) : (
+        <ImportPanel existingMonths={months} onSave={saveMonths} saving={saving} />
       )}
     </ToolPage>
   )

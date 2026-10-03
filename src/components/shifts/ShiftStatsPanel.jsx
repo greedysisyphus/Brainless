@@ -1,16 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useShiftStats } from './useShiftPanels'
 import { CwBadge, CwCard, CwEmptyState, CwSelect, CwTableShell, CwTd, CwTh, CwThead } from '../studio/ui'
 import { getStoreName, getStoreShortName } from '../../pages/shifts/shiftConstants'
-import { groupPeopleByStore, personInStore } from '../../pages/shifts/shiftModel'
-import {
-  computePartnerFrequency,
-  computePersonSummaries,
-  computeShiftDistribution,
-  computeStoreLoad,
-  getVocabInScope,
-  selectMonths,
-} from '../../pages/shifts/shiftStats'
-import { getLeaveDisplay, getShiftDisplay, mergeVocab } from '../../pages/shifts/shiftVocab'
+import { getLeaveDisplay, getShiftDisplay } from '../../pages/shifts/shiftVocab'
 
 /** 0 印成淡點：整張表六成是 0 的時候，把 0 印出來只會蓋掉真正的數字。 */
 function Num({ value, strong = false }) {
@@ -132,119 +123,37 @@ function Bar({ value, total, color }) {
 }
 
 export function ShiftStatsPanel({ book, peopleSettings, selectedPersonKey, onSelectPerson }) {
-  const [monthFilter, setMonthFilter] = useState('all')
-  const [metricView, setMetricView] = useState('shift')
-  // 搭班頻率兩種問法：「他佔我班的比例」跟「我們實際一起站了多久」，排序也跟著換
-  const [partnerView, setPartnerView] = useState('rate')
-  const [storeFilter, setStoreFilter] = useState('all')
-  const [sort, setSort] = useState({ key: 'workDays', dir: 'desc' })
-
-  /** 點欄位標題排序：同一欄再點一次換方向，換欄時數字欄預設由多到少、姓名由 A 到 Z。 */
-  const toggleSort = (key) =>
-    setSort((prev) =>
-      prev.key === key
-        ? { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' }
-        : { key, dir: key === 'name' ? 'asc' : 'desc' }
-    )
-
-  const monthKeys = monthFilter === 'all' ? undefined : [monthFilter]
-  const excludeKeys = useMemo(
-    () =>
-      Object.entries(peopleSettings || {})
-        .filter(([, settings]) => settings?.excludeFromStats)
-        .map(([key]) => key),
-    [peopleSettings]
-  )
-
-  const distribution = useMemo(
-    () => computeShiftDistribution(book, { monthKeys }),
-    [book, monthFilter]
-  )
-  const summaries = useMemo(
-    () => computePersonSummaries(book, { monthKeys, excludeKeys }),
-    [book, monthFilter, excludeKeys]
-  )
-  const storeLoad = useMemo(() => computeStoreLoad(book, { monthKeys }), [book, monthFilter])
-  const partners = useMemo(
-    () => computePartnerFrequency(book, selectedPersonKey, { monthKeys, excludeKeys }),
-    [book, selectedPersonKey, monthFilter, excludeKeys]
-  )
-
-  // 班別／假別欄位一律由匯入檔的代碼表長出來，店長新增的班別會自動出現
-  const { shiftCodes, leaveCodes } = useMemo(
-    () => getVocabInScope(book, monthKeys),
-    [book, monthFilter]
-  )
-  // 自定班別是單店的（D7 的「支」一店沒有），只查一份月份文件會露出原始代碼，所以合起來查
-  const vocabMonth = useMemo(() => mergeVocab(selectMonths(book, monthKeys)), [book, monthFilter])
-
-  // 排序與長度都用「按月攤平的搭班率」：只同期一個月的人不會被同期五個月的人蓋掉
-  const rankedPartners = useMemo(() => {
-    const byHours = [...partners].sort(
-      (a, b) => b.overlapMinutes - a.overlapMinutes || a.name.localeCompare(b.name, 'zh-Hant')
-    )
-    return partnerView === 'hours' ? byHours : partners
-  }, [partners, partnerView])
-  const partnerMax =
-    partnerView === 'hours'
-      ? Math.max(1, ...partners.map((p) => p.overlapMinutes))
-      : Math.max(0.01, ...partners.map((p) => p.monthlyRate))
-
-  // 三家店的人混在一份名單裡很難找；先縮到一家再看
-  // 分組跟著月份範圍走：看 5 月就照 5 月的歸屬分，看全部就照他最後待的那家店
-  const peopleGroups = useMemo(
-    () => groupPeopleByStore(book.people, { monthKeys }),
-    [book.people, monthFilter]
-  )
-  const peopleByKey = useMemo(() => {
-    const map = new Map()
-    book.people.forEach((person) => map.set(person.key, person))
-    return map
-  }, [book.people])
-  const visibleSummaries = useMemo(() => {
-    const rows = summaries.filter((summary) =>
-      personInStore(peopleByKey.get(summary.personKey) || {}, storeFilter, monthKeys)
-    )
-    const valueOf = (row) => {
-      if (sort.key === 'name') return row.name
-      if (sort.key.startsWith('shift:')) return row.byShift[sort.key.slice(6)] || 0
-      if (sort.key.startsWith('leave:')) return row.byLeave[sort.key.slice(6)] || 0
-      return row[sort.key] || 0
-    }
-    const factor = sort.dir === 'asc' ? 1 : -1
-    return [...rows].sort((a, b) => {
-      const va = valueOf(a)
-      const vb = valueOf(b)
-      if (typeof va === 'string') return factor * va.localeCompare(vb, 'zh-Hant')
-      // 數字相同時用姓名穩定排序，避免每次重算順序都跳
-      return factor * (va - vb) || a.name.localeCompare(b.name, 'zh-Hant')
-    })
-  }, [summaries, peopleByKey, storeFilter, sort])
-  // 全期間都是 0 的欄位對排班沒有資訊量，預設收起來
-  const activeShiftCodes = useMemo(
-    () => shiftCodes.filter((code) => summaries.some((s) => (s.byShift[code] || 0) > 0)),
-    [shiftCodes, summaries]
-  )
-  const activeLeaveCodes = useMemo(
-    () => leaveCodes.filter((code) => summaries.some((s) => (s.byLeave[code] || 0) > 0)),
-    [leaveCodes, summaries]
-  )
-  // 匯入檔的 shift_types 會列出店長設定過、但這個範圍一格都沒用到的班別
-  // （例如 D7 宣告了自定的「支」卻沒有任何格子用它）。0 個 · 0% 的空長條只是雜訊。
-  const distributionCodes = useMemo(
-    () => shiftCodes.filter((code) => (distribution.counts[code] || 0) > 0),
-    [shiftCodes, distribution]
-  )
-  // 表格只長出「這批人真的有數字」的欄位。事假一年兩天、喪假七天，
-  // 全部攤成欄位就是十六欄的點點海；要看細項就切到「假別」檢視。
-  const shownShiftCodes = activeShiftCodes
-  const shownLeaveCodes = activeLeaveCodes
-  const hasSupport = useMemo(
-    () => visibleSummaries.some((s) => s.supportDays > 0 || s.unknownShiftDays > 0),
-    [visibleSummaries]
-  )
-  const maxWorkDays = Math.max(1, ...visibleSummaries.map((s) => s.workDays))
-  const selectedSummary = summaries.find((s) => s.personKey === selectedPersonKey)
+  const {
+    monthFilter,
+    setMonthFilter,
+    metricView,
+    setMetricView,
+    partnerView,
+    setPartnerView,
+    storeFilter,
+    setStoreFilter,
+    sort,
+    toggleSort,
+    monthKeys,
+    excludeKeys,
+    distribution,
+    summaries,
+    storeLoad,
+    partners,
+    shiftCodes,
+    leaveCodes,
+    vocabMonth,
+    rankedPartners,
+    partnerMax,
+    peopleGroups,
+    visibleSummaries,
+    distributionCodes,
+    shownShiftCodes,
+    shownLeaveCodes,
+    hasSupport,
+    maxWorkDays,
+    selectedSummary,
+  } = useShiftStats({ book, peopleSettings, selectedPersonKey })
 
   if (!book.months.length) {
     return (

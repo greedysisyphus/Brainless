@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useSupportGroups } from './useShiftPanels'
 import { ChevronDownIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { CwAlert, CwBadge, CwCard, CwEmptyState, CwSelect } from '../studio/ui'
 import { CAR_LABELS, CAR_SHIFTS, getStore, getStoreName } from '../../pages/shifts/shiftConstants'
@@ -40,21 +40,13 @@ function SlotLabel({ slot, month }) {
  * 對不上的班可能是早班（04:30 到店），沒對上就不會出現在交通車名單，所以會特別標出來。
  */
 export function SupportResolutionPanel({ book, months, links, onChangeLink, saving }) {
-  const groups = useMemo(() => buildSupportGroups(months, links), [months, links])
-  const pending = useMemo(() => groups.filter((group) => group.needsAttention), [groups])
-  // 已經對上的沒有事情要做。全部攤開就是幾十列一模一樣的「已對上」，
-  // 把真正要處理的那幾天淹掉——這一頁的重點是還沒對上的。
-  const settled = useMemo(() => groups.filter((group) => !group.needsAttention), [groups])
-  const carRisks = useMemo(
-    () => listCarRiskSupport(months, links, { carShifts: CAR_SHIFTS }),
-    [months, links]
-  )
-
-  const monthByStore = useMemo(() => {
-    const map = new Map()
-    months.forEach((month) => map.set(`${month.monthKey}|${month.storeCode}`, month))
-    return map
-  }, [months])
+  const {
+    groups,
+    pending,
+    settled,
+    carRisks,
+    monthByStore,
+  } = useSupportGroups(months, links)
 
   if (!months.length) {
     return (

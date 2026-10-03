@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { usePeopleSettings, usePickupExceptions } from './useShiftPanels'
 import { ChevronDownIcon, LinkIcon, LinkSlashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { CwAlert, CwBadge, CwButton, CwDateInput, CwInput, CwSelect } from '../studio/ui'
 import {
@@ -7,7 +7,6 @@ import {
   PICKUP_OPTIONS,
   getStoreName,
 } from '../../pages/shifts/shiftConstants'
-import { checkMergeSafety } from '../../pages/shifts/shiftIdentity'
 import {
   dateRange,
   formatDateShort,
@@ -27,31 +26,19 @@ import { PersonOptionGroups, StoreFilterChips } from './shiftUi'
  * 過去的日期收起來不顯示（月底要對帳的話資料還在），畫面才不會愈用愈長。
  */
 function PickupExceptions({ person, settings, onChange, today }) {
-  const [date, setDate] = useState('')
-  // 連續幾天不搭車是常態（連假、出遊），一天一天加會加到放棄。留空就是只加那一天。
-  const [until, setUntil] = useState('')
-  const [location, setLocation] = useState(NO_PICKUP)
-  const entries = Object.entries(settings.pickupOn || {}).sort((a, b) => a[0].localeCompare(b[0]))
-  const upcoming = entries.filter(([day]) => day >= today)
-  const past = entries.length - upcoming.length
-
-  const write = (next) => onChange(person.key, { ...settings, pickupOn: next })
-  const days = date ? dateRange(date, until && until >= date ? until : date) : []
-  const add = () => {
-    if (!days.length) return
-    const next = { ...(settings.pickupOn || {}) }
-    days.forEach((day) => {
-      next[day] = location
-    })
-    write(next)
-    setDate('')
-    setUntil('')
-  }
-  const remove = (day) => {
-    const next = { ...(settings.pickupOn || {}) }
-    delete next[day]
-    write(next)
-  }
+  const {
+    date,
+    setDate,
+    until,
+    setUntil,
+    location,
+    setLocation,
+    upcoming,
+    past,
+    days,
+    add,
+    remove,
+  } = usePickupExceptions({ person, settings, onChange, today })
 
   return (
     <div className="sm:col-span-2">
@@ -143,98 +130,26 @@ export function PeopleSettingsPanel({
   onChange,
   saving,
 }) {
-  const [keyword, setKeyword] = useState('')
-  const [openKey, setOpenKey] = useState(null)
-  const today = toDateKey(new Date())
-  const [mergeError, setMergeError] = useState(null)
-  const [storeFilter, setStoreFilter] = useState('all')
-
-  const canonicalPeople = useMemo(
-    () =>
-      rawPeople
-        .filter((person) => !person.placeholder)
-        .filter((person) => identity.canonicalOf(person.key) === person.key),
-    [rawPeople, identity]
-  )
-
-  const rawByKey = useMemo(() => {
-    const map = new Map()
-    rawPeople.forEach((person) => map.set(person.key, person))
-    return map
-  }, [rawPeople])
-
-  /** 合併後的店別要含別名的店，否則看起來像沒併到。 */
-  const storeCodesOf = useMemo(() => {
-    const cache = new Map()
-    return (person) => {
-      if (cache.has(person.key)) return cache.get(person.key)
-      const codes = new Set(person.storeCodes || [])
-      identity.aliasesOf(person.key).forEach((alias) => {
-        ;(rawByKey.get(alias)?.storeCodes || []).forEach((code) => codes.add(code))
-      })
-      const list = [...codes]
-      cache.set(person.key, list)
-      return list
-    }
-  }, [identity, rawByKey])
-
-  /** 合併後的人要用併進來的別名的店一起算，否則篩選會漏掉他 */
-  const withMergedStores = useMemo(
-    () =>
-      canonicalPeople.map((person) => ({ ...person, storeCodes: storeCodesOf(person) })),
-    [canonicalPeople, storeCodesOf]
-  )
-  const peopleGroups = useMemo(() => groupPeopleByStore(withMergedStores), [withMergedStores])
-
-  const visible = useMemo(() => {
-    const text = keyword.trim().toLowerCase()
-    return withMergedStores
-      .filter((person) => personInStore(person, storeFilter))
-      .filter((person) => {
-        if (!text) return true
-        const nickname = peopleSettings[person.key]?.nickname || ''
-        const aliases = identity.aliasesOf(person.key).join(' ')
-        return `${person.name} ${nickname} ${aliases}`.toLowerCase().includes(text)
-      })
-  }, [withMergedStores, keyword, peopleSettings, identity, storeFilter])
-
-  const counts = useMemo(() => {
-    const result = { 未設定: 0, [NO_PICKUP]: 0 }
-    PICKUP_LOCATIONS.forEach((location) => {
-      result[location] = 0
-    })
-    canonicalPeople.forEach((person) => {
-      const pickup = peopleSettings[person.key]?.pickup
-      if (!pickup) result['未設定'] += 1
-      else result[pickup] = (result[pickup] || 0) + 1
-    })
-    return result
-  }, [canonicalPeople, peopleSettings])
-
-  const handleMerge = (sourceKey, targetKey) => {
-    setMergeError(null)
-    if (!targetKey) {
-      onChange(sourceKey, { ...(peopleSettings[sourceKey] || {}), mergedInto: '' })
-      return
-    }
-    const safety = checkMergeSafety(months, sourceKey, targetKey)
-    if (!safety.ok) {
-      setMergeError(`${sourceKey} → ${targetKey}：${safety.reason}`)
-      return
-    }
-    const sourceSettings = peopleSettings[sourceKey] || {}
-    const targetSettings = peopleSettings[targetKey] || {}
-    // 併過去的人如果只有他設過上車地點，順手帶到正式那筆，免得名單突然少一個人
-    if (sourceSettings.pickup && !targetSettings.pickup) {
-      onChange(targetKey, { ...targetSettings, pickup: sourceSettings.pickup })
-    }
-    onChange(sourceKey, { ...sourceSettings, mergedInto: targetKey })
-    setOpenKey(null)
-  }
-
-  // 有人還沒設上車地點＝那天可能少一個人上車，這種情況一開始就展開。
-  // 只當初值：如果綁成即時的 prop，最後一個人設好的當下面板會當場收起來，手還在上面。
-  const [open, setOpen] = useState(() => (counts['未設定'] || 0) > 0)
+  const {
+    keyword,
+    setKeyword,
+    openKey,
+    setOpenKey,
+    today,
+    mergeError,
+    storeFilter,
+    setStoreFilter,
+    canonicalPeople,
+    rawByKey,
+    storeCodesOf,
+    withMergedStores,
+    peopleGroups,
+    visible,
+    counts,
+    handleMerge,
+    open,
+    setOpen,
+  } = usePeopleSettings({ rawPeople, identity, peopleSettings, months, onChange })
 
   return (
     // 設定好就很少再動，預設收起來；但「有人沒設上車地點」是要處理的事，那種情況自動打開。
