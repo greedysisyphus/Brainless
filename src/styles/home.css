@@ -35,12 +35,20 @@
 .bl-home .stats b { display: block; white-space: nowrap; font-family: var(--didone); font-weight: 400; font-size: clamp(1.75rem, 3.4vw, 3rem); line-height: 1.05; font-variation-settings: 'opsz' 18; }
 .bl-home .stats b i { font-family: var(--serif); font-style: normal; font-weight: 600; font-size: 0.9375rem; margin-left: 4px; letter-spacing: 0.04em; }
 .bl-home .stats b.none { color: rgba(42, 33, 28, 0.3); }
+.bl-home .stats b.in { animation: bl-num 0.7s var(--out) backwards; }
+.bl-home .stats b.in i { animation: bl-fade 0.6s 0.5s var(--out) backwards; }
+@keyframes bl-num { from { opacity: 0; translate: 0 8px; filter: blur(4px); } }
+/* 晚一點才有內容的區塊：高度從 0 展開並淡入 */
+.bl-home .reveal { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.7s var(--out), opacity 0.7s var(--out); }
+.bl-home .reveal.on { grid-template-rows: 1fr; opacity: 1; }
+.bl-home .reveal > div { min-height: 0; overflow: hidden; }
 /* 忙碌度量尺：刻度是 busyIndex.js 的分級門檻 */
 .bl-home .meter { position: relative; height: 24px; border-top: 1px solid var(--ink); }
 .bl-home .meter i { position: absolute; top: 0; height: 6px; border-left: 1px solid var(--ink); font-style: normal; }
 .bl-home .meter i::after { content: attr(data-t); position: absolute; top: 7px; left: 0; translate: -50% 0; font-size: 0.75rem; line-height: 1; color: var(--soft); white-space: nowrap; }
 .bl-home .meter i:first-child::after { translate: 0 0; }
-.bl-home .meter u { position: absolute; top: -5px; left: calc(var(--v) / 110 * 100%); width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--plum); transition: left 1.2s var(--out); }
+.bl-home .meter u { position: absolute; top: -5px; left: calc(var(--v) / 110 * 100%); width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--plum); opacity: 0; scale: 0.4; left: 0; transition: left 1.3s var(--out), opacity 0.5s, scale 0.6s var(--out); }
+.bl-home .meter u.on { left: calc(var(--v) / 110 * 100%); opacity: 1; scale: 1; }
 .bl-home .next { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 0.9375rem; transition: color 0.3s; }
 .bl-home .next b { font-family: var(--didone); font-weight: 400; font-size: 1.25rem; line-height: 1; font-variation-settings: 'opsz' 18; }
 .bl-home .next:hover, .bl-home .next:focus-visible { color: var(--plum); }
@@ -96,7 +104,7 @@
   .bl-home header { padding: 16px 0 14px; }
   .bl-home .split { grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding-top: 16px; align-items: center; }
   .bl-home .body, .bl-home .today { display: contents; }
-  .bl-home .split :is(.day, .stats, .meter, .next, .roster, .note, .menu, .colophon) { grid-column: 1 / -1; }
+  .bl-home .split :is(.day, .stats, .meter, .reveal, .menu, .colophon) { grid-column: 1 / -1; }
 
   .bl-home h1 { grid-column: 1; order: 1; font-size: clamp(1.625rem, 7.6vw, 2.125rem); }
   .bl-home .peek { grid-column: 2; order: 2; width: clamp(96px, 30vw, 128px); }
@@ -112,7 +120,8 @@
   .bl-home .meter { order: 5; height: 28px; }
   .bl-home .meter i::after { font-size: 0.8125rem; color: var(--ink); }
   .bl-home .meter u { width: 12px; height: 12px; top: -7px; margin-left: -6px; }
-  .bl-home .next { order: 6; margin-top: 8px; min-height: 48px; align-items: center; font-size: 1rem; }
+  .bl-home .r-next { order: 6; }
+  .bl-home .next { margin-top: 8px; min-height: 48px; align-items: center; font-size: 1rem; }
   .bl-home .next .label { font-size: 0.875rem; letter-spacing: 0.12em; }
 
   /* 工具是這頁最主要的動作。手機沒有滑鼠停留，所以做成清單：一列一個、整列都能按、箭頭常駐、按下去有回饋 */
@@ -130,7 +139,7 @@
   .bl-home .item i { flex: none; font-size: 0.8125rem; }
   .bl-home .item svg { width: 20px; height: 20px; opacity: 0.6; translate: none; }
 
-  .bl-home .roster, .bl-home .note { order: 8; }
+  .bl-home .r-roster { order: 8; }
   /* 今天上班：欄位窄，名字一人一行往下排（不用頓號），店名欄對齊名字 */
   .bl-home .roster { margin-top: 26px; font-size: 1rem; line-height: 1.45; }
   .bl-home .roster caption { padding: 12px 0 8px; border-top: 1.5px solid var(--ink); }

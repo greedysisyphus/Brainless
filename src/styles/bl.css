@@ -42,13 +42,23 @@
    明體標題、底線式欄位、膠囊按鈕。做法是把 Club 的 --cw-* 色票對到新版顏色，
    再用元件上的掛鉤 class（cw-card、cw-btn、cw-field…）改形狀。 */
 .bl-tool {
-  --cw-bg: var(--oat); --cw-surface: var(--oat); --cw-surface-elevated: var(--paper); --cw-mega-surface: rgba(42, 33, 28, 0.045); --cw-header-bg: var(--oat);
+  --cw-bg: var(--oat); --cw-surface: var(--oat); --cw-surface-elevated: var(--paper); --cw-mega-surface: #e3dccf; --cw-header-bg: var(--oat);
   --cw-text: var(--ink); --cw-text-muted: var(--soft); --cw-border: var(--line); --cw-border-strong: rgba(42, 33, 28, 0.32);
   --cw-brand: var(--plum); --cw-brand-strong: #3b1f40; --cw-brand-muted: rgba(79, 45, 85, 0.1); --cw-accent: var(--plum); --cw-accent-contrast: var(--paper);
   --cw-fg-emphasis: var(--ink); --cw-fg-emphasis-contrast: var(--paper); --cw-focus-ring: rgba(79, 45, 85, 0.5);
   --cw-warning: #8a5a12; --cw-warning-muted: rgba(138, 90, 18, 0.1); --cw-danger: #8a2b1c; --cw-danger-muted: rgba(138, 43, 28, 0.1);
   --cw-success: #2f6b3f; --cw-success-muted: rgba(47, 107, 63, 0.1);
   --cw-radius-sm: 3px; --cw-radius: 0px; --cw-radius-lg: 0px; --cw-shadow-sm: none;
+}
+/* 淡底色要用不透明的：舊版拿它當彈窗面板、固定欄的底色，半透明會讓後面的內容透出來。彈窗裡面板用紙色。 */
+.bl-tool [class*='fixed'][class*='inset-0'] { --cw-mega-surface: var(--paper); }
+/* 掛在 body 底下的浮層（匯出 Logo 選擇）不在 .bl 裡面，吃不到上面的色票；新版外殼在場時另外給一份 */
+body:has(.bl-tool) > [role='dialog'] {
+  --cw-bg: #ece5d8; --cw-surface: #ece5d8; --cw-surface-elevated: #f6f1e7; --cw-mega-surface: #f6f1e7;
+  --cw-text: #2a211c; --cw-text-muted: #6b5d52; --cw-border: rgba(42, 33, 28, 0.18); --cw-border-strong: rgba(42, 33, 28, 0.32);
+  --cw-brand: #4f2d55; --cw-accent: #4f2d55; --cw-accent-contrast: #f6f1e7; --cw-focus-ring: rgba(79, 45, 85, 0.5);
+  --cw-radius-sm: 6px; --cw-radius: 7px; --cw-radius-lg: 8px;
+  font-family: 'Noto Sans TC', 'PingFang TC', sans-serif; color: #2a211c;
 }
 .bl-tool .legacy { padding-top: 4px; }
 .bl-tool .legacy .stack > * + * { margin-top: 12px; }
@@ -106,6 +116,11 @@
 .bl-tool .legacy :is([class^='border-[#ec5836]'], [class*=' border-[#ec5836]']) { border-color: var(--plum); }
 .bl-tool .legacy :is([class^='text-[#171717]'], [class*=' text-[#171717]']) { color: var(--ink); }
 .bl-tool .legacy button:is([class^='bg-[#171717]'], [class*=' bg-[#171717]']) { background-color: var(--ink); border-radius: 999px; }
+/* 還沒改成 Club 色票的舊深色主題 class（航班統計的排序鈕等）：靛藍→茄紫、灰藍→次要字色、白色半透明底→淡底 */
+.bl-tool .legacy :is([class^='text-primary'], [class*=' text-primary']) { color: var(--plum); }
+.bl-tool .legacy :is([class^='text-text-secondary'], [class*=' text-text-secondary']) { color: var(--soft); }
+.bl-tool .legacy button:is([class*=' bg-white/5'], [class*=' bg-white/15']) { border-radius: 999px; background-color: transparent; }
+.bl-tool .legacy button[class*=' bg-white/15'] { background-color: var(--ink); color: var(--paper); }
 /* 回饋中心的深色橫幅：收成一列說明加主要按鈕 */
 .bl-tool .legacy section:is([class^='bg-[#171717]'], [class*=' bg-[#171717]']) { padding: 14px 0 6px; border-radius: 0; background: none; box-shadow: none; color: var(--soft); }
 .bl-tool .legacy section:is([class^='bg-[#171717]'], [class*=' bg-[#171717]']) > [aria-hidden] { display: none; }

@@ -26,17 +26,30 @@ function greetingOf(hour) {
 }
 
 /** 今天的航班與 T2 預報人數。讀不到就留 null，畫面顯示「—」而不是 0。 */
+// 讀過的航班與人數留在記憶體：從工具頁回首頁時直接有數字，不用再等一次、也不會再跳一次
+const flightCache = { dateKey: '', flights: null, paxDays: null }
+
 function useTodayFlights(dateKey) {
-  const [flights, setFlights] = useState(null)
-  const [paxDays, setPaxDays] = useState(null)
+  const cached = flightCache.dateKey === dateKey ? flightCache : null
+  const [flights, setFlights] = useState(cached?.flights ?? null)
+  const [paxDays, setPaxDays] = useState(cached?.paxDays ?? null)
   useEffect(() => {
     const controller = new AbortController()
     let alive = true
+    if (flightCache.dateKey !== dateKey) Object.assign(flightCache, { dateKey, flights: null, paxDays: null })
     loadFlightDataRecord(dateKey, controller.signal)
-      .then((result) => alive && setFlights(result?.data?.flights || null))
+      .then((result) => {
+        if (!alive) return
+        flightCache.flights = result?.data?.flights || null
+        setFlights(flightCache.flights)
+      })
       .catch(() => {})
     loadPaxDaily()
-      .then((days) => alive && setPaxDays(days))
+      .then((days) => {
+        if (!alive) return
+        flightCache.paxDays = days
+        setPaxDays(days)
+      })
       .catch(() => {})
     return () => {
       alive = false
@@ -46,18 +59,53 @@ function useTodayFlights(dateKey) {
   return { flights, busy: paxDays ? busyIndexOn(paxDays, dateKey) : null }
 }
 
+/**
+ * 數字從 0 數到目標值。只在「一開始沒有、後來才讀到」時跑；
+ * 一進來就有數字（從快取）就直接顯示，資料更新時也是直接換，不重跑。
+ */
+function useCountUp(target) {
+  const [shown, setShown] = useState(target)
+  const hadValue = useRef(target != null)
+  useEffect(() => {
+    if (target == null) return undefined
+    const animate = !hadValue.current && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    hadValue.current = true
+    if (!animate) {
+      setShown(target)
+      return undefined
+    }
+    let raf = 0
+    const start = performance.now()
+    const step = (now) => {
+      const p = Math.min(1, (now - start) / 1100)
+      setShown(Math.round(target * (1 - Math.pow(1 - p, 4))))
+      if (p < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  return target == null ? null : shown ?? 0
+}
+
+/** 內容晚一點才有的區塊：高度從 0 展開並淡入，不是整塊突然跳出來把下面的東西推開 */
+function Reveal({ show, className = '', children }) {
+  return (
+    <div className={`reveal ${className}${show ? ' on' : ''}`}>
+      <div>{children}</div>
+    </div>
+  )
+}
+
 function Stat({ label, value, unit }) {
+  const shown = useCountUp(value)
   return (
     <div>
       <span className="label">{label}</span>
-      {value == null ? (
-        <b className="none">—</b>
-      ) : (
-        <b>
-          {value}
-          <i>{unit}</i>
-        </b>
-      )}
+      {/* 還沒讀到時留一個同樣大小的「—」佔位，數字進來時原地淡入，版面不會動 */}
+      <b className={shown == null ? 'none' : 'in'}>
+        {shown == null ? '—' : shown.toLocaleString('en-US')}
+        <i>{shown == null ? '' : unit}</i>
+      </b>
     </div>
   )
 }
@@ -221,7 +269,7 @@ export default function Home() {
               </h2>
               <div className="stats">
                 <Stat label="D 區班機" value={flights ? flights.length : null} unit="班" />
-                <Stat label="T2 預報" value={busy ? busy.total.toLocaleString() : null} unit="人" />
+                <Stat label="T2 預報" value={busy ? busy.total : null} unit="人" />
                 <Stat label="忙碌度" value={busy ? busy.index : null} unit={busy?.label} />
               </div>
               <div
@@ -235,17 +283,21 @@ export default function Home() {
                   .map((level) => (
                     <i key={level.label} style={{ left: `${(level.min / METER_MAX) * 100}%` }} data-t={level.label} />
                   ))}
-                {busy ? <u /> : null}
+                <u className={busy ? 'on' : ''} />
               </div>
-              {nextFlight ? (
-                <Link className="next" to="/home/flight-data">
-                  <span className="label">下一班</span>
-                  <span>
-                    <b>{nextFlight.time}</b>　{nextFlight.city}　{nextFlight.flight_code} · {nextFlight.gate}
-                  </span>
-                </Link>
-              ) : null}
-              <Roster book={book} dateKey={dateKey} loading={loading} />
+              <Reveal show={Boolean(nextFlight)} className="r-next">
+                {nextFlight ? (
+                  <Link className="next" to="/home/flight-data">
+                    <span className="label">下一班</span>
+                    <span>
+                      <b>{nextFlight.time}</b>　{nextFlight.city}　{nextFlight.flight_code} · {nextFlight.gate}
+                    </span>
+                  </Link>
+                ) : null}
+              </Reveal>
+              <Reveal show={!loading} className="r-roster">
+                {loading ? null : <Roster book={book} dateKey={dateKey} loading={loading} />}
+              </Reveal>
             </section>
           </div>
           <div className="body">

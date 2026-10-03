@@ -150,3 +150,7 @@
 /* 報表：頁籤那條線跟標題同寬；下面的表單維持好讀的寬度 */
 .bl-legacy-daily-reports .legacy .studio-root > div { max-width: none; }
 .bl-legacy-daily-reports .legacy .studio-root > div > :not(.cw-card:nth-child(2)) { max-width: 56rem; }
+/* 「狀態與驗證」展開鈕是按的東西 → 膠囊；統計分析的段落捷徑列不要浮起來的白條，改成貼著頁面的一列字 */
+.bl-legacy-flight-data .legacy button[class*='justify-between'][class*='sm:w-auto'] { border-radius: 999px; padding-inline: 16px; min-height: 40px; }
+.bl-legacy-flight-data .legacy .sticky[class*='top-2'] { top: 0; padding: 4px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--oat); box-shadow: none; }
+

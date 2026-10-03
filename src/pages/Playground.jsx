@@ -92,7 +92,7 @@ function Playground() {
         <button
           key={item.id}
           type="button"
-          onClick={() => navigate(`/playground${item.sub}`)}
+          onClick={() => navigate(`${location.pathname}${item.sub}`)}
           className="text-left transition-opacity hover:opacity-95"
         >
           <CwCard className={`h-full border-[var(--cw-border-strong)] p-5 transition-colors hover:border-[var(--cw-border-strong)]/50`}>
@@ -150,7 +150,7 @@ function Playground() {
       <button
         type="button"
         className="text-sm font-semibold text-[var(--cw-text)] hover:underline"
-        onClick={() => navigate('/playground')}
+        onClick={() => navigate(location.pathname)}
       >
         ← 返回 Playground 目錄
       </button>

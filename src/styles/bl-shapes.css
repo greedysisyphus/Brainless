@@ -54,3 +54,7 @@
 .bl-legacy-coffee-beans .legacy div[class*='mt-3'][class*='rounded-lg'][class*='bg-[var(--cw-mega-surface)]'] { background: rgba(42, 33, 28, 0.07); }
 /* 叫貨：分店頁籤外框不該跟著變圓角 */
 .bl-legacy-goods-order-test .legacy header [class*='grid-cols-3'] { border-radius: 0; }
+
+/* 小切換鈕（studioSurfaces.chip／chipActive：圖表的視圖、排序等）：也是「選一個」，一樣用膠囊，選中＝墨色 */
+.bl-tool .legacy button[class*='rounded-[var(--cw-radius-sm)]'][class*='px-3 py-1.5 text-xs font-medium'] { border-radius: 999px; }
+.bl-tool .legacy button[class*='rounded-[var(--cw-radius-sm)]'][class*='px-3 py-1.5 text-xs font-medium'][class*='border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]'] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
