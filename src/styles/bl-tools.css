@@ -1,0 +1,146 @@
+/* 新版的小工具頁：手沖機調整（.bl-pour）、報表生成器（.bl-reports）。共用的骨架掛在 .bl-x。 */
+.bl-x :where(button, input, select) { font: inherit; color: inherit; }
+.bl-x :where(button) { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.bl-x p, .bl-x h2 { margin: 0; }
+
+/* 切換範圍：文字頁籤 */
+.bl-x .tabs { display: flex; gap: clamp(14px, 4vw, 28px); margin-top: 14px; border-bottom: 1px solid var(--ink); white-space: nowrap; }
+.bl-x .tabs button { min-height: 48px; padding: 0; border: 0; background: none; font-family: var(--serif); font-size: 1.125rem; letter-spacing: 0.06em; color: var(--soft); box-shadow: inset 0 -3px 0 transparent; transition: color 0.3s, box-shadow 0.3s; }
+.bl-x .tabs button[aria-pressed='true'] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -3px 0 var(--plum); }
+.bl-x .tabs .side { margin-left: auto; font-family: var(--sans); font-size: 0.875rem; letter-spacing: 0; color: var(--ink); text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--line); }
+/* 選項：膠囊，選中的是墨色 */
+.bl-x .pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.bl-x .pills button { min-height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: none; font-size: 0.9375rem; transition: background-color 0.25s, color 0.25s, border-color 0.25s; }
+.bl-x .pills button:hover { border-color: var(--ink); }
+.bl-x .pills button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.bl-x > .page main > .pills { margin-top: 14px; }
+
+.bl-x .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding-top: 18px; align-items: start; }
+.bl-x .card { min-width: 0; padding: clamp(18px, 2.4vw, 28px); border-radius: 8px; background: var(--paper); box-shadow: 0 0 0 1px var(--line), 0 14px 34px -22px rgba(42, 33, 28, 0.35); animation: bl-fade 0.8s var(--out) backwards; }
+.bl-x .card + .card { animation-delay: 0.08s; }
+.bl-x .card > .hd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-bottom: 14px; }
+.bl-x .card h2 { font-family: var(--serif); font-weight: 600; font-size: 1.375rem; letter-spacing: 0.06em; }
+.bl-x .card .hd small { color: var(--soft); font-size: 0.8125rem; }
+.bl-x :where(button, input, select, label):focus-visible { outline: 2px solid var(--plum); outline-offset: 2px; }
+@media (min-width: 900px) {
+  .bl-x .split { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); }
+  .bl-x .split.even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ── 手沖機調整 ── */
+.bl-pour .cols, .bl-pour .row { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) 5.5rem 4.25rem; align-items: center; gap: 8px; }
+.bl-pour .cols { padding-bottom: 8px; border-bottom: 1.5px solid var(--ink); font-size: 0.8125rem; color: var(--soft); }
+.bl-pour .cols span:nth-child(n + 3) { text-align: center; }
+.bl-pour .cols span:last-child { text-align: right; }
+.bl-pour .row { min-height: 64px; border-bottom: 1px solid var(--line); scroll-margin: 80px 0 420px; }
+.bl-pour .row:last-child { border-bottom: 0; }
+.bl-pour .no { font-family: var(--didone); font-weight: 400; font-size: 1.5rem; line-height: 1; color: var(--soft); font-variation-settings: 'opsz' 18; }
+.bl-pour .std { display: flex; flex-direction: column; gap: 3px; }
+.bl-pour .std b { font-family: var(--didone); font-weight: 400; font-size: 1.625rem; line-height: 1; font-variation-settings: 'opsz' 18; }
+.bl-pour .std small { font-size: 0.8125rem; color: var(--soft); white-space: nowrap; }
+.bl-pour .ent { min-height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--oat); font-family: var(--didone); font-size: 1.625rem; line-height: 1; font-variation-settings: 'opsz' 18; text-align: center; transition: border-color 0.25s, background-color 0.25s, box-shadow 0.25s; }
+.bl-pour .ent.blank { color: var(--soft); }
+.bl-pour .ent:hover { border-color: var(--ink); }
+.bl-pour .ent[aria-pressed='true'] { border-color: var(--plum); background: #fff; box-shadow: 0 0 0 2px var(--plum); color: var(--ink); }
+.bl-pour .adj { text-align: right; font-weight: 600; color: var(--plum); white-space: nowrap; }
+.bl-pour .adj.ok { font-weight: 400; font-size: 0.875rem; color: var(--soft); }
+
+.bl-pour .big { display: flex; align-items: baseline; gap: 8px; color: var(--soft); }
+.bl-pour .big b { font-family: var(--didone); font-weight: 400; font-size: clamp(3rem, 7vw, 4.25rem); line-height: 0.95; color: var(--ink); font-variation-settings: 'opsz' 40; }
+.bl-pour .big em { font-style: normal; font-weight: 600; color: var(--plum); }
+.bl-pour .cmp { display: grid; gap: 8px; margin-top: 18px; }
+.bl-pour .cmp > div { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); align-items: center; gap: 10px; font-size: 0.8125rem; color: var(--soft); }
+.bl-pour .cmp p { display: flex; gap: 2px; height: 14px; }
+.bl-pour .cmp i { flex: none; height: 100%; border-radius: 2px; background: rgba(42, 33, 28, 0.22); transition: width 0.5s var(--out), background-color 0.3s; }
+.bl-pour .cmp > div:last-child i { background: var(--ink); }
+.bl-pour .cmp > div i.cur { background: var(--plum); }
+.bl-pour .todo { margin: 18px 0 0; padding: 0; list-style: none; border-top: 1.5px solid var(--ink); }
+.bl-pour .todo li { display: flex; align-items: baseline; gap: 10px; min-height: 48px; padding: 10px 0 8px; border-bottom: 1px solid var(--line); }
+.bl-pour .todo li:last-child { border-bottom: 0; padding-bottom: 0; }
+.bl-pour .todo span { font-family: var(--serif); font-weight: 600; letter-spacing: 0.06em; }
+.bl-pour .todo small { font-size: 0.8125rem; color: var(--soft); }
+.bl-pour .todo b { margin-left: auto; font-family: var(--didone); font-weight: 400; font-size: 1.75rem; line-height: 1; color: var(--plum); font-variation-settings: 'opsz' 18; }
+.bl-pour .none { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 0.9375rem; color: var(--soft); }
+
+@media (min-width: 620px) {
+  .bl-pour .cols, .bl-pour .row { grid-template-columns: 2rem minmax(0, 1fr) 6.5rem 5rem; gap: 12px; }
+  .bl-pour .std { flex-direction: row; align-items: baseline; gap: 8px; }
+}
+
+/* 底部鍵盤（跟咖啡豆、叫貨同一套） */
+.bl-pour .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--ink); color: var(--paper); translate: 0 105%; visibility: hidden; transition: translate 0.45s var(--out), visibility 0.45s; }
+.bl-pour .dock.on { translate: 0 0; visibility: visible; }
+.bl-pour .dock > div { max-width: 480px; margin: 0 auto; padding: 4px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.bl-pour .dock .head { display: flex; align-items: center; gap: 10px; min-height: 42px; }
+.bl-pour .dock .what { flex: 1; min-width: 0; font-size: 0.875rem; color: #cfc4b6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bl-pour .dock .what b { font-family: var(--serif); font-weight: 600; font-size: 1.0625rem; color: var(--paper); margin-right: 8px; letter-spacing: 0.04em; }
+.bl-pour .dock .down { flex: none; width: 44px; height: 44px; margin-right: -10px; border: 0; background: none; color: #cfc4b6; display: grid; place-items: center; }
+.bl-pour .dock .hint { display: none; padding: 2px 0 10px; font-size: 0.8125rem; color: #cfc4b6; text-align: center; }
+.bl-pour:has(.dock.on) .page { padding-bottom: 340px; }
+@media (hover: hover) and (pointer: fine) {
+  .bl-pour .dock .bl-pad .k { display: none; }
+  .bl-pour .dock .hint { display: block; }
+  .bl-pour:has(.dock.on) .page { padding-bottom: 170px; }
+}
+
+/* ── 報表生成器 ── */
+.bl-reports .months { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.bl-reports .months button { min-height: 56px; padding: 0; border: 1px solid var(--line); border-radius: 999px; background: none; font-size: 0.875rem; color: var(--soft); transition: background-color 0.25s, color 0.25s, border-color 0.25s; }
+.bl-reports .months button b { margin-right: 2px; font-family: var(--didone); font-weight: 400; font-size: 1.625rem; line-height: 1; color: var(--ink); font-variation-settings: 'opsz' 18; transition: color 0.25s; }
+.bl-reports .months button:hover { border-color: var(--ink); }
+.bl-reports .months button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.bl-reports .months button[aria-pressed='true'] b { color: var(--paper); }
+.bl-reports .go { width: 100%; min-height: 52px; margin-top: 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 1rem; font-weight: 500; letter-spacing: 0.08em; transition: background-color 0.3s, scale 0.2s var(--out), opacity 0.3s; }
+.bl-reports .go:hover:not(:disabled) { background: var(--plum); }
+.bl-reports .go:active:not(:disabled) { scale: 0.98; }
+.bl-reports .go:disabled { opacity: 0.4; cursor: default; }
+.bl-reports .file { margin-top: 10px; font-size: 0.8125rem; color: var(--soft); text-align: center; overflow-wrap: anywhere; }
+.bl-reports .file.error { color: #8a2b1c; }
+.bl-reports .file.success { color: var(--ink); font-weight: 500; }
+.bl-reports .field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 56px; padding: 8px 0; border-top: 1px solid var(--line); }
+.bl-reports .hd + .field { border-top: 1.5px solid var(--ink); }
+.bl-reports .field > :where(span, label) { flex: none; width: 2.5rem; font-size: 0.875rem; color: var(--soft); }
+.bl-reports .field :where(input, select) { height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--oat); font-size: 0.9375rem; }
+.bl-reports .field input { width: 6.5rem; }
+.bl-reports .field select + label, .bl-reports .field input + label { margin-left: 8px; }
+.bl-reports .field + .file { padding-top: 10px; margin-top: 0; border-top: 1px solid var(--line); text-align: left; }
+.bl-reports .upload { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 8px 0 16px; border: 1px dashed var(--soft); border-radius: 8px; cursor: pointer; }
+.bl-reports .upload input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.bl-reports .upload:has(input:focus-visible) { outline: 2px solid var(--plum); outline-offset: 2px; }
+.bl-reports .upload b { flex: 1; min-width: 0; font-weight: 400; font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bl-reports .upload span { flex: none; display: grid; place-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 0.875rem; }
+
+/* ── 管理設定、電子菜單、Playground（System.jsx） ── */
+.bl-x .lede { margin-top: 10px; font-size: 0.9375rem; color: var(--soft); }
+.bl-x .quiet { padding: 40px 0; color: var(--soft); }
+.bl-x .lede + .legacy { margin-top: 14px; }
+.bl-x .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 1px solid var(--ink); border-radius: 999px; background: none; font-size: 0.9375rem; white-space: nowrap; transition: background-color 0.25s, color 0.25s, opacity 0.25s; }
+.bl-x .btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.bl-x .btn:disabled { opacity: 0.4; cursor: default; }
+.bl-x .top .side { margin: 0 0 8px auto; }
+
+.bl-admin .login { display: grid; gap: 14px; width: min(100%, 420px); margin: clamp(24px, 6vh, 64px) auto 0; }
+.bl-admin .login .sub { font-size: 0.8125rem; color: var(--soft); }
+.bl-admin .login h2 + .sub { margin-top: -8px; }
+.bl-admin .login label { display: flex; flex-direction: column; gap: 5px; }
+.bl-admin .login label > span:first-child { font-size: 0.8125rem; color: var(--soft); }
+.bl-admin .login input { width: 100%; min-height: 48px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--oat); font-size: 1rem; }
+.bl-admin .login .pw { position: relative; display: block; }
+.bl-admin .login .pw input { padding-right: 4.5em; }
+.bl-admin .login .pw button { position: absolute; right: 6px; top: 4px; min-height: 40px; padding: 0 12px; border: 0; background: none; font-size: 0.875rem; color: var(--soft); }
+.bl-admin .login .go { width: 100%; min-height: 52px; margin-top: 4px; border: 0; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 1rem; font-weight: 500; letter-spacing: 0.08em; transition: background-color 0.3s, opacity 0.3s; }
+.bl-admin .login .go:hover:not(:disabled) { background: var(--plum); }
+.bl-admin .login .go:disabled { opacity: 0.4; cursor: default; }
+.bl-admin .login .err { padding: 10px 0; border-top: 1px solid #8a2b1c; border-bottom: 1px solid #8a2b1c; color: #8a2b1c; font-size: 0.9375rem; }
+
+/* Playground 目錄：一個實驗一列 */
+.bl-play .index { list-style: none; margin: 18px 0 0; padding: 0; border-top: 1px solid var(--ink); }
+.bl-play .index li { border-bottom: 1px solid var(--line); animation: bl-fade 0.7s var(--out) backwards; }
+.bl-play .index li:nth-child(2) { animation-delay: 0.04s; } .bl-play .index li:nth-child(3) { animation-delay: 0.08s; } .bl-play .index li:nth-child(4) { animation-delay: 0.12s; } .bl-play .index li:nth-child(5) { animation-delay: 0.16s; } .bl-play .index li:nth-child(6) { animation-delay: 0.2s; }
+.bl-play .index button { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: baseline; gap: 2px 12px; width: 100%; min-height: 76px; padding: 14px 0; border: 0; background: none; text-align: left; transition: padding 0.4s var(--out), color 0.3s; }
+.bl-play .index i { grid-row: span 2; font-style: normal; font-family: var(--didone); font-size: 1.25rem; color: var(--soft); font-variation-settings: 'opsz' 18; }
+.bl-play .index b { font-family: var(--serif); font-weight: 600; font-size: clamp(1.25rem, 2.6vw, 1.75rem); letter-spacing: 0.04em; }
+.bl-play .index span { grid-column: 2; font-size: 0.875rem; color: var(--soft); }
+.bl-play .index svg { grid-column: 3; grid-row: 1 / span 2; align-self: center; color: var(--soft); transition: translate 0.4s var(--out), color 0.3s; }
+.bl-play .index button:hover { padding-left: 8px; color: var(--plum); }
+.bl-play .index button:hover svg { translate: 6px 0; color: var(--plum); }

@@ -3,7 +3,7 @@ import { BeakerIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import { CwBadge, CwButton, CwCard, CwInput, CwStack } from '../components/studio/ui'
 
-const STANDARD_VOLUMES = {
+export const STANDARD_VOLUMES = {
   hot: [40, 78, 120, 162, 200, 230],
   cold: {
     '150ml': [40, 58, 80, 102, 120, 150],
@@ -12,7 +12,7 @@ const STANDARD_VOLUMES = {
   },
 }
 
-const STANDARD_SEGMENTS = {
+export const STANDARD_SEGMENTS = {
   hot: [40, 38, 42, 42, 38, 30],
   cold: {
     '150ml': [40, 18, 22, 22, 18, 30],
@@ -21,7 +21,7 @@ const STANDARD_SEGMENTS = {
   },
 }
 
-function usePoursteadyModel() {
+export function usePoursteadyModel() {
   const [mode, setMode] = useState('hot')
   const [coldScheme, setColdScheme] = useState('150ml')
   const [currentVolumes, setCurrentVolumes] = useState({
