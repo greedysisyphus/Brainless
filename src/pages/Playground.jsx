@@ -15,7 +15,7 @@ const AlcoholContent = lazy(() => import('../components/playground/AlcoholConten
 
 const PLAY_ROOT_BC = [{ label: 'Brainless', href: '#/sandwich' }, { label: 'Playground', href: '#/playground' }]
 
-const PAGE_META = {
+export const PAGE_META = {
   music: {
     crumb: '音樂',
     title: '音樂 Playground',

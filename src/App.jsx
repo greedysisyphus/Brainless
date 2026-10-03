@@ -31,7 +31,13 @@ const BlCashier = lazy(() => loadBl().then((m) => ({ default: m.Cashier })))
 const BlShifts = lazy(() => loadBl().then((m) => ({ default: m.Shifts })))
 const BlBeans = lazy(() => loadBl().then((m) => ({ default: m.Beans })))
 const BlOrder = lazy(() => loadBl().then((m) => ({ default: m.Order })))
-const BlLegacyTool = lazy(() => loadBl().then((m) => ({ default: m.LegacyTool })))
+const BlFlights = lazy(() => loadBl().then((m) => ({ default: m.Flights })))
+const BlPour = lazy(() => loadBl().then((m) => ({ default: m.Pour })))
+const BlReports = lazy(() => loadBl().then((m) => ({ default: m.Reports })))
+const BlFeedback = lazy(() => loadBl().then((m) => ({ default: m.Feedback })))
+const BlAdmin = lazy(() => loadBl().then((m) => ({ default: m.Admin })))
+const BlMenu = lazy(() => loadBl().then((m) => ({ default: m.Menu })))
+const BlPlayground = lazy(() => loadBl().then((m) => ({ default: m.Playground })))
 
 function AppContent() {
   const [firebaseStatus, setFirebaseStatus] = useState({
@@ -75,7 +81,14 @@ function AppContent() {
               <Route path="/home/shifts" element={<BlShifts />} />
               <Route path="/home/coffee-beans" element={<BlBeans />} />
               <Route path="/home/goods-order-test" element={<BlOrder />} />
-              <Route path="/home/:tool" element={<BlLegacyTool />} />
+              <Route path="/home/flight-data" element={<BlFlights />} />
+              <Route path="/home/poursteady" element={<BlPour />} />
+              <Route path="/home/daily-reports" element={<BlReports />} />
+              <Route path="/home/feedback" element={<BlFeedback />} />
+              <Route path="/home/admin" element={<BlAdmin />} />
+              <Route path="/home/menu" element={<BlMenu />} />
+              <Route path="/home/playground" element={<BlPlayground />} />
+              <Route path="/home/*" element={<Navigate to="/home" replace />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />
               <Route path="/cashier" element={<CashierManagement />} />
               <Route path="/alcohol" element={<Navigate to="/playground#alcohol" replace />} />

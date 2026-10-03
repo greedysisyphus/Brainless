@@ -31,30 +31,6 @@
 
 /* 1. 選項切換：膠囊，選中＝墨色實心（各頁原本就是這樣，不另外加顏色） */
 
-/* ── 咖啡豆管理 ── */
-/* 數／袋／盒：三個選項一直都在（盤點時常要切，不能多點一下），但畫得很淡——
-   淺色軌道、沒選的是淡字、選中的是一顆白底細框的小膠囊。整頁五十幾組才不會蓋過數字。 */
-.bl-legacy-coffee-beans .legacy [role='group'][aria-label='填寫方式'] { height: 44px; padding: 3px; gap: 1px; border: 0; border-radius: 999px; background: rgba(42, 33, 28, 0.07); }
-.bl-legacy-coffee-beans .legacy [role='group'][aria-label='填寫方式'] > button { width: 36px; border-radius: 999px; font-size: 0.9375rem; font-weight: 500; color: var(--soft); background: none; }
-.bl-legacy-coffee-beans .legacy [role='group'][aria-label='填寫方式'] > button[aria-pressed='true'] { background: #fffdf8; color: var(--ink); font-weight: 700; box-shadow: 0 0 0 1px rgba(42, 33, 28, 0.35), 0 1px 2px rgba(42, 33, 28, 0.12); }
-/* 輸入框：高度拉到好按的 44px，單位字加大加深 */
-.bl-legacy-coffee-beans .legacy [class*='md:grid-cols-2'] > div[class*='p-3'] input { height: 44px; border-radius: 7px; border-color: var(--field-line); }
-.bl-legacy-coffee-beans .legacy [class*='md:grid-cols-2'] > div[class*='p-3'] input + span,
-.bl-legacy-coffee-beans .legacy [class*='md:grid-cols-2'] > div[class*='p-3'] .relative > span { font-size: 0.875rem; color: var(--ink); }
-/* 只有圖示的按鈕（加號、叉叉）：同樣大小的正圓 */
-.bl-legacy-coffee-beans .legacy .justify-between.mb-2 > button,
-.bl-legacy-coffee-beans .legacy .ml-auto > button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; color: var(--soft); transform: none; }
-.bl-legacy-coffee-beans .legacy .justify-between.mb-2 > button { margin: -8px -10px -8px 0; color: var(--plum); }
-.bl-legacy-coffee-beans .legacy .justify-between.mb-2 > button:hover,
-.bl-legacy-coffee-beans .legacy .ml-auto > button:hover { background: rgba(42, 33, 28, 0.08); }
-.bl-legacy-coffee-beans .legacy .justify-between.mb-2 > button svg { width: 20px; height: 20px; }
-/* 「當前區域」：下面的出杯豆／賣豆切換已經在標示位置，不重複 */
-.bl-legacy-coffee-beans .legacy div[class*='mb-4'][class*='rounded-[var(--cw-radius-lg)]'] > .ml-auto { display: none; }
-/* 小計：淡色帶加粗字 */
-.bl-legacy-coffee-beans .legacy div[class*='mt-3'][class*='rounded-lg'][class*='bg-[var(--cw-mega-surface)]'] { background: rgba(42, 33, 28, 0.07); }
-/* 叫貨：分店頁籤外框不該跟著變圓角 */
-.bl-legacy-goods-order-test .legacy header [class*='grid-cols-3'] { border-radius: 0; }
-
 /* 小切換鈕（studioSurfaces.chip／chipActive：圖表的視圖、排序等）：也是「選一個」，一樣用膠囊，選中＝墨色 */
 .bl-tool .legacy button[class*='rounded-[var(--cw-radius-sm)]'][class*='px-3 py-1.5 text-xs font-medium'] { border-radius: 999px; }
 .bl-tool .legacy button[class*='rounded-[var(--cw-radius-sm)]'][class*='px-3 py-1.5 text-xs font-medium'][class*='border-[var(--cw-border-strong)] bg-[var(--cw-mega-surface)]'] { border-color: var(--ink); background: var(--ink); color: var(--paper); }

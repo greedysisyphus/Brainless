@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { auth, checkAdminStatus } from '../utils/firebase'
+import { useCanEdit } from '../components/admin/useAdmin'
 import { DualThemePage } from '../components/studio/DualThemePage'
 import PublicMenuSettings from '../components/admin/PublicMenuSettings'
 
@@ -10,23 +9,7 @@ const MENU_BC = [
 ]
 
 export default function PublicMenuPage() {
-  const [canEdit, setCanEdit] = useState(false)
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        setCanEdit(false)
-        return
-      }
-      try {
-        setCanEdit(await checkAdminStatus(user.uid))
-      } catch {
-        setCanEdit(false)
-      }
-    })
-
-    return unsubscribe
-  }, [])
+  const { canEdit } = useCanEdit()
 
   return (
     <DualThemePage

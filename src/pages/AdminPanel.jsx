@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react'
-import { auth, checkAdminStatus } from '../utils/firebase'
-import { useNavigate } from 'react-router-dom'
+import { useAdminGate } from '../components/admin/useAdmin'
 import AdminSettingsTabs from '../components/admin/AdminSettingsTabs'
 import AdminLoginForm from '../components/admin/AdminLoginForm'
 import { DualThemePage } from '../components/studio/DualThemePage'
@@ -13,41 +11,7 @@ const ADMIN_BC = [
 ]
 
 const AdminPanel = () => {
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        try {
-          const adminStatus = await checkAdminStatus(user.uid)
-          setIsAdmin(adminStatus)
-          if (!adminStatus) {
-            setTimeout(() => navigate('/'), 3000)
-          }
-        } catch {
-          setIsAdmin(false)
-        }
-      } else {
-        setIsAdmin(false)
-      }
-      setIsLoading(false)
-    })
-
-    return unsubscribe
-  }, [navigate])
-
-  const handleAdminLogout = async () => {
-    try {
-      setIsLoading(true)
-      const { signOut } = await import('firebase/auth')
-      await signOut(auth)
-      navigate('/')
-    } catch {
-      setIsLoading(false)
-    }
-  }
+  const { isAdmin, isLoading, handleAdminLogout } = useAdminGate()
 
   if (isLoading) {
     return (

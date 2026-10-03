@@ -1,6 +1,4 @@
-import { useState } from 'react'
-import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth, checkAdminStatus } from '../../utils/firebase'
+import { useAdminLogin } from './useAdmin'
 import { useTheme } from '../../contexts/ThemeContext'
 import ResponsiveContainer, {
   ResponsiveCard,
@@ -19,66 +17,7 @@ import { LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outli
  */
 export default function AdminLoginForm({ onLoginSuccess, onLoginError, embedded = false }) {
   const { isStudio } = useTheme()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  const handleLogin = async (e) => {
-    e.preventDefault()
-
-    if (!email.trim() || !password.trim()) {
-      setError('請輸入信箱和密碼')
-      return
-    }
-
-    try {
-      setIsLoading(true)
-      setError('')
-
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password)
-      const isAdmin = await checkAdminStatus(userCredential.user.uid)
-
-      if (!isAdmin) {
-        const { signOut } = await import('firebase/auth')
-        await signOut(auth)
-        setError('此帳號沒有管理員權限')
-        onLoginError?.('此帳號沒有管理員權限')
-        return
-      }
-
-      setEmail('')
-      setPassword('')
-      onLoginSuccess?.(userCredential.user)
-    } catch (err) {
-      console.error('登入失敗:', err)
-      let errorMessage = '登入失敗'
-      switch (err.code) {
-        case 'auth/user-not-found':
-          errorMessage = '找不到此帳號'
-          break
-        case 'auth/wrong-password':
-          errorMessage = '密碼錯誤'
-          break
-        case 'auth/invalid-email':
-          errorMessage = '信箱格式錯誤'
-          break
-        case 'auth/too-many-requests':
-          errorMessage = '登入次數過多，請稍後再試'
-          break
-        case 'auth/network-request-failed':
-          errorMessage = '網路連線失敗，請檢查網路連線'
-          break
-        default:
-          errorMessage = '登入失敗：' + (err.message || '未知錯誤')
-      }
-      setError(errorMessage)
-      onLoginError?.(errorMessage)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const { email, setEmail, password, setPassword, showPassword, setShowPassword, isLoading, error, handleLogin } = useAdminLogin({ onLoginSuccess, onLoginError })
 
   if (isStudio) {
     const shellClass = embedded ? 'w-full space-y-6' : 'mx-auto w-full max-w-md space-y-6 p-1'
