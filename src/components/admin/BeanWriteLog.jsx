@@ -70,6 +70,7 @@ export default function BeanWriteLog() {
                 <span>
                   {e.device}
                   {e.device === me ? '（這台）' : ''}・{e.page === 'club' ? 'Club 版' : '新版'}
+                  {e.auto ? <em className="bad">・其中 {e.auto} 次不是人按的</em> : null}
                 </span>
                 <i className={drop ? 'bad' : ''}>{e.cells} 格</i>
               </li>
@@ -78,7 +79,7 @@ export default function BeanWriteLog() {
         </ol>
       )}
       <p className="note">
-        「格」是當時有填數字的格數；比上一筆少的會標紅，那一筆就是資料被清掉或蓋掉的時候。每家店最多留 30 筆，同一台連續編輯算一筆（×次數）。裝置代號是每個瀏覽器隨機產生的，清掉網站資料會換新的。
+        「格」是當時有填數字的格數；比上一筆少的會標紅，那一筆就是資料被清掉或蓋掉的時候。每家店最多留 30 筆，同一台連續編輯算一筆（×次數）。標「不是人按的」表示那次修改發生時沒有人在點按或打字，是程式自己改的，看到請截圖給開發者。裝置代號是每個瀏覽器隨機產生的，清掉網站資料會換新的。
       </p>
     </section>
   )

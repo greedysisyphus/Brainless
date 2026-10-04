@@ -5,13 +5,15 @@ import { ToolPage } from '../../components/bl/shared'
 import ErrorBoundary from '../../components/ErrorBoundary'
 import { useAdminGate, useAdminLogin, useCanEdit } from '../../components/admin/useAdmin'
 import { PAGE_META } from '../Playground'
+import { MENU_ACCEPT, MENU_PAGE_LABELS, usePublicMenu } from '../../components/admin/usePublicMenu'
+import { MENU_LAYOUT_OPTIONS, PUBLIC_MENU_SITE_URL } from '../../utils/publicMenuDisplay'
 import '../../styles/bl-tools.css'
 
 // 管理設定、電子菜單、Playground 的新版外框。登入、權限與目錄是新版畫面；
 // 裡面的設定表單與實驗內容還是舊版元件（.legacy 套新版色票），功能與寫入都是同一份。
 const MarqueeSettings = lazy(() => import('../../components/admin/NowPlayingMarqueeSettings'))
 const BeanWriteLog = lazy(() => import('../../components/admin/BeanWriteLog'))
-const PublicMenuSettings = lazy(() => import('../../components/admin/PublicMenuSettings'))
+const PublicMenuLayoutPreview = lazy(() => import('../../components/admin/PublicMenuLayoutPreview'))
 const OldPlayground = lazy(() => import('../Playground'))
 
 function Legacy({ children }) {
@@ -95,12 +97,90 @@ export function Admin() {
 
 export function Menu() {
   const { canEdit } = useCanEdit()
+  const m = usePublicMenu()
+  const busy = m.busyPage != null
   return (
     <ToolPage className="bl-x bl-menu" path="/menu" section="人事與航班" title="電子菜單">
-      <p className="lede">{canEdit ? '最多 2 張圖；換圖即時同步客人 QR 站。' : '檢視目前菜單與客人頁。要修改請先登入管理員。'}</p>
-      <Legacy>
-        <PublicMenuSettings embedded canEdit={canEdit} />
-      </Legacy>
+      <p className="lede">
+        {canEdit ? '最多 2 張圖；換圖或改版面後，客人掃 QR 看到的頁面會自動更新。' : '目前上架中的菜單。要修改請先'}
+        {canEdit ? null : <a href="#/home/admin">登入管理員</a>}
+        {canEdit ? null : '。'}
+      </p>
+      <input ref={m.fileInputRef} type="file" accept={MENU_ACCEPT} hidden onChange={m.handleFileChange} />
+      {m.error ? (
+        <p className="msg bad" role="alert">
+          {m.error}
+        </p>
+      ) : null}
+      {m.successMessage ? (
+        <p className="msg" role="status">
+          {m.successMessage}
+        </p>
+      ) : null}
+
+      {m.isLoading ? (
+        <p className="quiet">載入菜單設定…</p>
+      ) : (
+        <>
+          <div className="split even">
+            {MENU_PAGE_LABELS.map((label, index) => {
+              const image = m.slots[index]
+              const uploading = m.busyPage === index
+              return (
+                <section className="card slot" key={label}>
+                  <div className="hd">
+                    <h2>{label}</h2>
+                    {image?.storagePath ? <small>{image.storagePath}</small> : null}
+                  </div>
+                  {image ? <img src={image.url} alt={label} /> : <p className="none">尚未上傳</p>}
+                  {canEdit ? (
+                    <div className="acts">
+                      <button type="button" className="btn pri" disabled={busy} onClick={() => m.handlePickFile(index)}>
+                        {uploading ? `上傳中…${m.uploadProgress != null ? ` ${m.uploadProgress}%` : ''}` : image ? '更換圖片' : '上傳圖片'}
+                      </button>
+                      {index === 1 && image ? (
+                        <button type="button" className="btn" disabled={busy} onClick={() => m.handleRemovePage(index)}>
+                          移除
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </section>
+              )
+            })}
+          </div>
+
+          <section className="card layout">
+            <div className="hd">
+              <h2>版面</h2>
+              <small>{canEdit ? '客人掃 QR 後看到的排法' : '目前客人頁使用的排法'}{m.layoutSaving ? '・儲存中…' : ''}</small>
+            </div>
+            <div className="pills" role="group" aria-label="版面">
+              {MENU_LAYOUT_OPTIONS.map((o) => (
+                <button key={o.id} type="button" aria-pressed={m.layout === o.id} disabled={!canEdit || m.layoutSaving || busy} onClick={() => m.handleLayoutChange(o.id)}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="hint">{MENU_LAYOUT_OPTIONS.find((o) => o.id === m.layout)?.hint}</p>
+            <Legacy>
+              <PublicMenuLayoutPreview layout={m.layout} slots={m.slots} embedded />
+            </Legacy>
+          </section>
+
+          <section className="card guest">
+            <div className="hd">
+              <h2>客人頁</h2>
+              <small>跟掃 QR 看到的一樣</small>
+              <a className="btn" href={PUBLIC_MENU_SITE_URL} target="_blank" rel="noopener noreferrer">
+                在新分頁開啟
+              </a>
+            </div>
+            <iframe src={PUBLIC_MENU_SITE_URL} title="客人電子菜單預覽" loading="lazy" />
+            {m.updatedAt ? <p className="hint">上次更新：{m.updatedAt.toLocaleString('zh-TW')}</p> : null}
+          </section>
+        </>
+      )}
     </ToolPage>
   )
 }

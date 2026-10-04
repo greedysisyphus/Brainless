@@ -67,6 +67,9 @@ test('咖啡豆：寫入紀錄——同一台連續編輯併成一筆，清空�
   log = appendWriteLog(log, { at: 3, device: 'iPad-a', action: 'reset', page: 'new', cells: 0 })
   log = appendWriteLog(log, edit(4, 'iPhone-b'))
   assert.deepEqual(log.map((e) => e.action), ['edit', 'reset', 'edit'])
+  // 不是人按的次數會累加
+  assert.equal(appendWriteLog(appendWriteLog([], { ...edit(1), auto: 1 }), { ...edit(2), auto: 2 })[0].auto, 3)
+  assert.equal('auto' in appendWriteLog(appendWriteLog([], edit(1)), edit(2))[0], false)
   for (let i = 0; i < 50; i += 1) log = appendWriteLog(log, edit(10 + i, `d${i}`))
   assert.equal(log.length, WRITE_LOG_LIMIT)
   assert.equal(log.at(-1).device, 'd49')

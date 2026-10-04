@@ -211,6 +211,9 @@ export function useCoffeeBeanManager() {
     meta.isDirty = true
     meta.lastLocalEditAt = Date.now()
     writePendingEditAt(selectedStore, meta.lastLocalEditAt)
+    // 這次修改是不是人按出來的。瀏覽器在使用者點按或打字後的幾秒內 isActive 是 true；
+    // 不是的話就是程式自己改的，記下來寫進紀錄，方便追「沒人動卻被當成有修改」的情況。
+    if (navigator.userActivation && !navigator.userActivation.isActive) meta.autoEdits = (meta.autoEdits || 0) + 1
     setInventorySyncStatus('syncing')
   }
 
@@ -424,7 +427,9 @@ export function useCoffeeBeanManager() {
       action,
       page: window.location.hash.startsWith('#/home') ? 'new' : 'club',
       cells: countFilledCells(inv),
+      ...(getInventorySyncMeta(storeId).autoEdits ? { auto: getInventorySyncMeta(storeId).autoEdits } : {}),
     })
+    getInventorySyncMeta(storeId).autoEdits = 0
     inventoryWriteLogRef.current[storeId] = log
     return { _writeLog: log }
   }

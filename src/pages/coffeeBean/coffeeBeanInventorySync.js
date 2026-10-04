@@ -220,7 +220,8 @@ export function appendWriteLog(log, entry) {
   const list = Array.isArray(log) ? log.filter((item) => item && typeof item === 'object') : []
   const last = list[list.length - 1]
   if (last && entry.action === 'edit' && last.action === 'edit' && last.device === entry.device && last.page === entry.page) {
-    return [...list.slice(0, -1), { ...last, at: entry.at, cells: entry.cells, times: (last.times || 1) + 1 }]
+    const auto = (last.auto || 0) + (entry.auto || 0)
+    return [...list.slice(0, -1), { ...last, at: entry.at, cells: entry.cells, times: (last.times || 1) + 1, ...(auto ? { auto } : {}) }]
   }
   return [...list, entry].slice(-WRITE_LOG_LIMIT)
 }

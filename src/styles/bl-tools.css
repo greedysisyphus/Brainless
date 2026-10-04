@@ -155,6 +155,7 @@
 .bl-admin .wlog span { font-size: 0.8125rem; color: var(--soft); overflow-wrap: anywhere; }
 .bl-admin .wlog i { font-style: normal; font-family: var(--didone); font-size: 1.25rem; font-variation-settings: 'opsz' 18; white-space: nowrap; }
 .bl-admin .wlog .bad { color: #8a2b1c; }
+.bl-admin .wlog em { font-style: normal; font-weight: 500; }
 .bl-admin .wlog .note { margin-top: 12px; font-size: 0.8125rem; color: var(--soft); }
 @media (max-width: 619px) {
   .bl-admin .wlog li { grid-template-columns: 5.5em minmax(0, 1fr) auto; }
@@ -224,3 +225,22 @@
 }
 
 
+
+/* ── 電子菜單（System.jsx 的 Menu） ── */
+.bl-menu .lede a { color: var(--ink); text-underline-offset: 4px; }
+.bl-menu .msg { margin-top: 12px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 0.9375rem; }
+.bl-menu .msg.bad { border-color: #8a2b1c; color: #8a2b1c; }
+.bl-menu .card + .card, .bl-menu .split + .card { margin-top: 16px; }
+.bl-menu .hd small { overflow-wrap: anywhere; }
+.bl-menu .slot img { display: block; width: 100%; max-height: 420px; border-radius: 6px; object-fit: contain; background: var(--oat); }
+.bl-menu .slot .none { display: grid; place-items: center; min-height: 180px; border: 1px dashed var(--soft); border-radius: 6px; font-size: 0.9375rem; color: var(--soft); }
+.bl-menu .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.bl-menu .btn { text-decoration: none; color: var(--ink); }
+.bl-menu .btn.pri { background: var(--ink); color: var(--paper); }
+.bl-menu .btn.pri:hover:not(:disabled) { background: var(--plum); border-color: var(--plum); }
+.bl-menu .pills button:disabled { cursor: default; }
+.bl-menu .pills button:disabled:not([aria-pressed='true']) { opacity: 0.45; }
+.bl-menu .hint { margin-top: 10px; font-size: 0.8125rem; color: var(--soft); }
+.bl-menu .layout .legacy { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.bl-menu .guest .hd .btn { margin-left: auto; }
+.bl-menu .guest iframe { display: block; width: 100%; height: min(70vh, 640px); border: 0; border-radius: 6px; background: #fff; box-shadow: 0 0 0 1px var(--line); }
