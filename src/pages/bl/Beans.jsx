@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Keypad } from '../../components/bl/Keypad'
-import { ToolPage, jumpTo } from '../../components/bl/shared'
+import { SavedTick, Skel, ToolPage, jumpTo } from '../../components/bl/shared'
 import BeanTypesSettingsModal from '../../components/BeanTypesSettingsModal'
 import { pressDecimalKey } from '../../components/cashier/cashMath'
 import ClubWeightCalculatorModal from '../coffeeBean/ClubWeightCalculatorModal'
@@ -254,6 +254,7 @@ export default function Beans() {
         <p className="prog">
           <b>{doneCount}</b>
           <span>／ {allBeans.length} 種已盤</span>
+          <SavedTick status={m.inventorySyncStatus} />
           <a href="#bl-beans-sum" onClick={jumpTo('bl-beans-sum')}>總計與匯出 ↓</a>
         </p>
         <div className="bar" aria-hidden="true">
@@ -271,6 +272,7 @@ export default function Beans() {
             <p className="done">
               <b>{doneCount}</b>
               <span>／ {allBeans.length} 種已盤</span>
+              <SavedTick status={m.inventorySyncStatus} />
             </p>
             <div className="bar" aria-hidden="true">
               <i style={{ width: `${allBeans.length ? (doneCount / allBeans.length) * 100 : 0}%` }} />
@@ -320,7 +322,7 @@ export default function Beans() {
 
           <div className={`ledger${m.inventoryLocked ? ' locked' : ''}`} inert={m.inventoryLocked ? '' : undefined}>
             {/* 各品項放哪些位置要等雲端設定回來才知道；先畫的話，位置會多出來又消失 */}
-            {!m.beanLocationsLoaded ? <p className="loading">讀取中…</p> : null}
+            {!m.beanLocationsLoaded ? <Skel lines={6} label="盤點表讀取中" /> : null}
             {(m.beanLocationsLoaded ? rows : []).map(({ sec, beans }) => (
               <section className="sec" id={`bl-beans-${sec.id}`} key={sec.id}>
                 <h2 data-flip={`h|${sec.id}`}>

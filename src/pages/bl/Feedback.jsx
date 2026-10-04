@@ -1,4 +1,4 @@
-import { ToolPage } from '../../components/bl/shared'
+import { Skel, ToolPage } from '../../components/bl/shared'
 import { FEEDBACK_CATEGORIES, FEEDBACK_STATUSES } from '../../services/feedbackService'
 import { CAN_ENTER_SEND, STORE_OPTIONS, bodyWithoutTitle, formatTime, submitOnEnter, useComposer, useFeedbackCenter, usePhotoField, useThread } from '../useFeedback'
 import '../../styles/bl-feedback.css'
@@ -197,7 +197,7 @@ function Thread({ feedback, comments, commentsLoading, identity, setIdentity, cl
         討論串 <small>{comments.length} 則留言</small>
       </h3>
       {commentsLoading ? (
-        <p className="quiet">留言讀取中…</p>
+        <Skel lines={3} label="留言讀取中" />
       ) : comments.length === 0 ? (
         <p className="quiet">還沒有人留言。補充使用情境，或告訴大家你也遇到了。</p>
       ) : (
@@ -281,14 +281,14 @@ export default function Feedback() {
               {m.loadError}
             </p>
           ) : null}
-          {m.loading ? (
+          {m.loading && !m.loadingSlow ? (
+            <Skel lines={6} label="回饋讀取中" />
+          ) : m.loading ? (
             <p className="quiet">
-              {m.loadingSlow ? '連線比較慢，還在試…' : '回饋讀取中…'}
-              {m.loadingSlow ? (
-                <button type="button" className="btn retry" onClick={m.retryLoad}>
-                  重試
-                </button>
-              ) : null}
+              連線比較慢，還在試…
+              <button type="button" className="btn retry" onClick={m.retryLoad}>
+                重試
+              </button>
             </p>
           ) : visibleItems.length === 0 ? (
             <div className="quiet">
@@ -296,7 +296,7 @@ export default function Feedback() {
               {feedbackItems.length === 0 ? '提出你希望改善的地方，其他人就能加入討論。' : '換個關鍵字或清除篩選條件再看看。'}
             </div>
           ) : (
-            <ul>
+            <ul className="bl-stagger">
               {visibleItems.map((item) => {
                 const body = bodyWithoutTitle(item)
                 return (

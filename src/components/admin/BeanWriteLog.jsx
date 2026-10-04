@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from '../../utils/firebase'
+import { Skel } from '../bl/shared'
 import { getDeviceStamp } from '../../pages/coffeeBean/coffeeBeanInventorySync'
 
 const STORES = [
@@ -50,13 +51,13 @@ export default function BeanWriteLog() {
         ))}
       </div>
       {log === undefined ? (
-        <p className="quiet">讀取中…</p>
+        <Skel lines={3} />
       ) : log === null ? (
         <p className="quiet">讀不到這家店的紀錄，請確認網路。</p>
       ) : log.length === 0 ? (
         <p className="quiet">還沒有紀錄。從 2026/10/4 這版開始記，之後有人盤點就會出現。</p>
       ) : (
-        <ol>
+        <ol className="bl-stagger">
           {[...log].reverse().map((e, i) => {
             const older = log[log.length - 2 - i]
             const drop = older && Number(e.cells) < Number(older.cells)

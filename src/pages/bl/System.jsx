@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { InBlShell } from '../../components/bl/chrome'
-import { ToolPage } from '../../components/bl/shared'
+import { Skel, ToolPage, useBlNavigate } from '../../components/bl/shared'
 import ErrorBoundary from '../../components/ErrorBoundary'
 import { useAdminGate, useAdminLogin, useCanEdit } from '../../components/admin/useAdmin'
 import { PAGE_META } from '../Playground'
@@ -21,7 +21,7 @@ function Legacy({ children }) {
     <InBlShell.Provider value={true}>
       <div className="legacy">
         <ErrorBoundary>
-          <Suspense fallback={<p className="bl-desc">讀取中…</p>}>{children}</Suspense>
+          <Suspense fallback={<Skel lines={5} />}>{children}</Suspense>
         </ErrorBoundary>
       </div>
     </InBlShell.Provider>
@@ -86,7 +86,7 @@ export function Admin() {
           <Legacy>
             <MarqueeSettings />
           </Legacy>
-          <Suspense fallback={<p className="quiet">讀取中…</p>}>
+          <Suspense fallback={<Skel lines={3} />}>
             <BeanWriteLog />
           </Suspense>
         </>
@@ -119,7 +119,7 @@ export function Menu() {
       ) : null}
 
       {m.isLoading ? (
-        <p className="quiet">載入菜單設定…</p>
+        <Skel lines={6} label="載入菜單設定" />
       ) : (
         <>
           <div className="split even">
@@ -196,7 +196,7 @@ const PLAY = [
 
 export function Playground() {
   const location = useLocation()
-  const navigate = useNavigate()
+  const navigate = useBlNavigate()
   // schedule-manager 要排在 schedule 前面比對（前者包含後者）
   const current = PLAY.find(([, hash]) => location.hash.includes(hash)) || (location.hash.includes('#craft-ui') ? PLAY[5] : null)
   if (current) {

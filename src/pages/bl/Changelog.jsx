@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { ToolPage } from '../../components/bl/shared'
 import { APP_CHANGELOG, useChangelog } from '../../contexts/ChangelogContext'
 import '../../styles/bl-tools.css'
@@ -29,6 +29,29 @@ export default function Changelog() {
   // 進來就算看過，首頁版號旁的「新」會消失
   useEffect(() => markChangelogSeen(), [markChangelogSeen])
 
+  // 捲到哪、軸上的點和那一版就亮到哪。不支援或關掉動態時一開始就全亮
+  const tlRef = useRef(null)
+  useEffect(() => {
+    const root = tlRef.current
+    const items = [...(root?.querySelectorAll('.ver, .month, .era') || [])]
+    if (typeof IntersectionObserver === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      items.forEach((el) => el.classList.add('in'))
+      return undefined
+    }
+    root.classList.add('reveal')
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+          entry.target.classList.add('in')
+          io.unobserve(entry.target)
+        }),
+      { rootMargin: '0px 0px -8% 0px' }
+    )
+    items.forEach((el) => io.observe(el))
+    return () => io.disconnect()
+  }, [])
+
   const toggle = (version) =>
     setOpen((prev) => {
       const next = new Set(prev)
@@ -50,7 +73,7 @@ export default function Changelog() {
         </p>
       }
     >
-      <div className="tl">
+      <div className="tl" ref={tlRef}>
         {APP_CHANGELOG.map((v) => {
           const d = parseDate(v.date)
           const newMonth = d.month !== lastMonth

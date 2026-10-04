@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { InBlShell } from '../../components/bl/chrome'
-import { ToolPage } from '../../components/bl/shared'
+import { Skel, ToolPage } from '../../components/bl/shared'
 import { FlightDialogs } from '../../components/playground/FlightDialogs'
 import { useFlightData } from '../../components/playground/useFlightData'
 import { busyIndexOn, formatBusyDiff } from '../../utils/flightData/busyIndex'
@@ -319,7 +319,7 @@ export default function Flights() {
 
           {activeTab === 'data' ? (
             !flightData ? (
-              <p className="blank">{loading ? '讀取中…' : m.status?.type === 'error' ? m.status.message : '這一天沒有航班資料，換個日期試試。'}</p>
+              loading ? <Skel lines={7} label="航班讀取中" /> : <p className="blank">{m.status?.type === 'error' ? m.status.message : '這一天沒有航班資料，換個日期試試。'}</p>
             ) : (
               <div className={`cards${store.nightSupport ? '' : ' no-late'}`}>
                 <section className="card c-curve">

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ToolPage } from '../../components/bl/shared'
+import { Skel, ToolPage } from '../../components/bl/shared'
 import ShiftFlightLoad, { useFlightDay } from '../../components/shifts/ShiftFlightLoad'
 import { PersonOptionGroups } from '../../components/shifts/shiftUi'
 import {
@@ -624,9 +624,7 @@ export default function Shifts() {
         ))}
       </div>
       {loading ? (
-        <div className="empty">
-          <p>班表讀取中…</p>
-        </div>
+        <Skel lines={7} label="班表讀取中" />
       ) : tab === 'today' ? (
         <TodayPanel book={book} dateKey={dateKey} setDateKey={setDateKey} pickupByPerson={pickupByPerson} onOpenTab={setTab} />
       ) : tab === 'grid' ? (

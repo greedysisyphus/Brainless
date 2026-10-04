@@ -244,3 +244,34 @@
 .bl-menu .layout .legacy { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
 .bl-menu .guest .hd .btn { margin-left: auto; }
 .bl-menu .guest iframe { display: block; width: 100%; height: min(70vh, 640px); border: 0; border-radius: 6px; background: #fff; box-shadow: 0 0 0 1px var(--line); }
+
+/* 更新紀錄：捲到才亮。.reveal 是 JS 確定能動才加的，沒加就全部直接顯示 */
+.bl-log .tl.reveal :is(.ver, .month, .era) { opacity: 0; translate: 0 16px; transition: opacity 0.7s var(--out), translate 0.7s var(--out); }
+.bl-log .tl.reveal :is(.ver, .month, .era).in { opacity: 1; translate: 0 0; }
+.bl-log .tl.reveal .ver::before { scale: 0; transition: scale 0.6s var(--out) 0.15s, background-color 0.3s; }
+.bl-log .tl.reveal .ver.in::before { scale: 1; }
+.bl-log .tl.reveal .ver.in.open::before { scale: 1.15; }
+.bl-log .tl.reveal .era::before { scale: 0; transition: scale 0.7s var(--out) 0.2s; }
+.bl-log .tl.reveal .era.in::before { scale: 1; }
+
+/* ── 手沖機、報表生成器的補充動態 ── */
+/* 對照條進場時從左邊長出來 */
+.bl-pour .cmp i { transform-origin: left center; animation: bl-growx 0.8s var(--out) backwards; }
+.bl-pour .cmp i:nth-child(2) { animation-delay: 0.05s; } .bl-pour .cmp i:nth-child(3) { animation-delay: 0.1s; } .bl-pour .cmp i:nth-child(4) { animation-delay: 0.15s; } .bl-pour .cmp i:nth-child(5) { animation-delay: 0.2s; } .bl-pour .cmp i:nth-child(6) { animation-delay: 0.25s; }
+@keyframes bl-growx { from { scale: 0 1; } }
+.bl-pour .row { transition: background-color 0.3s; }
+.bl-pour .row.cur { background: rgba(79, 45, 85, 0.05); }
+.bl-pour .todo li { animation: bl-fade 0.5s var(--out) backwards; }
+/* 月份按下去縮一下；選中的那顆彈一下 */
+.bl-reports .months button { transition: background-color 0.25s, color 0.25s, border-color 0.25s, scale 0.25s var(--out); }
+.bl-reports .months button:active { scale: 0.94; }
+.bl-reports .months button[aria-pressed='true'] { animation: bl-pop 0.4s var(--out); }
+@keyframes bl-pop { 40% { scale: 1.06; } }
+.bl-reports .months { animation: none; }
+.bl-reports .months button:nth-child(n) { animation-fill-mode: none; }
+.bl-reports .file.success, .bl-reports .file.error { animation: bl-fade 0.5s var(--out); }
+.bl-reports .go { position: relative; overflow: hidden; }
+.bl-reports .go:disabled:not(:empty) { cursor: default; }
+/* 膠囊選項按下去的回饋（全站 .bl-x） */
+.bl-x .pills button { transition: background-color 0.25s, color 0.25s, border-color 0.25s, scale 0.2s var(--out); }
+.bl-x .pills button:active:not(:disabled) { scale: 0.95; }

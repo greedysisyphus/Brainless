@@ -66,7 +66,7 @@ export function MatchPanel({ book, peopleGroups, onSelectDate }) {
         <p className="note">「下午有空」＝休假，或早班、中班。「隔天晚班或休假」＝那天晚上可以玩到凌晨，列出的是出去的那一晚。</p>
       </section>
 
-      <section className="block days" aria-live="polite">
+      <section className="block days bl-stagger" aria-live="polite">
         {wants.length ? (
           <>
             <h3>
@@ -162,7 +162,7 @@ export function StatsPanel({ book, peopleSettings, selectedPersonKey, onSelectPe
       </div>
 
       <div className="pair">
-        <section className="block">
+        <section className="block bl-stagger">
           <h3>
             班別分布
             <small>
@@ -191,7 +191,7 @@ export function StatsPanel({ book, peopleSettings, selectedPersonKey, onSelectPe
           {distribution.unknownSupport ? <p className="note">另有 {distribution.unknownSupport} 個支援班紙本沒寫班別，未計入。</p> : null}
         </section>
 
-        <section className="block">
+        <section className="block bl-stagger">
           <h3>
             各店出勤 <small>人次含跨店支援進來的班</small>
           </h3>
@@ -233,7 +233,7 @@ export function StatsPanel({ book, peopleSettings, selectedPersonKey, onSelectPe
         ) : m.partners.length === 0 ? (
           <p className="note first">這個範圍內沒有搭到班的紀錄。</p>
         ) : (
-          <div className="ptable">
+          <div className="ptable bl-stagger">
             <div className="hd" aria-hidden="true">
               <span>同事</span>
               <span />

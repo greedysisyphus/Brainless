@@ -139,6 +139,27 @@ body:has(.bl-tool) > [role='dialog'] {
 .bl-tool .legacy .studio-root > .bl-desc + * { margin-top: 14px; }
 .bl-tool > .page > main > .legacy { border-top: 1px solid var(--ink); margin-top: 12px; }
 
+/* ── 全站共用的動態（useToolMotion） ── */
+/* 頁籤底線：位置由 JS 量好放進變數，用滑的 */
+.bl-tool [data-ink] { position: relative; }
+.bl-tool [data-ink]::after { content: ''; position: absolute; left: 0; top: 0; width: var(--ink-w); height: 3px; translate: var(--ink-x) var(--ink-y); background: var(--plum); pointer-events: none; transition: translate 0.5s var(--out), width 0.5s var(--out); }
+.bl-tool [data-ink] > [aria-pressed='true'] { box-shadow: none !important; }
+
+/* 讀取中的佔位條 */
+.bl .bl-skel { display: grid; gap: 14px; padding: 22px 0; }
+.bl .bl-skel i { display: block; width: var(--w, 80%); height: 14px; border-radius: 7px; background: linear-gradient(90deg, rgba(42, 33, 28, 0.07) 25%, rgba(42, 33, 28, 0.14) 50%, rgba(42, 33, 28, 0.07) 75%) 0 0 / 200% 100%; animation: bl-shimmer 1.6s linear infinite; animation-delay: calc(var(--i) * 0.08s); }
+.bl .bl-skel i:first-child { height: 22px; width: 40%; }
+@keyframes bl-shimmer { to { background-position: -200% 0; } }
+
+/* 同步完成的小勾 */
+.bl .bl-saved { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8125rem; color: #4d6b2f; white-space: nowrap; animation: bl-saved 1.8s var(--out) both; }
+@keyframes bl-saved { 0% { opacity: 0; translate: 0 6px; } 12%, 75% { opacity: 1; translate: 0 0; } 100% { opacity: 0; } }
+
+/* 列表依序進場：前十個一個接一個，之後的一起出現 */
+.bl .bl-stagger > * { animation: bl-fade 0.6s var(--out) backwards; }
+.bl .bl-stagger > :nth-child(2) { animation-delay: 0.04s; } .bl .bl-stagger > :nth-child(3) { animation-delay: 0.08s; } .bl .bl-stagger > :nth-child(4) { animation-delay: 0.12s; } .bl .bl-stagger > :nth-child(5) { animation-delay: 0.16s; }
+.bl .bl-stagger > :nth-child(6) { animation-delay: 0.2s; } .bl .bl-stagger > :nth-child(7) { animation-delay: 0.24s; } .bl .bl-stagger > :nth-child(8) { animation-delay: 0.28s; } .bl .bl-stagger > :nth-child(9) { animation-delay: 0.32s; } .bl .bl-stagger > :nth-child(n + 10) { animation-delay: 0.36s; }
+
 @media (min-width: 620px) {
   .bl-tool .crumb { display: block; }
   .bl-tool .all span { display: inline; }

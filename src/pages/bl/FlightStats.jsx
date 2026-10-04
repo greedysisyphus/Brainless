@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Skel } from '../../components/bl/shared'
 import { formatMinAsHHMM } from '../../utils/flightData/flightTime'
 
 // 新版航班的「統計分析」。資料全部來自 useFlightData（多日班機、排行、歷史對比），這裡只畫圖：
@@ -103,7 +104,7 @@ export default function FlightStats({ m }) {
       ) : null}
 
       {!stat ? (
-        <p className="blank">{loadingMultiDay ? '正在讀這段期間的班機…' : '這段期間沒有資料。'}</p>
+        loadingMultiDay ? <Skel lines={7} label="正在讀這段期間的班機" /> : <p className="blank">這段期間沒有資料。</p>
       ) : (
         <div className="cards">
           <section className="card c-facts">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { Arrow, BlLink, catHead, clockOf, useBlFonts, useNow } from '../components/bl/shared'
 import { getNavSections, itemsForSection } from '../config/navigation.jsx'
 import { APP_CHANGELOG, useChangelog } from '../contexts/ChangelogContext'
@@ -144,7 +144,7 @@ function Roster({ book, dateKey, loading }) {
       <p className="note">
         {loading ? '班表讀取中…' : (
           <>
-            今天沒有班表資料。<Link to="/home/shifts">到班表匯入</Link>
+            今天沒有班表資料。<BlLink to="/home/shifts">到班表匯入</BlLink>
           </>
         )}
       </p>
@@ -316,12 +316,12 @@ export default function Home() {
               </div>
               <Reveal show={Boolean(nextFlight)} className="r-next">
                 {nextFlight ? (
-                  <Link className="next" to="/home/flight-data">
+                  <BlLink className="next" to="/home/flight-data">
                     <span className="label">下一班</span>
                     <span>
                       <b>{nextFlight.time}</b>　{nextFlight.city}　{nextFlight.flight_code} · {nextFlight.gate}
                     </span>
-                  </Link>
+                  </BlLink>
                 ) : null}
               </Reveal>
               <Reveal show={!loading} className="r-roster">
@@ -356,16 +356,16 @@ export default function Home() {
               ))}
             </nav>
             <p className="colophon">
-              <Link className="ver" to="/home/changelog" aria-label={`更新紀錄，目前 ${latest.version} ${latest.title}${hasUnseenUpdate ? '，有新的更新' : ''}`}>
+              <BlLink className="ver" to="/home/changelog" aria-label={`更新紀錄，目前 ${latest.version} ${latest.title}${hasUnseenUpdate ? '，有新的更新' : ''}`}>
                 <span>版本</span>
                 <b>{latest.version}</b>
                 <span>{latest.title}</span>
                 {hasUnseenUpdate ? <em>新</em> : null}
                 <i aria-hidden="true">→</i>
-              </Link>
-              <Link className="link" to="/home/feedback">
+              </BlLink>
+              <BlLink className="link" to="/home/feedback">
                 回饋與許願
-              </Link>
+              </BlLink>
             </p>
           </div>
         </main>
