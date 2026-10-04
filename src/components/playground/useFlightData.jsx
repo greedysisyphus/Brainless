@@ -9,7 +9,7 @@ import { studioSurfaces } from '../studio/studioSurfaceClasses'
 import { loadEcharts } from '../../utils/flightData/echartsLoader'
 import { CW_ECHARTS_THEME_NAME, registerStudioEchartsTheme } from '../../utils/flightData/studioEchartsTheme'
 import { parseHHMMToMinutes } from '../../utils/flightData/flightTime'
-import { flightRowKey, gateToFamily, isGateInStore } from '../../utils/flightData/gates'
+import { flightRowKey, gateToFamily, isDayCompleteForStore, isGateInStore } from '../../utils/flightData/gates'
 import { cacheFlightStoreKeyLocal, getFlightStore, loadStoredFlightStoreKey } from '../../utils/flightData/stores'
 import { loadFlightDataRecord, loadPaxDaily } from '../../utils/flightData/loadFlightDay'
 import { mergeGateStressWeights, loadStoredGateStressWeights, cacheGateStressWeightsLocal } from '../../utils/flightData/gateStressWeights'
@@ -192,10 +192,14 @@ export function useFlightData() {
     },
     [store]
   )
-  const multiDayData = useMemo(() => rawMultiDayData.map(toStoreDay), [rawMultiDayData, toStoreDay])
-  const lastWeekData = useMemo(() => rawLastWeekData.map(toStoreDay), [rawLastWeekData, toStoreDay])
-  const lastMonthData = useMemo(() => rawLastMonthData.map(toStoreDay), [rawLastMonthData, toStoreDay])
-  const lastYearData = useMemo(() => rawLastYearData.map(toStoreDay), [rawLastYearData, toStoreDay])
+  // 這家店沒有資料的日子（見 isDayCompleteForStore）不進統計
+  const toStoreDays = useCallback((rawDays) => rawDays.filter((day) => isDayCompleteForStore(day.flights, store)).map(toStoreDay), [store, toStoreDay])
+  const multiDayData = useMemo(() => toStoreDays(rawMultiDayData), [rawMultiDayData, toStoreDays])
+  const lastWeekData = useMemo(() => toStoreDays(rawLastWeekData), [rawLastWeekData, toStoreDays])
+  const lastMonthData = useMemo(() => toStoreDays(rawLastMonthData), [rawLastMonthData, toStoreDays])
+  const lastYearData = useMemo(() => toStoreDays(rawLastYearData), [rawLastYearData, toStoreDays])
+  /** 選的範圍裡，因為這家店沒有資料而排除的天數 */
+  const skippedStatDays = rawMultiDayData.length - multiDayData.length
 
   useEffect(() => {
     const ref = doc(db, 'settings', store.stressDocId)
@@ -3112,6 +3116,7 @@ export function useFlightData() {
   }
 
   return {
+    skippedStatDays,
     isStudio,
     isClub,
     echartsTheme,

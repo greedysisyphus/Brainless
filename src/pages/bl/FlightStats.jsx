@@ -96,6 +96,11 @@ export default function FlightStats({ m }) {
         ) : null}
         {loadingMultiDay ? <span className="busy">讀取中…</span> : null}
       </div>
+      {m.skippedStatDays > 0 && !loadingMultiDay ? (
+        <p className="skip">
+          這段期間有 {m.skippedStatDays} 天沒有{m.store?.label || '這家店'}範圍的資料（2026/9/9 以前只記錄 D11–D18），已排除不算。
+        </p>
+      ) : null}
 
       {!stat ? (
         <p className="blank">{loadingMultiDay ? '正在讀這段期間的班機…' : '這段期間沒有資料。'}</p>

@@ -194,6 +194,17 @@ for (const store of [d13, d7]) {
   assert.equal(busyIndexOn(null, '2026-09-24'), null)
 }
 
+// 舊檔只有 D11–D18：對 D7 店是「沒資料」，對 D13 店是完整的
+{
+  const { isDayCompleteForStore } = await import('../src/utils/flightData/gates.js')
+  const legacy = [{ gate: 'D12' }, { gate: 'D15R' }]
+  const full = [{ gate: 'D12' }, { gate: 'D7' }]
+  assert.equal(isDayCompleteForStore(legacy, d13), true)
+  assert.equal(isDayCompleteForStore(legacy, d7), false)
+  assert.equal(isDayCompleteForStore(full, d7), true)
+  assert.equal(isDayCompleteForStore([], d13), true)
+}
+
 // 沒有航班時不能爆掉
 assert.equal(summarizeStressSeries([]), null)
 assert.equal(summarizeStressSeries(stressSlotSeriesDay([], DATE, d13.stressWeights, d13, resolveStoreShifts(d13, null, DATE).shifts, 'full')).maxScore, 0)

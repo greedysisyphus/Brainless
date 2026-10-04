@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
+import { createEvents } from 'ics'
+import { DEFAULT_ICS_OPTIONS, buildEventTitle, buildPersonIcsEvents, buildPersonMonthGrid, getPersonMonthEntries, icsFilename, summarizePersonMonth } from '../../pages/shifts/shiftCalendar'
 import { openImageExportWindow, saveCanvasAsPng } from '../../utils/exportImage'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { dateRange, groupPeopleByStore, lastDateOfMonth, personInStore, personLabel, toDateKey } from '../../pages/shifts/shiftModel'
@@ -620,4 +622,64 @@ export function useShiftImport({ existingMonths, onSave }) {
     handlePaste,
     handleSave,
   }
+}
+
+/** 單一同事月曆的邏輯：月曆格、當月統計、匯出 .ics 的選項與下載。 */
+export function usePersonCalendar({ book, person, monthKey }) {
+  const [status, setStatus] = useState(null)
+  const [icsOptions, setIcsOptions] = useState(DEFAULT_ICS_OPTIONS)
+  const setOption = (key) => (event) =>
+    setIcsOptions((prev) => ({ ...prev, [key]: event.target.checked }))
+
+  const grid = useMemo(
+    () => buildPersonMonthGrid(book, person?.key, monthKey),
+    [book, person, monthKey]
+  )
+  const summary = useMemo(
+    () => summarizePersonMonth(book, person?.key, monthKey),
+    [book, person, monthKey]
+  )
+
+  /** 拿這個月第一筆實際的班當標題預覽，勾選項一改就看得到結果 */
+  const titlePreview = useMemo(() => {
+    if (!person) return ''
+    const byDate = getPersonMonthEntries(book, person.key, monthKey)
+    for (const date of [...byDate.keys()].sort()) {
+      const record = byDate.get(date).find((r) => r.kind === 'WORK')
+      if (record) return buildEventTitle(record, icsOptions)
+    }
+    return buildEventTitle({ shiftLabel: '早班', workStore: 'central', positionLabel: '主吧' }, icsOptions)
+  }, [book, person, monthKey, icsOptions])
+
+  const download = useCallback(
+    (monthKeys) => {
+      const events = buildPersonIcsEvents(book, person.key, { monthKeys, ...icsOptions })
+      if (!events.length) {
+        setStatus({ variant: 'warning', message: '這個範圍沒有可匯出的班。' })
+        return
+      }
+      createEvents(events, (error, value) => {
+        if (error) {
+          setStatus({ variant: 'error', message: `產生行事曆檔失敗：${error.message || error}` })
+          return
+        }
+        const blob = new Blob([value], { type: 'text/calendar;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = icsFilename(person.name, monthKeys)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        setStatus({
+          variant: 'success',
+          message: `已匯出 ${events.length} 筆行程。在手機上打開這個檔案就能加進行事曆。`,
+        })
+      })
+    },
+    [book, person, icsOptions]
+  )
+
+  return { status, icsOptions, setOption, grid, summary, titlePreview, download }
 }

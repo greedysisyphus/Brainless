@@ -1,5 +1,5 @@
 import { PersonOptionGroups } from '../../components/shifts/shiftUi'
-import { useShiftMatch, useShiftStats } from '../../components/shifts/useShiftPanels'
+import { usePersonCalendar, useShiftMatch, useShiftStats } from '../../components/shifts/useShiftPanels'
 import { WEEKDAY_LABELS, getStoreName, getStoreShortName } from '../shifts/shiftConstants'
 import { parseDateKey } from '../shifts/shiftModel'
 import { MATCH_CONDITIONS, describeDayStatus } from '../shifts/shiftMatch'
@@ -409,5 +409,139 @@ export function StatsPanel({ book, peopleSettings, selectedPersonKey, onSelectPe
         </p>
       </section>
     </div>
+  )
+}
+
+/* ───────── 單一同事的月曆（完整班表裡選了人之後） ───────── */
+
+function CalDay({ day, onSelectDate }) {
+  const work = day.records.filter((r) => r.kind === 'WORK')
+  const leave = day.records.filter((r) => r.kind === 'LEAVE')
+  const label = [
+    `${day.day} 日`,
+    day.holiday,
+    ...work.map((r) => [r.shiftLabel, r.start && r.end ? `${r.start}–${r.end}` : null, getStoreName(r.workStore), r.positionLabel].filter(Boolean).join(' ')),
+    ...leave.map((r) => r.leaveLabel),
+  ]
+    .filter(Boolean)
+    .join('，')
+  return (
+    <button type="button" className={`d${day.inMonth ? '' : ' out'}${day.isToday ? ' now' : ''}${day.isWeekend ? ' we' : ''}`} aria-label={label} onClick={() => onSelectDate?.(day.dateKey)}>
+      <span className="n">
+        <b className="num">{day.day}</b>
+        {day.holiday ? <small>{day.holiday}</small> : null}
+      </span>
+      {work.map((r, i) => {
+        const display = getShiftDisplay(r.displayMonth, r.shift)
+        return (
+          <span key={`w${i}`} className={`w${r.isSupport ? ' sup' : ''}`} style={{ background: tintOf(r.shift) }}>
+            <b>
+              <i className="long">{r.shiftUnknown ? r.shiftLabel : (display?.label ?? r.shift)}</i>
+              <i className="short">{r.shiftUnknown ? '支' : (display?.short ?? '班')}</i>
+              {r.shiftInferred ? '?' : ''}
+              {r.destinationMissing ? ' ⚠' : ''}
+            </b>
+            <small>
+              {r.start ? `${r.start} ` : ''}
+              <em>
+                {getStoreShortName(r.workStore)}
+                {r.positionLabel ? `・${r.positionLabel}` : ''}
+              </em>
+            </small>
+          </span>
+        )
+      })}
+      {leave.map((r, i) => (
+        <span key={`l${i}`} className="l" title={r.leave === 'SCHEDULING' ? '店長排班日，不上班' : r.leaveLabel}>
+          <i className="long">{r.leaveLabel}</i>
+          <i className="short">{r.leaveMarker || '休'}</i>
+        </span>
+      ))}
+    </button>
+  )
+}
+
+export function PersonCalendar({ book, person, monthKey, onSelectDate }) {
+  const m = usePersonCalendar({ book, person, monthKey })
+  const { grid, summary, icsOptions } = m
+  if (!person) return null
+  const hasAnything = grid.weeks.some((week) => week.some((day) => day.records.length))
+  return (
+    <section className="block cal">
+      <h3>
+        {person.name}
+        <small>
+          {hasAnything ? (
+            <>
+              上班 <b>{summary.workDays}</b> 天・休假 <b>{summary.leaveDays}</b> 天
+              {summary.supportDays ? (
+                <>
+                  ・支援 <b>{summary.supportDays}</b> 天
+                </>
+              ) : null}
+              {Object.keys(summary.byStore).length > 1 ? '・跨店' : ''}
+            </>
+          ) : (
+            '這個月沒有他的班表資料'
+          )}
+        </small>
+      </h3>
+
+      {summary.destinationMissingDays || summary.unknownShiftDays ? (
+        <p className="alert soft">
+          {summary.destinationMissingDays ? `有 ${summary.destinationMissingDays} 天去別店支援，但那家店這個月的班表還沒匯入，時間只能用預設的（⚠）。` : ''}
+          {summary.unknownShiftDays ? `有 ${summary.unknownShiftDays} 天紙本只寫「T3／D7」沒寫班別，到「支援班」分頁指定之後才有正確時段。` : ''}
+        </p>
+      ) : null}
+
+      {!hasAnything ? (
+        <p className="note first">這個月沒有匯入到 {person.name} 的班表。換個月份，或到「匯入」分頁補上該店的匯出檔。</p>
+      ) : (
+        <div className="grid7">
+          {WEEKDAY_LABELS.map((w, i) => (
+            <span key={w} className={`wd${i === 0 || i === 6 ? ' we' : ''}`}>
+              {w}
+            </span>
+          ))}
+          {grid.weeks.flat().map((day) => (
+            <CalDay key={day.dateKey} day={day} onSelectDate={onSelectDate} />
+          ))}
+        </div>
+      )}
+
+      <div className="ics">
+        <p className="lab">匯出到手機行事曆</p>
+        <div className="opts">
+          {[
+            ['includeStore', '店名（同時作為地點）'],
+            ['includePosition', '崗位'],
+            ['includeLeave', '休假（全天事件）'],
+          ].map(([key, text]) => (
+            <label key={key}>
+              <input type="checkbox" checked={icsOptions[key]} onChange={m.setOption(key)} />
+              {text}
+            </label>
+          ))}
+        </div>
+        <p className="pv">
+          行事曆上會長這樣：<b>{m.titlePreview}</b>
+          {icsOptions.includeLeave ? '　休假那幾天會有全天行程。' : '　休假那幾天留白。'}
+        </p>
+        <div className="acts">
+          <button type="button" className="btn" onClick={() => m.download([monthKey])}>
+            匯出這個月
+          </button>
+          <button type="button" className="btn pri" onClick={() => m.download(book.monthKeys)}>
+            匯出全部月份
+          </button>
+        </div>
+        {m.status ? (
+          <p className={`alert ${m.status.variant === 'success' ? 'good' : m.status.variant === 'warning' ? 'soft' : ''}`} role="status">
+            {m.status.message}
+          </p>
+        ) : null}
+        <p className="note">匯出的是 .ics 檔：iPhone 直接點開就會問要加到哪個行事曆；Google 日曆用「設定 → 匯入與匯出 → 匯入」上傳。</p>
+      </div>
+    </section>
   )
 }

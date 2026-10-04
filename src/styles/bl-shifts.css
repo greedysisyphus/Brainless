@@ -207,6 +207,46 @@
 .bl-shifts .people td.mix i { height: 100%; }
 .bl-shifts .people tbody tr.sel > * { background: #e4e2b9; }
 
+/* ── 單一同事的月曆 ── */
+.bl-shifts .cal .grid7 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-left: 1px solid var(--line); }
+.bl-shifts .cal .wd { padding: 8px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center; font-size: 0.8125rem; color: var(--soft); }
+.bl-shifts .cal .wd.we { color: var(--plum); }
+.bl-shifts .cal .d { display: flex; flex-direction: column; gap: 4px; min-height: 104px; padding: 6px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: none; text-align: left; transition: background-color 0.25s; }
+.bl-shifts .cal .d:hover { background: rgba(42, 33, 28, 0.04); }
+.bl-shifts .cal .d.out { background: rgba(42, 33, 28, 0.035); }
+.bl-shifts .cal .d.out > * { opacity: 0.45; }
+.bl-shifts .cal .d .n { display: flex; align-items: baseline; justify-content: space-between; gap: 4px; }
+.bl-shifts .cal .d .n b { font-weight: 400; font-size: 1.25rem; line-height: 1; }
+.bl-shifts .cal .d.we .n b { color: var(--plum); }
+.bl-shifts .cal .d.now .n b { display: inline-grid; place-items: center; min-width: 30px; height: 30px; margin: -5px 0 -5px -5px; border-radius: 50%; background: var(--ink); color: var(--paper); font-size: 1.0625rem; }
+.bl-shifts .cal .d .n small { font-size: 0.6875rem; color: var(--plum); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bl-shifts .cal .w { display: block; padding: 4px 7px; border-radius: 4px; overflow: hidden; }
+.bl-shifts .cal .w.sup { box-shadow: inset 0 0 0 1px var(--plum); }
+.bl-shifts .cal .w b { display: block; font-family: var(--serif); font-weight: 600; font-size: 0.9375rem; line-height: 1.3; white-space: nowrap; }
+.bl-shifts .cal .w small { display: block; font-size: 0.75rem; line-height: 1.35; color: #4a3e36; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bl-shifts .cal :is(.w, .l) i, .bl-shifts .cal .w em { font-style: normal; }
+.bl-shifts .cal .l { font-size: 0.8125rem; color: rgba(42, 33, 28, 0.45); }
+.bl-shifts .cal .short { display: none; }
+.bl-shifts .cal .ics { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
+.bl-shifts .cal .opts { display: flex; flex-wrap: wrap; gap: 0 22px; }
+.bl-shifts .cal .opts label { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 0.9375rem; }
+.bl-shifts .cal .opts input { width: 20px; height: 20px; accent-color: var(--plum); }
+.bl-shifts .cal .pv { margin: 4px 0 0; font-size: 0.8125rem; color: var(--soft); }
+.bl-shifts .cal .pv b { margin: 0 4px; padding: 2px 8px; border-radius: 4px; background: var(--paper); font-weight: 500; color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.bl-shifts .cal .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+@media (max-width: 719px) {
+  .bl-shifts .cal .d { min-height: 68px; padding: 4px 2px; align-items: center; gap: 3px; }
+  .bl-shifts .cal .d .n { flex-direction: column; align-items: center; gap: 0; }
+  .bl-shifts .cal .d .n b { font-size: 1.0625rem; }
+  .bl-shifts .cal .d.now .n b { margin: -3px 0; min-width: 26px; height: 26px; font-size: 0.9375rem; }
+  .bl-shifts .cal .d .n small { max-width: 100%; font-size: 0.5625rem; }
+  .bl-shifts .cal .long, .bl-shifts .cal .w em { display: none; }
+  .bl-shifts .cal .short { display: inline; }
+  .bl-shifts .cal .w { padding: 2px 0; width: 100%; text-align: center; }
+  .bl-shifts .cal .w small { font-size: 0.625rem; text-overflow: clip; }
+  .bl-shifts .cal .l { font-size: 0.75rem; }
+}
+
 /* ── 支援班、同事與上車、匯入 共用 ── */
 .bl-shifts :where(input, select, textarea) { font: inherit; color: inherit; }
 .bl-shifts .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 18px; border: 1px solid var(--ink); border-radius: 999px; background: none; font-size: 0.9375rem; white-space: nowrap; transition: background-color 0.25s, color 0.25s, opacity 0.25s; }

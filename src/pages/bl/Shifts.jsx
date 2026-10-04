@@ -31,12 +31,11 @@ import { savePersonSettings, saveShiftMonth, saveSupportLinks } from '../shifts/
 import { listUnresolvedSupport } from '../shifts/shiftSupport'
 import { parseHHMMToMinutes } from '../../utils/flightData/flightTime'
 import { useShiftBook } from '../shifts/useShiftBook'
-import { MatchPanel, StatsPanel, tintOf } from './ShiftsMore'
+import { MatchPanel, PersonCalendar, StatsPanel, tintOf } from './ShiftsMore'
 import { ImportPanel, PeoplePanel, PickupPanel, SupportPanel } from './ShiftsAdmin'
 import '../../styles/bl-shifts.css'
 
 // 七個分頁都是新版畫面；資料、算法與寫入跟 Club 版共用（pages/shifts、components/shifts/useShiftPanels）。
-const PersonMonthCalendar = lazy(() => import('../../components/shifts/PersonMonthCalendar'))
 
 const TABS = [
   ['today', '今天'],
@@ -408,11 +407,7 @@ function GridPanel({ book, onOpenTab, onPickDate }) {
 
       {person ? (
         // 單一同事：月曆視圖（跨店顯示他實際上班的地方，可匯出到手機行事曆）
-        <div className="legacy">
-          <Suspense fallback={<p className="detail">讀取中…</p>}>
-            <PersonMonthCalendar book={book} person={person} monthKey={activeMonthKey} onSelectDate={onPickDate} />
-          </Suspense>
-        </div>
+        <PersonCalendar book={book} person={person} monthKey={activeMonthKey} onSelectDate={onPickDate} />
       ) : !month ? (
         <div className="empty">
           <p>這個月份還沒有這家店的班表。</p>
