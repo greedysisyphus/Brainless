@@ -18,6 +18,7 @@
 .bl-feedback .round:hover { border-color: var(--ink); }
 .bl-feedback .err { margin-top: 10px; padding: 10px 0; border-top: 1px solid var(--bad); border-bottom: 1px solid var(--bad); color: var(--bad); font-size: 0.9375rem; }
 .bl-feedback .quiet { padding: 28px 0; font-size: 0.9375rem; color: var(--soft); }
+.bl-feedback .quiet .retry { margin-left: 14px; min-height: 40px; }
 .bl-feedback .quiet b, .bl-feedback .pick b { display: block; margin-bottom: 6px; font-family: var(--serif); font-weight: 600; font-size: 1.25rem; color: var(--ink); }
 
 /* 處理狀態：小字加一個色點 */

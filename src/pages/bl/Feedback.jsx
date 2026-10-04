@@ -282,7 +282,14 @@ export default function Feedback() {
             </p>
           ) : null}
           {m.loading ? (
-            <p className="quiet">回饋讀取中…</p>
+            <p className="quiet">
+              {m.loadingSlow ? '連線比較慢，還在試…' : '回饋讀取中…'}
+              {m.loadingSlow ? (
+                <button type="button" className="btn retry" onClick={m.retryLoad}>
+                  重試
+                </button>
+              ) : null}
+            </p>
           ) : visibleItems.length === 0 ? (
             <div className="quiet">
               <b>{feedbackItems.length === 0 ? '第一則回饋，就從你開始' : '找不到符合的回饋'}</b>

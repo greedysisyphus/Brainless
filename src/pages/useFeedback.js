@@ -259,6 +259,7 @@ export function useFeedbackCenter() {
   const [clientId] = useState(getClientId)
   const [voteBusy, setVoteBusy] = useState(new Set())
   const [isAdmin, setIsAdmin] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => subscribeToFeedback(
     (items) => {
@@ -271,7 +272,21 @@ export function useFeedbackCenter() {
       setLoadError('目前無法載入回饋，請確認網路後重新整理。')
       setLoading(false)
     }
-  ), [])
+  ), [retryKey])
+
+  // 連不上資料庫時不會報錯，只會一直等。等太久就讓畫面說一聲，並給重試
+  const [loadingSlow, setLoadingSlow] = useState(false)
+  useEffect(() => {
+    setLoadingSlow(false)
+    if (!loading) return undefined
+    const timer = setTimeout(() => setLoadingSlow(true), 6000)
+    return () => clearTimeout(timer)
+  }, [loading, retryKey])
+  const retryLoad = () => {
+    setLoading(true)
+    setLoadError('')
+    setRetryKey((n) => n + 1)
+  }
 
   useEffect(() => {
     if (!selectedId) {
@@ -323,5 +338,5 @@ export function useFeedbackCenter() {
     }
   }
 
-  return { feedbackItems, loading, loadError, selectedId, setSelectedId, comments, commentsLoading, category, setCategory, sort, setSort, search, setSearch, composerOpen, setComposerOpen, identity, setIdentity, clientId, voteBusy, isAdmin, selected, visibleItems, handleVote }
+  return { feedbackItems, loading, loadError, selectedId, setSelectedId, comments, commentsLoading, category, setCategory, sort, setSort, search, setSearch, composerOpen, setComposerOpen, identity, setIdentity, clientId, voteBusy, isAdmin, selected, visibleItems, handleVote, loadingSlow, retryLoad }
 }
