@@ -144,3 +144,20 @@
 .bl-play .index svg { grid-column: 3; grid-row: 1 / span 2; align-self: center; color: var(--soft); transition: translate 0.4s var(--out), color 0.3s; }
 .bl-play .index button:hover { padding-left: 8px; color: var(--plum); }
 .bl-play .index button:hover svg { translate: 6px 0; color: var(--plum); }
+
+/* 點豆寫入紀錄（管理設定） */
+.bl-admin .wlog { margin-top: 28px; }
+.bl-admin .wlog .tabs { margin-top: 0; }
+.bl-admin .wlog ol { list-style: none; margin: 0; padding: 0; max-height: 28rem; overflow-y: auto; }
+.bl-admin .wlog li { display: grid; grid-template-columns: 6em 9em minmax(0, 1fr) auto; align-items: baseline; gap: 2px 14px; min-height: 48px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 0.9375rem; }
+.bl-admin .wlog time { color: var(--soft); font-variant-numeric: tabular-nums; }
+.bl-admin .wlog b { font-weight: 500; }
+.bl-admin .wlog span { font-size: 0.8125rem; color: var(--soft); overflow-wrap: anywhere; }
+.bl-admin .wlog i { font-style: normal; font-family: var(--didone); font-size: 1.25rem; font-variation-settings: 'opsz' 18; white-space: nowrap; }
+.bl-admin .wlog .bad { color: #8a2b1c; }
+.bl-admin .wlog .note { margin-top: 12px; font-size: 0.8125rem; color: var(--soft); }
+@media (max-width: 619px) {
+  .bl-admin .wlog li { grid-template-columns: 5.5em minmax(0, 1fr) auto; }
+  .bl-admin .wlog span { grid-column: 2 / -1; }
+  .bl-admin .wlog i { grid-column: 3; grid-row: 1; }
+}

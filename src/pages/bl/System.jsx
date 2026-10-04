@@ -10,6 +10,7 @@ import '../../styles/bl-tools.css'
 // 管理設定、電子菜單、Playground 的新版外框。登入、權限與目錄是新版畫面；
 // 裡面的設定表單與實驗內容還是舊版元件（.legacy 套新版色票），功能與寫入都是同一份。
 const MarqueeSettings = lazy(() => import('../../components/admin/NowPlayingMarqueeSettings'))
+const BeanWriteLog = lazy(() => import('../../components/admin/BeanWriteLog'))
 const PublicMenuSettings = lazy(() => import('../../components/admin/PublicMenuSettings'))
 const OldPlayground = lazy(() => import('../Playground'))
 
@@ -83,6 +84,9 @@ export function Admin() {
           <Legacy>
             <MarqueeSettings />
           </Legacy>
+          <Suspense fallback={<p className="quiet">讀取中…</p>}>
+            <BeanWriteLog />
+          </Suspense>
         </>
       )}
     </ToolPage>
