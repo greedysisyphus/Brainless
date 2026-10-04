@@ -156,9 +156,56 @@ body:has(.bl-tool) > [role='dialog'] {
 @keyframes bl-saved { 0% { opacity: 0; translate: 0 6px; } 12%, 75% { opacity: 1; translate: 0 0; } 100% { opacity: 0; } }
 
 /* 列表依序進場：前十個一個接一個，之後的一起出現 */
-.bl .bl-stagger > * { animation: bl-fade 0.6s var(--out) backwards; }
-.bl .bl-stagger > :nth-child(2) { animation-delay: 0.04s; } .bl .bl-stagger > :nth-child(3) { animation-delay: 0.08s; } .bl .bl-stagger > :nth-child(4) { animation-delay: 0.12s; } .bl .bl-stagger > :nth-child(5) { animation-delay: 0.16s; }
-.bl .bl-stagger > :nth-child(6) { animation-delay: 0.2s; } .bl .bl-stagger > :nth-child(7) { animation-delay: 0.24s; } .bl .bl-stagger > :nth-child(8) { animation-delay: 0.28s; } .bl .bl-stagger > :nth-child(9) { animation-delay: 0.32s; } .bl .bl-stagger > :nth-child(n + 10) { animation-delay: 0.36s; }
+.bl .bl-stagger > * { animation: bl-rise 0.75s var(--out) backwards; }
+.bl .bl-stagger > :nth-child(2) { animation-delay: 0.07s; } .bl .bl-stagger > :nth-child(3) { animation-delay: 0.14s; } .bl .bl-stagger > :nth-child(4) { animation-delay: 0.21s; } .bl .bl-stagger > :nth-child(5) { animation-delay: 0.28s; }
+.bl .bl-stagger > :nth-child(6) { animation-delay: 0.35s; } .bl .bl-stagger > :nth-child(7) { animation-delay: 0.42s; } .bl .bl-stagger > :nth-child(8) { animation-delay: 0.49s; } .bl .bl-stagger > :nth-child(9) { animation-delay: 0.56s; } .bl .bl-stagger > :nth-child(n + 10) { animation-delay: 0.63s; }
+@keyframes bl-rise { from { opacity: 0; translate: 0 26px; } }
+
+/* ── 表單元件：下拉、勾選、日期。新版頁面和沿用的彈窗（含掛在 body 的）用同一套 ── */
+:is(.bl, body:has(.bl-tool) > [role='dialog']) select:not([multiple]) {
+  -webkit-appearance: none; appearance: none; padding-right: 32px !important; text-overflow: ellipsis; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a211c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important; background-position: right 9px center !important; background-size: 15px 15px !important;
+}
+:is(.bl, body:has(.bl-tool) > [role='dialog']) input:is([type='checkbox'], [type='radio']) {
+  -webkit-appearance: none; appearance: none; flex: none; display: inline-grid; place-content: center; width: 22px !important; height: 22px !important; margin: 0;
+  border: 1.5px solid rgba(42, 33, 28, 0.55) !important; border-radius: 6px !important; background: #f6f1e7 !important; box-shadow: none !important; cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, scale 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+:is(.bl, body:has(.bl-tool) > [role='dialog']) input[type='radio'] { border-radius: 50% !important; }
+:is(.bl, body:has(.bl-tool) > [role='dialog']) input:is([type='checkbox'], [type='radio'])::after { content: ''; width: 12px; height: 12px; scale: 0; transition: scale 0.25s cubic-bezier(0.16, 1, 0.3, 1); background: #f6f1e7; clip-path: polygon(14% 52%, 0 66%, 38% 100%, 100% 22%, 86% 10%, 37% 70%); }
+:is(.bl, body:has(.bl-tool) > [role='dialog']) input[type='radio']::after { width: 10px; height: 10px; border-radius: 50%; clip-path: none; }
+:is(.bl, body:has(.bl-tool) > [role='dialog']) input:is([type='checkbox'], [type='radio']):checked { background: #4f2d55 !important; border-color: #4f2d55 !important; }
+:is(.bl, body:has(.bl-tool) > [role='dialog']) input:is([type='checkbox'], [type='radio']):checked::after { scale: 1; }
+:is(.bl, body:has(.bl-tool) > [role='dialog']) input:is([type='checkbox'], [type='radio']):active { scale: 0.9; }
+:is(.bl, body:has(.bl-tool) > [role='dialog']) input:is([type='checkbox'], [type='radio']):disabled { opacity: 0.45; cursor: default; }
+.bl input[type='date'] { font-variant-numeric: tabular-nums; }
+.bl input[type='date']::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: pointer; }
+.bl input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; width: 16px; height: 16px; cursor: pointer; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b5d52' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* ── 沿用的彈窗（CwModalFrame）：圓角、暖色遮罩、進場、明體標題，裡面的方框改成橫線分段 ── */
+:is(.bl-tool, body:has(.bl-tool)) [class~='fixed'][class~='inset-0'] > button[class~='absolute'][class~='inset-0'] { background: rgba(42, 33, 28, 0.55); animation: bl-veil 0.35s both; }
+:is(.bl-tool, body:has(.bl-tool)) [role='dialog'][aria-modal='true']:not(.sheet) { border: 0; border-radius: 12px; box-shadow: 0 30px 80px -20px rgba(42, 33, 28, 0.55), 0 0 0 1px rgba(42, 33, 28, 0.12); animation: bl-dialog 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes bl-veil { from { opacity: 0; } }
+@keyframes bl-dialog { from { opacity: 0; translate: 0 28px; scale: 0.97; } }
+:is(.bl-tool, body:has(.bl-tool)) [role='dialog'][aria-modal='true']:not(.sheet) > div:first-child { border-bottom-color: rgba(42, 33, 28, 0.18); }
+:is(.bl-tool, body:has(.bl-tool)) [role='dialog'][aria-modal='true']:not(.sheet) > div:last-child:not(:first-child) { border-top-color: rgba(42, 33, 28, 0.18); }
+:is(.bl-tool, body:has(.bl-tool)) [role='dialog'][aria-modal='true']:not(.sheet) h2 { font-family: 'Noto Serif TC', 'Songti TC', serif; font-weight: 600; font-size: 1.625rem; letter-spacing: 0.04em; }
+:is(.bl-tool, body:has(.bl-tool)) [role='dialog'][aria-modal='true']:not(.sheet) h3 { font-family: 'Noto Serif TC', 'Songti TC', serif; font-weight: 600; font-size: 1.1875rem; letter-spacing: 0.04em; }
+/* 小標前面的色條拿掉，改用字體層級分段 */
+:is(.bl-tool, body:has(.bl-tool)) [role='dialog'][aria-modal='true'] [class~='h-6'][class~='w-1'][class~='rounded-full'] { display: none; }
+/* 一列一個方框 → 橫線分隔的列 */
+:is(.bl-tool, body:has(.bl-tool)) [role='dialog'][aria-modal='true'] [class*='space-y'] > [class~='flex'][class*='rounded-[var(--cw-radius)]'][class*='border-[var(--cw-border)]'][class*='bg-[var(--cw-bg)]'] { margin-top: 0 !important; padding: 8px 0; border: 0; border-bottom: 1px solid rgba(42, 33, 28, 0.18); border-radius: 0; background: none; }
+:is(.bl-tool, body:has(.bl-tool)) [role='dialog'][aria-modal='true'] .cw-btn { border-radius: 999px; }
+
+/* ── 空狀態：放一隻貓 ── */
+.bl-shifts .empty, .bl-flights .blank, .bl-feedback .pick, .bl-feedback div.quiet, .bl-order p.empty { animation: bl-fade 0.7s var(--out) backwards; }
+.bl-shifts .empty::before, .bl-flights .blank::before, .bl-feedback .pick::before, .bl-feedback div.quiet::before, .bl-order p.empty::before {
+  content: ''; display: block; width: 76px; height: 73px; margin-bottom: 12px; background: url('../assets/cat-head.webp') center / contain no-repeat;
+  rotate: -9deg; transform-origin: 50% 90%; animation: bl-tilt 5s ease-in-out infinite;
+}
+.bl-feedback .pick::before { margin-left: auto; margin-right: auto; }
+@keyframes bl-tilt { 0%, 100% { rotate: -9deg; } 50% { rotate: 7deg; } }
 
 @media (min-width: 620px) {
   .bl-tool .crumb { display: block; }

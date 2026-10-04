@@ -112,36 +112,72 @@ function useToolMotion(rootRef) {
       for (let i = 0; el && i < 12; el = el.nextElementSibling, i += 1) {
         const pos = getComputedStyle(el).position
         // 固定或黏住的元素（底部鍵盤、進度列）只淡入不位移，免得跳位
-        const frames = pos === 'fixed' || pos === 'sticky' ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, translate: '0 10px' }, { opacity: 1, translate: '0 0' }]
-        el.animate(frames, { duration: 420, easing: EASE })
+        const frames = pos === 'fixed' || pos === 'sticky' ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, translate: '0 26px' }, { opacity: 1, translate: '0 0' }]
+        // 一塊接一塊進來，看得出是換了一頁內容
+        el.animate(frames, { duration: 620, delay: Math.min(i, 5) * 60, easing: EASE, fill: 'backwards' })
       }
     }
-    const tick = (el) => {
+    // 純數字（總包數、班數…）從舊的數到新的；帶符號或單位的就整個跳一下
+    const rolling = new WeakMap()
+    const roll = (el, from, to) => {
+      const node = el.firstChild
+      const digits = (String(to).split('.')[1] || '').length
+      const a = Number(from)
+      const b = Number(to)
+      const start = performance.now()
+      let last = node.nodeValue
+      const state = { stop: false }
+      rolling.set(el, state)
+      const step = (now) => {
+        // 中途 React 又寫了新的值：停手，以它為準
+        if (state.stop || el.firstChild !== node || node.nodeValue !== last) {
+          rolling.delete(el)
+          return
+        }
+        const p = Math.min(1, (now - start) / 520)
+        last = p === 1 ? String(to) : (a + (b - a) * (1 - Math.pow(1 - p, 3))).toFixed(digits)
+        node.nodeValue = last
+        if (p < 1) requestAnimationFrame(step)
+        else rolling.delete(el)
+      }
+      node.nodeValue = last = a.toFixed(digits)
+      requestAnimationFrame(step)
+    }
+    const PLAIN = /^\d+(\.\d+)?$/
+    const tick = (el, oldText) => {
       if (reducedMotion() || performance.now() - bornAt < 900) return
       if (!el || el.children.length || el.closest('button, time, input, textarea, select, .dock, [data-no-tick]')) return
-      if (!NUMERIC.test(el.textContent || '')) return
-      el.animate([{ opacity: 0.25, translate: '0 0.3em' }, { opacity: 1, translate: '0 0' }], { duration: 320, easing: EASE })
+      const text = el.textContent || ''
+      if (!NUMERIC.test(text)) return
+      const before = (oldText || '').trim()
+      if (PLAIN.test(text) && PLAIN.test(before) && before !== text && el.childNodes.length === 1 && el.firstChild.nodeType === 3 && !document.hidden) {
+        roll(el, before, text)
+        return
+      }
+      el.animate([{ opacity: 0, translate: '0 0.6em' }, { opacity: 1, translate: '0 0' }], { duration: 460, easing: EASE })
     }
 
     // MutationObserver 本來就是一批一批回呼（同一輪更新只叫一次），直接處理，不必再排到下一個畫格
     const observer = new MutationObserver((records) => {
       const pendingGroups = new Set()
-      const pendingTicks = new Set()
+      const pendingTicks = new Map()
       for (const rec of records) {
         if (rec.type === 'attributes') {
           const group = rec.target.parentElement
           if (rec.target.getAttribute('aria-pressed') === 'true' && group?.matches(TAB_GROUPS)) pendingGroups.add(group)
         } else if (rec.type === 'characterData') {
-          pendingTicks.add(rec.target.parentElement)
+          const el = rec.target.parentElement
+          // 自己滾數字時寫的值不算
+          if (el && !rolling.has(el) && !pendingTicks.has(el)) pendingTicks.set(el, rec.oldValue)
         } else if (rec.target.nodeType === 1 && rec.target.children.length === 0) {
-          pendingTicks.add(rec.target)
+          if (!rolling.has(rec.target) && !pendingTicks.has(rec.target)) pendingTicks.set(rec.target, rec.removedNodes[0]?.nodeValue)
         }
       }
       placeAll()
       pendingGroups.forEach(swap)
-      pendingTicks.forEach(tick)
+      pendingTicks.forEach((oldText, el) => tick(el, oldText))
     })
-    observer.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-pressed'] })
+    observer.observe(root, { subtree: true, childList: true, characterData: true, characterDataOldValue: true, attributes: true, attributeFilter: ['aria-pressed'] })
     placeAll()
     // 字體載入、視窗大小改變都會讓頁籤位置跑掉
     const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(placeAll)
