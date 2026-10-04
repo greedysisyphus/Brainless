@@ -112,15 +112,11 @@ export function resolveInventorySnapshot({
   fromCache,
   hasPendingWrites,
 }) {
-  // 首次遠端資料：若使用者已開始填寫（慢網常見），不可整份蓋回本機
+  // 首次遠端資料到的時候使用者已經開始填（慢網常見）：畫面上是這台裝置上次留下的舊資料加上剛填的幾格，
+  // 兩邊誰新誰舊程式分不出來。不蓋本機、也不讓本機蓋雲端，一律交給使用者選。
+  // （以前這裡回 ignore，接著整份舊資料被上傳，雲端的盤點就被蓋掉。）
   if (!meta.hasReceivedInitialRemote) {
-    if (meta.isDirty) {
-      if (remoteUpdatedAt > meta.lastLocalEditAt) {
-        return 'conflict'
-      }
-      return 'ignore'
-    }
-    return 'apply'
+    return meta.isDirty ? 'conflict' : 'apply'
   }
 
   if (fromCache && meta.isDirty) {
@@ -145,4 +141,59 @@ export function resolveInventorySnapshot({
   }
 
   return 'apply'
+}
+
+/* ── 寫入紀錄：盤點文件裡留最近幾筆「誰、什麼時候、做了什麼」，資料不見時查得到來源 ── */
+
+export const WRITE_LOG_LIMIT = 30
+const DEVICE_ID_KEY = 'brainless_device_id'
+
+/** 這台裝置的代號（隨機、存在本機）加上看得懂的機型 */
+export function getDeviceStamp() {
+  let id = ''
+  try {
+    id = localStorage.getItem(DEVICE_ID_KEY) || ''
+    if (!id) {
+      id = Math.random().toString(36).slice(2, 8)
+      localStorage.setItem(DEVICE_ID_KEY, id)
+    }
+  } catch {
+    id = 'nostore'
+  }
+  const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent
+  const kind = /iPhone/.test(ua)
+    ? 'iPhone'
+    : /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+      ? 'iPad'
+      : /Android/.test(ua)
+        ? 'Android'
+        : /Macintosh/.test(ua)
+          ? 'Mac'
+          : /Windows/.test(ua)
+            ? 'Windows'
+            : '其他'
+  return `${kind}-${id}`
+}
+
+/** 有填數字的格數。紀錄裡看這個數字突然掉下去，就知道是哪一次寫入把資料弄不見的 */
+export function countFilledCells(inventory) {
+  const walk = (node) => {
+    if (Array.isArray(node)) return node.filter(isFilledQuantity).length
+    if (node && typeof node === 'object') return Object.values(node).reduce((sum, child) => sum + walk(child), 0)
+    return 0
+  }
+  return walk(inventory?.brewing) + walk(inventory?.retail)
+}
+
+/**
+ * 在紀錄尾端加一筆。同一台裝置連續的「編輯」併成一筆（更新時間、次數、格數），
+ * 不然盤一次點就把三十筆用完了。
+ */
+export function appendWriteLog(log, entry) {
+  const list = Array.isArray(log) ? log.filter((item) => item && typeof item === 'object') : []
+  const last = list[list.length - 1]
+  if (last && entry.action === 'edit' && last.action === 'edit' && last.device === entry.device && last.page === entry.page) {
+    return [...list.slice(0, -1), { ...last, at: entry.at, cells: entry.cells, times: (last.times || 1) + 1 }]
+  }
+  return [...list, entry].slice(-WRITE_LOG_LIMIT)
 }

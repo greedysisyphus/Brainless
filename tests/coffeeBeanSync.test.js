@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mergeInventoryData, stripInventorySyncMeta } from '../src/pages/coffeeBean/coffeeBeanInventorySync.js'
+import { appendWriteLog, countFilledCells, createInventorySyncMeta, mergeInventoryData, resolveInventorySnapshot, stripInventorySyncMeta, WRITE_LOG_LIMIT } from '../src/pages/coffeeBean/coffeeBeanInventorySync.js'
 
 test('咖啡豆：「數／袋／盒」跟著盤點文件同步，不會在整理時被丟掉', () => {
   const doc = {
@@ -42,4 +42,37 @@ test('咖啡豆：數字跟數／袋／盒對不上時提醒', async () => {
   assert.equal(checkRowPlausibility('1250', 'weightBag', empty), null)
   assert.deepEqual(checkRowPlausibility('300', 'weightBox', empty).suggest, ['quantity'])
   assert.equal(checkRowPlausibility('', 'quantity', empty), null)
+})
+
+test('咖啡豆：雲端資料到之前就填了東西 → 一律跳衝突，不默默蓋掉任何一邊', () => {
+  const meta = { ...createInventorySyncMeta(), isDirty: true, lastLocalEditAt: 2000 }
+  // 雲端比較舊（以前這種情況回 ignore，接著本機舊資料被整份上傳）
+  assert.equal(resolveInventorySnapshot({ meta, remoteUpdatedAt: 1000, fromCache: false, hasPendingWrites: false }), 'conflict')
+  assert.equal(resolveInventorySnapshot({ meta, remoteUpdatedAt: 3000, fromCache: false, hasPendingWrites: false }), 'conflict')
+  // 沒動過就直接套用雲端
+  assert.equal(resolveInventorySnapshot({ meta: createInventorySyncMeta(), remoteUpdatedAt: 1000, fromCache: false, hasPendingWrites: false }), 'apply')
+})
+
+test('咖啡豆：自己上傳的回音不會被當成衝突', () => {
+  const meta = { ...createInventorySyncMeta(), hasReceivedInitialRemote: true, isDirty: true, lastLocalEditAt: 2000, lastSyncedToCloudAt: 1500 }
+  assert.equal(resolveInventorySnapshot({ meta, remoteUpdatedAt: 1500, fromCache: false, hasPendingWrites: false }), 'ignore')
+})
+
+test('咖啡豆：寫入紀錄——同一台連續編輯併成一筆，清空另記一筆，最多留固定筆數', () => {
+  const edit = (at, device = 'iPad-a', cells = 3) => ({ at, device, action: 'edit', page: 'new', cells })
+  let log = appendWriteLog(undefined, edit(1))
+  log = appendWriteLog(log, edit(2, 'iPad-a', 5))
+  assert.equal(log.length, 1)
+  assert.deepEqual(log[0], { at: 2, device: 'iPad-a', action: 'edit', page: 'new', cells: 5, times: 2 })
+  log = appendWriteLog(log, { at: 3, device: 'iPad-a', action: 'reset', page: 'new', cells: 0 })
+  log = appendWriteLog(log, edit(4, 'iPhone-b'))
+  assert.deepEqual(log.map((e) => e.action), ['edit', 'reset', 'edit'])
+  for (let i = 0; i < 50; i += 1) log = appendWriteLog(log, edit(10 + i, `d${i}`))
+  assert.equal(log.length, WRITE_LOG_LIMIT)
+  assert.equal(log.at(-1).device, 'd49')
+})
+
+test('咖啡豆：有填數字的格數', () => {
+  assert.equal(countFilledCells({ brewing: { pourOver: { 水洗: { store: ['1250', ''], breakRoom: ['2'] } }, espresso: {} }, retail: { 日曬: { store: ['', '0'] } }, modes: { a: ['weightBag'] } }), 3)
+  assert.equal(countFilledCells(null), 0)
 })
