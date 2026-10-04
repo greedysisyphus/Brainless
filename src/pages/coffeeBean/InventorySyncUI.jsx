@@ -7,6 +7,7 @@ export function InventorySyncBanner({ status, isStudio, onRetry }) {
 
   const messages = {
     syncing: '盤點同步中…',
+    loading: '讀取雲端資料中，稍等一下就能填…',
     error: '無法同步到雲端，資料已保留在本機',
     offline: '目前離線，變更僅存於本機',
     conflict: '雲端與本機盤點不一致，請選擇處理方式',

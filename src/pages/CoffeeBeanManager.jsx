@@ -34,6 +34,7 @@ function CoffeeBeanManager() {
     inventoryRef,
     inventory,
     inventorySyncStatus,
+    inventoryLocked,
     setInventorySyncStatus,
     inventoryConflict,
     getInventorySyncMeta,
@@ -94,7 +95,7 @@ function CoffeeBeanManager() {
   const coffeeInner = (
     <div className="mx-auto w-full max-w-6xl">
       <InventorySyncBanner
-        status={inventorySyncStatus}
+        status={inventoryLocked ? 'loading' : inventorySyncStatus}
         isStudio={isStudio}
         onRetry={() => {
           setInventorySyncStatus('syncing')
@@ -271,6 +272,8 @@ function CoffeeBeanManager() {
 
         <div
           ref={inventoryRef}
+          inert={inventoryLocked ? '' : undefined}
+          style={inventoryLocked ? { opacity: 0.45 } : undefined}
           className={
             isStudio
               ? 'relative overflow-hidden rounded-[var(--cw-radius-lg)] border border-[var(--cw-border-strong)] bg-[var(--cw-surface)] p-4 shadow-sm sm:p-5 md:p-6'

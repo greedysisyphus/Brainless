@@ -241,7 +241,7 @@ export default function Beans() {
 
         <div className="legacy notice">
           <InventorySyncBanner
-            status={m.inventorySyncStatus}
+            status={m.inventoryLocked ? 'loading' : m.inventorySyncStatus}
             isStudio
             onRetry={() => {
               m.setInventorySyncStatus('syncing')
@@ -318,7 +318,7 @@ export default function Beans() {
             </p>
           </aside>
 
-          <div className="ledger">
+          <div className={`ledger${m.inventoryLocked ? ' locked' : ''}`} inert={m.inventoryLocked ? '' : undefined}>
             {/* 各品項放哪些位置要等雲端設定回來才知道；先畫的話，位置會多出來又消失 */}
             {!m.beanLocationsLoaded ? <p className="loading">讀取中…</p> : null}
             {(m.beanLocationsLoaded ? rows : []).map(({ sec, beans }) => (

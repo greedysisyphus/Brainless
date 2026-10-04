@@ -129,3 +129,7 @@
   .bl-beans .dock .hint { display: block; }
   .bl-beans:has(.dock.on) .page { padding-bottom: 260px; }
 }
+
+/* 雲端資料還沒到：盤點表先淡掉、按不動 */
+.bl-beans .ledger { transition: opacity 0.3s; }
+.bl-beans .ledger.locked { opacity: 0.45; }

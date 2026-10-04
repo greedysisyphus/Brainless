@@ -76,3 +76,24 @@ test('咖啡豆：有填數字的格數', () => {
   assert.equal(countFilledCells({ brewing: { pourOver: { 水洗: { store: ['1250', ''], breakRoom: ['2'] } }, espresso: {} }, retail: { 日曬: { store: ['', '0'] } }, modes: { a: ['weightBag'] } }), 3)
   assert.equal(countFilledCells(null), 0)
 })
+
+test('咖啡豆：上次沒傳完的修改記在裝置上，下次開頁一開始就是「有未上傳的修改」', async () => {
+  const { readPendingEditAt, writePendingEditAt } = await import('../src/pages/coffeeBean/coffeeBeanInventorySync.js')
+  const store = new Map()
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) }
+  try {
+    assert.equal(createInventorySyncMeta('central').isDirty, false)
+    writePendingEditAt('central', 1234)
+    assert.equal(readPendingEditAt('central'), 1234)
+    const meta = createInventorySyncMeta('central')
+    assert.equal(meta.isDirty, true)
+    assert.equal(meta.lastLocalEditAt, 1234)
+    // 所以雲端資料一到就是衝突，不會默默套用雲端
+    assert.equal(resolveInventorySnapshot({ meta, remoteUpdatedAt: 9999, fromCache: false, hasPendingWrites: false }), 'conflict')
+    assert.equal(createInventorySyncMeta('d7').isDirty, false) // 各店分開記
+    writePendingEditAt('central', 0)
+    assert.equal(createInventorySyncMeta('central').isDirty, false)
+  } finally {
+    delete globalThis.localStorage
+  }
+})

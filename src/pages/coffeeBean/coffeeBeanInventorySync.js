@@ -1,11 +1,38 @@
 /** 咖啡豆盤點：雲端同步 meta 與合併邏輯 */
 
 export const INVENTORY_SYNC_DEBOUNCE_MS = 1200
+/** 開頁或切店後等雲端資料多久；超過就先開放填寫（之後資料到了會跳衝突視窗） */
+export const INVENTORY_REMOTE_WAIT_MS = 8000
 
-export function createInventorySyncMeta() {
+/* 「這家店有還沒上傳的修改」記在裝置上。只放記憶體的話，離線盤完把頁面關掉，
+   下次開頁會把雲端資料直接套上來，離線盤的那份就默默不見了。 */
+const dirtyKey = (storeId) => `coffeeBeanInventoryDirty_${storeId}`
+
+/** 上次離開時還沒上傳的修改時間；沒有就回 0 */
+export function readPendingEditAt(storeId) {
+  try {
+    const at = Number(localStorage.getItem(dirtyKey(storeId)))
+    return Number.isFinite(at) && at > 0 ? at : 0
+  } catch {
+    return 0
+  }
+}
+
+/** at 給時間＝記下有未上傳的修改；給 0＝已經上傳或已放棄，清掉 */
+export function writePendingEditAt(storeId, at) {
+  try {
+    if (at) localStorage.setItem(dirtyKey(storeId), String(at))
+    else localStorage.removeItem(dirtyKey(storeId))
+  } catch {
+    // 存不了就退回只記在記憶體
+  }
+}
+
+export function createInventorySyncMeta(storeId) {
+  const pendingAt = storeId ? readPendingEditAt(storeId) : 0
   return {
-    isDirty: false,
-    lastLocalEditAt: 0,
+    isDirty: pendingAt > 0,
+    lastLocalEditAt: pendingAt,
     lastSyncedToCloudAt: 0,
     lastAppliedRemoteAt: 0,
     hasReceivedInitialRemote: false,

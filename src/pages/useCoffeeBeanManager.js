@@ -6,7 +6,7 @@ import logoCat from '../assets/logo-cat.png'
 import { EXPORT_LOGO_PRESETS } from './coffeeBean/ExportLogoPicker'
 import { useTheme } from '../contexts/ThemeContext'
 import { DEFAULT_BEAN_TYPES, DEFAULT_BEAN_LOCATIONS, DEFAULT_WEIGHTS, convertStoreOnlyToLocations, getBeanTypesDocId, getDefaultBeanLocationsForStore, getInventoryStorageKey, getPacksFromWeight, getStoreName, getWeightDocId, isIOS } from './coffeeBean/coffeeBeanConstants'
-import { appendWriteLog, countFilledCells, createInventorySyncMeta, getDeviceStamp, getInventoryUpdatedAt, INVENTORY_SYNC_DEBOUNCE_MS, mergeInventoryData, resolveInventorySnapshot, stripInventorySyncMeta } from './coffeeBean/coffeeBeanInventorySync'
+import { appendWriteLog, countFilledCells, createInventorySyncMeta, getDeviceStamp, getInventoryUpdatedAt, INVENTORY_REMOTE_WAIT_MS, INVENTORY_SYNC_DEBOUNCE_MS, writePendingEditAt, mergeInventoryData, resolveInventorySnapshot, stripInventorySyncMeta } from './coffeeBean/coffeeBeanInventorySync'
 
 /**
  * 咖啡豆管理的全部邏輯：品項、庫存、重量設定、Firestore 同步、匯出圖片。
@@ -192,16 +192,16 @@ export function useCoffeeBeanManager() {
   const skipInventorySyncEffectRef = useRef(false)
   const inventoryLatestRef = useRef(null)
   const inventorySyncMetaRef = useRef({
-    central: createInventorySyncMeta(),
-    d7: createInventorySyncMeta(),
-    d13: createInventorySyncMeta(),
+    central: createInventorySyncMeta('central'),
+    d7: createInventorySyncMeta('d7'),
+    d13: createInventorySyncMeta('d13'),
   })
   const [inventorySyncStatus, setInventorySyncStatus] = useState('idle')
   const [inventoryConflict, setInventoryConflict] = useState(null)
 
   const getInventorySyncMeta = (storeId) => {
     if (!inventorySyncMetaRef.current[storeId]) {
-      inventorySyncMetaRef.current[storeId] = createInventorySyncMeta()
+      inventorySyncMetaRef.current[storeId] = createInventorySyncMeta(storeId)
     }
     return inventorySyncMetaRef.current[storeId]
   }
@@ -210,8 +210,29 @@ export function useCoffeeBeanManager() {
     const meta = getInventorySyncMeta(selectedStore)
     meta.isDirty = true
     meta.lastLocalEditAt = Date.now()
+    writePendingEditAt(selectedStore, meta.lastLocalEditAt)
     setInventorySyncStatus('syncing')
   }
+
+  // 這家店的雲端資料到了沒。還沒到之前先不讓人填：這時畫面上是這台裝置上次留下的舊資料，
+  // 填下去之後不管選哪一邊都會有東西被蓋掉。離線就不等；等太久也先開放（之後會跳衝突視窗）。
+  const [inventoryRemoteReady, setInventoryRemoteReady] = useState(false)
+  useEffect(() => {
+    if (getInventorySyncMeta(selectedStore).hasReceivedInitialRemote || navigator.onLine === false) {
+      setInventoryRemoteReady(true)
+      return undefined
+    }
+    setInventoryRemoteReady(false)
+    const open = () => setInventoryRemoteReady(true)
+    const timer = setTimeout(open, INVENTORY_REMOTE_WAIT_MS)
+    window.addEventListener('offline', open)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('offline', open)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 只在切店時重新判斷
+  }, [selectedStore])
+  const inventoryLocked = !inventoryRemoteReady
 
   const applyInventoryToStore = (storeId, data) => {
     const clean = stripInventorySyncMeta(data)
@@ -225,6 +246,7 @@ export function useCoffeeBeanManager() {
 
   const setInventory = (newInventory) => {
     if (!applyRemoteInventoryRef.current) {
+      if (inventoryLocked) return // 畫面已經擋住了，這裡是保險
       markInventoryEdited()
     }
     if (typeof newInventory === 'function') {
@@ -416,6 +438,11 @@ export function useCoffeeBeanManager() {
         : null
     const inv = inventoryOverride ?? fromLatest ?? fromState
     const firebaseDocId = getInventoryStorageKey(storeId)
+    // 測試用：本機開發時設了這個記號就完全不寫雲端（避免測試動到正式資料）
+    if (import.meta.env.DEV && localStorage.getItem('brainless_no_cloud_write')) {
+      console.warn('[點豆] 略過上傳（brainless_no_cloud_write）', storeId, action)
+      return
+    }
     // 一般編輯（含「重試同步」）在雲端資料到之前一律不寫，理由同下面的同步 effect
     if (action === 'edit' && !getInventorySyncMeta(storeId).hasReceivedInitialRemote) return
     const now = Date.now()
@@ -427,7 +454,11 @@ export function useCoffeeBeanManager() {
     await setDoc(doc(db, 'settings', firebaseDocId), payload)
     const meta = getInventorySyncMeta(storeId)
     meta.lastSyncedToCloudAt = payload._clientUpdatedAt
-    meta.isDirty = false
+    // 上傳途中又改了東西就還是 dirty 的，記號留著
+    if (meta.lastLocalEditAt <= now) {
+      meta.isDirty = false
+      writePendingEditAt(storeId, 0)
+    }
     meta.hasReceivedInitialRemote = true
     if (storeId === selectedStore) setInventorySyncStatus('synced')
   }
@@ -481,6 +512,7 @@ export function useCoffeeBeanManager() {
 
       // 無論套用與否，都標記「已接觸過遠端」，避免之後每次都走「初次」分支
       meta.hasReceivedInitialRemote = true
+      setInventoryRemoteReady(true)
 
       if (decision === 'ignore') {
         return
@@ -521,6 +553,7 @@ export function useCoffeeBeanManager() {
             if (meta.isDirty) {
               // 雲端還沒有這份文件、而使用者已經在填：直接把本機的寫上去當第一份
               meta.hasReceivedInitialRemote = true
+              setInventoryRemoteReady(true)
               flushInventorySync(storeId, null, 'create').catch((error) => {
                 console.error('創建庫存文件失敗:', error)
               })
@@ -541,6 +574,7 @@ export function useCoffeeBeanManager() {
         },
         (error) => {
           console.error('讀取庫存錯誤:', error)
+          if (isMounted) setInventoryRemoteReady(true)
           if (isMounted && getInventorySyncMeta(storeId).isDirty) {
             setInventorySyncStatus('error')
           }
@@ -585,6 +619,7 @@ export function useCoffeeBeanManager() {
       inventoryLatestRef.current = stripInventorySyncMeta(conflict.remoteData)
     }
     meta.isDirty = false
+    writePendingEditAt(conflict.storeId, 0)
     meta.lastAppliedRemoteAt = conflict.remoteUpdatedAt
     meta.lastSyncedToCloudAt = conflict.remoteUpdatedAt
     meta.hasReceivedInitialRemote = true
@@ -1478,6 +1513,8 @@ export function useCoffeeBeanManager() {
     meta.isDirty = true
     meta.lastLocalEditAt = now
     meta.hasReceivedInitialRemote = true
+    writePendingEditAt(storeId, now)
+    setInventoryRemoteReady(true)
 
     // 只清盤點。重量設定（每袋、每盒幾克）是校正值，不是這次盤點的資料；
     // 換算器的內容三店共用，清掉會連別店算到一半的一起沒了。兩者都保留。
@@ -1491,6 +1528,7 @@ export function useCoffeeBeanManager() {
         ...stampInventoryWrite(storeId, null, 'reset', now),
       })
       meta.isDirty = false
+      writePendingEditAt(storeId, 0)
       meta.lastSyncedToCloudAt = now
       meta.lastAppliedRemoteAt = now
       if (selectedStore === storeId) setInventorySyncStatus('synced')
@@ -2126,6 +2164,7 @@ export function useCoffeeBeanManager() {
     inventoryLatestRef,
     inventorySyncMetaRef,
     inventorySyncStatus,
+    inventoryLocked,
     setInventorySyncStatus,
     inventoryConflict,
     setInventoryConflict,
