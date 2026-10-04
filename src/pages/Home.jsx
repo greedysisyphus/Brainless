@@ -2,14 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Arrow, BlLink, catHead, clockOf, useBlFonts, useNow } from '../components/bl/shared'
 import { getNavSections, itemsForSection } from '../config/navigation.jsx'
-import { APP_CHANGELOG } from '../contexts/ChangelogContext'
+import { APP_CHANGELOG, useChangelog } from '../contexts/ChangelogContext'
 import { BUSY_LEVELS, busyIndexOn, formatBusyDiff } from '../utils/flightData/busyIndex'
 import { loadFlightDataRecord, loadPaxDaily } from '../utils/flightData/loadFlightDay'
 import { STORE_CODES, getStoreShortName } from './shifts/shiftConstants'
 import { getMonthsForDate, getWorkingAssignments, groupWorkingByStore, toDateKey } from './shifts/shiftModel'
 import { getShiftDisplay } from './shifts/shiftVocab'
 import { useShiftBook } from './shifts/useShiftBook'
-import { setSiteTheme } from '../utils/siteTheme'
 import '../styles/home.css'
 
 const WEEKDAYS = '日一二三四五六'
@@ -248,6 +247,7 @@ export default function Home() {
   const { book, loading } = useShiftBook()
   const nextFlight = flights?.find((f) => f.time >= clock) || null
   const latest = APP_CHANGELOG[0]
+  const { hasUnseenUpdate } = useChangelog()
   // 只有一個工具的分類標成 solo：手機上把它們併成一組「其他」，不讓三個小標各佔一行
   const groups = getNavSections().map((section) => ({ section, items: itemsForSection(section) }))
   groups.forEach((group, i) => {
@@ -275,9 +275,6 @@ export default function Home() {
       <div className="page" ref={pageRef}>
         <header>
           <b className="vt-brand">Brainless</b>
-          <Link className="old link" to="/sandwich" onClick={() => setSiteTheme('club')}>
-            舊版
-          </Link>
           <time>{clock}</time>
         </header>
         <main className="split">
@@ -359,9 +356,13 @@ export default function Home() {
               ))}
             </nav>
             <p className="colophon">
-              <span>版本</span>
-              <b>{latest.version}</b>
-              <span>{latest.title}</span>
+              <Link className="ver" to="/home/changelog" aria-label={`更新紀錄，目前 ${latest.version} ${latest.title}${hasUnseenUpdate ? '，有新的更新' : ''}`}>
+                <span>版本</span>
+                <b>{latest.version}</b>
+                <span>{latest.title}</span>
+                {hasUnseenUpdate ? <em>新</em> : null}
+                <i aria-hidden="true">→</i>
+              </Link>
               <Link className="link" to="/home/feedback">
                 回饋與許願
               </Link>

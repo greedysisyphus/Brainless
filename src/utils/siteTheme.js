@@ -4,12 +4,10 @@ import { ADMIN_NAV_META, BASE_NAV_ITEMS } from '../config/navigation.jsx'
 // 新版穩定後要全部切過去時，拿掉 Club 的入口和這個檔案即可。
 const KEY = 'brainless_site_theme'
 
+// 2026-10-04：Club 版先藏起來，全站只用新版，也不給入口。Club 的頁面和程式都還在，
+// 要再開放就把這裡改回讀 localStorage（KEY 存 'club' 或 'new'）。
 export function getSiteTheme() {
-  try {
-    return localStorage.getItem(KEY) === 'club' ? 'club' : 'new'
-  } catch {
-    return 'new'
-  }
+  return 'new'
 }
 
 export function setSiteTheme(theme) {

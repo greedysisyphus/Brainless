@@ -81,6 +81,14 @@
 .bl-home .colophon { display: flex; align-items: baseline; gap: 12px; margin: auto 0 0; padding-top: 28px; font-size: 0.8125rem; color: var(--soft); animation: bl-fade 1.2s 1s var(--out) backwards; }
 .bl-home .colophon b { font-family: var(--didone); font-weight: 400; font-size: 1.125rem; color: var(--ink); font-variation-settings: 'opsz' 18; }
 .bl-home .colophon .link { margin-left: auto; color: var(--ink); }
+/* 版號：點了進更新紀錄；還沒看過最新版時有紫點 */
+.bl-home .colophon .ver { display: inline-flex; align-items: baseline; gap: 12px; min-height: 44px; color: inherit; text-decoration: none; }
+.bl-home .colophon .ver:hover b, .bl-home .colophon .ver:hover span { color: var(--plum); }
+.bl-home .colophon .ver em { display: inline-flex; align-items: center; gap: 5px; font-style: normal; font-weight: 500; color: var(--plum); }
+.bl-home .colophon .ver em::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--plum); animation: bl-live 2.4s ease-in-out infinite; }
+.bl-home .colophon .ver i { font-style: normal; transition: translate 0.4s var(--out); }
+.bl-home .colophon .ver:hover i { translate: 5px 0; }
+@keyframes bl-live { 50% { opacity: 0.3; } }
 
 @media (min-width: 720px) {
   .bl-home .split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: stretch; }

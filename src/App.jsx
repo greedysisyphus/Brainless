@@ -35,6 +35,7 @@ const BlFlights = lazy(() => loadBl().then((m) => ({ default: m.Flights })))
 const BlPour = lazy(() => loadBl().then((m) => ({ default: m.Pour })))
 const BlReports = lazy(() => loadBl().then((m) => ({ default: m.Reports })))
 const BlFeedback = lazy(() => loadBl().then((m) => ({ default: m.Feedback })))
+const BlChangelog = lazy(() => loadBl().then((m) => ({ default: m.Changelog })))
 const BlAdmin = lazy(() => loadBl().then((m) => ({ default: m.Admin })))
 const BlMenu = lazy(() => loadBl().then((m) => ({ default: m.Menu })))
 const BlPlayground = lazy(() => loadBl().then((m) => ({ default: m.Playground })))
@@ -85,6 +86,7 @@ function AppContent() {
               <Route path="/home/poursteady" element={<BlPour />} />
               <Route path="/home/daily-reports" element={<BlReports />} />
               <Route path="/home/feedback" element={<BlFeedback />} />
+              <Route path="/home/changelog" element={<BlChangelog />} />
               <Route path="/home/admin" element={<BlAdmin />} />
               <Route path="/home/menu" element={<BlMenu />} />
               <Route path="/home/playground" element={<BlPlayground />} />
@@ -105,7 +107,7 @@ function AppContent() {
               <Route path="/playground" element={<Playground />} />
               <Route path="/music" element={<Navigate to="/playground#music" replace />} />
               <Route path="/admin" element={<AdminPanel />} />
-              <Route path="*" element={<ErrorPage />} />
+              <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           </Suspense>
     </Layout>

@@ -161,3 +161,66 @@
   .bl-admin .wlog span { grid-column: 2 / -1; }
   .bl-admin .wlog i { grid-column: 3; grid-row: 1; }
 }
+
+/* ── 更新紀錄（Changelog.jsx）：一條時間軸 ── */
+/* ── 時間軸 ── */
+.bl-log .tl { position: relative; margin-top: 26px; --axis: 132px; }
+.bl-log :where(p, h2, ul) { margin: 0; padding: 0; }
+.bl-log .top .count { padding-bottom: 12px; font-size: 0.9375rem; color: var(--soft); }
+.bl-log .top .count b { font-family: var(--didone); font-weight: 400; font-size: 1.375rem; color: var(--ink); font-variation-settings: 'opsz' 18; }
+.bl-log .page { padding-bottom: 100px; }
+.bl-log .tl::before { content: ''; position: absolute; top: 0; bottom: 0; left: var(--axis); width: 1px; background: var(--ink); }
+/* 月份：軸上的大刻度 */
+.bl-log .month { position: relative; display: flex; align-items: center; min-height: 54px; padding-left: calc(var(--axis) + 30px); }
+.bl-log .month::before { content: ''; position: absolute; left: calc(var(--axis) - 9px); width: 19px; height: 1px; background: var(--ink); }
+.bl-log .month b { position: absolute; left: 0; width: calc(var(--axis) - 22px); text-align: right; font-family: var(--didone); font-weight: 400; font-size: 1.625rem; line-height: 1; }
+.bl-log .month span { font-family: var(--serif); font-size: 0.9375rem; letter-spacing: 0.2em; color: var(--soft); }
+/* 紀元線：新版上線。之前的版本在線的另一邊 */
+.bl-log .era { position: relative; display: flex; align-items: center; gap: 14px; margin: 18px 0; padding: 14px 0 14px calc(var(--axis) + 30px); }
+.bl-log .era::before { content: ''; position: absolute; left: calc(var(--axis) - 7px); width: 15px; height: 15px; rotate: 45deg; background: var(--plum); }
+.bl-log .era::after { content: ''; position: absolute; left: var(--axis); right: 0; top: 50%; height: 1px; background: var(--plum); opacity: 0.35; }
+.bl-log .era b { white-space: nowrap; position: relative; z-index: 1; padding-right: 14px; background: var(--oat); font-family: var(--serif); font-weight: 600; font-size: 1.125rem; letter-spacing: 0.1em; color: var(--plum); }
+.bl-log .era span { position: relative; z-index: 1; padding: 0 14px; background: var(--oat); font-size: 0.8125rem; color: var(--soft); }
+.bl-log .old-label { padding: 0 0 6px calc(var(--axis) + 30px); font-size: 0.8125rem; letter-spacing: 0.2em; color: var(--soft); }
+
+.bl-log .ver { position: relative; padding-left: calc(var(--axis) + 30px); }
+.bl-log .ver::before { content: ''; position: absolute; left: calc(var(--axis) - 4px); top: 25px; width: 9px; height: 9px; border-radius: 50%; background: var(--oat); box-shadow: 0 0 0 1.5px var(--ink); transition: background-color 0.3s, scale 0.3s var(--out); }
+.bl-log .ver.big::before { left: calc(var(--axis) - 6px); top: 23px; width: 13px; height: 13px; background: var(--ink); }
+.bl-log .ver.open::before { background: var(--plum); box-shadow: 0 0 0 1.5px var(--plum); scale: 1.15; }
+.bl-log .ver > button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 2px 14px; width: 100%; min-height: 58px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; }
+.bl-log .ver.open > button { border-bottom-color: transparent; }
+.bl-log .ver .when { position: absolute; left: 0; top: 14px; width: calc(var(--axis) - 22px); text-align: right; }
+.bl-log .ver .when b { display: block; font-family: var(--didone); font-weight: 400; font-size: 1.375rem; line-height: 1.15; }
+.bl-log .ver.big .when b { font-size: 1.75rem; }
+.bl-log .ver .when small { font-size: 0.75rem; color: var(--soft); }
+.bl-log .ver h2 { font-family: var(--serif); font-weight: 600; font-size: 1.1875rem; letter-spacing: 0.04em; transition: color 0.3s; }
+.bl-log .ver.big h2 { font-size: 1.5rem; }
+.bl-log .ver > button:hover h2 { color: var(--plum); }
+.bl-log .ver .n { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8125rem; color: var(--soft); white-space: nowrap; }
+.bl-log .ver .n svg { transition: rotate 0.4s var(--out); }
+.bl-log .ver.open .n svg { rotate: 180deg; }
+/* 展開：用 grid 0fr→1fr，高度有動畫 */
+.bl-log .body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.5s var(--out); border-bottom: 1px solid transparent; }
+.bl-log .ver.open .body { grid-template-rows: 1fr; border-bottom-color: var(--line); }
+.bl-log .body > div { overflow: hidden; }
+.bl-log .body ul { list-style: none; max-width: 46em; padding: 0 0 18px; }
+.bl-log .body li { position: relative; padding: 5px 0 5px 18px; font-size: 0.9375rem; color: #3b302a; }
+.bl-log .body li::before { content: ''; position: absolute; left: 2px; top: 16px; width: 6px; height: 1px; background: var(--soft); }
+
+/* 手機：軸移到最左，版號放到標題上面 */
+@media (max-width: 719px) {
+  .bl-log .tl { --axis: 6px; }
+  .bl-log .month { padding-left: 26px; gap: 10px; }
+  .bl-log .month b { position: static; width: auto; }
+  .bl-log .ver, .bl-log .era, .bl-log .old-label { padding-left: 26px; }
+  .bl-log .era { flex-wrap: wrap; gap: 2px 10px; }
+  .bl-log .era::after { display: none; }
+  .bl-log .era span { padding: 0; }
+  .bl-log .ver .when { position: static; width: auto; display: flex; align-items: baseline; gap: 10px; padding-top: 12px; text-align: left; }
+  .bl-log .ver .when b { display: inline; }
+  .bl-log .ver > button { padding-top: 0; min-height: 44px; }
+  .bl-log .ver::before { top: 20px; }
+  .bl-log .ver.big::before { top: 20px; }
+}
+
+

@@ -4,6 +4,21 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '2.0.0',
+    date: '2026-10-04',
+    title: '新版',
+    items: [
+      '整個網站換成新的樣子，舊版不再提供入口；舊的網址和書籤會自動帶到新版的同一個工具。',
+      '首頁一眼看到今天誰上班、下一班飛機、今天比平常忙多少。',
+      '咖啡豆管理與叫貨改成盤點表，數字用頁面裡的數字鍵盤填，不再跳出系統鍵盤。',
+      '航班資料重新排版成卡片；忙碌度改成「跟平常比」的百分比，並補上一年的出境人數紀錄。',
+      '班表七個分頁、手沖機調整、報表生成器、回饋全部重新設計。',
+      '點豆同步更穩：雲端資料到之前先不讓人填，離線盤的資料關掉頁面後不會再被默默蓋掉。',
+      '管理設定可以看點豆寫入紀錄，資料不見時查得到是哪一台、哪一次。',
+      '更新紀錄改成時間軸，從首頁左下角的版號進來。',
+    ],
+  },
+  {
     version: '1.9.1',
     date: '2026-09-27',
     title: '航班忙碌指數',
@@ -325,6 +340,7 @@ const EMPTY_CHANGELOG = {
   latestVersion: FALLBACK_VERSION,
   latestTitle: APP_CHANGELOG[0]?.title ?? '',
   dismissBanner: () => {},
+  markChangelogSeen: () => {},
 }
 
 export function ChangelogProvider({ children }) {
@@ -372,8 +388,9 @@ export function ChangelogProvider({ children }) {
       latestVersion,
       latestTitle,
       dismissBanner,
+      markChangelogSeen,
     }),
-    [openChangelog, hasUnseenUpdate, bannerDismissed, latestVersion, latestTitle, dismissBanner]
+    [markChangelogSeen, openChangelog, hasUnseenUpdate, bannerDismissed, latestVersion, latestTitle, dismissBanner]
   )
 
   return (
