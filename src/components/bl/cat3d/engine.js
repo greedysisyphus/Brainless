@@ -27,15 +27,16 @@ vec2 earAC(vec2 q, float id) {
 }
 // lo 是根部從哪裡開始算。耳朵自己用 -.35（往下多伸一段藏在頭頂的毛後面），頭讓位用 0；兩者重疊，轉動時才不會裂出一條縫
 float earMask(vec2 q, float id, float lo) { vec2 e = earAC(q, id); return smoothstep(lo - .1, lo + .1, e.x) * (1. - smoothstep(1.2, 1.5, abs(e.y))); }`
+const PUFF_MS = 2600 // 炸毛一次多久
 const uname = (k) => 'u' + k[0].toUpperCase() + k.slice(1)
 
 const VERT = /* glsl */ `
 attribute vec4 iE; // (取色位移 u, 取色位移 v, 正面 +1 / 背面 -1, 不用)
 attribute vec4 iA, iB, iC, iD; // (x, y, 角度, 種子) (長, 寬, 離表面高度, 筆尖翹起) (中心色, 同色遮罩強度) (權重, 形狀 + 10 × 所在的面, 彎度, 層)
-uniform float uSpread, uLift, uGap, uDepth, uEye, uFur, uEar, uBack, uRound, uPupil, uTime, uSniff;
+uniform float uSpread, uLift, uGap, uDepth, uEye, uFur, uEar, uBack, uRound, uPupil, uTime, uSniff, uPuff;
 uniform vec2 uVel, uLook, uTwitch;
 uniform sampler2D uDist;
-varying vec2 vL, vUv, vCv; varying vec4 vC, vD; varying float vSeed, vThick, vFront; varying vec3 vE, vPos, vN; varying vec2 vEye;
+varying vec2 vL, vUv, vCv; varying vec4 vC, vD; varying float vSeed, vThick, vFront; varying vec3 vE, vPos, vN; varying vec2 vEye; varying float vIn;
 
 // 頭的隆起，推測的。q 是原圖座標 / 900。臉的正面偏平、邊緣才收，眼睛轉到側面才不會被壓扁
 ${EAR}
@@ -80,7 +81,13 @@ void main() {
   vec2 o = vec2(l.x * iB.x * .5, l.y * iB.y * .5 + (oval ? 0. : iD.z * l.x * l.x * iB.x)); // 在筆觸自己平面上的位置
   vec2 xy = iA.xy + mat2(c, s, -s, c) * o;                                                 // 同一個位置放回原圖平面：取色用
   float side = iE.z, tip = l.x * .5 + .5, up = iB.w * tip * tip * uLift, base = iB.z * uGap + iD.w * uSpread;
-  if (iC.a < 0.) up *= 1. + .7 * uSniff; // 鬍鬚：嗅的時候往前張開
+  if (iC.a < 0.) up *= 1. + .7 * uSniff + .9 * uPuff; // 鬍鬚：嗅的時候往前張開，炸毛時張得更開
+  else if (shape < .5) {
+    // 炸毛：每一筆的筆尖沿表面法線豎起來，長短不一，還會微微發抖。輪廓那一圈的法線朝外，所以整顆頭看起來大一圈、邊緣是刺的
+    float r = fract(iA.w * 7.31);
+    up = up * (1. + 1.5 * uPuff) + uPuff * tip * (.05 + .1 * r) * (1. + .12 * sin(uTime * 38. + r * 40.));
+    base += .02 * uPuff;
+  }
   vec3 p;
   if (shape < .5) {
     // 筆刷：貼在筆心那一點切面上的一小片，大小是真正的立體尺寸。顏色照原圖平面展開，
@@ -94,10 +101,13 @@ void main() {
     // 底層淡彩、眼睛、口鼻：每個頂點都貼著表面。彎度欄的負值是特殊的層：-1 虹膜、-2 瞳孔、-3 反光、-4 眼皮、-5 鼻子
     // 瞳孔整片照視線挪動、照 uPupil 放大縮小，但取色的位置不動
     bool pupil = oval && iD.z < -1.5 && iD.z > -2.5;
-    vec2 g = pupil ? uLook : vec2(0.), at = pupil ? iA.xy + o * uPupil + g : xy;
+    vec2 g = pupil ? uLook : vec2(0.), at = pupil ? iA.xy + o * uPupil * vec2(1. - .5 * uPuff, 1. + .1 * uPuff) + g : xy; // 炸毛：瞳孔縮成一條直縫
     if (oval && iD.z < -4.5) at = iA.xy + o * (1. + .07 * uSniff) + vec2(0., .012 * uSniff); // 嗅一下：鼻子微微撐大、往上提
     // 給眼睛用的座標，除以半徑後 1 = 邊緣。瞳孔與眼皮：離眼眶中心多遠；虹膜：離原本畫瞳孔的地方多遠
     vEye = (at - iA.xy - iC.xy) / max(iC.z, .001);
+    // 炸毛：整隻眼睛（眼眶、虹膜、反光、眼皮）撐大，眼睛才是瞪圓的。vEye 用撐大前的位置算，眼皮和虹膜的比例不變
+    if (oval && !pupil && (iD.z > .1 || (iD.z < -.5 && iD.z > -4.5))) at = iA.xy + (at - iA.xy) * (1. + .3 * uPuff);
+    vIn = iA.x < .04 ? 1. : -1.; // 這隻眼睛的內側（靠鼻子那邊）在 +x 還是 -x
     p = onSurface(at, surf, side, up + base);
     vN = mat3(modelViewMatrix) * (side * normalAt(at, surf, side));
     vThick = surf > .5 ? 1. : side * H(toQ(xy), surf, side); // 頭在這裡有多厚；靠近輪廓接縫時趨近 0
@@ -122,10 +132,10 @@ void main() {
 
 const FRAG = /* glsl */ `
 uniform sampler2D uImg, uCov;
-uniform float uPool, uSmin, uDry, uCrisp, uShade, uBlink, uGlint, uCalm;
+uniform float uPool, uSmin, uDry, uCrisp, uShade, uBlink, uGlint, uCalm, uPuff;
 uniform vec3 uBackCol;
 uniform vec2 uRes;
-varying vec2 vL, vUv, vCv; varying vec4 vC, vD; varying float vSeed, vThick, vFront; varying vec3 vE, vPos, vN; varying vec2 vEye;
+varying vec2 vL, vUv, vCv; varying vec4 vC, vD; varying float vSeed, vThick, vFront; varying vec3 vE, vPos, vN; varying vec2 vEye; varying float vIn;
 
 ${EAR}
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -175,9 +185,10 @@ void main() {
       // 眼皮：從上往下蓋住眼眶。顏色是額頭的毛（取色位置在建立眼皮時指定），下緣加一道深色當睫毛線
       // 眼皮下緣在哪（1 是眼眶上緣，-1 是下緣）。中間比兩邊低，是一道往下彎的弧
       float line = 1.4 - 2.6 * uBlink - .3 * (1. - vEye.x * vEye.x);
+      line = min(line, mix(2., 1.05 - .6 * vIn * vEye.x, uPuff)); // 炸毛：眼皮只斜斜壓住內側上緣，像皺眉；眼睛其餘是睜大的
       // 睫毛線跟著眼皮下緣走，完全閉上時停在眼眶下半，留下一道彎彎的線
       col *= mix(.4, 1., smoothstep(.05, .22, abs(vEye.y - max(line, -.35 - .3 * (1. - vEye.x * vEye.x)))));
-      A = (1. - smoothstep(1.05, 1.45, length(vEye))) * smoothstep(line - .08, line + .08, vEye.y) * step(.001, uBlink); // 蓋到比眼眶大一圈，連眼眶上的黃邊一起遮掉
+      A = (1. - smoothstep(1.05, 1.45, length(vEye))) * smoothstep(line - .08, line + .08, vEye.y) * step(.001, uBlink + uPuff); // 蓋到比眼眶大一圈，連眼眶上的黃邊一起遮掉
     }
   } else A = 1.; // 底層淡彩
   A *= aImg;
@@ -232,7 +243,7 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
   const on = (target, type, fn, opts) => target.addEventListener(type, fn, { ...opts, signal: off.signal })
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
   // 頁面上的開關：自動旋轉、只看筆觸、拆開（0–1）、待機動作。網址指定了姿勢就是要看靜止的樣子
-  const ui = { sway: false, only: q.get('mode') === 'strokes', spread: num('spread', 0), idle: !calm && !['yaw', 'gx', 'blink', 'sniff'].some((k) => q.has(k)) }
+  const ui = { sway: false, only: q.get('mode') === 'strokes', spread: num('spread', 0), idle: !calm && !['yaw', 'gx', 'blink', 'sniff', 'puff'].some((k) => q.has(k)) }
   const img = new Image()
   // 不用 img.decode()：分頁在背景時它會一直等
   await new Promise((ok, fail) => { img.onload = ok; img.onerror = () => fail(new Error('讀不到貓頭圖片')); img.src = src })
@@ -303,7 +314,7 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
     return [gx / g, gy / g, Math.hypot(1, gx, gy)]
   }
 
-  const uniforms = { uDist: { value: distTex }, uImg: { value: tex }, uCov: { value: cov.texture }, uSpread: { value: 0 }, uVel: { value: new THREE.Vector2() }, uLook: { value: new THREE.Vector2() }, uTwitch: { value: new THREE.Vector2() }, uPupil: { value: num('pupil', 1) }, uSniff: { value: num('sniff', 0) }, uTime: { value: 0 }, uBlink: { value: num('blink', 0) }, uRes: { value: new THREE.Vector2(1, 1) }, uBackCol: { value: new THREE.Vector3(...backCol) } }
+  const uniforms = { uDist: { value: distTex }, uImg: { value: tex }, uCov: { value: cov.texture }, uSpread: { value: 0 }, uVel: { value: new THREE.Vector2() }, uLook: { value: new THREE.Vector2() }, uTwitch: { value: new THREE.Vector2() }, uPupil: { value: num('pupil', 1) }, uSniff: { value: num('sniff', 0) }, uPuff: { value: num('puff', 0) }, uTime: { value: 0 }, uBlink: { value: num('blink', 0) }, uRes: { value: new THREE.Vector2(1, 1) }, uBackCol: { value: new THREE.Vector3(...backCol) } }
   // 參數的來源：網址 > 之前存的 > 預設
   for (const [k, , , , , def] of PARAMS) uniforms[uname(k)] = { value: num(k, saved[k] ?? def) }
   const val = (k) => uniforms[uname(k)].value
@@ -468,12 +479,16 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
   const snap = () => { if (pin) [yaw, pitch] = pin; vy = vp = 0; render() } // 分頁在背景時不會有動畫格，固定角度要當下就畫
 
   // 摸牠的反應。press：這次按下去的起點；沒移動超過 8px 就不算拖曳，而是點一下（放得快）或長按（按住不放）
-  let press = null, holdTimer = 0, held = false, taps = [], busyUntil = 0, shake = 0, shakeAt = -1e9, squint = [0, 0, 0], earTap = [-1e9, 0], sniffTap = -1e9
+  let press = null, holdTimer = 0, held = false, taps = [], busyUntil = 0, shake = 0, shakeAt = -1e9, puffAt = -1e9, puff = num('puff', 0), squint = [0, 0, 0], earTap = [-1e9, 0], sniffTap = -1e9
   const tap = (cx, cy) => {
     const now = performance.now(), r = canvas.getBoundingClientRect()
     taps = taps.filter((t) => now - t < 1200).concat(now)
     busyUntil = now + 1500
-    if (taps.length >= 3) { taps = []; shakeAt = now; squint = [now, now + 700, 0.6]; return } // 連點三下：被煩到甩頭
+    if (taps.length >= 3) { // 連點三下：被煩到甩頭；5 秒內又來一次就生氣炸毛
+      taps = []
+      if (now - shakeAt < 5000) { puffAt = now; shakeAt = -1e9; busyUntil = now + PUFF_MS + 300 } else { shakeAt = now; squint = [now, now + 700, 0.6] }
+      return
+    }
     // 點到哪裡：頭大致朝前時，把畫面上的位置換回原圖座標（鏡頭視野的一半寬高是 1.131、1.085）
     const wx = ((cx - r.left) / r.width - 0.5) * 2.262, wy = (0.5 - (cy - r.top) / r.height) * 2.17
     const ix = (wx / 2 + 0.5) * PX, iy = (AR / 2 - wy / 2) * PX, front = Math.abs(yaw) < 40 && Math.abs(pitch) < 25
@@ -585,10 +600,16 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
     sniff += (pulse(now, sniffTap, 200) + pulse(now, sniffTap + 240, 200)) * 1.5
     tw[earTap[1]] += pulse(now, earTap[0], 220) * 1.6 + pulse(now, earTap[0] + 260, 220) * 1.4
     shake = now - shakeAt < 900 ? Math.sin((now - shakeAt) * 0.038) * 9 * Math.exp(-(now - shakeAt) / 260) : 0
+    // 炸毛：0.15 秒內豎起來，撐一陣子，最後 0.9 秒慢慢順回去。耳朵往後壓、眼睛瞪大不眨、瞳孔縮成直縫、整顆頭發抖
+    const pt = now - puffAt
+    if (!q.has('puff')) puff = pt < 0 || pt > PUFF_MS ? 0 : Math.min(pt / 150, 1, ((PUFF_MS - pt) / 900) ** 2)
+    if (puff) { blink *= 1 - puff; tw[0] -= 2.2 * puff; tw[1] -= 2.2 * puff; uniforms.uTime.value = ms / 1000 }
+    uniforms.uPuff.value = puff
+    if (!calm) shake += Math.sin(now * 0.11) * 1.3 * puff
     if (!fixed) { uniforms.uBlink.value = blink; uniforms.uSniff.value = sniff }
     uniforms.uTwitch.value.set(tw[0], tw[1])
     // 呼吸；長按時變深變快，像在呼嚕
-    head.scale.setScalar(1 + breath * Math.sin(ms / (held ? 260 : 900)))
+    head.scale.setScalar(1 + breath * Math.sin(ms / (held ? 260 : 900)) + 0.04 * puff)
     head.position.y = breath * 1.3 * Math.sin(ms / (held ? 260 : 900))
 
     // 瞳孔比頭快：先瞄過去，頭跟上之後瞳孔再收回一些。頭被固定或拖著時，瞳孔照樣跟。看得越偏瞳孔越小，看著你時放大
@@ -645,7 +666,7 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
     },
     // 測試用：分頁在背景時沒有動畫格，讓外面可以手動推進並讀出狀態
     step: loop,
-    state: () => ({ yaw, pitch, shake, held, blink: uniforms.uBlink.value, sniff: uniforms.uSniff.value, twitch: uniforms.uTwitch.value.toArray(), pin, hover, gaze, pupil: uniforms.uPupil.value }),
+    state: () => ({ yaw, pitch, shake, held, puff, blink: uniforms.uBlink.value, sniff: uniforms.uSniff.value, twitch: uniforms.uTwitch.value.toArray(), pin, hover, gaze, pupil: uniforms.uPupil.value }),
     // 離開頁面時一定要叫：停掉動畫、拆事件、把顯示卡的資源還回去（瀏覽器的 WebGL 環境數量有上限）
     dispose() {
       off.abort()
