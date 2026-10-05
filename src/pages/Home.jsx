@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Arrow, BlLink, catHead, clockOf, useBlFonts, useNow } from '../components/bl/shared'
+import Cat3D from '../components/bl/cat3d/Cat3D'
+import { buildPanel } from '../components/bl/cat3d/panel.js'
 import { getNavSections, itemsForSection } from '../config/navigation.jsx'
 import { APP_CHANGELOG, useChangelog } from '../contexts/ChangelogContext'
 import { BUSY_LEVELS, busyIndexOn, formatBusyDiff } from '../utils/flightData/busyIndex'
@@ -234,6 +236,22 @@ function useFitToViewport(ref) {
   }, [ref])
 }
 
+// 立體貓的設定存在 localStorage 的哪裡；讀不到或壞掉就用預設
+const CAT3D_KEY = 'bl-cat3d'
+const CAT3D_PARAMS_KEY = 'bl-cat3d-params'
+// 首頁的調整面板只放看得出差別的幾項，完整的在 /home/cat-lab
+const CAT3D_PANEL = ['density', 'crisp', 'shade', 'glint', 'gaze', 'follow']
+// 立體版的鏡頭看到的範圍是原圖的 1.131 倍寬
+const CAT3D_FRAME = 1.131
+function readStored(key, fallback) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key))
+    return value ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
 export default function Home() {
   useBlFonts()
   const pageRef = useRef(null)
@@ -270,6 +288,45 @@ export default function Home() {
     return () => window.removeEventListener('pointermove', onMove)
   }, [])
 
+  // 立體貓（測試中）：預設是原本的圖，按貓旁邊的切換才載入立體版。選擇和調過的參數都記在這台裝置上
+  const [cat3d, setCat3d] = useState(() => readStored(CAT3D_KEY, false))
+  const [cat, setCat] = useState(null) // 立體版準備好之後的控制物件
+  const [catFailed, setCatFailed] = useState(false)
+  const savedParams = useMemo(() => readStored(CAT3D_PARAMS_KEY, {}), [])
+  const panelRef = useRef(null)
+  const dialogRef = useRef(null)
+  const toggleCat3d = () => {
+    const next = !cat3d
+    dialogRef.current?.close()
+    setCat(null)
+    setCatFailed(false)
+    setCat3d(next)
+    try { localStorage.setItem(CAT3D_KEY, JSON.stringify(next)) } catch { /* 存不了就只是下次要再切一次 */ }
+  }
+  // 立體版的畫布要疊在原圖正上方，而且比原圖大一圈（轉頭時毛會超出原圖的範圍）。原圖的大小隨版面變，所以量它
+  useEffect(() => {
+    const peek = peekRef.current
+    const img = peek?.querySelector('img')
+    if (!cat3d || !img) return
+    const place = () => {
+      peek.style.setProperty('--cat-x', `${img.offsetLeft + img.offsetWidth / 2}px`)
+      peek.style.setProperty('--cat-y', `${img.offsetTop + img.offsetHeight / 2}px`)
+      peek.style.setProperty('--cat-w', `${img.offsetWidth * CAT3D_FRAME}px`)
+    }
+    place()
+    const watch = new ResizeObserver(place)
+    watch.observe(img)
+    watch.observe(peek)
+    return () => watch.disconnect()
+  }, [cat3d])
+  // 立體版準備好就把調整面板長出來
+  useEffect(() => {
+    const el = panelRef.current
+    if (!cat || !el) return
+    buildPanel(cat, el, { keys: CAT3D_PANEL, storageKey: CAT3D_PARAMS_KEY })
+    return () => el.replaceChildren()
+  }, [cat])
+
   return (
     <div className="bl bl-home">
       <div className="page" ref={pageRef}>
@@ -279,16 +336,25 @@ export default function Home() {
         </header>
         <main className="split">
           <div className="art">
-            <button
-              key={nod}
-              ref={peekRef}
-              type="button"
-              className={`peek${nod ? ' nod' : ''}`}
-              aria-label="摸摸店貓"
-              onClick={() => setNod((n) => n + 1)}
-            >
-              <img className="vt-cat" src={catHead} alt="" width="900" height="862" />
-            </button>
+            <div ref={peekRef} className={`peek${nod ? ' nod' : ''}${cat ? ' live' : ''}`}>
+              {/* 原本的圖永遠在：立體版載入中、失敗或關掉時就是它 */}
+              <button type="button" className="pet" aria-label="摸摸店貓" tabIndex={cat ? -1 : 0} onClick={() => setNod((n) => n + 1)}>
+                <img key={nod} className="vt-cat" src={catHead} alt="" width="900" height="862" />
+              </button>
+              {cat3d && !catFailed && (
+                <Cat3D className="cat3d" src={catHead} saved={savedParams} label="店貓，可以摸、可以拖著轉" onReady={setCat} onFail={() => setCatFailed(true)} />
+              )}
+              <div className="cat-tools">
+                {cat && (
+                  <button type="button" aria-haspopup="dialog" onClick={() => (dialogRef.current.open ? dialogRef.current.close() : dialogRef.current.show())}>
+                    調整
+                  </button>
+                )}
+                <button type="button" aria-pressed={cat3d} onClick={toggleCat3d} title={catFailed ? '這台裝置跑不動立體版' : undefined}>
+                  {catFailed ? '立體版無法使用' : cat3d && !cat ? '載入中…' : '立體'}
+                </button>
+              </div>
+            </div>
             <section className="today" aria-labelledby="home-today">
               <h2 className="day" id="home-today">
                 <span className="label">今天</span>
@@ -370,6 +436,13 @@ export default function Home() {
           </div>
         </main>
       </div>
+      {/* 調整面板放在最外層：貓的外框有浮動的動畫，固定定位的東西放在裡面會跟著它跑 */}
+      <dialog ref={dialogRef} className="cat-panel" aria-label="立體貓調整">
+        <div ref={panelRef} />
+        <button type="button" className="close" onClick={() => dialogRef.current.close()}>
+          關閉
+        </button>
+      </dialog>
     </div>
   )
 }

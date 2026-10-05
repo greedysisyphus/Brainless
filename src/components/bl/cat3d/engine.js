@@ -1,93 +1,12 @@
-<!DOCTYPE html>
-<html lang="zh-Hant-TW">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="robots" content="noindex" />
-<title>Brainless 測試：立體水彩貓</title>
-<style>
-  :root { --canvas: #f3f0e8; --surface: #fffdfa; --ink: #1c1914; --muted: #595349; --coral: #c64022; --line: rgba(28, 25, 20, 0.14); }
-  *, *::before, *::after { box-sizing: border-box; }
-  body { margin: 0; background: var(--canvas); color: var(--ink); font-family: 'Noto Sans TC', 'PingFang TC', sans-serif; line-height: 1.6; -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 64px max(16px, env(safe-area-inset-left)); }
-  h1 { font-size: 22px; margin: 0 0 2px; }
-  h2 { font-size: 14px; margin: 0; grid-column: 1 / -1; }
-  p { margin: 0; color: var(--muted); font-size: 14px; }
-  .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
-  figure { margin: 0; }
-  figcaption { font-size: 13px; color: var(--muted); text-align: center; }
-  #cat, .stage img { display: block; width: 100%; aspect-ratio: 900 / 863; }
-  #cat { touch-action: pan-y; cursor: grab; }
-  #cat:active { cursor: grabbing; }
-  .bar, #panel { padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; font-size: 14px; }
-  .bar { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
-  .bar label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
-  #panel[hidden] { display: none; }
-  #panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 24px; margin-top: 12px; }
-  #panel label { display: grid; grid-template-columns: 6.5em 1fr 3em; align-items: center; gap: 8px; min-height: 44px; }
-  #panel output { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
-  #panel div { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
-  button { min-height: 44px; min-width: 52px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: inherit; font: inherit; cursor: pointer; }
-  button:hover { border-color: var(--ink); }
-  :focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
-  input[type='range'] { width: 100%; min-width: 0; accent-color: var(--coral); }
-  .bar input[type='range'] { width: 140px; }
-  input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--coral); }
-  ul { margin: 20px 0 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
-  #err { color: var(--coral); font-size: 14px; }
-  @media (max-width: 640px) { .stage { grid-template-columns: 1fr; } }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>立體水彩貓</h1>
-  <p>貓的瞳孔會先瞄向游標或你手指碰的地方，頭再慢慢跟上。拖曳可以轉一整圈，放開會停在那個角度；按「跟隨游標」回到看著你的狀態。</p>
-  <p>摸牠：點一下會瞇眼蹭過來，點鼻子會縮一下，點耳朵會抖耳朵，連點三下會甩頭，按住不放會瞇著眼呼嚕。</p>
-  <p id="err" role="alert"></p>
-
-  <div class="stage">
-    <figure><canvas id="cat" aria-label="可拖曳旋轉的立體水彩貓頭"></canvas><figcaption>立體版 · <span id="info"></span></figcaption></figure>
-    <figure><img src="./cat-head.webp" alt="原始水彩貓頭" /><figcaption>原圖</figcaption></figure>
-  </div>
-
-  <div class="bar">
-    <span>角度</span>
-    <button data-yaw="-35">-35°</button><button data-yaw="0">正面</button><button data-yaw="20">20°</button><button data-yaw="35">35°</button><button data-yaw="90">側面</button><button data-yaw="180">背面</button><button data-yaw="">跟隨游標</button>
-    <button id="tilt" hidden>用手機傾斜來轉</button>
-    <label><input type="checkbox" id="sway" /> 自動旋轉</label>
-    <label><input type="checkbox" id="idle" /> 待機動作</label>
-    <label><input type="checkbox" id="only" /> 只看筆觸</label>
-    <label>拆開 <input type="range" id="spread" min="0" max="1" step="0.01" value="0" /></label>
-    <button id="gear" aria-expanded="false" aria-controls="panel">調整</button>
-  </div>
-
-  <div id="panel" hidden>
-    <h2>調整</h2>
-  </div>
-
-  <ul>
-    <li>每一筆是一片獨立的小網格，貼在頭的表面上、筆尖翹起來，大小與疏密在整顆頭上一致；重疊的地方由比較上層的那一筆說了算，所以看得出一筆壓著一筆。</li>
-    <li>每個像素的顏料濃度，依當下看得到的筆觸分攤。正面時每筆取的都是原圖同一點，所以跟原圖一樣；轉到側面時每筆改用自己展開的那一小塊，不會被曲面拉長。</li>
-    <li>待機時會眨眼、呼吸、抖耳朵、鬍鬚輕晃，沒人理牠時偶爾自己瞄別處。背光的那一側疊了一層偏冷的淡彩當陰影。跑不順時會自動調降畫質。</li>
-    <li>眼睛拆成眼眶、虹膜、瞳孔、反光、眼皮。眼皮的顏色取自眼睛上方的毛；反光是補畫的白點，固定不跟著瞳孔動。瞳孔是獨立的一片，會在眼眶裡移動，超出眼眶的部分被蓋住；虹膜上原本畫著瞳孔的地方，用四周的黃色補起來（這塊是補畫的）。</li>
-    <li>耳朵是獨立的兩片，根部在頭頂的毛後面，往前傾、中間凹；頭和耳朵的筆觸各自只畫自己的範圍。</li>
-    <li>後腦、耳背是補的：原圖沒有畫。形狀是把輪廓往後鼓起來，顏色是從正面的紫色毛裡搬過來的小塊：正面是毛的位置就原地延續過去，是臉的位置就把四周的毛往中間收。</li>
-    <li>鼻子和嘴巴拆成四層：赭黃色的底、粉色鼻頭、鼻子的深色線、人中與嘴巴的線。鼻頭浮在最前面，待機時會嗅一下：鼻頭撐大、兩塊鬍鬚墊鼓起來、鬍鬚往前張開。嘴巴不會張開，原圖沒有畫口腔。</li>
-    <li>推測的部分：頭的隆起、口鼻與耳朵的深度、每一筆的形狀與走向都是重新安排的，不是原作的筆觸。側臉的輪廓（口鼻凸出多少）完全是猜的。</li>
-  </ul>
-</div>
-
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js'
+// 立體水彩貓：把一張水彩貓頭變成可以轉、會眨眼、可以摸的立體版。
+// 這個檔案不碰 React，也不碰頁面上其他元素：給它一個 canvas 和圖片網址，回傳一組控制用的函式。
+import * as THREE from 'three'
 
 const PX = 900, AR = 863 / 900, MAX_PITCH = 35
-const q = new URLSearchParams(location.search)
-const num = (k, d) => (q.has(k) ? Number(q.get(k)) : d)
-const $ = (id) => document.getElementById(id)
 const clamp = (v, m) => Math.max(-m, Math.min(m, v))
 
 // 可調的參數：[網址參數名, 標籤, 最小, 最大, 間隔, 預設, 是否要重排筆觸]
-const PARAMS = [
+export const PARAMS = [
   ['density', '筆觸數量', 0.4, 4, 0.05, 1.2, 1], ['len', '筆觸長度', 0.5, 2, 0.05, 1, 1], ['wid', '筆觸寬度', 0.5, 2, 0.05, 1, 1], ['jit', '方向亂度', 0, 2, 0.05, 0.7, 1],
   ['lift', '筆尖翹起', 0, 3, 0.05, 1], ['gap', '層間距', 0, 4, 0.05, 1], ['depth', '頭的厚度', 0, 1.6, 0.05, 1, 1], ['ear', '耳朵前傾', -1, 2, 0.05, 1], ['back', '後腦深度', 0.3, 1.6, 0.05, 1, 1], ['round', '頭的圓度', 0, 1, 0.05, 0.85, 1],
   ['crisp', '筆觸分明', 1, 6, 0.1, 3], ['pool', '邊緣積色', 0, 1.5, 0.05, 0.6], ['dry', '飛白', 0, 1, 0.05, 0.85], ['smin', '縫隙留白', 0.2, 1.5, 0.05, 0.6],
@@ -302,10 +221,20 @@ void main() {
   #endif
 }`
 
-async function main() {
+// opts.src：貓頭圖片的網址。opts.saved：之前調過的參數 { 名稱: 值 }。opts.query：網址參數（測試時用來固定姿勢）。
+// opts.stay：拖曳放開後停在原地（測試頁）還是彈回去（首頁）。opts.onInfo：筆觸數量或畫質有變時通知。
+export async function createCat(canvas, { src, saved = {}, query = '', stay = true, onInfo = () => {} } = {}) {
+  const q = new URLSearchParams(query)
+  const num = (k, d) => (q.has(k) ? Number(q.get(k)) : d)
+  // 所有掛出去的事件都帶同一個 signal，dispose 時一次拆掉
+  const off = new AbortController()
+  const on = (target, type, fn, opts) => target.addEventListener(type, fn, { ...opts, signal: off.signal })
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
+  // 頁面上的開關：自動旋轉、只看筆觸、拆開（0–1）、待機動作。網址指定了姿勢就是要看靜止的樣子
+  const ui = { sway: false, only: q.get('mode') === 'strokes', spread: num('spread', 0), idle: !calm && !['yaw', 'gx', 'blink', 'sniff'].some((k) => q.has(k)) }
   const img = new Image()
   // 不用 img.decode()：分頁在背景時它會一直等
-  await new Promise((ok, fail) => { img.onload = ok; img.onerror = () => fail(new Error('讀不到 cat-head.webp')); img.src = './cat-head.webp' })
+  await new Promise((ok, fail) => { img.onload = ok; img.onerror = () => fail(new Error('讀不到貓頭圖片')); img.src = src })
 
   // 縮小一份到 2D canvas，放筆觸時用來查顏色與透明度
   const SC = 0.25, sw = Math.round(PX * SC), sh = Math.round(PX * AR * SC)
@@ -318,7 +247,7 @@ async function main() {
     return [0, 1, 2].map((c) => (data[i + c] / 255) * a + 1 - a).concat(a)
   }
 
-  const canvas = $('cat')
+  canvas.style.touchAction = 'pan-y' // 上下滑留給頁面捲動
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
   renderer.autoClear = false
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace // 全程不轉色彩空間，multiply 直接在螢幕色上算
@@ -374,9 +303,7 @@ async function main() {
   }
 
   const uniforms = { uDist: { value: distTex }, uImg: { value: tex }, uCov: { value: cov.texture }, uSpread: { value: 0 }, uVel: { value: new THREE.Vector2() }, uLook: { value: new THREE.Vector2() }, uTwitch: { value: new THREE.Vector2() }, uPupil: { value: num('pupil', 1) }, uSniff: { value: num('sniff', 0) }, uTime: { value: 0 }, uBlink: { value: num('blink', 0) }, uRes: { value: new THREE.Vector2(1, 1) }, uBackCol: { value: new THREE.Vector3(...backCol) } }
-  // 調過的設定存在這台裝置上，下次打開還在；網址參數優先。讀不到（無痕模式等）就當沒存過
-  let saved = {}
-  try { saved = JSON.parse(localStorage.getItem('cat-lab') || '{}') } catch {}
+  // 參數的來源：網址 > 之前存的 > 預設
   for (const [k, , , , , def] of PARAMS) uniforms[uname(k)] = { value: num(k, saved[k] ?? def) }
   const val = (k) => uniforms[uname(k)].value
   const mat = (PASS, o) => new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms, defines: { PASS }, side: THREE.DoubleSide, ...o })
@@ -486,7 +413,7 @@ async function main() {
   head.add(mesh([1, -1].map((side) => stroke({ side, x: PX / 2, y: (PX * AR) / 2, L: PX, W: PX * AR, z: -0.01, w: 0.3, shape: 2, k: 0, tier: -1 })), 128, 128)) // 正面、背面各一片底層淡彩，也拿來當實心頭
 
   let count = 0, level = 0
-  const note = () => ($('info').textContent = `${count} 片獨立筆觸` + (level ? `，畫質已自動調降 ${level} 級` : ''))
+  const note = () => onInfo(`${count} 片獨立筆觸` + (level ? `，畫質已自動調降 ${level} 級` : ''))
   function refresh(rebuild) {
     if (!rebuild) return
     const list = strokes()
@@ -510,13 +437,10 @@ async function main() {
   let yaw = 0, pitch = 0, vy = 0, vp = 0, last = 0
   let gaze = q.has('gx') ? [num('gx', 0), num('gy', 0)] : [0, 0] // 瞳孔往哪看，-1 到 1
   let pin = q.has('yaw') ? [num('yaw', 0), num('pitch', 0)] : null, drag = null, hover = null, gyro = null
-  const sway = $('sway'), only = $('only'), spread = $('spread')
-  only.checked = q.get('mode') === 'strokes'
-  spread.value = num('spread', 0)
 
   const render = () => {
     head.rotation.set(THREE.MathUtils.degToRad(pitch), THREE.MathUtils.degToRad(yaw + shake), 0)
-    uniforms.uSpread.value = spread.value * 0.14
+    uniforms.uSpread.value = ui.spread * 0.14
     uniforms.uVel.value.set(clamp(vy, 300), -clamp(vp, 300)).multiplyScalar(0.0018)
     uniforms.uLook.value.set(gaze[0], -gaze[1]).multiplyScalar(0.045 * val('gaze'))
     // 每一趟都先只畫實心頭的深度，再畫筆觸
@@ -529,15 +453,15 @@ async function main() {
       setMat(m)
       renderer.render(scene, camera)
     }
-    if (!only.checked) { // 先算這個視角下每個像素的權重總和
+    if (!ui.only) { // 先算這個視角下每個像素的權重總和
       renderer.setRenderTarget(cov)
       renderer.setClearColor(0x000000, 0)
       pass(mats[0])
       renderer.setRenderTarget(null)
     }
-    renderer.setClearColor(0xffffff, only.checked ? 0 : 1)
-    pass(mats[only.checked ? 2 : 1])
-    if (!only.checked) renderer.render(lift, camera)
+    renderer.setClearColor(0xffffff, ui.only ? 0 : 1)
+    pass(mats[ui.only ? 2 : 1])
+    if (!ui.only) renderer.render(lift, camera)
   }
   const unwind = () => { yaw = ((((yaw + 180) % 360) + 360) % 360) - 180 } // 轉了好幾圈之後收回 ±180 內，免得回正時倒轉好幾圈
   const snap = () => { if (pin) [yaw, pitch] = pin; vy = vp = 0; render() } // 分頁在背景時不會有動畫格，固定角度要當下就畫
@@ -557,24 +481,24 @@ async function main() {
     else if (front && Math.hypot(ix - 475, iy - 555) < 80) { sniffTap = now; squint = [now, now + 350, 1]; vp -= 120 } // 鼻子：往後縮、眨眼、嗅
     else { sniffTap = now; squint = [now, now + 650, 0.8]; vy += clamp(wx, 1) * 220; vp -= clamp(wy, 1) * 150 } // 其他地方：瞇眼，往手的方向蹭一下
   }
-  canvas.addEventListener('pointerdown', (e) => {
+  on(canvas, 'pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId)
     press = { x: e.clientX, y: e.clientY, t: performance.now(), pin, far: false }
     holdTimer = setTimeout(() => { if (press && !press.far) { held = true; busyUntil = Infinity } }, 450) // 長按：瞇眼讓你摸
-    unwind(); pin = null; sway.checked = false; drag = [yaw, pitch]
+    unwind(); pin = null; ui.sway = false; drag = [yaw, pitch]
   })
-  canvas.addEventListener('pointermove', (e) => {
+  on(canvas, 'pointermove', (e) => {
     if (!drag) return
     if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) press.far = true
     drag[0] += e.movementX * 0.35
     if (e.pointerType === 'mouse') drag[1] = clamp(drag[1] + e.movementY * 0.25, MAX_PITCH) // 觸控的上下留給頁面捲動
   })
-  for (const ev of ['pointerup', 'pointercancel']) canvas.addEventListener(ev, (e) => {
+  for (const ev of ['pointerup', 'pointercancel']) on(canvas, ev, (e) => {
     clearTimeout(holdTimer)
     const p = press, wasHeld = held
     press = null; held = false
     if (wasHeld) busyUntil = performance.now() + 600
-    if (!p || p.far) { pin = drag || pin; drag = null; return } // 拖過：放開就停在那裡
+    if (!p || p.far) { pin = stay ? drag || pin : p ? p.pin : pin; drag = null; return } // 拖過：停在那裡，或彈回原本的狀態
     pin = p.pin; drag = null // 沒拖：頭的狀態照舊
     if (!wasHeld && e.type === 'pointerup' && performance.now() - p.t < 350) tap(p.x, p.y)
   })
@@ -585,60 +509,29 @@ async function main() {
     const r = canvas.getBoundingClientRect()
     hover = [clamp((cx - r.left - r.width / 2) / (innerWidth / 2), 1), clamp((cy - r.top - r.height / 2) / (innerHeight / 2), 1)]
   }
-  addEventListener('pointermove', (e) => e.pointerType === 'mouse' && lookAt(e.clientX, e.clientY))
-  for (const ev of ['touchstart', 'touchmove']) addEventListener(ev, (e) => lookAt(e.touches[0].clientX, e.touches[0].clientY), { passive: true })
-  document.documentElement.addEventListener('pointerleave', () => (hover = null))
-  document.querySelectorAll('[data-yaw]').forEach((b) => b.addEventListener('click', () => { unwind(); pin = b.dataset.yaw === '' ? null : [Number(b.dataset.yaw), 0]; sway.checked = false; snap() }))
-  ;[only, spread].forEach((el) => el.addEventListener('input', render))
-  sway.addEventListener('input', unwind)
+  on(window, 'pointermove', (e) => e.pointerType === 'mouse' && lookAt(e.clientX, e.clientY))
+  for (const ev of ['touchstart', 'touchmove']) on(window, ev, (e) => lookAt(e.touches[0].clientX, e.touches[0].clientY), { passive: true })
+  on(document.documentElement, 'pointerleave', () => (hover = null))
   const fit = () => { renderer.setSize(canvas.clientWidth, canvas.clientHeight, false); renderer.getDrawingBufferSize(uniforms.uRes.value); cov.setSize(uniforms.uRes.value.x, uniforms.uRes.value.y); render() }
-  new ResizeObserver(fit).observe(canvas)
+  const sized = new ResizeObserver(fit)
+  sized.observe(canvas)
 
-  // 手機傾斜：iOS 要使用者按了才給權限，所以做成按鈕
-  const tilt = $('tilt')
-  tilt.hidden = !('DeviceOrientationEvent' in window && matchMedia('(pointer: coarse)').matches)
-  tilt.addEventListener('click', async () => {
-    if ((await DeviceOrientationEvent.requestPermission?.().catch(() => 'denied')) === 'denied') return
-    let beta0
-    addEventListener('deviceorientation', (e) => { beta0 ??= e.beta; gyro = [e.gamma * 0.9, (e.beta - beta0) * 0.5] })
-    pin = null
-    tilt.hidden = true
-  })
-
-  // 調整面板
-  const panel = $('panel'), inputs = []
-  for (const [k, label, min, max, step, def, rebuild] of PARAMS) {
-    const lab = document.createElement('label'), input = Object.assign(document.createElement('input'), { type: 'range', min, max, step, value: val(k) }), out = document.createElement('output')
-    const sync = () => { uniforms[uname(k)].value = Number(input.value); out.textContent = input.value }
-    input.addEventListener('input', () => { sync(); store(); refresh(rebuild); render() })
-    lab.append(Object.assign(document.createElement('span'), { textContent: label }), input, out)
-    panel.append(lab)
-    inputs.push({ k, def, input, sync })
-    sync()
+  // 改一個參數：需要重排筆觸的會重排。回傳實際套用的值
+  const set = (k, v) => {
+    const p = PARAMS.find((x) => x[0] === k)
+    uniforms[uname(k)].value = Math.max(p[2], Math.min(p[3], Number(v)))
+    refresh(p[6])
+    render()
+    return val(k)
   }
-  const store = () => { try { localStorage.setItem('cat-lab', JSON.stringify(Object.fromEntries(inputs.filter((i) => Number(i.input.value) !== i.def).map((i) => [i.k, Number(i.input.value)])))) } catch {} }
-  const reset = Object.assign(document.createElement('button'), { textContent: '恢復原廠設定' })
-  reset.addEventListener('click', () => { inputs.forEach((i) => { i.input.value = i.def; i.sync() }); store(); refresh(true); render() })
-  $('gear').addEventListener('click', () => { panel.hidden = !panel.hidden; $('gear').setAttribute('aria-expanded', String(!panel.hidden)) })
-  const copy = Object.assign(document.createElement('button'), { textContent: '複製這組設定的網址' })
-  copy.addEventListener('click', async () => {
-    const changed = inputs.filter((i) => Number(i.input.value) !== i.def).map((i) => `${i.k}=${i.input.value}`).join('&')
-    // 有些環境不給寫剪貼簿，就把設定直接顯示在按鈕上
-    copy.textContent = await navigator.clipboard.writeText(location.origin + location.pathname + (changed && '?' + changed)).then(() => '已複製', () => changed || '（都是預設值）')
-    setTimeout(() => (copy.textContent = '複製這組設定的網址'), 4000)
-  })
-  panel.append(Object.assign(document.createElement('div'), {}))
-  panel.lastChild.append(reset, copy)
 
   refresh(true)
   fit() // 不等 ResizeObserver：第一幀就要有正確的畫布大小，不然權重貼圖只有 1×1，顏色會分錯
   snap()
 
-  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, idle = $('idle')
-  idle.checked = !calm && !['yaw', 'gx', 'blink', 'sniff'].some((k) => q.has(k)) // 網址指定了姿勢就是要看靜止的樣子
-  idle.addEventListener('input', () => { uniforms.uBlink.value = uniforms.uSniff.value = 0; uniforms.uTwitch.value.set(0, 0); head.scale.setScalar(1); head.position.y = 0; render() })
   let seen = true // 捲出畫面就不畫，省電
-  new IntersectionObserver(([e]) => (seen = e.isIntersecting)).observe(canvas)
+  const watched = new IntersectionObserver(([e]) => (seen = e.isIntersecting))
+  watched.observe(canvas)
 
   // 待機動作各自的下一次時間
   let blinkAt = 1500, earAt = 5000, ear = 0, glanceAt = 6000, glance = [0, 0], sniffAt = 3500
@@ -646,18 +539,17 @@ async function main() {
 
   // 跑不順就自動降畫質：先降解析度三級，還是慢再減筆觸兩次
   let slow = 0, frames = 0
-  const density = inputs.find((i) => i.k === 'density')
   const cheaper = () => {
     level++
     if (level <= 3) { renderer.setPixelRatio(Math.min(devicePixelRatio, [2, 1.5, 1.2, 1][level])); fit() }
-    else { density.input.value = Math.max(0.4, density.input.value * 0.7); density.sync(); refresh(true) }
+    else { uniforms.uDensity.value = Math.max(0.4, val('density') * 0.7); refresh(true) }
     note()
   }
 
   const loop = (ms) => {
     const raw = (ms - last) / 1000, dt = Math.max(0, Math.min(raw, 0.05)), f = val('follow') // 時間倒退（測試時手動推進）就當作沒過時間
     last = ms
-    const [ty, tp] = sway.checked ? [yaw + 6, 0] // 目標永遠領先一點，彈簧就會等速轉下去
+    const [ty, tp] = ui.sway ? [yaw + 6, 0] // 目標永遠領先一點，彈簧就會等速轉下去
       : drag || pin || (gyro && [clamp(gyro[0], f), clamp(gyro[1], f * 0.45)]) || (hover && [hover[0] * f, hover[1] * f * 0.45]) || [0, 0]
     if (calm) { vy = (ty - yaw) / Math.max(dt, 0.001); vp = (tp - pitch) / Math.max(dt, 0.001); yaw = ty; pitch = tp } // 減少動態：不彈
     else { // 略微欠阻尼的彈簧，放開時會輕輕過頭再回來
@@ -666,7 +558,7 @@ async function main() {
     }
 
     let look = (gyro && [clamp(gyro[0] / 30, 1), clamp(gyro[1] / 30, 1)]) || hover || [0, 0]
-    const alive = idle.checked && seen, now = ms, fixed = q.has('blink') || q.has('sniff') // 網址指定了表情就不動它
+    const alive = ui.idle && seen, now = ms, fixed = q.has('blink') || q.has('sniff') // 網址指定了表情就不動它
     let blink = 0, sniff = 0, tw = [0, 0], breath = held ? 0.014 : 0
     if (alive) {
       // 眨眼：每 2.5–6.5 秒一次，兩成機率連眨兩下
@@ -718,13 +610,50 @@ async function main() {
     frames = slow = 0
   }
   renderer.setAnimationLoop(loop)
-  if (q.has('step')) { // 測試用：分頁在背景時沒有動畫格，讓外面可以手動推進並讀出狀態
-    window.catStep = loop
-    window.catState = () => ({ yaw, pitch, shake, held, blink: uniforms.uBlink.value, sniff: uniforms.uSniff.value, twitch: uniforms.uTwitch.value.toArray(), pin, hover, gaze, pupil: uniforms.uPupil.value, u: Object.fromEntries(Object.entries(uniforms).filter(([, v]) => typeof v.value === 'number' || v.value?.toArray).map(([k, v]) => [k, v.value.toArray ? v.value.toArray() : v.value])), head: [head.scale.x, head.position.y, ...head.rotation.toArray().slice(0, 3)] })
+
+  return {
+    params: PARAMS,
+    val,
+    set,
+    // 全部改回預設值
+    reset() { for (const [k, , , , , def] of PARAMS) uniforms[uname(k)].value = def; refresh(true); render() },
+    // 跟預設不一樣的參數，給外面存起來用
+    changed: () => Object.fromEntries(PARAMS.filter(([k, , , , , def]) => val(k) !== def).map(([k]) => [k, val(k)])),
+    ui,
+    // 改頁面上的開關：{ sway, only, spread, idle }
+    setUi(patch) {
+      Object.assign(ui, patch)
+      if ('sway' in patch) unwind()
+      if (patch.idle === false) { uniforms.uBlink.value = uniforms.uSniff.value = 0; uniforms.uTwitch.value.set(0, 0); head.scale.setScalar(1); head.position.y = 0 }
+      render()
+    },
+    // 固定在某個角度；給 null 就回到跟著游標
+    pin(deg) { unwind(); pin = deg == null ? null : [deg, 0]; ui.sway = false; snap() },
+    // 手機傾斜：iOS 要使用者按了才給權限，所以要從按鈕的點擊裡呼叫。回傳有沒有成功
+    canTilt: 'DeviceOrientationEvent' in window && matchMedia('(pointer: coarse)').matches,
+    async tilt() {
+      if ((await DeviceOrientationEvent.requestPermission?.().catch(() => 'denied')) === 'denied') return false
+      let beta0
+      on(window, 'deviceorientation', (e) => { beta0 ??= e.beta; gyro = [e.gamma * 0.9, (e.beta - beta0) * 0.5] })
+      pin = null
+      return true
+    },
+    // 測試用：分頁在背景時沒有動畫格，讓外面可以手動推進並讀出狀態
+    step: loop,
+    state: () => ({ yaw, pitch, shake, held, blink: uniforms.uBlink.value, sniff: uniforms.uSniff.value, twitch: uniforms.uTwitch.value.toArray(), pin, hover, gaze, pupil: uniforms.uPupil.value }),
+    // 離開頁面時一定要叫：停掉動畫、拆事件、把顯示卡的資源還回去（瀏覽器的 WebGL 環境數量有上限）
+    dispose() {
+      off.abort()
+      clearTimeout(holdTimer)
+      sized.disconnect()
+      watched.disconnect()
+      renderer.setAnimationLoop(null)
+      head.children.forEach((c) => c.geometry.dispose())
+      lift.geometry.dispose()
+      ;[...mats, lift.material].forEach((m) => m.dispose())
+      ;[tex, distTex, cov].forEach((t) => t.dispose())
+      renderer.dispose()
+      renderer.forceContextLoss()
+    },
   }
 }
-
-main().catch((e) => { $('err').textContent = '載入失敗：' + e.message; console.error(e) })
-</script>
-</body>
-</html>

@@ -39,6 +39,7 @@ const BlChangelog = lazy(() => loadBl().then((m) => ({ default: m.Changelog })))
 const BlAdmin = lazy(() => loadBl().then((m) => ({ default: m.Admin })))
 const BlMenu = lazy(() => loadBl().then((m) => ({ default: m.Menu })))
 const BlPlayground = lazy(() => loadBl().then((m) => ({ default: m.Playground })))
+const BlCatLab = lazy(() => loadBl().then((m) => ({ default: m.CatLab })))
 
 function AppContent() {
   const [firebaseStatus, setFirebaseStatus] = useState({
@@ -90,6 +91,7 @@ function AppContent() {
               <Route path="/home/admin" element={<BlAdmin />} />
               <Route path="/home/menu" element={<BlMenu />} />
               <Route path="/home/playground" element={<BlPlayground />} />
+              <Route path="/home/cat-lab" element={<BlCatLab />} />
               <Route path="/home/*" element={<Navigate to="/home" replace />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />
               <Route path="/cashier" element={<CashierManagement />} />
