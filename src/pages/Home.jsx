@@ -288,8 +288,9 @@ export default function Home() {
     return () => window.removeEventListener('pointermove', onMove)
   }, [])
 
-  // 立體貓（測試中）：預設是原本的圖，按貓旁邊的切換才載入立體版。選擇和調過的參數都記在這台裝置上
-  const [cat3d, setCat3d] = useState(() => readStored(CAT3D_KEY, false))
+  // 立體貓：預設開著，按貓旁邊的切換可以換回原本的圖。立體版載入中、失敗或裝置不支援時顯示的也是原圖。
+  // 選擇和調過的參數都記在這台裝置上
+  const [cat3d, setCat3d] = useState(() => readStored(CAT3D_KEY, true))
   const [cat, setCat] = useState(null) // 立體版準備好之後的控制物件
   const [catFailed, setCatFailed] = useState(false)
   const savedParams = useMemo(() => readStored(CAT3D_PARAMS_KEY, {}), [])

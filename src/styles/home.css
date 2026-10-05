@@ -136,6 +136,10 @@
   .bl-home .page { padding-bottom: 32px; }
   .bl-home header { padding: 16px 0 14px; }
   .bl-home .split { grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding-top: 16px; align-items: center; }
+  /* 貓很小的時候，切換的小按鈕不能蓋在臉上：移到貓的正下方，貓下面多留一點位置給它 */
+  .bl-home .peek { margin-bottom: 22px; }
+  .bl-home .cat-tools { top: calc(100% - 2px); bottom: auto; gap: 4px; }
+  .bl-home .cat-tools button { min-height: 22px; padding: 0 8px; font-size: 0.625rem; }
   .bl-home .body, .bl-home .today { display: contents; }
   .bl-home .split :is(.day, .stats, .meter, .reveal, .menu, .colophon) { grid-column: 1 / -1; }
 
