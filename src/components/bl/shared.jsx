@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPortal, flushSync } from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useHref, useNavigate } from 'react-router-dom'
 import catHead from '../../assets/cat-head.webp'
 import '../../styles/bl.css'
@@ -41,13 +41,29 @@ export const Arrow = () => (
  * 新版頁面之間的連結：換頁時跑 view transition（貓縮進頁首、標題放大）。
  * 瀏覽器不支援或使用者關掉動態時就是普通換頁。onBefore 在拍下舊畫面之前呼叫，用來標記要變形的元素。
  */
+// 換頁並跑轉場。路由開了 v7_startTransition，換頁是排進去稍後才畫的（flushSync 逼不出來），
+// 所以要等舊頁面真的從畫面上拿掉，才讓瀏覽器拍新畫面；不然新舊兩張都是舊頁，動畫不會出現。
+function blGo(go) {
+  if (!document.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return go()
+  const old = document.querySelector('.bl')
+  document.startViewTransition(
+    () =>
+      new Promise((done) => {
+        go()
+        if (!old) return done()
+        const watch = new MutationObserver(() => old.isConnected || finish())
+        const finish = () => (watch.disconnect(), clearTimeout(giveUp), done())
+        watch.observe(document.body, { childList: true, subtree: true })
+        const giveUp = setTimeout(finish, 1500) // 連到同一頁時舊頁不會消失，別讓畫面卡住
+      })
+  )
+}
+
 /** 用程式換頁時也跑同一個轉場（BlLink 是給連結用的） */
 export function useBlNavigate() {
   const navigate = useNavigate()
   return (to, options) => {
-    const go = () => flushSync(() => navigate(to, options))
-    if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(go)
-    else go()
+    blGo(() => navigate(to, options))
   }
 }
 
@@ -58,10 +74,7 @@ export function BlLink({ to, state, onBefore, children, ...props }) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
     e.preventDefault()
     onBefore?.(e)
-    const go = () => flushSync(() => navigate(to, { state }))
-    const canAnimate = document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (canAnimate) document.startViewTransition(go)
-    else go()
+    blGo(() => navigate(to, { state }))
   }
   return (
     <a href={href} onClick={onClick} {...props}>
