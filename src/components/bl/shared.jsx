@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import { useHref, useNavigate } from 'react-router-dom'
 import catHead from '../../assets/cat-head.webp'
 import '../../styles/bl.css'
@@ -177,7 +177,7 @@ function useToolMotion(rootRef) {
       pendingGroups.forEach(swap)
       pendingTicks.forEach((oldText, el) => tick(el, oldText))
     })
-    observer.observe(root, { subtree: true, childList: true, characterData: true, characterDataOldValue: true, attributes: true, attributeFilter: ['aria-pressed'] })
+    observer.observe(root, { subtree: true, childList: true, characterData: true, characterDataOldValue: true, attributes: true, attributeFilter: ['aria-pressed', 'data-scrolled'] })
     placeAll()
     // 字體載入、視窗大小改變都會讓頁籤位置跑掉
     const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(placeAll)
@@ -224,16 +224,71 @@ export function SavedTick({ status }) {
   )
 }
 
+/**
+ * 捲下去之後怎麼回首頁：
+ * - 這一頁有黏在頂端的分店／分頁列 → 回傳那一列，讓外殼把小貓頭放進去（不多佔一列）。
+ * - 沒有 → 外殼自己出一條細列。
+ * scrolled＝完整的頁首已經捲出畫面。
+ */
+function useStuckNav(rootRef, headerRef) {
+  const [scrolled, setScrolled] = useState(false)
+  const [stick, setStick] = useState(null)
+  useEffect(() => {
+    const header = headerRef.current
+    if (!header) return undefined
+    const check = () => setScrolled(header.getBoundingClientRect().bottom <= 0)
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    return () => {
+      window.removeEventListener('scroll', check)
+      window.removeEventListener('resize', check)
+    }
+  }, [headerRef])
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root || typeof MutationObserver === 'undefined') return undefined
+    const find = () =>
+      setStick((current) => {
+        if (current?.isConnected) return current
+        return [...root.querySelectorAll(TAB_GROUPS)].find((g) => getComputedStyle(g).position === 'sticky') || null
+      })
+    find()
+    const observer = new MutationObserver(find)
+    observer.observe(root, { subtree: true, childList: true })
+    return () => observer.disconnect()
+  }, [rootRef])
+  return { scrolled, stick }
+}
+
 export function ToolPage({ path, section, title, titleExtra = null, className = '', children }) {
   useBlFonts()
   const rootRef = useRef(null)
+  const headerRef = useRef(null)
   useToolMotion(rootRef)
+  const { scrolled, stick } = useStuckNav(rootRef, headerRef)
   const now = useNow()
   const home = { to: '/home', state: { from: path } }
   return (
-    <div className={`bl bl-tool ${className}`} ref={rootRef}>
+    <div className={`bl bl-tool ${className}`} ref={rootRef} data-scrolled={scrolled ? '' : undefined}>
+      {stick
+        ? createPortal(
+            <BlLink className="bl-gohome" aria-label="回 Brainless 首頁" {...home}>
+              <img src={catHead} alt="" width="900" height="862" />
+            </BlLink>,
+            stick
+          )
+        : null}
+      <div className={`bl-mini${!stick && scrolled ? ' on' : ''}`} inert={!stick && scrolled ? undefined : ''}>
+        <div>
+          <BlLink className="bl-gohome" aria-label="回 Brainless 首頁" {...home}>
+            <img src={catHead} alt="" width="900" height="862" />
+          </BlLink>
+          <b>{title}</b>
+        </div>
+      </div>
       <div className="page">
-        <header>
+        <header ref={headerRef}>
           <BlLink className="home" aria-label="回 Brainless 首頁" {...home}>
             <img className="vt-cat" src={catHead} alt="" width="900" height="862" />
             <b className="vt-brand">Brainless</b>

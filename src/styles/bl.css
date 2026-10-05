@@ -170,6 +170,22 @@ body:has(.bl-tool) > [role='dialog'] {
 .bl.bl-beans:has(.dock.on), .bl.bl-order:has(.dock.on) { --stick: 0px; }
 .bl.bl-beans:has(.dock.on) .beans > .stores, .bl.bl-order:has(.dock.on) .order > .stores { position: static; }
 
+/* 黏住時的回首頁：小貓頭放進分店／分頁列的最左邊；沒有那一列的頁面出一條細列 */
+.bl-tool .bl-gohome { display: none; order: -1; flex: none; align-self: center; place-items: center; width: 44px; height: 44px; margin: 0 -6px 0 -4px; }
+.bl-tool .bl-gohome img { display: block; width: 34px; height: auto; transition: rotate 0.6s var(--out), scale 0.6s var(--out); }
+.bl-tool .bl-gohome:hover img, .bl-tool .bl-gohome:focus-visible img { rotate: -8deg; scale: 1.08; }
+.bl-tool[data-scrolled] :is(.tabs, .stores) > .bl-gohome { display: grid; animation: bl-gohome 0.45s var(--out); }
+@keyframes bl-gohome { from { opacity: 0; scale: 0.6; } }
+/* 手機上貓頭進來之後那一列放不下：「品項設定」只留圖示 */
+@media (max-width: 480px) {
+  .bl-tool[data-scrolled] .stores > .setup { gap: 0; padding: 0 12px; font-size: 0; }
+}
+.bl-tool .bl-mini { position: fixed; top: 0; left: 0; right: 0; z-index: 8; background: var(--oat); border-bottom: 1px solid var(--line); translate: 0 -105%; visibility: hidden; transition: translate 0.45s var(--out), visibility 0.45s; }
+.bl-tool .bl-mini.on { translate: 0 0; visibility: visible; }
+.bl-tool .bl-mini > div { display: flex; align-items: center; gap: 8px; max-width: 1320px; min-height: 48px; margin: 0 auto; padding: env(safe-area-inset-top) max(22px, env(safe-area-inset-right)) 0 max(22px, env(safe-area-inset-left)); }
+.bl-tool .bl-mini .bl-gohome { display: grid; }
+.bl-tool .bl-mini b { font-family: var(--serif); font-weight: 600; font-size: 1.0625rem; letter-spacing: 0.06em; }
+
 /* 讀取中的佔位條 */
 .bl .bl-skel { display: grid; gap: 14px; padding: 22px 0; }
 .bl .bl-skel i { display: block; width: var(--w, 80%); height: 14px; border-radius: 7px; background: linear-gradient(90deg, rgba(42, 33, 28, 0.07) 25%, rgba(42, 33, 28, 0.14) 50%, rgba(42, 33, 28, 0.07) 75%) 0 0 / 200% 100%; animation: bl-shimmer 1.6s linear infinite; animation-delay: calc(var(--i) * 0.08s); }
