@@ -86,7 +86,11 @@ export async function mountLab(root, { src, query = '' } = {}) {
   const canvas = $('cat')
   let cat
   try {
-    cat = await createCat(canvas, { src, saved, query, stay: true, onInfo: (text) => root.contains(canvas) && ($('info').textContent = text) })
+    cat = await createCat(canvas, {
+      src, saved, query, stay: true,
+      onInfo: (text) => root.contains(canvas) && ($('info').textContent = text),
+      onContext: (lost) => root.contains(canvas) && ($('err').textContent = lost ? '瀏覽器把繪圖環境收走了，等它還回來，或重新整理頁面' : ''),
+    })
   } catch (e) {
     if (root.contains(canvas)) $('err').textContent = '載入失敗：' + e.message
     console.error(e)

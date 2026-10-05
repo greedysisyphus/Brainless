@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react'
 
 // 立體貓的畫布。引擎（含 Three.js）是另外一包，這個元件掛上來時才下載。
 // 載入中、載入失敗或裝置不支援時這裡什麼都不畫，外面原本的 2D 圖要留著墊底。
-// onReady 會拿到引擎的控制物件；onFail 代表這台裝置跑不了。
-export default function Cat3D({ src, saved, className, label, onReady, onFail }) {
+// onReady 會拿到引擎的控制物件（繪圖環境被收走又還回來時會再叫一次）；onLost 代表畫面暫時是空的；onFail 代表這台裝置跑不了。
+export default function Cat3D({ src, saved, className, label, onReady, onLost, onFail }) {
   const box = useRef(null)
   const handlers = useRef({})
-  handlers.current = { onReady, onFail }
+  handlers.current = { onReady, onLost, onFail }
   const initial = useRef(saved) // 存過的參數只在建立時讀一次
 
   useEffect(() => {
@@ -19,7 +19,14 @@ export default function Cat3D({ src, saved, className, label, onReady, onFail })
     let cat
     let gone = false
     import('./engine.js')
-      .then(({ createCat }) => createCat(canvas, { src, saved: initial.current, stay: false }))
+      .then(({ createCat }) =>
+        createCat(canvas, {
+          src,
+          saved: initial.current,
+          stay: false,
+          onContext: (lost) => (lost ? handlers.current.onLost?.() : cat && handlers.current.onReady?.(cat)),
+        })
+      )
       .then((made) => {
         if (gone) return made.dispose()
         cat = made

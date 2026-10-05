@@ -45,6 +45,7 @@
 .bl-home dialog.cat-panel { position: fixed; inset: auto 16px 16px auto; z-index: 20; width: min(320px, calc(100vw - 32px)); margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); color: var(--ink); box-shadow: 0 12px 40px rgba(42, 33, 28, 0.18); font-size: 0.8125rem; }
 .bl-home dialog.cat-panel label { display: grid; grid-template-columns: 5.5em 1fr 2.6em; align-items: center; gap: 8px; min-height: 40px; }
 .bl-home dialog.cat-panel input[type='range'] { width: 100%; min-width: 0; accent-color: var(--plum); }
+.bl-home dialog.cat-panel input[type='checkbox'] { justify-self: start; }
 .bl-home dialog.cat-panel output { text-align: right; color: var(--soft); }
 .bl-home dialog.cat-panel > div > div { margin-top: 8px; }
 .bl-home dialog.cat-panel button { min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: none; color: inherit; font: inherit; cursor: pointer; }

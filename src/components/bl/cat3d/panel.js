@@ -5,10 +5,14 @@
 export function buildPanel(cat, el, { keys = cat.params.map((p) => p[0]), storageKey } = {}) {
   const store = () => { try { localStorage.setItem(storageKey, JSON.stringify(cat.changed())) } catch {} } // 存不了就算了，只是下次要重調
   const rows = []
-  for (const [k, label, min, max, step] of cat.params.filter((p) => keys.includes(p[0]))) {
-    const row = document.createElement('label'), input = Object.assign(document.createElement('input'), { type: 'range', min, max, step }), out = document.createElement('output')
-    const show = () => { input.value = cat.val(k); out.textContent = input.value }
-    input.addEventListener('input', () => { cat.set(k, input.value); out.textContent = input.value; store() })
+  for (const [k, label, min, max, step] of keys.map((key) => cat.params.find((p) => p[0] === key))) { // 照 keys 的順序排
+    const row = document.createElement('label'), out = document.createElement('output')
+    // 只有 0 和 1 兩個值的參數是開關，畫成勾選框
+    const toggle = min === 0 && max === 1 && step === 1
+    const input = Object.assign(document.createElement('input'), toggle ? { type: 'checkbox' } : { type: 'range', min, max, step })
+    const read = () => (toggle ? Number(input.checked) : input.value)
+    const show = () => { if (toggle) input.checked = cat.val(k) > 0; else input.value = cat.val(k); out.textContent = toggle ? '' : input.value }
+    input.addEventListener('input', () => { cat.set(k, read()); show(); store() })
     row.append(Object.assign(document.createElement('span'), { textContent: label }), input, out)
     el.append(row)
     rows.push(show)

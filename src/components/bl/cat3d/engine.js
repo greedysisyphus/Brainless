@@ -10,7 +10,7 @@ export const PARAMS = [
   ['density', '筆觸數量', 0.4, 4, 0.05, 1.2, 1], ['len', '筆觸長度', 0.5, 2, 0.05, 1, 1], ['wid', '筆觸寬度', 0.5, 2, 0.05, 1, 1], ['jit', '方向亂度', 0, 2, 0.05, 0.7, 1],
   ['lift', '筆尖翹起', 0, 3, 0.05, 1], ['gap', '層間距', 0, 4, 0.05, 1], ['depth', '頭的厚度', 0, 1.6, 0.05, 1, 1], ['ear', '耳朵前傾', -1, 2, 0.05, 1], ['back', '後腦深度', 0.3, 1.6, 0.05, 1, 1], ['round', '頭的圓度', 0, 1, 0.05, 0.85, 1],
   ['crisp', '筆觸分明', 1, 6, 0.1, 3], ['pool', '邊緣積色', 0, 1.5, 0.05, 0.6], ['dry', '飛白', 0, 1, 0.05, 0.85], ['smin', '縫隙留白', 0.2, 1.5, 0.05, 0.6],
-  ['eye', '眼神跟隨', 0, 1, 0.05, 0.5], ['gaze', '瞳孔轉動', 0, 1.6, 0.05, 1], ['glint', '眼睛反光', 0, 1, 0.05, 0.7], ['shade', '明暗', 0, 1, 0.05, 0.5], ['follow', '跟隨幅度', 0, 35, 1, 22], ['fur', '毛的慣性', 0, 3, 0.1, 1],
+  ['eye', '眼神跟隨', 0, 1, 0.05, 0.5], ['gaze', '瞳孔轉動', 0, 1.6, 0.05, 1], ['calm', '眼神沉穩', 0, 1, 1, 1], ['glint', '眼睛反光', 0, 1, 0.05, 0.7], ['shade', '明暗', 0, 1, 0.05, 0.5], ['follow', '跟隨幅度', 0, 35, 1, 22], ['fur', '毛的慣性', 0, 3, 0.1, 1],
 ]
 // 耳朵：根部中點 M、耳尖 T、半寬 hw（原圖像素，對著原圖手動標的）。0 號留給頭
 const EARS = [null, { M: [342, 205], T: [300, 12], hw: 105 }, { M: [800, 365], T: [880, 252], hw: 75 }]
@@ -122,7 +122,7 @@ void main() {
 
 const FRAG = /* glsl */ `
 uniform sampler2D uImg, uCov;
-uniform float uPool, uSmin, uDry, uCrisp, uShade, uBlink, uGlint;
+uniform float uPool, uSmin, uDry, uCrisp, uShade, uBlink, uGlint, uCalm;
 uniform vec3 uBackCol;
 uniform vec2 uRes;
 varying vec2 vL, vUv, vCv; varying vec4 vC, vD; varying float vSeed, vThick, vFront; varying vec3 vE, vPos, vN; varying vec2 vEye;
@@ -170,7 +170,7 @@ void main() {
     A = 1. - smoothstep(.72, 1., edge);
     if (vD.z > 0.) A *= smoothstep(vD.z - .12, vD.z + .06, edge);
     if (vD.z < -1.5 && vD.z > -2.5) A *= (1. - smoothstep(.8, 1., length(vEye))) * (1. - smoothstep(.12, .3, col.g - col.b)); // 瞳孔：超出眼眶的被蓋住；只留深色的那塊，不帶著周圍的黃色一起動
-    if (vD.z < -2.5 && vD.z > -3.5) { col = vec3(1.); A *= uGlint * (1. - uBlink); } // 反光：一點留白，固定不跟瞳孔動
+    if (vD.z < -2.5 && vD.z > -3.5) { col = vec3(1.); A *= uGlint * (1. - uBlink) * (1. - uCalm); } // 「眼神沉穩」開著就不畫 // 反光：一點留白，固定不跟瞳孔動
     if (vD.z < -3.5 && vD.z > -4.5) {
       // 眼皮：從上往下蓋住眼眶。顏色是額頭的毛（取色位置在建立眼皮時指定），下緣加一道深色當睫毛線
       // 眼皮下緣在哪（1 是眼眶上緣，-1 是下緣）。中間比兩邊低，是一道往下彎的弧
@@ -223,7 +223,8 @@ void main() {
 
 // opts.src：貓頭圖片的網址。opts.saved：之前調過的參數 { 名稱: 值 }。opts.query：網址參數（測試時用來固定姿勢）。
 // opts.stay：拖曳放開後停在原地（測試頁）還是彈回去（首頁）。opts.onInfo：筆觸數量或畫質有變時通知。
-export async function createCat(canvas, { src, saved = {}, query = '', stay = true, onInfo = () => {} } = {}) {
+// opts.onContext(lost)：瀏覽器把繪圖環境收走（true）或還回來（false）時通知。手機切到背景再回來常會這樣
+export async function createCat(canvas, { src, saved = {}, query = '', stay = true, onInfo = () => {}, onContext = () => {} } = {}) {
   const q = new URLSearchParams(query)
   const num = (k, d) => (q.has(k) ? Number(q.get(k)) : d)
   // 所有掛出去的事件都帶同一個 signal，dispose 時一次拆掉
@@ -595,7 +596,8 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
     const gt = q.has('gx') ? gaze : [clamp(look[0] * 1.4 - lead * 0.6, 1), clamp(look[1] * 1.2, 1)]
     const moved = Math.abs(gt[0] - gaze[0]) + Math.abs(gt[1] - gaze[1])
     gaze = [gaze[0] + (gt[0] - gaze[0]) * ease, gaze[1] + (gt[1] - gaze[1]) * ease]
-    uniforms.uPupil.value += (1.12 - 0.22 * Math.min(Math.hypot(...gaze), 1) - uniforms.uPupil.value) * ease
+    // 「眼神沉穩」：瞳孔維持原畫的大小、沒有反光。關掉是水汪汪版：瞳孔放大、看著你時更大、有一點反光
+    uniforms.uPupil.value += ((val('calm') ? 1 : 1.12 - 0.22 * Math.min(Math.hypot(...gaze), 1)) - uniforms.uPupil.value) * ease
 
     const still = Math.abs(vy) + Math.abs(vp) + Math.abs(ty - yaw) + Math.abs(tp - pitch) + moved * 10 < 0.02
     if (calm) vy = vp = 0
@@ -610,6 +612,9 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
     frames = slow = 0
   }
   renderer.setAnimationLoop(loop)
+  // 繪圖環境被收走時畫面會是空的，還回來之後 Three.js 會自己重建資源，這裡補畫一幀
+  on(canvas, 'webglcontextlost', () => onContext(true))
+  on(canvas, 'webglcontextrestored', () => { render(); onContext(false) })
 
   return {
     params: PARAMS,

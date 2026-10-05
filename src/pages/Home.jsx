@@ -240,7 +240,7 @@ function useFitToViewport(ref) {
 const CAT3D_KEY = 'bl-cat3d'
 const CAT3D_PARAMS_KEY = 'bl-cat3d-params'
 // 首頁的調整面板只放看得出差別的幾項，完整的在 /home/cat-lab
-const CAT3D_PANEL = ['density', 'crisp', 'shade', 'glint', 'gaze', 'follow']
+const CAT3D_PANEL = ['calm', 'density', 'crisp', 'shade', 'glint', 'gaze', 'follow']
 // 立體版的鏡頭看到的範圍是原圖的 1.131 倍寬
 const CAT3D_FRAME = 1.131
 function readStored(key, fallback) {
@@ -343,7 +343,7 @@ export default function Home() {
                 <img key={nod} className="vt-cat" src={catHead} alt="" width="900" height="862" />
               </button>
               {cat3d && !catFailed && (
-                <Cat3D className="cat3d" src={catHead} saved={savedParams} label="店貓，可以摸、可以拖著轉" onReady={setCat} onFail={() => setCatFailed(true)} />
+                <Cat3D className="cat3d" src={catHead} saved={savedParams} label="店貓，可以摸、可以拖著轉" onReady={setCat} onLost={() => setCat(null)} onFail={() => setCatFailed(true)} />
               )}
               <div className="cat-tools">
                 {cat && (
