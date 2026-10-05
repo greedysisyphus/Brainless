@@ -22,6 +22,7 @@
   .bar, #panel { padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; font-size: 14px; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
   .bar label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+  #panel[hidden] { display: none; }
   #panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 24px; margin-top: 12px; }
   #panel label { display: grid; grid-template-columns: 6.5em 1fr 3em; align-items: center; gap: 8px; min-height: 44px; }
   #panel output { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
@@ -41,6 +42,7 @@
 <div class="wrap">
   <h1>立體水彩貓</h1>
   <p>貓的瞳孔會先瞄向游標或你手指碰的地方，頭再慢慢跟上。拖曳可以轉一整圈，放開會停在那個角度；按「跟隨游標」回到看著你的狀態。</p>
+  <p>摸牠：點一下會瞇眼蹭過來，點鼻子會縮一下，點耳朵會抖耳朵，連點三下會甩頭，按住不放會瞇著眼呼嚕。</p>
   <p id="err" role="alert"></p>
 
   <div class="stage">
@@ -56,9 +58,10 @@
     <label><input type="checkbox" id="idle" /> 待機動作</label>
     <label><input type="checkbox" id="only" /> 只看筆觸</label>
     <label>拆開 <input type="range" id="spread" min="0" max="1" step="0.01" value="0" /></label>
+    <button id="gear" aria-expanded="false" aria-controls="panel">調整</button>
   </div>
 
-  <div id="panel">
+  <div id="panel" hidden>
     <h2>調整</h2>
   </div>
 
@@ -370,8 +373,11 @@ async function main() {
     return [gx / g, gy / g, Math.hypot(1, gx, gy)]
   }
 
-  const uniforms = { uDist: { value: distTex }, uImg: { value: tex }, uCov: { value: cov.texture }, uSpread: { value: 0 }, uVel: { value: new THREE.Vector2() }, uLook: { value: new THREE.Vector2() }, uTwitch: { value: new THREE.Vector2() }, uPupil: { value: 1 }, uSniff: { value: num('sniff', 0) }, uTime: { value: 0 }, uBlink: { value: num('blink', 0) }, uRes: { value: new THREE.Vector2(1, 1) }, uBackCol: { value: new THREE.Vector3(...backCol) } }
-  for (const [k, , , , , def] of PARAMS) uniforms[uname(k)] = { value: num(k, def) }
+  const uniforms = { uDist: { value: distTex }, uImg: { value: tex }, uCov: { value: cov.texture }, uSpread: { value: 0 }, uVel: { value: new THREE.Vector2() }, uLook: { value: new THREE.Vector2() }, uTwitch: { value: new THREE.Vector2() }, uPupil: { value: num('pupil', 1) }, uSniff: { value: num('sniff', 0) }, uTime: { value: 0 }, uBlink: { value: num('blink', 0) }, uRes: { value: new THREE.Vector2(1, 1) }, uBackCol: { value: new THREE.Vector3(...backCol) } }
+  // 調過的設定存在這台裝置上，下次打開還在；網址參數優先。讀不到（無痕模式等）就當沒存過
+  let saved = {}
+  try { saved = JSON.parse(localStorage.getItem('cat-lab') || '{}') } catch {}
+  for (const [k, , , , , def] of PARAMS) uniforms[uname(k)] = { value: num(k, saved[k] ?? def) }
   const val = (k) => uniforms[uname(k)].value
   const mat = (PASS, o) => new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms, defines: { PASS }, side: THREE.DoubleSide, ...o })
   const blend = (blendSrc, blendDst, depthTest) => ({ blending: THREE.CustomBlending, blendSrc, blendDst, depthTest, depthWrite: false })
@@ -509,7 +515,7 @@ async function main() {
   spread.value = num('spread', 0)
 
   const render = () => {
-    head.rotation.set(THREE.MathUtils.degToRad(pitch), THREE.MathUtils.degToRad(yaw), 0)
+    head.rotation.set(THREE.MathUtils.degToRad(pitch), THREE.MathUtils.degToRad(yaw + shake), 0)
     uniforms.uSpread.value = spread.value * 0.14
     uniforms.uVel.value.set(clamp(vy, 300), -clamp(vp, 300)).multiplyScalar(0.0018)
     uniforms.uLook.value.set(gaze[0], -gaze[1]).multiplyScalar(0.045 * val('gaze'))
@@ -536,13 +542,42 @@ async function main() {
   const unwind = () => { yaw = ((((yaw + 180) % 360) + 360) % 360) - 180 } // 轉了好幾圈之後收回 ±180 內，免得回正時倒轉好幾圈
   const snap = () => { if (pin) [yaw, pitch] = pin; vy = vp = 0; render() } // 分頁在背景時不會有動畫格，固定角度要當下就畫
 
-  canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); unwind(); pin = null; sway.checked = false; drag = [yaw, pitch] })
+  // 摸牠的反應。press：這次按下去的起點；沒移動超過 8px 就不算拖曳，而是點一下（放得快）或長按（按住不放）
+  let press = null, holdTimer = 0, held = false, taps = [], busyUntil = 0, shake = 0, shakeAt = -1e9, squint = [0, 0, 0], earTap = [-1e9, 0], sniffTap = -1e9
+  const tap = (cx, cy) => {
+    const now = performance.now(), r = canvas.getBoundingClientRect()
+    taps = taps.filter((t) => now - t < 1200).concat(now)
+    busyUntil = now + 1500
+    if (taps.length >= 3) { taps = []; shakeAt = now; squint = [now, now + 700, 0.6]; return } // 連點三下：被煩到甩頭
+    // 點到哪裡：頭大致朝前時，把畫面上的位置換回原圖座標（鏡頭視野的一半寬高是 1.131、1.085）
+    const wx = ((cx - r.left) / r.width - 0.5) * 2.262, wy = (0.5 - (cy - r.top) / r.height) * 2.17
+    const ix = (wx / 2 + 0.5) * PX, iy = (AR / 2 - wy / 2) * PX, front = Math.abs(yaw) < 40 && Math.abs(pitch) < 25
+    const onEar = front && [1, 2].find((i) => { const [a, c] = earAC(ix, iy, EARS[i]); return a > 0 && a < 1.2 && Math.abs(c) < 1.2 })
+    if (onEar) earTap = [now, onEar - 1] // 耳朵：那隻耳朵連抖兩下
+    else if (front && Math.hypot(ix - 475, iy - 555) < 80) { sniffTap = now; squint = [now, now + 350, 1]; vp -= 120 } // 鼻子：往後縮、眨眼、嗅
+    else { sniffTap = now; squint = [now, now + 650, 0.8]; vy += clamp(wx, 1) * 220; vp -= clamp(wy, 1) * 150 } // 其他地方：瞇眼，往手的方向蹭一下
+  }
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId)
+    press = { x: e.clientX, y: e.clientY, t: performance.now(), pin, far: false }
+    holdTimer = setTimeout(() => { if (press && !press.far) { held = true; busyUntil = Infinity } }, 450) // 長按：瞇眼讓你摸
+    unwind(); pin = null; sway.checked = false; drag = [yaw, pitch]
+  })
   canvas.addEventListener('pointermove', (e) => {
     if (!drag) return
+    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) press.far = true
     drag[0] += e.movementX * 0.35
     if (e.pointerType === 'mouse') drag[1] = clamp(drag[1] + e.movementY * 0.25, MAX_PITCH) // 觸控的上下留給頁面捲動
   })
-  for (const ev of ['pointerup', 'pointercancel']) canvas.addEventListener(ev, () => { pin = drag || pin; drag = null }) // 放開就停在那裡
+  for (const ev of ['pointerup', 'pointercancel']) canvas.addEventListener(ev, (e) => {
+    clearTimeout(holdTimer)
+    const p = press, wasHeld = held
+    press = null; held = false
+    if (wasHeld) busyUntil = performance.now() + 600
+    if (!p || p.far) { pin = drag || pin; drag = null; return } // 拖過：放開就停在那裡
+    pin = p.pin; drag = null // 沒拖：頭的狀態照舊
+    if (!wasHeld && e.type === 'pointerup' && performance.now() - p.t < 350) tap(p.x, p.y)
+  })
   // 貓該看哪裡：滑鼠的位置，或手指碰到的位置（滑頁面時也算）。touch 用 touch 事件，因為頁面一開始捲動 pointer 事件就停了
   let lastInput = -1e9
   const lookAt = (cx, cy) => {
@@ -575,14 +610,16 @@ async function main() {
   for (const [k, label, min, max, step, def, rebuild] of PARAMS) {
     const lab = document.createElement('label'), input = Object.assign(document.createElement('input'), { type: 'range', min, max, step, value: val(k) }), out = document.createElement('output')
     const sync = () => { uniforms[uname(k)].value = Number(input.value); out.textContent = input.value }
-    input.addEventListener('input', () => { sync(); refresh(rebuild); render() })
+    input.addEventListener('input', () => { sync(); store(); refresh(rebuild); render() })
     lab.append(Object.assign(document.createElement('span'), { textContent: label }), input, out)
     panel.append(lab)
     inputs.push({ k, def, input, sync })
     sync()
   }
-  const reset = Object.assign(document.createElement('button'), { textContent: '回到預設' })
-  reset.addEventListener('click', () => { inputs.forEach((i) => { i.input.value = i.def; i.sync() }); refresh(true); render() })
+  const store = () => { try { localStorage.setItem('cat-lab', JSON.stringify(Object.fromEntries(inputs.filter((i) => Number(i.input.value) !== i.def).map((i) => [i.k, Number(i.input.value)])))) } catch {} }
+  const reset = Object.assign(document.createElement('button'), { textContent: '恢復原廠設定' })
+  reset.addEventListener('click', () => { inputs.forEach((i) => { i.input.value = i.def; i.sync() }); store(); refresh(true); render() })
+  $('gear').addEventListener('click', () => { panel.hidden = !panel.hidden; $('gear').setAttribute('aria-expanded', String(!panel.hidden)) })
   const copy = Object.assign(document.createElement('button'), { textContent: '複製這組設定的網址' })
   copy.addEventListener('click', async () => {
     const changed = inputs.filter((i) => Number(i.input.value) !== i.def).map((i) => `${i.k}=${i.input.value}`).join('&')
@@ -594,6 +631,7 @@ async function main() {
   panel.lastChild.append(reset, copy)
 
   refresh(true)
+  fit() // 不等 ResizeObserver：第一幀就要有正確的畫布大小，不然權重貼圖只有 1×1，顏色會分錯
   snap()
 
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, idle = $('idle')
@@ -616,8 +654,8 @@ async function main() {
     note()
   }
 
-  renderer.setAnimationLoop((ms) => {
-    const raw = (ms - last) / 1000, dt = Math.min(raw, 0.05), f = val('follow')
+  const loop = (ms) => {
+    const raw = (ms - last) / 1000, dt = Math.max(0, Math.min(raw, 0.05)), f = val('follow') // 時間倒退（測試時手動推進）就當作沒過時間
     last = ms
     const [ty, tp] = sway.checked ? [yaw + 6, 0] // 目標永遠領先一點，彈簧就會等速轉下去
       : drag || pin || (gyro && [clamp(gyro[0], f), clamp(gyro[1], f * 0.45)]) || (hover && [hover[0] * f, hover[1] * f * 0.45]) || [0, 0]
@@ -628,28 +666,37 @@ async function main() {
     }
 
     let look = (gyro && [clamp(gyro[0] / 30, 1), clamp(gyro[1] / 30, 1)]) || hover || [0, 0]
-    const alive = idle.checked && seen
+    const alive = idle.checked && seen, now = ms, fixed = q.has('blink') || q.has('sniff') // 網址指定了表情就不動它
+    let blink = 0, sniff = 0, tw = [0, 0], breath = held ? 0.014 : 0
     if (alive) {
       // 眨眼：每 2.5–6.5 秒一次，兩成機率連眨兩下
       if (ms > blinkAt + 220) blinkAt = ms + (Math.random() < 0.2 ? 120 : 2500 + Math.random() * 4000)
-      uniforms.uBlink.value = pulse(ms, blinkAt, 220)
+      blink = pulse(ms, blinkAt, 220)
       // 抖耳朵：每 4–10 秒，隨機一隻
       if (ms > earAt + 320) { earAt = ms + 4000 + Math.random() * 6000; ear = Math.random() < 0.5 ? 0 : 1 }
-      const tw = pulse(ms, earAt, 320) * 0.9
-      uniforms.uTwitch.value.set(ear ? 0 : tw, ear ? tw : 0)
+      tw[ear] = pulse(ms, earAt, 320) * 0.9
       // 超過 4 秒沒人理牠，偶爾自己瞄一下別處再看回來
-      if (performance.now() - lastInput > 4000) {
+      if (now - lastInput > 4000) {
         if (ms > glanceAt + 900) { glanceAt = ms + 2500 + Math.random() * 4000; glance = [Math.random() * 1.6 - 0.8, Math.random() - 0.5] }
         look = ms > glanceAt ? glance : [0, 0]
       }
       // 嗅一下：每 5–11 秒，連兩下
       if (ms > sniffAt + 520) sniffAt = ms + 5000 + Math.random() * 6000
-      uniforms.uSniff.value = pulse(ms, sniffAt, 240) + pulse(ms, sniffAt + 280, 240)
-      // 呼吸
-      head.scale.setScalar(1 + 0.006 * Math.sin(ms / 900))
-      head.position.y = 0.008 * Math.sin(ms / 900)
+      sniff = pulse(ms, sniffAt, 240) + pulse(ms, sniffAt + 280, 240)
+      breath = Math.max(breath, 0.006)
       uniforms.uTime.value = ms / 1000
     }
+    // 被摸的反應疊在待機動作上（待機動作關掉時也有）
+    const [s0, s1, amt] = squint
+    blink = Math.max(blink, held ? 0.72 : now < s1 ? amt * Math.min(1, (now - s0) / 90, (s1 - now) / 160) : 0)
+    sniff += (pulse(now, sniffTap, 200) + pulse(now, sniffTap + 240, 200)) * 1.5
+    tw[earTap[1]] += pulse(now, earTap[0], 220) * 1.6 + pulse(now, earTap[0] + 260, 220) * 1.4
+    shake = now - shakeAt < 900 ? Math.sin((now - shakeAt) * 0.038) * 9 * Math.exp(-(now - shakeAt) / 260) : 0
+    if (!fixed) { uniforms.uBlink.value = blink; uniforms.uSniff.value = sniff }
+    uniforms.uTwitch.value.set(tw[0], tw[1])
+    // 呼吸；長按時變深變快，像在呼嚕
+    head.scale.setScalar(1 + breath * Math.sin(ms / (held ? 260 : 900)))
+    head.position.y = breath * 1.3 * Math.sin(ms / (held ? 260 : 900))
 
     // 瞳孔比頭快：先瞄過去，頭跟上之後瞳孔再收回一些。頭被固定或拖著時，瞳孔照樣跟。看得越偏瞳孔越小，看著你時放大
     const lead = f ? clamp(yaw / f, 1) : 0, ease = 1 - Math.exp(-dt * 14)
@@ -660,7 +707,7 @@ async function main() {
 
     const still = Math.abs(vy) + Math.abs(vp) + Math.abs(ty - yaw) + Math.abs(tp - pitch) + moved * 10 < 0.02
     if (calm) vy = vp = 0
-    if (!seen || (still && !alive)) { frames = slow = 0; return } // 靜止就不重畫
+    if (!seen || (still && !alive && now > busyUntil)) { frames = slow = 0; return } // 靜止就不重畫
     render()
 
     // 連續畫了 45 幀、平均每幀超過 27ms（不到 37fps）就降一級。剛載入的前 3 秒和切回分頁的那一幀不算
@@ -669,7 +716,12 @@ async function main() {
     if (++frames < 45) return
     if (slow / frames > 0.027 && level < 5) cheaper()
     frames = slow = 0
-  })
+  }
+  renderer.setAnimationLoop(loop)
+  if (q.has('step')) { // 測試用：分頁在背景時沒有動畫格，讓外面可以手動推進並讀出狀態
+    window.catStep = loop
+    window.catState = () => ({ yaw, pitch, shake, held, blink: uniforms.uBlink.value, sniff: uniforms.uSniff.value, twitch: uniforms.uTwitch.value.toArray(), pin, hover, gaze, pupil: uniforms.uPupil.value, u: Object.fromEntries(Object.entries(uniforms).filter(([, v]) => typeof v.value === 'number' || v.value?.toArray).map(([k, v]) => [k, v.value.toArray ? v.value.toArray() : v.value])), head: [head.scale.x, head.position.y, ...head.rotation.toArray().slice(0, 3)] })
+  }
 }
 
 main().catch((e) => { $('err').textContent = '載入失敗：' + e.message; console.error(e) })
