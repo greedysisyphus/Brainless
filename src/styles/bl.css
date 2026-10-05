@@ -141,9 +141,34 @@ body:has(.bl-tool) > [role='dialog'] {
 
 /* ── 全站共用的動態（useToolMotion） ── */
 /* 頁籤底線：位置由 JS 量好放進變數，用滑的 */
-.bl-tool [data-ink] { position: relative; }
+.bl-tool :where([data-ink]) { position: relative; }
 .bl-tool [data-ink]::after { content: ''; position: absolute; left: 0; top: 0; width: var(--ink-w); height: 3px; translate: var(--ink-x) var(--ink-y); background: var(--plum); pointer-events: none; transition: translate 0.5s var(--out), width 0.5s var(--out); }
 .bl-tool [data-ink] > [aria-pressed='true'] { box-shadow: none !important; }
+
+/* ── 切分店／分頁的那一列跟著捲動 ──
+   長頁面捲下去之後不用回頂端就能切。--stick 是那一列的高度，各頁原本黏在上方的東西往下讓。
+   用 .bl.bl-tool 開頭是為了蓋過各頁自己的樣式檔。 */
+.bl.bl-tool { --stick: 49px; }
+.bl.bl-tool main > :is(.tabs, .stores)[role='group'],
+.bl.bl-tool :is(.beans, .order, .flights) > .stores[role='group'],
+.bl.bl-feedback .list > .tabs[role='group'] { position: sticky; top: 0; z-index: 8; background: var(--oat); }
+/* 點豆：進度那一列固定高度，下面的進度條才知道要黏在哪 */
+.bl.bl-beans .prog { top: var(--stick); height: 46px; padding-top: 0; align-items: center; }
+.bl.bl-beans .prog + .bar { top: calc(var(--stick) + 46px); box-shadow: none; }
+.bl.bl-beans .sec { scroll-margin-top: calc(var(--stick) + 56px); }
+.bl.bl-beans .sum { scroll-margin-top: calc(var(--stick) + 60px); }
+/* 叫貨 */
+.bl.bl-order .bar-top { top: var(--stick); }
+.bl.bl-order .slip-wrap { scroll-margin-top: calc(var(--stick) + 130px); }
+@media (min-width: 1000px) {
+  .bl.bl-beans .sum { top: calc(var(--stick) + 16px); }
+  .bl.bl-order .slip-wrap { top: calc(var(--stick) + 16px); max-height: calc(100dvh - var(--stick) - 32px); }
+  .bl.bl-feedback .detail { top: 16px; }
+}
+.bl.bl-sandwich .result { top: calc(var(--stick) + 16px); }
+/* 底部鍵盤開著的時候正在填數字，不是要切分店：分店列不黏，把畫面留給盤點表 */
+.bl.bl-beans:has(.dock.on), .bl.bl-order:has(.dock.on) { --stick: 0px; }
+.bl.bl-beans:has(.dock.on) .beans > .stores, .bl.bl-order:has(.dock.on) .order > .stores { position: static; }
 
 /* 讀取中的佔位條 */
 .bl .bl-skel { display: grid; gap: 14px; padding: 22px 0; }

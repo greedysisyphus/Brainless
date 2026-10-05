@@ -109,7 +109,7 @@ export default function Order() {
       const dockTop = dockRef.current?.getBoundingClientRect().top ?? window.innerHeight
       if (!el) return
       const r = el.getBoundingClientRect()
-      if (r.bottom > dockTop - 12 || r.top < 130) window.scrollBy({ top: r.top + r.height / 2 - (130 + dockTop) / 2, behavior: reducedMotion() ? 'auto' : 'smooth' })
+      if (r.bottom > dockTop - 12 || r.top < 180) window.scrollBy({ top: r.top + r.height / 2 - (180 + dockTop) / 2, behavior: reducedMotion() ? 'auto' : 'smooth' })
     }, 320) // 等鍵盤長出來才知道它多高
     return () => clearTimeout(timer)
   }, [curKey])

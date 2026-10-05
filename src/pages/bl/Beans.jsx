@@ -196,7 +196,7 @@ export default function Beans() {
       const dockTop = dockRef.current?.getBoundingClientRect().top ?? window.innerHeight
       if (!el) return
       const r = el.getBoundingClientRect()
-      if (r.bottom > dockTop - 16 || r.top < 70) window.scrollBy({ top: r.top + r.height / 2 - (70 + dockTop) / 2, behavior: reducedMotion() ? 'auto' : 'smooth' })
+      if (r.bottom > dockTop - 16 || r.top < 120) window.scrollBy({ top: r.top + r.height / 2 - (120 + dockTop) / 2, behavior: reducedMotion() ? 'auto' : 'smooth' })
     }, 320) // 等鍵盤長出來才知道它多高
     return () => clearTimeout(timer)
   }, [curKey])
