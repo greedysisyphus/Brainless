@@ -69,7 +69,7 @@
     <li>眼睛拆成眼眶、虹膜、瞳孔、反光、眼皮。眼皮的顏色取自眼睛上方的毛；反光是補畫的白點，固定不跟著瞳孔動。瞳孔是獨立的一片，會在眼眶裡移動，超出眼眶的部分被蓋住；虹膜上原本畫著瞳孔的地方，用四周的黃色補起來（這塊是補畫的）。</li>
     <li>耳朵是獨立的兩片，根部在頭頂的毛後面，往前傾、中間凹；頭和耳朵的筆觸各自只畫自己的範圍。</li>
     <li>後腦、耳背是補的：原圖沒有畫。形狀是把輪廓往後鼓起來，顏色是從正面的紫色毛裡搬過來的小塊：正面是毛的位置就原地延續過去，是臉的位置就把四周的毛往中間收。</li>
-    <li>鼻子和嘴巴拆成四層：赭黃色的底、粉色鼻頭、鼻子的深色線、人中與嘴巴的線。鼻頭浮在最前面，待機時會嗅一下。嘴巴不會張開，原圖沒有畫口腔。</li>
+    <li>鼻子和嘴巴拆成四層：赭黃色的底、粉色鼻頭、鼻子的深色線、人中與嘴巴的線。鼻頭浮在最前面，待機時會嗅一下：鼻頭撐大、兩塊鬍鬚墊鼓起來、鬍鬚往前張開。嘴巴不會張開，原圖沒有畫口腔。</li>
     <li>推測的部分：頭的隆起、口鼻與耳朵的深度、每一筆的形狀與走向都是重新安排的，不是原作的筆觸。側臉的輪廓（口鼻凸出多少）完全是猜的。</li>
   </ul>
 </div>
@@ -129,7 +129,8 @@ float head(vec2 q, float side) {
   vec2 m = q - vec2(.52, .67), e1 = q - vec2(.347, .428), e2 = q - vec2(.741, .506);
   vec2 pl = q - vec2(.445, .70), pr = q - vec2(.585, .72), ch = q - vec2(.5, .80), ns = q - vec2(.528, .609), gr = q - vec2(.51, .70);
   // 口鼻：寬的底座上有左右兩塊鬍鬚墊、下巴、最突出的鼻尖，兩塊墊子中間是人中的溝。JS 的 headH 要跟著改
-  z += (.07 * exp(-dot(m, m) / .034) + .09 * (exp(-dot(pl, pl) / .006) + exp(-dot(pr, pr) / .006)) + .05 * exp(-dot(ch, ch) / .006)
+  // 嗅的時候兩塊鬍鬚墊鼓起來，貼在上面的嘴線和鬍鬚根部會跟著被帶動
+  z += (.07 * exp(-dot(m, m) / .034) + .09 * (1. + .45 * uSniff) * (exp(-dot(pl, pl) / .006) + exp(-dot(pr, pr) / .006)) + .05 * exp(-dot(ch, ch) / .006)
       + .11 * exp(-dot(ns, ns) / .004) - .03 * exp(-dot(gr, gr) / .0012)) * smoothstep(0., .5, t);
   z -= .035 * (exp(-dot(e1, e1) / .01) + exp(-dot(e2, e2) / .01)); // 眼窩
   return z * uDepth;
@@ -157,13 +158,14 @@ void main() {
   vec2 o = vec2(l.x * iB.x * .5, l.y * iB.y * .5 + (oval ? 0. : iD.z * l.x * l.x * iB.x)); // 在筆觸自己平面上的位置
   vec2 xy = iA.xy + mat2(c, s, -s, c) * o;                                                 // 同一個位置放回原圖平面：取色用
   float side = iE.z, tip = l.x * .5 + .5, up = iB.w * tip * tip * uLift, base = iB.z * uGap + iD.w * uSpread;
+  if (iC.a < 0.) up *= 1. + .7 * uSniff; // 鬍鬚：嗅的時候往前張開
   vec3 p;
   if (shape < .5) {
     // 筆刷：貼在筆心那一點切面上的一小片，大小是真正的立體尺寸。顏色照原圖平面展開，
     // 所以在平的臉上跟原圖一模一樣，在側面也不會被曲面拉成一條絲
     vec3 n = side * normalAt(iA.xy, surf, side), f = vec3(c, s, 0.), T = normalize(f - n * dot(n, f));
     p = onSurface(iA.xy, surf, side, base) + T * o.x + cross(n, T) * o.y + n * up;
-    if (iC.a < 0.) p.y += sin(uTime * 1.3 + iA.w * 6.283) * .012 * tip * tip; // 鬍鬚輕晃
+    if (iC.a < 0.) p.y += sin(uTime * 1.3 + iA.w * 6.283) * .018 * tip * tip; // 鬍鬚輕晃
     vN = mat3(modelViewMatrix) * n;
     vThick = surf > .5 ? 1. : side * H(toQ(iA.xy), surf, side);
   } else {
