@@ -171,14 +171,18 @@ body:has(.bl-tool) > [role='dialog'] {
 .bl.bl-beans:has(.dock.on) .beans > .stores, .bl.bl-order:has(.dock.on) .order > .stores { position: static; }
 
 /* 黏住時的回首頁：小貓頭放進分店／分頁列的最左邊；沒有那一列的頁面出一條細列 */
-.bl-tool .bl-gohome { display: none; order: -1; flex: none; align-self: center; place-items: center; width: 44px; height: 44px; margin: 0 -6px 0 -4px; }
+.bl-tool .bl-gohome { display: grid; place-items: center; width: 44px; height: 44px; }
 .bl-tool .bl-gohome img { display: block; width: 34px; height: auto; transition: rotate 0.6s var(--out), scale 0.6s var(--out); }
 .bl-tool .bl-gohome:hover img, .bl-tool .bl-gohome:focus-visible img { rotate: -8deg; scale: 1.08; }
-.bl-tool[data-scrolled] :is(.tabs, .stores) > .bl-gohome { display: grid; animation: bl-gohome 0.45s var(--out); }
-@keyframes bl-gohome { from { opacity: 0; scale: 0.6; } }
-/* 手機上貓頭進來之後那一列放不下：「品項設定」只留圖示 */
+/* 貓頭疊在那一列的左邊；黏住時那一列往右讓出位置，貓頭從小變大淡進來 */
+.bl-tool :is(.tabs, .stores)[role='group'] { --cat-room: 48px; transition: padding-left 0.55s var(--out); }
+.bl-tool :is(.tabs, .stores) > .bl-gohome { position: absolute; left: -6px; top: 2px; opacity: 0; scale: 0.4; rotate: -40deg; pointer-events: none; visibility: hidden; transition: opacity 0.4s var(--out), scale 0.55s var(--out), rotate 0.55s var(--out), visibility 0.55s; }
+.bl-tool :is(.tabs, .stores)[data-stuck] { padding-left: var(--cat-room); }
+.bl-tool :is(.tabs, .stores)[data-stuck] > .bl-gohome { opacity: 1; scale: 1; rotate: 0deg; pointer-events: auto; visibility: visible; }
+/* 手機上貓頭進來之後那一列放不下：「品項設定」只留圖示，字用縮的 */
+.bl.bl-tool .stores > .setup { transition: font-size 0.45s var(--out), padding 0.45s var(--out), gap 0.45s var(--out), background-color 0.25s, color 0.25s; }
 @media (max-width: 480px) {
-  .bl-tool[data-scrolled] .stores > .setup { gap: 0; padding: 0 12px; font-size: 0; }
+  .bl.bl-tool .stores[data-stuck] > .setup { gap: 0; padding: 0 12px; font-size: 0; }
 }
 .bl-tool .bl-mini { position: fixed; top: 0; left: 0; right: 0; z-index: 8; background: var(--oat); border-bottom: 1px solid var(--line); translate: 0 -105%; visibility: hidden; transition: translate 0.45s var(--out), visibility 0.45s; }
 .bl-tool .bl-mini.on { translate: 0 0; visibility: visible; }

@@ -177,7 +177,8 @@ function useToolMotion(rootRef) {
       pendingGroups.forEach(swap)
       pendingTicks.forEach((oldText, el) => tick(el, oldText))
     })
-    observer.observe(root, { subtree: true, childList: true, characterData: true, characterDataOldValue: true, attributes: true, attributeFilter: ['aria-pressed', 'data-scrolled'] })
+    observer.observe(root, { subtree: true, childList: true, characterData: true, characterDataOldValue: true, attributes: true, attributeFilter: ['aria-pressed'] })
+    root.addEventListener('bl:place', placeAll)
     placeAll()
     // 字體載入、視窗大小改變都會讓頁籤位置跑掉
     const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(placeAll)
@@ -186,6 +187,7 @@ function useToolMotion(rootRef) {
     return () => {
       observer.disconnect()
       resize?.disconnect()
+      root.removeEventListener('bl:place', placeAll)
     }
   }, [rootRef])
 }
@@ -232,19 +234,8 @@ export function SavedTick({ status }) {
  */
 function useStuckNav(rootRef, headerRef) {
   const [scrolled, setScrolled] = useState(false)
+  const [stuck, setStuck] = useState(false)
   const [stick, setStick] = useState(null)
-  useEffect(() => {
-    const header = headerRef.current
-    if (!header) return undefined
-    const check = () => setScrolled(header.getBoundingClientRect().bottom <= 0)
-    check()
-    window.addEventListener('scroll', check, { passive: true })
-    window.addEventListener('resize', check)
-    return () => {
-      window.removeEventListener('scroll', check)
-      window.removeEventListener('resize', check)
-    }
-  }, [headerRef])
   useEffect(() => {
     const root = rootRef.current
     if (!root || typeof MutationObserver === 'undefined') return undefined
@@ -258,6 +249,41 @@ function useStuckNav(rootRef, headerRef) {
     observer.observe(root, { subtree: true, childList: true })
     return () => observer.disconnect()
   }, [rootRef])
+  useEffect(() => {
+    const header = headerRef.current
+    if (!header) return undefined
+    const check = () => {
+      setScrolled(header.getBoundingClientRect().bottom <= 0)
+      // 那一列真的貼到頂端才算黏住（頁首捲出去時它可能還在標題下面）
+      setStuck(Boolean(stick?.isConnected) && stick.getBoundingClientRect().top <= 0.5)
+    }
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    return () => {
+      window.removeEventListener('scroll', check)
+      window.removeEventListener('resize', check)
+    }
+  }, [headerRef, stick])
+
+  // 貓頭進出場：那一列左邊讓出位置（padding 用滑的），貓頭淡入放大。
+  // 底線要跟著一起滑：先瞬間套成最後的樣子量好底線的終點，再退回起點讓它動。
+  const wasStuck = useRef(false)
+  useEffect(() => {
+    if (!stick) return
+    const animate = wasStuck.current !== stuck
+    wasStuck.current = stuck
+    stick.style.transition = 'none'
+    stick.toggleAttribute('data-stuck', stuck)
+    void stick.offsetWidth
+    rootRef.current?.dispatchEvent(new Event('bl:place'))
+    if (animate) {
+      stick.style.paddingLeft = stuck ? '0px' : 'var(--cat-room)'
+      void stick.offsetWidth
+    }
+    stick.style.transition = ''
+    stick.style.paddingLeft = ''
+  }, [stuck, stick, rootRef])
   return { scrolled, stick }
 }
 
