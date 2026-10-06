@@ -14,12 +14,16 @@ const CSS = `
   .cat-lab figure { margin: 0; }
   .cat-lab figcaption { font-size: 13px; color: var(--muted); text-align: center; }
   .cat-lab #cat, .cat-lab .stage img { display: block; width: 100%; aspect-ratio: 900 / 863; }
+  .cat-lab .stage { align-items: start; }
   .cat-lab #cat { touch-action: pan-y; cursor: grab; }
   .cat-lab #cat:active { cursor: grabbing; }
   .cat-lab .bar, .cat-lab #panel { padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; font-size: 14px; }
   .cat-lab .bar { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
   .cat-lab .bar label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
   .cat-lab #panel[hidden] { display: none; }
+  .cat-lab .bar [hidden], .cat-lab .bar[hidden] { display: none; }
+  .cat-lab #fit { margin-top: 12px; }
+  .cat-lab #fitNow { font-variant-numeric: tabular-nums; color: var(--muted); }
   .cat-lab #panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 24px; margin-top: 12px; }
   .cat-lab #panel label { display: grid; grid-template-columns: 6.5em 1fr 3em; align-items: center; gap: 8px; min-height: 44px; }
   .cat-lab #panel output { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
@@ -43,7 +47,7 @@ const HTML = `
   <p id="err" role="alert"></p>
 
   <div class="stage">
-    <figure><canvas id="cat" aria-label="可拖曳旋轉的立體水彩貓頭"></canvas><figcaption>立體版 · <span id="info"></span></figcaption></figure>
+    <figure><canvas id="cat" aria-label="可拖曳旋轉的立體水彩貓"></canvas><figcaption>立體版 · <span id="info"></span></figcaption></figure>
     <figure><img id="orig" alt="原始水彩貓頭" /><figcaption>原圖</figcaption></figure>
   </div>
 
@@ -58,11 +62,21 @@ const HTML = `
     <button id="gear" aria-expanded="false" aria-controls="panel">調整</button>
   </div>
 
+  <div class="bar" id="fit" hidden>
+    <span>身體的位置</span>
+    <label>左右 <input type="range" data-fit="x" min="-0.6" max="0.6" step="0.01" /></label>
+    <label>上下 <input type="range" data-fit="y" min="-1.7" max="-0.5" step="0.01" /></label>
+    <label>大小 <input type="range" data-fit="s" min="0.8" max="2" step="0.01" /></label>
+    <label>深度 <input type="range" data-fit="z" min="-2.5" max="-0.3" step="0.01" /></label>
+    <output id="fitNow"></output>
+  </div>
+
   <div id="panel" class="cat-panel" hidden>
     <h2>調整</h2>
   </div>
 
   <ul>
+    <li>身體是試作：原畫只有頭。身體是另外畫的一張毛球（沒有脖子，頭陷在裡面），整張貼在一個鼓起來的面上，不拆筆觸；轉頭時身體跟著轉一半不到。有身體時頭最多左右轉 32 度。網址加 nobody 可以只看頭、轉一整圈。</li>
     <li>每一筆是一片獨立的小網格，貼在頭的表面上、筆尖翹起來，大小與疏密在整顆頭上一致；重疊的地方由比較上層的那一筆說了算，所以看得出一筆壓著一筆。</li>
     <li>每個像素的顏料濃度，依當下看得到的筆觸分攤。正面時每筆取的都是原圖同一點，所以跟原圖一樣；轉到側面時每筆改用自己展開的那一小塊，不會被曲面拉長。</li>
     <li>待機時會眨眼、呼吸、抖耳朵、鬍鬚輕晃，沒人理牠時偶爾自己瞄別處。背光的那一側疊了一層偏冷的淡彩當陰影。跑不順時會自動調降畫質。</li>
@@ -76,7 +90,7 @@ const HTML = `
 `
 
 // 把測試頁裝進 root。回傳一個收拾用的函式，離開頁面時要叫
-export async function mountLab(root, { src, query = '' } = {}) {
+export async function mountLab(root, { src, body, query = '' } = {}) {
   root.className = 'cat-lab'
   root.innerHTML = `<style>${CSS}</style>${HTML}`
   const $ = (id) => root.querySelector('#' + id)
@@ -84,10 +98,15 @@ export async function mountLab(root, { src, query = '' } = {}) {
   let saved = {}
   try { saved = JSON.parse(localStorage.getItem('cat-lab') || '{}') } catch {} // 讀不到（無痕模式等）就當沒存過
   const canvas = $('cat')
+  const withBody = body && !new URLSearchParams(query).has('nobody') // 網址加 nobody 就只看頭
+  if (withBody) {
+    root.querySelectorAll('[data-yaw="90"], [data-yaw="180"], #sway').forEach((el) => ((el.closest('label') || el).hidden = true)) // 有身體時頭轉不到那裡
+  }
   let cat
   try {
     cat = await createCat(canvas, {
       src, saved, query, stay: true,
+      body: withBody ? body : undefined, turn: withBody ? 32 : Infinity,
       onInfo: (text) => root.contains(canvas) && ($('info').textContent = text),
       onContext: (lost) => root.contains(canvas) && ($('err').textContent = lost ? '瀏覽器把繪圖環境收走了，等它還回來，或重新整理頁面' : ''),
     })
@@ -113,6 +132,16 @@ export async function mountLab(root, { src, query = '' } = {}) {
   tilt.addEventListener('click', async () => { if (await cat.tilt()) tilt.hidden = true })
   gear.addEventListener('click', () => { panel.hidden = !panel.hidden; gear.setAttribute('aria-expanded', String(!panel.hidden)) })
   buildPanel(cat, panel, { storageKey: 'cat-lab' })
+  if (cat.body) { // 身體接在哪裡：拉到順眼為止，把下面那行數字告訴我就能寫成預設值
+    const show = (v) => ($('fitNow').textContent = `左右 ${v.x.toFixed(2)}　上下 ${v.y.toFixed(2)}　大小 ${v.s.toFixed(2)}　深度 ${v.z.toFixed(2)}`)
+    const now = cat.body({})
+    $('fit').hidden = false
+    root.querySelectorAll('[data-fit]').forEach((el) => {
+      el.value = now[el.dataset.fit]
+      el.addEventListener('input', () => show(cat.body({ [el.dataset.fit]: Number(el.value) })))
+    })
+    show(now)
+  }
 
   if (new URLSearchParams(query).has('step')) { window.catStep = cat.step; window.catState = cat.state } // 測試用
   return () => cat.dispose()

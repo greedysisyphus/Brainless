@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { catHead } from '../../components/bl/shared'
+import catBody from '../../assets/cat-body.webp'
 
 // 立體水彩貓的測試頁（/home/cat-lab，沒有放進導覽）。
 // 整頁由 cat3d/lab.js 用原生 DOM 組出來，這裡只負責掛上去和收拾。
@@ -13,7 +14,7 @@ export default function CatLab() {
     let stop
     let gone = false
     import('../../components/bl/cat3d/lab.js')
-      .then(({ mountLab }) => mountLab(root.current, { src: catHead, query: search }))
+      .then(({ mountLab }) => mountLab(root.current, { src: catHead, body: catBody, query: search }))
       .then((dispose) => {
         if (gone) dispose()
         else stop = dispose

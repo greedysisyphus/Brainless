@@ -3,6 +3,36 @@
 import * as THREE from 'three'
 
 const PX = 900, AR = 863 / 900, MAX_PITCH = 35
+// 身體（有給的話）：圖的長寬比（換圖時 scripts/prep-cat-body.py 會印出來）、畫面要往下加長幾成、左右加寬成幾倍才放得下
+const BAR = 849 / 900, BODY_E = 0.68, BODY_W = 1.3
+// 身體是整張圖貼在一個鼓起來的面上（不拆筆觸：圖上一撇一撇的毛拆了會糊）。鼓多高是照圖上的位置算的：
+// 一顆大毛球、右後方一團尾巴、兩隻往前伸的前掌。座標是身體圖上的像素，對著圖手動標的
+const BODY_VERT = /* glsl */ `
+varying vec2 vUv; varying float vLit;
+float dome(vec2 p) {
+  // 鼓起來的範圍比毛的輪廓大一圈、邊緣是緩坡：毛尖也在坡上，轉動時輪廓才不會露出一道硬邊
+  vec2 b = (p - vec2(390., 430.)) / vec2(445., 480.), t = (p - vec2(800., 640.)) / vec2(150., 185.), l = p - vec2(300., 790.), r = p - vec2(525., 790.);
+  return max(.5 * pow(max(1. - dot(b, b), 0.), .8), .26 * pow(max(1. - dot(t, t), 0.), .8)) + .1 * (exp(-dot(l, l) / 6000.) + exp(-dot(r, r) / 6000.));
+}
+void main() {
+  vUv = uv;
+  vec2 p = vec2(uv.x, 1. - uv.y) * vec2(${PX}., ${PX * BAR});
+  float z = dome(p), e = 12.;
+  vec3 n = normalize(mat3(modelViewMatrix) * vec3(dome(p - vec2(e, 0.)) - dome(p + vec2(e, 0.)), dome(p + vec2(0., e)) - dome(p - vec2(0., e)), .09));
+  vLit = smoothstep(-.3, .55, dot(n, normalize(vec3(-.45, .5, .75)))); // 光從左上前方來，跟頭一樣
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position.xy, z, 1.);
+}`
+// 輸出跟頭的筆觸同一套記法：顏色是「疊在白紙上的顏料」、alpha 是「還露出多少紙」，用相乘疊上去
+const BODY_FRAG = /* glsl */ `
+uniform sampler2D uBody, uCov; uniform float uShade, uSmin; uniform vec2 uRes;
+varying vec2 vUv; varying float vLit;
+void main() {
+  vec4 t = texture2D(uBody, vUv);
+  // 頭的毛蓋到的地方身體讓開（看頭那一趟算出來的筆觸權重）：不然頭邊緣的毛和身體兩層顏料相乘，下巴底下會多一圈深色
+  t *= 1. - clamp(texture2D(uCov, gl_FragCoord.xy / uRes).r / uSmin, 0., 1.);
+  vec3 c = (1. - t.a + t.rgb) * mix(mix(vec3(1.), vec3(.62, .6, .8), uShade * t.a), vec3(1.), vLit);
+  gl_FragColor = vec4(c, 1. - t.a);
+}`
 const clamp = (v, m) => Math.max(-m, Math.min(m, v))
 
 // 可調的參數：[網址參數名, 標籤, 最小, 最大, 間隔, 預設, 是否要重排筆觸]
@@ -233,9 +263,11 @@ void main() {
 }`
 
 // opts.src：貓頭圖片的網址。opts.saved：之前調過的參數 { 名稱: 值 }。opts.query：網址參數（測試時用來固定姿勢）。
+// opts.body：身體圖片的網址（可以不給）。給了畫布會變大：寬 BODY_W 倍、高 1 + BODY_E 倍，頭在正中上方。
+// opts.turn：頭最多能左右轉幾度（預設不限）。有身體時要限制：身體只有正面，而且貓的頭本來就轉不了一整圈。
 // opts.stay：拖曳放開後停在原地（測試頁）還是彈回去（首頁）。opts.onInfo：筆觸數量或畫質有變時通知。
 // opts.onContext(lost)：瀏覽器把繪圖環境收走（true）或還回來（false）時通知。手機切到背景再回來常會這樣
-export async function createCat(canvas, { src, saved = {}, query = '', stay = true, onInfo = () => {}, onContext = () => {} } = {}) {
+export async function createCat(canvas, { src, body, saved = {}, query = '', stay = true, turn = Infinity, onInfo = () => {}, onContext = () => {} } = {}) {
   const q = new URLSearchParams(query)
   const num = (k, d) => (q.has(k) ? Number(q.get(k)) : d)
   // 所有掛出去的事件都帶同一個 signal，dispose 時一次拆掉
@@ -244,9 +276,10 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
   // 頁面上的開關：自動旋轉、只看筆觸、拆開（0–1）、待機動作。網址指定了姿勢就是要看靜止的樣子
   const ui = { sway: false, only: q.get('mode') === 'strokes', spread: num('spread', 0), idle: !calm && !['yaw', 'gx', 'blink', 'sniff', 'puff'].some((k) => q.has(k)) }
-  const img = new Image()
+  const img = new Image(), bodyImg = body ? new Image() : null
   // 不用 img.decode()：分頁在背景時它會一直等
   await new Promise((ok, fail) => { img.onload = ok; img.onerror = () => fail(new Error('讀不到貓頭圖片')); img.src = src })
+  if (bodyImg) await new Promise((ok, fail) => { bodyImg.onload = ok; bodyImg.onerror = () => fail(new Error('讀不到貓身體圖片')); bodyImg.src = body })
 
   // 縮小一份到 2D canvas，放筆觸時用來查顏色與透明度
   const SC = 0.25, sw = Math.round(PX * SC), sh = Math.round(PX * AR * SC)
@@ -408,6 +441,11 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
   }
 
   const head = new THREE.Group(), scene = new THREE.Scene().add(head)
+  // 身體的中心放在哪、放大幾倍、離鏡頭多遠（z 越負越後面）。測試頁可以即時調；x、y、s 是使用者在手機上調出來的
+  // x、y、s 講的是「畫面上看起來」的位置和大小：往後推時實際的數字會跟著放大，所以調深度只改變前後感，不會讓身體變小或跑掉
+  const bodyAt = { x: 0.03, y: -1.21, s: 1.4, z: -0.9 }
+  const bodyK = () => (5 - bodyAt.z) / 5.5
+  const placeBody = (k = 1) => { torso.position.set(bodyAt.x * bodyK(), bodyAt.y * bodyK(), bodyAt.z); torso.scale.setScalar(bodyAt.s * bodyK() * k) }
   const mesh = (list, sx, sy) => {
     const p = new THREE.PlaneGeometry(2, 2, sx, sy), g = new THREE.InstancedBufferGeometry()
     g.index = p.index
@@ -421,6 +459,22 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
   const setMat = (m) => head.children.forEach((c) => (c.material = m))
   const camera = new THREE.PerspectiveCamera(26, 1 / AR, 0.1, 50)
   camera.position.z = 5
+  let torso, btex
+  if (bodyImg) {
+    // 畫面往下加長、左右加寬來放身體。鏡頭不動，只把視野開大，所以頭的大小和透視跟沒有身體時一樣
+    camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(13)) * (1 + 2 * BODY_E)))
+    camera.setViewOffset(BODY_W, AR * (1 + 2 * BODY_E), 0, AR * BODY_E, BODY_W, AR * (1 + BODY_E))
+    canvas.style.aspectRatio = `${PX * BODY_W} / ${PX * AR * (1 + BODY_E)}`
+    btex = new THREE.Texture(bodyImg)
+    btex.premultiplyAlpha = true
+    btex.needsUpdate = true
+    torso = new THREE.Mesh(new THREE.PlaneGeometry(2, 2 * BAR, 96, 96), new THREE.ShaderMaterial({
+      vertexShader: BODY_VERT, fragmentShader: BODY_FRAG, uniforms: { uBody: { value: btex }, uShade: uniforms.uShade, uCov: uniforms.uCov, uSmin: uniforms.uSmin, uRes: uniforms.uRes },
+      blending: THREE.CustomBlending, blendSrc: THREE.DstColorFactor, blendDst: THREE.ZeroFactor, depthWrite: false, // 會被頭的實心深度擋住，所以只出現在頭的後面
+    }))
+    placeBody()
+    scene.add(torso)
+  }
   seed = 1
   head.add(mesh([1, -1].map((side) => stroke({ side, x: PX / 2, y: (PX * AR) / 2, L: PX, W: PX * AR, z: -0.01, w: 0.3, shape: 2, k: 0, tier: -1 })), 128, 128)) // 正面、背面各一片底層淡彩，也拿來當實心頭
 
@@ -452,6 +506,7 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
 
   const render = () => {
     head.rotation.set(THREE.MathUtils.degToRad(pitch), THREE.MathUtils.degToRad(yaw + shake), 0)
+    torso?.rotation.set(THREE.MathUtils.degToRad(pitch * 0.3), THREE.MathUtils.degToRad((yaw + shake) * 0.45), 0) // 頭先轉，身體只跟一半不到
     uniforms.uSpread.value = ui.spread * 0.14
     uniforms.uVel.value.set(clamp(vy, 300), -clamp(vp, 300)).multiplyScalar(0.0018)
     uniforms.uLook.value.set(gaze[0], -gaze[1]).multiplyScalar(0.045 * val('gaze'))
@@ -459,9 +514,11 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
     const pass = (m) => {
       renderer.clear()
       head.children[1].visible = false
+      if (torso) torso.visible = false
       setMat(mats[3])
       renderer.render(scene, camera)
       head.children[1].visible = true
+      if (torso) torso.visible = m === mats[1] // 身體只在上色那一趟畫
       setMat(m)
       renderer.render(scene, camera)
     }
@@ -490,7 +547,7 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
       return
     }
     // 點到哪裡：頭大致朝前時，把畫面上的位置換回原圖座標（鏡頭視野的一半寬高是 1.131、1.085）
-    const wx = ((cx - r.left) / r.width - 0.5) * 2.262, wy = (0.5 - (cy - r.top) / r.height) * 2.17
+    const wx = ((cx - r.left) / r.width - 0.5) * 2.262 * (torso ? BODY_W : 1), wy = (0.5 - (cy - r.top) / (r.height / (torso ? 1 + BODY_E : 1))) * 2.17
     const ix = (wx / 2 + 0.5) * PX, iy = (AR / 2 - wy / 2) * PX, front = Math.abs(yaw) < 40 && Math.abs(pitch) < 25
     const onEar = front && [1, 2].find((i) => { const [a, c] = earAC(ix, iy, EARS[i]); return a > 0 && a < 1.2 && Math.abs(c) < 1.2 })
     if (onEar) earTap = [now, onEar - 1] // 耳朵：那隻耳朵連抖兩下
@@ -506,7 +563,7 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
   on(canvas, 'pointermove', (e) => {
     if (!drag) return
     if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) press.far = true
-    drag[0] += e.movementX * 0.35
+    drag[0] = clamp(drag[0] + e.movementX * 0.35, turn)
     if (e.pointerType === 'mouse') drag[1] = clamp(drag[1] + e.movementY * 0.25, MAX_PITCH) // 觸控的上下留給頁面捲動
   })
   for (const ev of ['pointerup', 'pointercancel']) on(canvas, ev, (e) => {
@@ -565,8 +622,9 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
   const loop = (ms) => {
     const raw = (ms - last) / 1000, dt = Math.max(0, Math.min(raw, 0.05)), f = val('follow') // 時間倒退（測試時手動推進）就當作沒過時間
     last = ms
-    const [ty, tp] = ui.sway ? [yaw + 6, 0] // 目標永遠領先一點，彈簧就會等速轉下去
+    let [ty, tp] = ui.sway ? [yaw + 6, 0] // 目標永遠領先一點，彈簧就會等速轉下去
       : drag || pin || (gyro && [clamp(gyro[0], f), clamp(gyro[1], f * 0.45)]) || (hover && [hover[0] * f, hover[1] * f * 0.45]) || [0, 0]
+    ty = clamp(ty, turn)
     if (calm) { vy = (ty - yaw) / Math.max(dt, 0.001); vp = (tp - pitch) / Math.max(dt, 0.001); yaw = ty; pitch = tp } // 減少動態：不彈
     else { // 略微欠阻尼的彈簧，放開時會輕輕過頭再回來
       vy += ((ty - yaw) * 90 - vy * 13) * dt; vp += ((tp - pitch) * 90 - vp * 13) * dt
@@ -611,6 +669,7 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
     // 呼吸；長按時變深變快，像在呼嚕
     head.scale.setScalar(1 + breath * Math.sin(ms / (held ? 260 : 900)) + 0.04 * puff)
     head.position.y = breath * 1.3 * Math.sin(ms / (held ? 260 : 900))
+    if (torso) placeBody(1 + breath * 2 * Math.sin(ms / (held ? 260 : 900) - 0.8) + 0.06 * puff) // 身體的起伏比頭大一點、慢半拍；炸毛時整隻脹起來
 
     // 瞳孔比頭快：先瞄過去，頭跟上之後瞳孔再收回一些。頭被固定或拖著時，瞳孔照樣跟。看得越偏瞳孔越小，看著你時放大
     const lead = f ? clamp(yaw / f, 1) : 0, ease = 1 - Math.exp(-dt * 14)
@@ -654,7 +713,7 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
       render()
     },
     // 固定在某個角度；給 null 就回到跟著游標
-    pin(deg) { unwind(); pin = deg == null ? null : [deg, 0]; ui.sway = false; snap() },
+    pin(deg) { unwind(); pin = deg == null ? null : [clamp(deg, turn), 0]; ui.sway = false; snap() },
     // 手機傾斜：iOS 要使用者按了才給權限，所以要從按鈕的點擊裡呼叫。回傳有沒有成功
     canTilt: 'DeviceOrientationEvent' in window && matchMedia('(pointer: coarse)').matches,
     async tilt() {
@@ -664,6 +723,8 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
       pin = null
       return true
     },
+    // 身體的位置、大小、深度（沒有身體時是 null）。給 { x, y, s, z } 就改，回傳目前的值
+    body: torso ? (patch) => { Object.assign(bodyAt, patch); placeBody(); render(); return { ...bodyAt } } : null,
     // 測試用：分頁在背景時沒有動畫格，讓外面可以手動推進並讀出狀態
     step: loop,
     state: () => ({ yaw, pitch, shake, held, puff, blink: uniforms.uBlink.value, sniff: uniforms.uSniff.value, twitch: uniforms.uTwitch.value.toArray(), pin, hover, gaze, pupil: uniforms.uPupil.value }),
@@ -676,8 +737,10 @@ export async function createCat(canvas, { src, saved = {}, query = '', stay = tr
       renderer.setAnimationLoop(null)
       head.children.forEach((c) => c.geometry.dispose())
       lift.geometry.dispose()
+      torso?.geometry.dispose()
+      torso?.material.dispose()
       ;[...mats, lift.material].forEach((m) => m.dispose())
-      ;[tex, distTex, cov].forEach((t) => t.dispose())
+      ;[tex, distTex, cov, btex].forEach((t) => t?.dispose())
       renderer.dispose()
       renderer.forceContextLoss()
     },
