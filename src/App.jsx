@@ -96,6 +96,7 @@ function AppContent() {
               <Route path="/home/cat-lab" element={<BlCatLab />} />
               <Route path="/home/cat-model" element={<BlCatModel />} />
               <Route path="/home/cat-walk" element={<BlCatWalk />} />
+              <Route path="/home/cat-home" element={<Home stageCat />} />
               <Route path="/home/*" element={<Navigate to="/home" replace />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />
               <Route path="/cashier" element={<CashierManagement />} />

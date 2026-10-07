@@ -252,7 +252,85 @@ function readStored(key, fallback) {
   }
 }
 
-export default function Home() {
+// 測試版（/home/cat-home）：大頭下面那條線是整隻貓的舞台。牠偶爾從旁邊走進來，停下來東張西望或吃東西，再走出去；點牠會嚇一跳。
+// 貓是 2D 的紙偶（cat3d/paper.js）：頭、身體、尾巴、腿各一片水彩畫綁在骨架上，看到的就是畫本身在動。
+// 貓在一塊小畫布裡原地做動作，這裡負責把畫布沿著線移動（速度照牠的步伐，腳才不會滑）。不擋任何按鈕，換頁照舊。
+const STAGE_ACTS = [['Idle_2', 1], ['Eating', 2], ['Idle', 1], ['Idle_2_HeadLow', 1]] // 停下來時做什麼、做幾輪
+function useStageCat(enabled, stageRef) {
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!enabled || !stage || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const canvas = document.createElement('canvas')
+    stage.append(canvas)
+    let gone = false
+    let cat = null
+    let timer = 0
+    let move = null
+    const wait = (ms) => new Promise((ok) => (timer = setTimeout(ok, ms)))
+    const pick = (list) => list[Math.floor(Math.random() * list.length)]
+    let doing = 'Walk'
+    let startled = 0
+    const act = (name) => { doing = name; clearTimeout(startled); cat.play(name) }
+    // 走到畫面上的某一點（x 是畫布左緣的位置，px）
+    const walkTo = (x) => {
+      const from = parseFloat(getComputedStyle(canvas).translate) || 0
+      const right = x >= from
+      act('Walk')
+      cat.face(right ? 90 : -90) // 2D 的貓只有正側面：要換方向就直接翻面，像紙偶
+      move = canvas.animate([{ translate: `${from}px 0` }, { translate: `${x}px 0` }], { duration: (Math.abs(x - from) / (cat.pace('Walk') * canvas.offsetWidth)) * 1000, fill: 'forwards' })
+      return move.finished
+    }
+    const show = async () => {
+      while (!gone) {
+        await wait(move ? 9000 + Math.random() * 14000 : 2500)
+        if (gone) return
+        const size = canvas.offsetWidth
+        const width = stage.offsetWidth
+        const fromLeft = Math.random() < 0.5
+        const [inX, outX] = fromLeft ? [-size, width] : [width, -size]
+        canvas.style.translate = `${inX}px 0`
+        move = null
+        cat.awake(true)
+        await walkTo(size * 0.3 + Math.random() * Math.max(0, width - size * 1.6))
+        if (gone) return
+        const [name, rounds] = pick(STAGE_ACTS)
+        act(name)
+        await wait(cat.length(name) * rounds * 1000)
+        if (gone) return
+        await walkTo(Math.random() < 0.7 ? outX : inX)
+        cat.awake(false)
+      }
+    }
+    // 被點到：嚇一跳，然後繼續原本在做的事
+    const poke = () => {
+      if (!cat) return
+      const jump = pick(['Idle_HitReact1', 'Idle_HitReact2'])
+      cat.play(jump)
+      clearTimeout(startled)
+      startled = setTimeout(() => cat.play(doing), cat.length(jump) * 1000)
+    }
+    canvas.addEventListener('pointerdown', poke)
+    Promise.all([import('../components/bl/cat3d/paper.js'), import('../assets/cat-paper.glb?url'), import('../assets/cat-parts.webp')])
+      .then(([{ createPaperCat }, glb, paint]) => createPaperCat(canvas, { glb: glb.default, paint: paint.default }))
+      .then((made) => {
+        if (gone) return made.dispose()
+        cat = made
+        cat.awake(false)
+        show()
+      })
+      .catch((error) => console.error('舞台上的貓載入失敗', error))
+    return () => {
+      gone = true
+      clearTimeout(timer)
+      clearTimeout(startled)
+      move?.cancel()
+      cat?.dispose()
+      canvas.remove()
+    }
+  }, [enabled, stageRef])
+}
+
+export default function Home({ stageCat = false }) {
   useBlFonts()
   const pageRef = useRef(null)
   useFitToViewport(pageRef)
@@ -276,6 +354,8 @@ export default function Home() {
   // 貓歪頭看游標；摸一下點頭
   const peekRef = useRef(null)
   const [nod, setNod] = useState(0)
+  const stageRef = useRef(null)
+  useStageCat(stageCat, stageRef)
   useEffect(() => {
     const onMove = (e) => {
       const el = peekRef.current
@@ -358,6 +438,7 @@ export default function Home() {
             </div>
             <section className="today" aria-labelledby="home-today">
               <h2 className="day" id="home-today">
+                {stageCat && <span className="cat-stage" ref={stageRef} aria-hidden="true" />}
                 <span className="label">今天</span>
                 <span>
                   {now.getMonth() + 1} 月 {now.getDate()} 日 星期{WEEKDAYS[now.getDay()]}

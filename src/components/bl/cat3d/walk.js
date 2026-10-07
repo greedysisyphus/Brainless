@@ -20,7 +20,7 @@ void main() {
   #include <project_vertex>
 }`
 const FRAG = /* glsl */ `
-uniform sampler2D uBase, uHead, uLeft, uRight, uBack; uniform float uBlink; uniform vec2 uLook;
+uniform sampler2D uBase, uHead, uLeft, uRight, uBack; uniform float uBlink, uFlat; uniform vec2 uLook;
 varying vec2 vUv; varying vec3 vP, vN, vLit, vQ;
 ${EYES}
 void main() {
@@ -38,6 +38,8 @@ void main() {
   // 朝上的面（頭頂、背上、尾巴上緣）從側面和後面照都是斜斜擦過去，畫會被拉成一條一條的，所以也留模型自己的顏色
   float flat_ = 1. - smoothstep(.45, .75, n.y);
   float sideA = side.a * (1. - smoothstep(.55, .85, n.z)) * flat_, backA = back.a * smoothstep(.45, .8, -n.z) * flat_;
+  // 平面模式：鏡頭鎖在正側面，側面那張畫怎麼投影都不會歪，所以整隻都用它，看到的就是那張畫本身在動
+  sideA = mix(sideA, side.a, uFlat); backA *= 1. - uFlat;
   col = mix(mix(col, side.rgb, sideA), back.rgb, backA);
   // 原畫怎麼對到頭上（對著模型的正面圖量的，換模型要重量）：兩隻眼睛在模型上是 (-0.33, 1.815)、(0.30, 1.82)，
   // 在頭的圖上是 (312, 385)、(667, 455) → 每單位 574px。原畫的頭歪了 11 度、模型的頭是正的，所以要轉回來
@@ -48,20 +50,22 @@ void main() {
   eye(h, hp, vec2(312., 385.), vec2(95., 100.), vec2(60., -115.));
   eye(h, hp, vec2(667., 455.), vec2(85., 83.), vec2(-80., -115.));
   // 只有頭上朝前的面吃得到原畫：轉到側面漸漸換回模型的顏色；下巴以下、還有豎在頭後面的尾巴都不算
-  float face = smoothstep(.12, .55, n.z) * smoothstep(1.085, 1.205, vP.y) * smoothstep(.79, .99, vP.z);
+  float face = smoothstep(.12, .55, n.z) * smoothstep(1.085, 1.205, vP.y) * smoothstep(.79, .99, vP.z) * (1. - uFlat);
   col = mix(col, h.rgb, h.a * face);
   // 打一點光：模型的貼圖是平的，不分明暗的話腿和身體糊成一團，動起來像一坨泥。光從左上前方來，
   // 背光的地方（肚子底下、腿的內側、毛的縫）偏暗偏紫，像水彩疊了一層影子。臉是原畫，已經有自己的明暗，少打一點；重畫的身體也少打一些
   float lit = smoothstep(-.55, .65, dot(normalize(vLit), normalize(vec3(-.35, .8, .5))));
-  col *= mix(vec3(.74, .71, .82), vec3(1.04, 1.03, 1.), mix(lit, 1., max(.6 * h.a * face, .45 * max(sideA, backA)))); // 影子要淡：每一撮毛都有自己的明暗，壓太深整隻會髒髒的
+  col *= mix(vec3(.74, .71, .82), vec3(1.04, 1.03, 1.), mix(lit, 1., max(uFlat, max(.6 * h.a * face, .45 * max(sideA, backA))))); // 影子要淡：每一撮毛都有自己的明暗，壓太深整隻會髒髒的
   gl_FragColor = vec4(col, 1.);
 }`
 
 const MAX_PITCH = 35
 const clamp = (v, m) => Math.max(-m, Math.min(m, v))
 
-// opts.glb：scripts/prep-cat-rig.py 產生的模型；opts.base：它的貼圖；opts.head：原畫的頭；opts.paint：{ left, right, back } 重畫的身體。回傳 { head, speed, turn, dispose }
-export async function createWalkCat(canvas, { glb, base, head, paint, onContext = () => {} }) {
+// opts.glb：scripts/prep-cat-rig.py 產生的模型；opts.base：它的貼圖；opts.head：原畫的頭；opts.paint：{ left, right, back } 重畫的身體。
+// opts.flat：平面模式。沒有透視、沒有明暗，整隻貓只用側面那張畫；要搭配正側面（face(±90)）看，像一張會動的 2D 圖。
+// opts.still：貓留在畫布正中間原地做動作、不能拖（給首頁當成一張會動的圖，由外面去移動整個畫布）。回傳 { head, speed, turn, dispose }
+export async function createWalkCat(canvas, { glb, base, head, paint, still = false, flat = false, onContext = () => {} }) {
   const off = new AbortController()
   const on = (target, type, fn, opts) => target.addEventListener(type, fn, { ...opts, signal: off.signal })
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -74,7 +78,7 @@ export async function createWalkCat(canvas, { glb, base, head, paint, onContext 
     img.src = url
   })
   const textures = await Promise.all([tex(base, false), tex(head, true), tex(paint.left, true), tex(paint.right, true), tex(paint.back, true)]) // 模型的貼圖座標是 glTF 的，上下不翻
-  const uniforms = { uBase: { value: textures[0] }, uHead: { value: textures[1] }, uLeft: { value: textures[2] }, uRight: { value: textures[3] }, uBack: { value: textures[4] }, uBlink: { value: 0 }, uLook: { value: new THREE.Vector2() } }
+  const uniforms = { uBase: { value: textures[0] }, uHead: { value: textures[1] }, uLeft: { value: textures[2] }, uRight: { value: textures[3] }, uBack: { value: textures[4] }, uBlink: { value: 0 }, uFlat: { value: flat ? 1 : 0 }, uLook: { value: new THREE.Vector2() } }
   const material = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms })
   let skinned
   gltf.scene.traverse((o) => { if (o.isSkinnedMesh) { skinned = o; o.material = material; o.frustumCulled = false } })
@@ -88,7 +92,8 @@ export async function createWalkCat(canvas, { glb, base, head, paint, onContext 
   actions[clip].play()
   // 貓繞著圈子走：真的往前移動，看起來才像走路，不是原地踏步。cat（拖著轉的）→ path（走到圈上哪裡、面朝哪）→ rig（模型）
   // 模型的原點在四隻腳中間的地上，縮到身長大約 1.2
-  const SIZE = 0.8, RADIUS = 0.6
+  const SIZE = still ? 1.1 : 0.8, RADIUS = still ? 0 : 0.6
+  const VIEW = 2 * 5 * Math.tan(THREE.MathUtils.degToRad(15)) // 鏡頭在貓的距離上看得到多寬
   const rig = new THREE.Group().add(gltf.scene), path = new THREE.Group().add(rig), cat = new THREE.Group().add(path)
   rig.scale.setScalar(SIZE)
   const headBone = skinned.skeleton.bones.find((b) => b.name === 'head')
@@ -98,17 +103,16 @@ export async function createWalkCat(canvas, { glb, base, head, paint, onContext 
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
   const scene = new THREE.Scene().add(cat)
-  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50)
-  camera.position.set(0, 1.5, 5)
-  camera.lookAt(0, 0.35, 0)
+  const camera = flat ? new THREE.OrthographicCamera(-VIEW / 2, VIEW / 2, VIEW / 2, -VIEW / 2, 0.1, 50) : new THREE.PerspectiveCamera(30, 1, 0.1, 50)
+  if (still) { camera.position.set(0, 0.9, 5); camera.lookAt(0, 0.9, 0) } else { camera.position.set(0, 1.5, 5); camera.lookAt(0, 0.35, 0) }
   const rt = new THREE.WebGLRenderTarget(1, 1, { samples: 4 }), res = new THREE.Vector2(1, 1)
   const post = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
     vertexShader: 'void main() { gl_Position = vec4(position.xy, 0., 1.); }', fragmentShader: POST,
     uniforms: { uScene: { value: rt.texture }, uRes: { value: res }, uScale: { value: 1 }, uShift: { value: new THREE.Vector2() } }, depthTest: false,
   }))
-  const flat = new THREE.Camera(), postScene = new THREE.Scene().add(post)
+  const postCam = new THREE.Camera(), postScene = new THREE.Scene().add(post)
 
-  let yaw = 35, pitch = 0, vy = 0, drag = null, last = 0, seen = true, speed = calm ? 0 : 1, headYaw = 0, lap = 0 // lap：走到圈上的哪裡（弧度）
+  let yaw = 35, pitch = 0, vy = 0, drag = null, last = 0, seen = true, speed = calm ? 0 : 1, headYaw = 0, faceTo = null, lap = 0 // lap：走到圈上的哪裡（弧度）
   let blinkAt = 1500, look = [0, 0], gaze = [0, 0]
   const force = {} // 測試用：固定眨眼和視線
   const pulse = (ms, at, len) => { const t = (ms - at) / len; return t < 0 || t > 1 ? 0 : Math.sin(Math.PI * t) ** 2 } // 0 → 1 → 0
@@ -136,7 +140,7 @@ export async function createWalkCat(canvas, { glb, base, head, paint, onContext 
     uniforms.uLook.value.set(gaze[0] * 20 * Math.cos(THREE.MathUtils.degToRad(yaw + headYaw) + lap + Math.PI / 2), gaze[1] * 14)
     cat.rotation.set(THREE.MathUtils.degToRad(pitch), THREE.MathUtils.degToRad(yaw), 0)
     path.position.set(RADIUS * Math.sin(lap), 0, RADIUS * Math.cos(lap))
-    path.rotation.y = lap + Math.PI / 2 // 面朝圈子的切線方向
+    path.rotation.y = still ? 0 : lap + Math.PI / 2 // 面朝圈子的切線方向
     cat.updateMatrixWorld(true)
     pose()
     spot.setFromMatrixPosition(path.matrixWorld).project(camera) // 貓在畫面上的位置：水彩的紋理跟著牠走
@@ -148,22 +152,21 @@ export async function createWalkCat(canvas, { glb, base, head, paint, onContext 
     if (headBone) headBone.quaternion.copy(animQ)
     renderer.setRenderTarget(null)
     renderer.clear()
-    renderer.render(postScene, flat)
+    renderer.render(postScene, postCam)
   }
   const fit = () => {
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
     renderer.getDrawingBufferSize(res)
     rt.setSize(res.x, res.y)
-    post.material.uniforms.uScale.value = (res.x / 420) * 0.55 // 貓只佔畫面一部分，暈開和顆粒照牠的大小縮，不然整隻糊掉
-    camera.aspect = res.x / res.y
-    camera.updateProjectionMatrix()
+    post.material.uniforms.uScale.value = (res.x / 420) * (still ? 0.8 : 0.55) // 貓只佔畫面一部分，暈開和顆粒照牠的大小縮，不然整隻糊掉
+    if (!flat) { camera.aspect = res.x / res.y; camera.updateProjectionMatrix() } // 平面模式的畫布是正方形，鏡頭不用跟著改
     render()
   }
   const sized = new ResizeObserver(fit)
   sized.observe(canvas)
   fit()
 
-  on(canvas, 'pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); drag = true; vy = 0 })
+  if (!still) on(canvas, 'pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); drag = true; vy = 0 })
   on(canvas, 'pointermove', (e) => {
     if (!drag) return
     yaw += e.movementX * 0.45
@@ -178,14 +181,16 @@ export async function createWalkCat(canvas, { glb, base, head, paint, onContext 
   on(document.documentElement, 'pointerleave', () => (look = [0, 0]))
   const watched = new IntersectionObserver(([e]) => (seen = e.isIntersecting))
   watched.observe(canvas)
-  renderer.setAnimationLoop((ms) => {
+  const tick = (ms) => {
     const dt = Math.min((ms - last) / 1000, 0.05)
     last = ms
     if (!drag && !calm) { yaw += vy * dt; vy *= Math.exp(-dt * 3) }
+    if (faceTo != null) yaw += (faceTo - yaw) * (1 - Math.exp(-dt * 9)) // 慢慢轉向指定的方向
     mixer.update(dt * speed)
-    lap += (stride[clip] * SIZE * dt * speed) / RADIUS
+    if (!still) lap += (stride[clip] * SIZE * dt * speed) / RADIUS
     if (seen) render(ms)
-  })
+  }
+  renderer.setAnimationLoop(tick)
   on(canvas, 'webglcontextlost', () => onContext(true))
   on(canvas, 'webglcontextrestored', () => { fit(); onContext(false) })
 
@@ -199,6 +204,14 @@ export async function createWalkCat(canvas, { glb, base, head, paint, onContext 
       if (name && name !== clip && actions[name]) { actions[clip].fadeOut(0.3); actions[name].reset().fadeIn(0.3).play(); clip = name }
       return Object.keys(actions)
     },
+    // 這個動作照原速每秒往前走幾個畫布寬（只有走、跑有）：外面移動畫布時照這個速度，腳才不會滑
+    pace: (name) => (stride[name] * SIZE) / VIEW,
+    // 這個動作一輪幾秒
+    length: (name) => actions[name].getClip().duration,
+    // 整隻貓轉向（度，0 是正對鏡頭）：snap 給 true 就直接轉過去，不然慢慢轉
+    face: (deg, snap) => { faceTo = deg; if (snap) yaw = deg },
+    // 停下來不畫（省電），或叫醒
+    awake: (yes) => { last = performance.now(); renderer.setAnimationLoop(yes ? tick : null); if (yes) render() },
     turn: (deg, t, at) => { yaw = deg; vy = 0; if (t != null) mixer.setTime(t); if (at != null) lap = at; render() }, // 測試用：轉到某個角度、動作停在某一刻、走到圈上某處
     pose: (o) => { Object.assign(force, o); if (o.look) gaze = o.look; render() }, // 測試用：{ blink: 0–1, look: [x, y] } 固定表情
     dispose() {
