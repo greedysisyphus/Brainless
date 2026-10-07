@@ -29,7 +29,7 @@ export default function CatWalk() {
     const paper = query.has('paper') // ?paper：2D 的紙偶（一張側面的畫在動），首頁舞台用的那種
     let gone = false
     const load = paper
-      ? Promise.all([import('../../components/bl/cat3d/paper.js'), import('../../assets/cat-paper.glb?url'), import('../../assets/cat-parts.webp')]).then(([m, glb, parts]) => m.createPaperCat(canvas, { glb: glb.default, paint: parts.default }))
+      ? Promise.all([import('../../components/bl/cat3d/paper.js'), import('../../assets/cat-paper.glb?url'), import('../../assets/cat-parts.webp')]).then(([m, glb, parts]) => m.createPaperCat(canvas, { glb: glb.default, paint: parts.default, ink: query.has('ink') ? ['#4f2d55', '#d9c98f'] : undefined }))
       : import('../../components/bl/cat3d/walk.js').then(({ createWalkCat }) => createWalkCat(canvas, { glb: catGlb, base: catBase, head: catHead, paint: { left: paintLeft, right: paintRight, back: paintBack }, onContext: (lost) => setNote(lost ? '瀏覽器把繪圖環境收走了，等它還回來，或重新整理頁面' : '') }))
     load
       .then((c) => {

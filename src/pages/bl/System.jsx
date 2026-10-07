@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { InBlShell } from '../../components/bl/chrome'
 import { Skel, ToolPage, useBlNavigate } from '../../components/bl/shared'
@@ -7,6 +7,7 @@ import { useAdminGate, useAdminLogin, useCanEdit } from '../../components/admin/
 import { PAGE_META } from '../Playground'
 import { MENU_ACCEPT, MENU_PAGE_LABELS, usePublicMenu } from '../../components/admin/usePublicMenu'
 import { MENU_LAYOUT_OPTIONS, PUBLIC_MENU_SITE_URL } from '../../utils/publicMenuDisplay'
+import { saveHomeSettings, useHomeSettings } from '../../components/bl/homeSettings'
 import '../../styles/bl-tools.css'
 
 // 管理設定、電子菜單、Playground 的新版外框。登入、權限與目錄是新版畫面；
@@ -60,6 +61,38 @@ function Login() {
   )
 }
 
+const METER_STYLES = [['dot', '圓點', '原本的樣子：一顆圓點滑到今天的位置'], ['cat', '貓和樹', '今天的位置種一棵小樹，水彩貓在旁邊活動']]
+
+// 首頁忙碌量尺要用哪一種：選了就存、所有人的首頁馬上跟著換
+function HomeMeterSetting() {
+  const { meter } = useHomeSettings()
+  const [note, setNote] = useState('')
+  const choose = (value) => {
+    if (value === meter) return
+    setNote('儲存中…')
+    saveHomeSettings({ meter: value }).then(() => setNote('已更新，首頁會馬上換'), () => setNote('存不了，請再試一次'))
+  }
+  return (
+    <section className="card home-meter">
+      <div className="hd">
+        <h2>首頁的忙碌量尺</h2>
+        <small role="status">{note}</small>
+      </div>
+      <div className="pick" role="group" aria-label="量尺的樣子">
+        {METER_STYLES.map(([value, name, about]) => (
+          <button key={value} type="button" aria-pressed={meter === value} onClick={() => choose(value)}>
+            <b>{name}</b>
+            <small>{about}</small>
+          </button>
+        ))}
+      </div>
+      <p className="sub">
+        貓的大小可以在 <a href="#/home/cat-meter">試作頁</a> 調；不改設定只想看貓的版本，開 <a href="#/home/cat-home">這一頁</a>。
+      </p>
+    </section>
+  )
+}
+
 export function Admin() {
   const { isAdmin, isLoading, handleAdminLogout } = useAdminGate()
   return (
@@ -82,6 +115,7 @@ export function Admin() {
         <Login />
       ) : (
         <>
+          <HomeMeterSetting />
           <p className="lede">音樂／天氣跑馬燈</p>
           <Legacy>
             <MarqueeSettings />

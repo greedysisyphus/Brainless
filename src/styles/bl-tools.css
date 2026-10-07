@@ -119,6 +119,16 @@
 .bl-x .btn:disabled { opacity: 0.4; cursor: default; }
 .bl-x .top .side { margin: 0 0 8px auto; }
 
+/* 管理設定：首頁量尺的兩個選項，並排兩顆大按鈕 */
+.bl-admin .home-meter { margin-top: 14px; }
+.bl-admin .home-meter .pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.bl-admin .home-meter .pick button { min-height: 64px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+.bl-admin .home-meter .pick button b { display: block; font-weight: 500; }
+.bl-admin .home-meter .pick button small { display: block; margin-top: 2px; font-size: 0.8125rem; color: var(--soft); }
+.bl-admin .home-meter .pick button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.bl-admin .home-meter .pick button[aria-pressed='true'] small { color: inherit; opacity: 0.75; }
+.bl-admin .home-meter .sub { margin-top: 12px; font-size: 0.8125rem; color: var(--soft); }
+.bl-admin .home-meter .sub a { color: var(--plum); }
 .bl-admin .login { display: grid; gap: 14px; width: min(100%, 420px); margin: clamp(24px, 6vh, 64px) auto 0; }
 .bl-admin .login .sub { font-size: 0.8125rem; color: var(--soft); }
 .bl-admin .login h2 + .sub { margin-top: -8px; }

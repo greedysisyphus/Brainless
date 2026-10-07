@@ -42,6 +42,7 @@ const BlPlayground = lazy(() => loadBl().then((m) => ({ default: m.Playground })
 const BlCatLab = lazy(() => loadBl().then((m) => ({ default: m.CatLab })))
 const BlCatModel = lazy(() => loadBl().then((m) => ({ default: m.CatModel })))
 const BlCatWalk = lazy(() => loadBl().then((m) => ({ default: m.CatWalk })))
+const BlCatMeter = lazy(() => loadBl().then((m) => ({ default: m.CatMeter })))
 
 function AppContent() {
   const [firebaseStatus, setFirebaseStatus] = useState({
@@ -96,6 +97,7 @@ function AppContent() {
               <Route path="/home/cat-lab" element={<BlCatLab />} />
               <Route path="/home/cat-model" element={<BlCatModel />} />
               <Route path="/home/cat-walk" element={<BlCatWalk />} />
+              <Route path="/home/cat-meter" element={<BlCatMeter />} />
               <Route path="/home/cat-home" element={<Home stageCat />} />
               <Route path="/home/*" element={<Navigate to="/home" replace />} />
               <Route path="/sandwich" element={<SandwichCalculator />} />

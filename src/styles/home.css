@@ -38,11 +38,12 @@
 /* 換頁時飛出去的是畫面上看得到的那一隻 */
 .bl-home .peek.live .vt-cat { view-transition-name: none; }
 .bl-home .peek.live .cat3d { view-transition-name: bl-cat; }
-/* 測試版：大頭下面那條線是整隻貓的舞台。舞台貼在線的上緣，兩端淡出，貓從旁邊走進走出 */
-.bl-home .day { position: relative; }
-.bl-home .cat-stage { --s: 104px; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--s); overflow: hidden; pointer-events: none; z-index: 2; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
-/* 畫布裡貓的腳底在離下緣 11.4% 的地方，往下挪這麼多，腳才踩在線上 */
-.bl-home .cat-stage canvas { position: absolute; left: 0; bottom: calc(var(--s) * -0.114); width: var(--s); height: var(--s); translate: -200px 0; pointer-events: auto; cursor: pointer; }
+/* 量尺選了貓的版本（管理設定）：圓點換成小樹和小貓（MeterCat）。上面只多讓一點點空間：貓和樹很小，
+   跳起來、被彈飛的時候蓋到上面的數字沒關係，留一大塊空白反而怪 */
+.bl-home .meter.zoned { margin-top: 12px; height: 28px; }
+/* 刻度的字往下讓一點，給「今天的位置」那個小三角 */
+.bl-home .meter.zoned i::after { top: 10px; }
+.bl-home .meter.zoned u { display: none; }
 .bl-home .cat-tools { position: absolute; right: 0; bottom: 14px; z-index: 1; display: flex; gap: 6px; }
 .bl-home .cat-tools button { min-height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: color-mix(in srgb, var(--paper) 88%, transparent); color: var(--soft); font: inherit; font-size: 0.6875rem; letter-spacing: 0.08em; cursor: pointer; transition: color 0.2s, border-color 0.2s, background-color 0.2s; }
 .bl-home .cat-tools button:hover { color: var(--ink); border-color: var(--ink); }
