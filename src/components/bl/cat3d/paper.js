@@ -8,21 +8,23 @@ const VERT = /* glsl */ `
 #include <common>
 #include <skinning_pars_vertex>
 attribute vec4 shade;
-varying vec2 vUv; varying float vShade;
+uniform float uBlink;
+varying vec2 vUv; varying float vShade, vShow;
 void main() {
   vUv = uv; vShade = shade.r;
+  vShow = shade.a > .5 ? 1. : uBlink; // 閉眼那一小塊平常不畫，眨眼時才蓋上去
   #include <skinbase_vertex>
   #include <begin_vertex>
   #include <skinning_vertex>
   #include <project_vertex>
 }`
 const FRAG = /* glsl */ `
-uniform sampler2D uMap; varying vec2 vUv; varying float vShade;
-void main() { vec4 c = texture2D(uMap, vUv); gl_FragColor = vec4(c.rgb * vShade * c.a, c.a); }` // 預乘透明
+uniform sampler2D uMap; varying vec2 vUv; varying float vShade, vShow;
+void main() { vec4 c = texture2D(uMap, vUv); c.a *= vShow; gl_FragColor = vec4(c.rgb * vShade * c.a, c.a); }` // 預乘透明
 
 const VIEW = 2.2, MID = 0.85 // 畫框：2.2 單位見方、中心高度 0.85（跟 prep-cat-paint.py 一樣），所以貓的腳底在離畫布下緣 11.4% 的地方
 
-// opts.glb：scripts/paper-cat.py 產生的檔；opts.paint：零件圖（同一支腳本產生的 cat-parts.webp）。回傳 { play, speed, pace, length, face, awake, turn, dispose }
+// opts.glb：scripts/paper-cat.py 產生的檔；opts.paint：零件圖（同一支腳本產生的 cat-parts.webp）。回傳 { play, speed, pace, length, face, awake, turn, pose, dispose }
 export async function createPaperCat(canvas, { glb, paint }) {
   const gltf = await new GLTFLoader().loadAsync(glb)
   const map = await new Promise((ok, fail) => { // 不用 img.decode()：分頁在背景時它會一直等
@@ -31,15 +33,16 @@ export async function createPaperCat(canvas, { glb, paint }) {
     img.onerror = () => fail(new Error('讀不到貓的圖片'))
     img.src = paint
   })
-  // 不比深度：三角形照檔案裡的順序畫（遠的腿 → 尾巴 → 身體 → 近的腿 → 頭），後畫的蓋住先畫的
-  const material = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: { uMap: { value: map } }, transparent: true, premultipliedAlpha: true, depthTest: false, side: THREE.DoubleSide })
+  // 不比深度：三角形照檔案裡的順序畫（遠的腿 → 尾巴 → 身體 → 近的腿 → 頭 → 閉眼），後畫的蓋住先畫的
+  const material = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: { uMap: { value: map }, uBlink: { value: 0 } }, transparent: true, premultipliedAlpha: true, depthTest: false, side: THREE.DoubleSide })
   let skinned
   gltf.scene.traverse((o) => { if (o.isSkinnedMesh) { skinned = o; o.material = material; o.frustumCulled = false; o.geometry.setAttribute('shade', o.geometry.attributes.color) } })
   if (!skinned) throw new Error('模型裡沒有骨架')
   const mixer = new THREE.AnimationMixer(gltf.scene)
   const stride = Object.fromEntries(gltf.parser.json.animations.map((a) => [a.name, a.extras?.speed ?? 0]))
   const actions = Object.fromEntries(gltf.animations.map((c) => [c.name, mixer.clipAction(c)]))
-  let clip = 'Walk', speed = 1, last = 0
+  let clip = 'Walk', speed = 1, last = 0, blinkAt = 1500, held = null
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
   actions[clip].play()
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
@@ -54,7 +57,14 @@ export async function createPaperCat(canvas, { glb, paint }) {
   const sized = new ResizeObserver(fit)
   sized.observe(canvas)
   fit()
-  const tick = (ms) => { mixer.update(Math.min((ms - last) / 1000, 0.05) * speed); last = ms; render() }
+  const tick = (ms) => {
+    mixer.update(Math.min((ms - last) / 1000, 0.05) * speed)
+    last = ms
+    // 眨眼：每 2.5–6.5 秒閉 0.13 秒，兩成機率連眨兩下
+    if (ms > blinkAt + 130) blinkAt = ms + (Math.random() < 0.2 ? 150 : 2500 + Math.random() * 4000)
+    material.uniforms.uBlink.value = held ?? (!calm && ms >= blinkAt ? 1 : 0)
+    render()
+  }
   renderer.setAnimationLoop(tick)
 
   return {
@@ -69,6 +79,7 @@ export async function createPaperCat(canvas, { glb, paint }) {
     face: (deg) => { face(deg > 0); render() },                // 朝右（正的）或朝左
     awake: (yes) => { last = performance.now(); renderer.setAnimationLoop(yes ? tick : null); if (yes) render() }, // 停下來不畫（省電），或叫醒
     turn: (deg, t) => { face(deg > 0); if (t != null) mixer.setTime(t); render() }, // 測試用：朝哪邊、動作停在某一刻
+    pose: (o) => { held = o.blink ?? null; material.uniforms.uBlink.value = held ?? 0; render() }, // 測試用：{ blink: 0 或 1 } 固定眼睛
     dispose() {
       sized.disconnect()
       renderer.setAnimationLoop(null)
