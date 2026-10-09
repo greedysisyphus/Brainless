@@ -3,9 +3,9 @@
 
 export const STYLES = [
   { id: 'white', name: '白底', fill: '#ffffff', text: '#1c1914', shadow: true },
-  { id: 'black', name: '黑底', fill: '#141210', text: '#ffffff' },
+  { id: 'black', name: '黑底', fill: '#141210', text: '#ffffff', shadow: true },
   { id: 'veil', name: '半透明', fill: 'rgba(24, 18, 14, 0.74)', text: '#ffffff' },
-  { id: 'plum', name: '紫', fill: '#4f2d55', text: '#ffffff' },
+  { id: 'plum', name: '紫', fill: '#4f2d55', text: '#ffffff', shadow: true },
 ]
 export const styleOf = (id) => STYLES.find((s) => s.id === id) || STYLES[0]
 
@@ -14,8 +14,12 @@ export const SIZE_MAX = 0.2
 export const DEFAULT_SIZE = 0.042
 export const CROSS_COLOR = '#ec3b5a'
 
-/** 標籤框的比例（單位：字高 em）。畫面上的 CSS 與匯出的 canvas 用同一組數字，看到的就是存下來的 */
-export const METRICS = { padX: 0.62, padY: 0.3, line: 1.28, vline: 1.12, radius: 0.55 }
+/**
+ * 標籤框的比例（單位：字高 em）。畫面上的 CSS 與匯出的 canvas 用同一組數字，看到的就是存下來的。
+ * 直排是照片裡「小蓋」「大蓋」那種直立的膠囊：左右窄、上下留多一點、兩頭全圓。
+ */
+export const METRICS = { padX: 0.62, padY: 0.3, line: 1.28, radius: 0.55, vpadX: 0.46, vpadY: 0.62, vline: 1.1 }
+export const padOf = (label) => (label.vertical ? { x: METRICS.vpadX, y: METRICS.vpadY } : { x: METRICS.padX, y: METRICS.padY })
 /** 劃掉（✕）的邊長是 size 的幾倍、線寬是邊長的幾分之一 */
 export const CROSS_SPAN = 4
 export const CROSS_STROKE = 0.085
@@ -80,7 +84,7 @@ let seq = 0
 export const newId = () => `l${Date.now().toString(36)}${(seq++).toString(36)}`
 
 /** 從快捷標籤或自己打的字做出一個新標籤 */
-export function makeLabel(preset, { x = 0.5, y = 0.5, date, style, size } = {}) {
+export function makeLabel(preset, { x = 0.5, y = 0.5, date, style, size, vertical = false } = {}) {
   if (preset.kind === 'cross') {
     return { id: newId(), kind: 'cross', x, y, size: preset.size || 0.045 }
   }
@@ -92,7 +96,7 @@ export function makeLabel(preset, { x = 0.5, y = 0.5, date, style, size } = {}) 
     qty: 1,
     style: preset.style || style || 'white',
     size: preset.size || size || DEFAULT_SIZE,
-    vertical: Boolean(preset.vertical),
+    vertical: Boolean(preset.vertical ?? vertical),
     x,
     y,
   }
@@ -109,8 +113,9 @@ export function boxOf(label, aspect, measure = roughWidth) {
   }
   const lines = labelLines(label)
   const lh = label.vertical ? METRICS.vline : METRICS.line
-  const wEm = Math.max(1, ...lines.map((l) => measure(l))) + METRICS.padX * 2
-  const hEm = lines.length * lh + METRICS.padY * 2
+  const pad = padOf(label)
+  const wEm = Math.max(1, ...lines.map((l) => measure(l))) + pad.x * 2
+  const hEm = lines.length * lh + pad.y * 2
   return { w: wEm * label.size, h: hEm * label.size * aspect }
 }
 

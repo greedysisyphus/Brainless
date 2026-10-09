@@ -90,7 +90,7 @@ export default function Stock() {
   const [selId, setSelId] = useState(null)
   const [spot, setSpot] = useState(null) // 點照片空白處＝下一個標籤放這裡
   const [date, setDate] = useState(() => memory.date || isoOf(new Date()))
-  const [prefs, setPrefs] = useState(() => ({ style: 'white', size: DEFAULT_SIZE, ...readJson(PREFS_KEY, {}) }))
+  const [prefs, setPrefs] = useState(() => ({ style: 'white', size: DEFAULT_SIZE, vertical: false, ...readJson(PREFS_KEY, {}) }))
   const [presets, setPresets] = useState(() => readJson(PRESETS_KEY, DEFAULT_PRESETS))
   const [managing, setManaging] = useState(false)
   const [draft, setDraft] = useState('')
@@ -230,7 +230,7 @@ export default function Stock() {
     if (!photo) return
     const last = labels[labels.length - 1]
     const at = spot || (last ? nextSpot(last, aspect) : { x: 0.5, y: 0.5 })
-    const label = makeLabel(preset, { ...at, date, style: prefs.style, size: prefs.size })
+    const label = makeLabel(preset, { ...at, date, style: prefs.style, size: prefs.size, vertical: prefs.vertical })
     commit((ls) => [...ls, label])
     setSelId(label.id)
     // 下一個接在這個下面，一疊籃子可以一路點下去
@@ -260,6 +260,10 @@ export default function Stock() {
   const setStyle = (style) => {
     setPrefs((p) => ({ ...p, style }))
     if (sel && sel.kind === 'text') patchSel({ style })
+  }
+  const setVertical = (vertical) => {
+    setPrefs((p) => ({ ...p, vertical }))
+    if (sel && sel.kind === 'text') patchSel({ vertical })
   }
   const setSize = (size, key = 'size') => {
     const s = clampSize(size)
@@ -505,12 +509,38 @@ export default function Stock() {
               label={sel}
               onPatch={patchSel}
               onSize={setSize}
-              onStyle={setStyle}
               onDuplicate={duplicateSel}
               onRemove={removeSel}
               onDone={() => setSelId(null)}
             />
           ) : null}
+
+          <section className="card look">
+            <div className="hd">
+              <h2>外觀</h2>
+              <small>{sel?.kind === 'text' ? '改的是選中的這個標籤' : '接下來貼的標籤都用這個'}</small>
+            </div>
+            <div className="row">
+              <span>樣式</span>
+              <Swatches value={sel?.kind === 'text' ? sel.style : prefs.style} onPick={setStyle} />
+            </div>
+            <div className="row">
+              <span>方向</span>
+              <div className="dir" role="group" aria-label="文字方向">
+                {[
+                  [false, '橫排'],
+                  [true, '直排'],
+                ].map(([v, name]) => (
+                  <button key={name} type="button" aria-pressed={(sel?.kind === 'text' ? sel.vertical : prefs.vertical) === v} onClick={() => setVertical(v)}>
+                    <i className={v ? 'v' : undefined} aria-hidden="true">
+                      {v ? '大\n蓋' : '大蓋'}
+                    </i>
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
 
           <section className="card quick">
             <div className="hd">
@@ -543,11 +573,6 @@ export default function Stock() {
               )}
             </div>
 
-            <div className="row">
-              <span>樣式</span>
-              <Swatches value={sel?.kind === 'text' ? sel.style : prefs.style} onPick={setStyle} />
-            </div>
-
             {groups.map((g) => (
               <div className="group" key={g.name}>
                 <span>{g.name}</span>
@@ -556,7 +581,7 @@ export default function Stock() {
                     <span className="chip-wrap" key={`${p.i}-${p.text}`}>
                       <button
                         type="button"
-                        className={`chip${p.kind === 'cross' ? ' strike' : ''}${p.style === 'veil' ? ' veil' : ''}`}
+                        className={`chip ${p.kind === 'cross' ? 'strike' : `s-${p.style || prefs.style}`}`}
                         onClick={() => (managing ? removePreset(p.i) : place(p))}
                         aria-label={managing ? `移除快捷「${p.text}」` : undefined}
                       >
@@ -603,8 +628,8 @@ function Swatches({ value, onPick }) {
   return (
     <div className="swatches" role="group" aria-label="標籤樣式">
       {STYLES.map((s) => (
-        <button key={s.id} type="button" className={`sw ${s.id}`} aria-pressed={value === s.id} onClick={() => onPick(s.id)} title={s.name}>
-          <span>字</span>
+        <button key={s.id} type="button" className={`sw ${s.id}`} aria-pressed={value === s.id} onClick={() => onPick(s.id)} title={s.name} aria-label={s.name}>
+          <span>標</span>
           <small>{s.name}</small>
         </button>
       ))}
@@ -612,7 +637,7 @@ function Swatches({ value, onPick }) {
   )
 }
 
-function Editor({ label, onPatch, onSize, onStyle, onDuplicate, onRemove, onDone }) {
+function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
   const isText = label.kind === 'text'
   const rows = Math.min(4, Math.max(1, ((label.text || '').match(/\n/g) || []).length + 1))
   return (
@@ -663,13 +688,6 @@ function Editor({ label, onPatch, onSize, onStyle, onDuplicate, onRemove, onDone
                 <Icon d={I.plus} />
               </button>
             </div>
-            <button type="button" className="toggle" aria-pressed={label.vertical} onClick={() => onPatch({ vertical: !label.vertical })}>
-              直排
-            </button>
-          </div>
-          <div className="row">
-            <span>樣式</span>
-            <Swatches value={label.style} onPick={onStyle} />
           </div>
         </>
       ) : null}
@@ -777,7 +795,7 @@ function Stage({ photo, selId, spot, dragOver, dropProps, onSelect, onSpot, onMo
           ) : (
             <div
               key={l.id}
-              className={`tag ${l.style}`}
+              className={`tag ${l.style}${l.vertical ? ' vert' : ''}`}
               aria-selected={l.id === selId}
               style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size }}
               onPointerDown={(e) => onDown(e, l, 'move')}

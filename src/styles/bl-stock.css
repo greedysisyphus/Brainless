@@ -52,14 +52,16 @@
   cursor: grab; touch-action: none; transition: box-shadow 0.2s, outline-color 0.2s;
 }
 .bl-stock .tag > span { display: block; }
-.bl-stock .tag > span.v { line-height: 1.12; }
+.bl-stock .tag.vert { padding: 0.62em 0.46em; border-radius: 999px; }
+.bl-stock .tag > span.v { line-height: 1.1; }
 .bl-stock .tag:active { cursor: grabbing; }
-.bl-stock .tag.white { background: #fff; color: #1c1914; box-shadow: 0 0.06em 0.35em rgba(0, 0, 0, 0.28); }
+.bl-stock .tag.white { background: #fff; color: #1c1914; }
 .bl-stock .tag.black { background: #141210; color: #fff; }
+.bl-stock .tag:is(.white, .black, .plum) { box-shadow: 0 0.08em 0.4em rgba(0, 0, 0, 0.26); }
 .bl-stock .tag.veil { background: rgba(24, 18, 14, 0.74); color: #fff; }
 .bl-stock .tag.plum { background: #4f2d55; color: #fff; }
 .bl-stock :is(.tag, .cross)[aria-selected='true'] { z-index: 2; outline: 2px dashed #fff; outline-offset: 4px; box-shadow: 0 0 0 7px rgba(79, 45, 85, 0.85); }
-.bl-stock .tag.white[aria-selected='true'] { box-shadow: 0 0.06em 0.35em rgba(0, 0, 0, 0.28), 0 0 0 7px rgba(79, 45, 85, 0.85); }
+.bl-stock .tag:is(.white, .black, .plum)[aria-selected='true'] { box-shadow: 0 0.08em 0.4em rgba(0, 0, 0, 0.26), 0 0 0 7px rgba(79, 45, 85, 0.85); }
 
 .bl-stock .cross { position: absolute; width: calc(var(--w) * var(--s) * 4); aspect-ratio: 1; translate: -50% -50%; cursor: grab; touch-action: none; border-radius: 4px; }
 .bl-stock .cross::before, .bl-stock .cross::after { content: ''; position: absolute; left: 50%; top: 50%; width: calc(141.42% + 8.5%); height: 8.5%; border-radius: 999px; background: var(--cross); translate: -50% -50%; rotate: 45deg; }
@@ -120,7 +122,7 @@
 
 .bl-stock .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 .bl-stock .sw { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px 0 5px; border: 1px solid var(--line); border-radius: 999px; background: none; transition: border-color 0.2s, box-shadow 0.2s, scale 0.2s var(--out); }
-.bl-stock .sw span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; font-family: var(--tag-font); font-weight: 700; font-size: 0.8125rem; }
+.bl-stock .sw span { display: grid; place-items: center; width: 30px; height: 26px; border-radius: 7px; font-family: var(--tag-font); font-weight: 700; font-size: 0.8125rem; }
 .bl-stock .sw small { font-size: 0.8125rem; color: var(--soft); }
 .bl-stock .sw.white span { background: #fff; color: #1c1914; box-shadow: 0 0 0 1px var(--line); }
 .bl-stock .sw.black span { background: #141210; color: #fff; }
@@ -138,19 +140,24 @@
 .bl-stock .group { padding: 12px 0 14px; border-top: 1px solid var(--line); }
 .bl-stock .group > span { display: block; margin-bottom: 8px; font-family: var(--serif); font-size: 0.8125rem; letter-spacing: 0.3em; color: var(--plum); }
 .bl-stock .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.bl-stock .chip { position: relative; display: inline-flex; align-items: baseline; gap: 6px; min-height: 46px; padding: 11px 18px; border: 1px solid rgba(42, 33, 28, 0.32); border-radius: 999px; background: #fffdf8; font-family: var(--tag-font); font-weight: 700; font-size: 1.0625rem; line-height: 1.3; box-shadow: 0 1px 0 rgba(42, 33, 28, 0.08); transition: background-color 0.2s, color 0.2s, border-color 0.2s, scale 0.2s var(--out); }
-.bl-stock .chip small { font-family: var(--didone); font-weight: 400; font-size: 1.0625rem; color: var(--plum); font-variation-settings: 'opsz' 18; transition: color 0.2s; }
-.bl-stock .chip.veil { border-color: transparent; background: rgba(24, 18, 14, 0.78); color: #fff; }
-.bl-stock .chip.strike { align-items: center; border-color: rgba(236, 59, 90, 0.5); color: #c22846; }
+.bl-stock .chip { position: relative; display: inline-flex; align-items: baseline; gap: 6px; min-height: 46px; padding: 10px 16px; border: 0; border-radius: 0.6em; font-family: var(--tag-font); font-weight: 700; font-size: 1.0625rem; line-height: 1.3; transition: translate 0.25s var(--out), box-shadow 0.25s var(--out), scale 0.2s var(--out); }
+.bl-stock .chip small { font-family: var(--tag-font); font-weight: 700; font-size: 1.0625rem; }
+/* 快捷長得跟貼出去的標籤一樣：選白底就是一排白標籤、選黑底就是黑標籤 */
+.bl-stock .chip.s-white { background: #fff; color: #1c1914; box-shadow: 0 0 0 1px rgba(42, 33, 28, 0.1), 0 2px 6px -2px rgba(42, 33, 28, 0.3); }
+.bl-stock .chip.s-black { background: #141210; color: #fff; box-shadow: 0 2px 6px -2px rgba(42, 33, 28, 0.5); }
+.bl-stock .chip.s-veil { background: rgba(24, 18, 14, 0.74); color: #fff; box-shadow: 0 2px 6px -2px rgba(42, 33, 28, 0.4); }
+.bl-stock .chip.s-plum { background: #4f2d55; color: #fff; box-shadow: 0 2px 6px -2px rgba(79, 45, 85, 0.6); }
+.bl-stock .chip.s-white small { color: var(--plum); }
+.bl-stock .chip:is(.s-black, .s-veil, .s-plum) small { color: var(--wash); }
+.bl-stock .chip.strike { align-items: center; background: #fff; color: #c22846; box-shadow: 0 0 0 1.5px rgba(236, 59, 90, 0.55); }
 .bl-stock .chip i { margin-left: 2px; font-style: normal; font-weight: 400; color: #8a2b1c; }
-.bl-stock .chip:has(i) { border-style: dashed; }
+.bl-stock .chip:has(i) { outline: 1.5px dashed rgba(138, 43, 28, 0.6); outline-offset: 3px; }
 .bl-stock .reset { display: block; margin: 2px 0 6px; }
 
-/* 觸控螢幕點完會一直停在 hover，所以只有滑鼠才換底色 */
+/* 觸控螢幕點完會一直停在 hover，所以只有滑鼠才有浮起來的效果 */
 @media (hover: hover) {
-  .bl-stock .chip:hover { border-color: var(--ink); background: var(--ink); color: var(--paper); }
-  .bl-stock .chip:hover small { color: var(--wash); }
-  .bl-stock .chip.strike:hover { background: #c22846; border-color: #c22846; color: #fff; }
+  .bl-stock .chip:hover { translate: 0 -2px; box-shadow: 0 0 0 1px rgba(42, 33, 28, 0.12), 0 8px 16px -8px rgba(42, 33, 28, 0.55); }
+  .bl-stock .chip.strike:hover { box-shadow: 0 0 0 1.5px #c22846, 0 8px 16px -8px rgba(194, 40, 70, 0.5); }
 }
 
 /* 自己打 */
@@ -174,4 +181,16 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bl-stock .spot { animation: none; }
+}
+
+/* 外觀：樣式與方向 */
+.bl-stock .look .hd small { color: var(--soft); }
+.bl-stock .dir { display: flex; gap: 8px; }
+.bl-stock .dir button { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 16px 6px 8px; border: 1px solid var(--line); border-radius: 12px; background: none; font-size: 0.9375rem; transition: border-color 0.2s, box-shadow 0.2s, scale 0.2s var(--out); }
+.bl-stock .dir button:active { scale: 0.96; }
+.bl-stock .dir button[aria-pressed='true'] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 500; }
+.bl-stock .dir i { display: grid; place-items: center; padding: 3px 7px; border-radius: 6px; background: #141210; color: #fff; font-style: normal; font-family: var(--tag-font); font-weight: 700; font-size: 0.75rem; line-height: 1.15; white-space: pre-line; }
+.bl-stock .dir i.v { padding: 5px 4px; border-radius: 999px; }
+@media (hover: hover) {
+  .bl-stock .dir button:hover { border-color: var(--ink); }
 }
