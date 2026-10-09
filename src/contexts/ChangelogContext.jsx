@@ -4,6 +4,16 @@ import ChangelogModal from '../components/ChangelogModal'
 // 更新內容（新版請加在陣列最上方；修改內容請編輯此處）
 export const APP_CHANGELOG = [
   {
+    version: '2.1.1',
+    date: '2026-10-09',
+    title: '量尺上的貓',
+    items: [
+      '首頁忙碌量尺上標「今天」的圓點換成貓。',
+      '可以把貓拖走，放開牠會自己走回來；點首頁的大貓，小貓也會跟著跳一下。',
+      '修正 iPad 上整頁偶爾忽大忽小地跳。',
+    ],
+  },
+  {
     version: '2.1.0',
     date: '2026-10-09',
     title: '倉庫標籤',
