@@ -5,7 +5,7 @@ import MeterCat, { METER_CAT_KEY, METER_CAT_SIZE, meterCatSize } from '../../com
 // 可以拉今天的位置、換忙碌程度，或直接叫牠做某件事。
 const EDGE_COLORS = [['#2a211c', '墨色'], ['#4f2d55', '梅紫'], ['#6b5d52', '灰褐'], ['#000000', '黑'], ['#f6f1e7', '紙白']]
 const LEVELS = ['輕鬆', '普通', '忙', '爆']
-const ACTS = { bat: '跳起來拍數字', sniffTick: '聞刻度', stretch: '伸懶腰', stroll: '散步', pounce: '撲樹', bounce: '跳樹被彈飛', napBeside: '睡在旁邊', napOnTree: '睡在樹上', pace: '來回踱步', sniff: '聞樹下', look: '東張西望' }
+const ACTS = { bat: '跳起來拍數字', sniffTick: '聞刻度', sit: '坐下', stretch: '伸懶腰', stroll: '散步', pounce: '撲樹', bounce: '跳樹被彈飛', napBeside: '睡在旁邊', napOnTree: '睡在樹上', pace: '來回踱步', sniff: '聞樹下', look: '東張西望', alert: '飛機快到了', zoomies: '暴衝', leafHit: '葉子掉頭上', flip: '後空翻', butterfly: '追蝴蝶' }
 
 export default function CatMeter() {
   const cat = useRef(null)

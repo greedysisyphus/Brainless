@@ -66,9 +66,10 @@
           var isProduction = window.location.pathname.indexOf('/Brainless') === 0
           var swPath = isProduction ? '/Brainless/sw.js' : '/sw.js'
           
-          // 在開發環境中，Service Worker 可能無法正常工作（需要 HTTPS）
-          // 所以只在生產環境或明確需要時註冊
-          if (isProduction || window.location.protocol === 'https:' || window.location.hostname === 'localhost') {
+          // 本機開發（http://localhost 根目錄）不註冊：它的快取會把改過的程式換回舊的。以前註冊過的順便拿掉
+          if (!isProduction && window.location.protocol !== 'https:') {
+            navigator.serviceWorker.getRegistrations().then(function (list) { list.forEach(function (r) { r.unregister() }) })
+          } else {
             navigator.serviceWorker.register(swPath)
             .then((registration) => {
               // 監聽 Service Worker 的更新消息

@@ -277,6 +277,8 @@ export default function Home({ stageCat = false }) {
   const { flights, busy } = useTodayFlights(dateKey)
   const { book, loading } = useShiftBook()
   const nextFlight = flights?.find((f) => f.time >= clock) || null
+  const minutes = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5))
+  const flightSoon = Boolean(nextFlight) && minutes(nextFlight.time) - minutes(clock) <= 10 // 下一班十分鐘內：量尺上的貓會警覺起來
   const latest = APP_CHANGELOG[0]
   const { hasUnseenUpdate } = useChangelog()
   // 只有一個工具的分類標成 solo：手機上把它們併成一組「其他」，不讓三個小標各佔一行
@@ -409,7 +411,7 @@ export default function Home({ stageCat = false }) {
                   ))}
                 <u className={busy ? 'on' : ''} />
                 {/* 量尺選了貓的版本：圓點換成一棵公司的小樹，旁邊有一隻小貓 */}
-                {catMeter && <MeterCat value={busy ? meterPct(busy.index) : null} level={busy?.label} />}
+                {catMeter && <MeterCat value={busy ? meterPct(busy.index) : null} level={busy?.label} soon={flightSoon} />}
               </div>
               <Reveal show={Boolean(nextFlight)} className="r-next">
                 {nextFlight ? (
