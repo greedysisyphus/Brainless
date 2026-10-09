@@ -5,7 +5,7 @@ import MeterCat, { METER_CAT_KEY, METER_CAT_SIZE, meterCatSize } from '../../com
 // 可以拉今天的位置、換忙碌程度，或直接叫牠做某件事。
 const EDGE_COLORS = [['#2a211c', '墨色'], ['#4f2d55', '梅紫'], ['#6b5d52', '灰褐'], ['#000000', '黑'], ['#f6f1e7', '紙白']]
 const LEVELS = ['輕鬆', '普通', '忙', '爆']
-const ACTS = { stretch: '伸懶腰', stroll: '散步', pounce: '撲樹', bounce: '跳樹被彈飛', napBeside: '睡在旁邊', napOnTree: '睡在樹上', pace: '來回踱步', sniff: '聞樹下', look: '東張西望' }
+const ACTS = { bat: '跳起來拍數字', sniffTick: '聞刻度', stretch: '伸懶腰', stroll: '散步', pounce: '撲樹', bounce: '跳樹被彈飛', napBeside: '睡在旁邊', napOnTree: '睡在樹上', pace: '來回踱步', sniff: '聞樹下', look: '東張西望' }
 
 export default function CatMeter() {
   const cat = useRef(null)
@@ -31,6 +31,23 @@ export default function CatMeter() {
         <div style={{ position: 'relative', marginTop: 90, borderTop: '1px solid #2a211c', height: 28 }}>
           <MeterCat key={`${shown.cat}-${shown.tree}`} ref={cat} value={value} level={level} size={{ ...size, cat: shown.cat, tree: shown.tree }} />
         </div>
+        <div style={{ ...row, flexWrap: 'wrap' }}>
+          貓的畫法
+          <button type="button" aria-pressed={!size.solid} style={chip(!size.solid)} onClick={() => setSize({ ...size, solid: false })}>水彩</button>
+          <button type="button" aria-pressed={size.solid} style={chip(size.solid)} onClick={() => setSize({ ...size, solid: true })}>純色剪影</button>
+          {size.solid && [['#4f2d55', '梅紫（重點色）'], ['#2a211c', '墨色（跟字一樣）'], ['#8e3b5c', '紫紅（貓身上的斑）'], ['#b8873a', '土黃（貓的肚子和腳）'], ['#6b5d52', '灰褐（刻度的字）']].map(([hex, name]) => (
+            <button key={hex} type="button" aria-label={name} title={name} aria-pressed={size.fill === hex} onClick={() => setSize({ ...size, fill: hex })} style={{ width: 32, height: 32, borderRadius: 16, background: hex, border: '1px solid #c9c2b4', outline: size.fill === hex ? '2px solid #4f2d55' : 'none', outlineOffset: 2, cursor: 'pointer' }} />
+          ))}
+          {size.solid && <input type="color" aria-label="剪影的顏色" value={size.fill} onChange={(e) => setSize({ ...size, fill: e.target.value })} style={{ width: 44, height: 36, padding: 0, border: 0, background: 'none' }} />}
+        </div>
+        {size.solid && (
+          <div style={{ ...row, flexWrap: 'wrap' }}>
+            眼睛
+            {[['googly', '活動眼（會晃）'], ['#f2d06b', '黃（貓的眼睛）'], ['#f6f1e7', '紙白'], ['', '沒有']].map(([hex, name]) => (
+              <button key={name} type="button" aria-pressed={size.eye === hex} style={chip(size.eye === hex)} onClick={() => setSize({ ...size, eye: hex })}>{name}</button>
+            ))}
+          </div>
+        )}
         <label style={row}>
           貓的大小
           <input type="range" min="20" max="80" value={size.cat} onChange={(e) => setSize({ ...size, cat: Number(e.target.value) })} style={{ flex: 1, accentColor: '#4f2d55' }} />

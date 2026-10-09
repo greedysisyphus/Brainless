@@ -11,8 +11,13 @@
 @keyframes mc-grow { from { scale: 0.2; opacity: 0; } }
 @keyframes mc-shake { 0%, 100% { rotate: 0deg; } 30% { rotate: 3.5deg; } 70% { rotate: -1.5deg; } }
 
-/* 今天的位置：樹幹正下方、壓在線上的一個小標記（往下的小三角），看這裡就知道精確在哪 */
-.mc-pin { position: absolute; left: var(--at, 50%); top: 0; width: 0; height: 0; margin-left: -5px; border: 5px solid transparent; border-top: 7px solid #4f2d55; border-bottom: 0; }
+/* 今天的位置不另外畫記號：樹幹本身就踩在那個位置上。（試過往下的小三角、短線、加粗的一段線，樹種在刻度旁邊時都會顯得亂） */
+/* 影子：樹和貓腳下各一塊淡淡的橢圓（跟上面那顆大頭的影子同一個顏色），看起來才是站在線上，不是貼上去的。
+   貓的影子只跟著左右走，貓離地越高越淡（位置和濃淡由元件控制） */
+.mc-ground, .mc-shade { position: absolute; bottom: -3px; height: 6px; border-radius: 50%; background: radial-gradient(closest-side, rgba(79, 45, 85, 0.34), rgba(79, 45, 85, 0)); }
+.mc-ground { left: var(--at, 50%); width: calc(var(--tree) * 1.5); margin-left: calc(var(--tree) * -0.75); }
+.mc-shade { left: calc(var(--cat) * 0.08); width: calc(var(--cat) * 0.84); translate: -80px 0; display: none; }
+.mc-shade.on { display: block; }
 
 /* 貓：一塊正方形的畫布，裡面貓的腳底在離下緣 11.4% 的地方，往下挪這麼多腳才踩在線上。載好、開始走了才出現 */
 .mc-cat { position: absolute; left: 0; bottom: calc(var(--cat) * -0.114 + var(--edge, 0px)); width: var(--cat); height: var(--cat); translate: -80px 0; transform-origin: 50% 88.6%; opacity: 0; transition: opacity 0.3s; pointer-events: auto; cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -22,8 +27,10 @@
 .mc-cat canvas { display: block; width: 100%; height: 100%; }
 /* 邊框：沿著輪廓描一圈（往四個方向各疊一道沒有模糊的影子），小小一隻也跟底色分得開。貓和樹的粗細分開（--edge、--tree-edge，0 就沒有），顏色共用。
    走動的那隻貓不在這裡：牠的邊框是紙偶自己在畫布裡畫的（iPhone 的 Safari 不會把 filter 畫在那種畫布上） */
-.mc-cat .mc-nap img, .mc-tree { --w: var(--edge, 0px); --c: var(--edge-color, #2a211c); filter: drop-shadow(var(--w) 0 0 var(--c)) drop-shadow(calc(var(--w) * -1) 0 0 var(--c)) drop-shadow(0 var(--w) 0 var(--c)) drop-shadow(0 calc(var(--w) * -1) 0 var(--c)); }
+.mc-cat .mc-nap img, .mc-tree { --w: var(--edge, 0px); --c: var(--edge-color, #2a211c); --line: drop-shadow(var(--w) 0 0 var(--c)) drop-shadow(calc(var(--w) * -1) 0 0 var(--c)) drop-shadow(0 var(--w) 0 var(--c)) drop-shadow(0 calc(var(--w) * -1) 0 var(--c)); filter: var(--line); }
 .mc-tree { --w: var(--tree-edge, 0px); }
+/* 睡覺那張圖跟走動的貓一樣把顏色加濃、壓深一點（走動的那隻是在畫布裡調的） */
+.mc-cat .mc-nap img { filter: saturate(1.4) brightness(0.88) var(--line); }
 
 /* 睡覺：換成蜷著睡的那張圖（紙偶藏起來），身體隨呼吸起伏，z 往上飄。圖的底邊對齊貓的腳底；原圖頭朝左，翻面讓頭朝著樹 */
 .mc-nap { position: absolute; left: 11%; bottom: 11.4%; width: 78%; display: none; }
@@ -34,6 +41,9 @@
 .mc-cat[data-pose='sleep'] .mc-nap { display: block; }
 @keyframes mc-breathe { 0%, 100% { scale: 1 1; } 50% { scale: 1.015 1.05; } }
 @keyframes mc-z { 0% { opacity: 0; translate: 2px 4px; } 40% { opacity: 1; } 100% { opacity: 0; translate: -4px -7px; } }
+
+/* 剪影模式下，睡覺那張圖不用再加濃（元件已經把它整張塗成同一個顏色） */
+.mc.solid .mc-cat .mc-nap img { filter: var(--line); }
 
 @media (prefers-reduced-motion: reduce) {
   .mc-tree, .mc-nap img, .mc-nap i { animation: none !important; }

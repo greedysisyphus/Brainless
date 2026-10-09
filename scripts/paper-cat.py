@@ -206,6 +206,11 @@ cy_, cx_ = np.median(ys), np.median(xs); near_ = (np.abs(ys - cy_) < 160) & (np.
 core[max(ys[near_].min() - pad, 0):ys[near_].max() + pad, max(xs[near_].min() - pad, 0):xs[near_].max() + pad] = True
 print('閉眼的範圍', xs[near_].min(), ys[near_].min(), xs[near_].max(), ys[near_].max())
 piece('head-closed', rigid(22), only=core & mask['head-closed'], layer=0)
+# 活動眼（會晃的塑膠眼睛）用的一片正方形：中心在眼睛上、比眼睛大很多，整片跟頭骨。平常不畫，網頁開了活動眼才畫
+ex, ey = (xs[near_].min() + xs[near_].max()) / 2, (ys[near_].min() + ys[near_].max()) / 2
+hx0, hy0 = box['head'][:2]; hs, hdx, hdy = fit['head']
+EYE = (CY - ((ey - hy0) * hs + hdy - SIZE / 2) / K + LIFT, -((ex - hx0) * hs + hdx - SIZE / 2) / K)  # 眼睛中心在模型上的 (y, z)
+EYE_R = 0.15
 
 # ---- 4. 貼圖：每一片去白底、縮到一樣的細緻度，一排一排放進同一張圖
 def shrink(img, f):  # 雙線性縮放
@@ -247,6 +252,14 @@ for i, (Y, Z, name, X, Yp, w, s, layer, light) in enumerate(verts):
     order = np.argsort(-w)[:4]; ww = w[order]
     w8 = np.round(ww / max(ww.sum(), 1e-9) * 255).astype(int); w8[0] += 255 - w8.sum()  # 權重存成一個位元組，四個加起來剛好 255
     top4[i] = order; w4[i] = w8
+# 加上活動眼那一片：貼圖座標放的是這一片自己的 0–1（不是貼圖上的位置），第四格 140 是「活動眼」的記號
+head_w = np.zeros(4, 'u1'); head_j = np.zeros(4, 'u1'); head_w[0] = 255; head_j[0] = col[bone(22)]
+corners = [(-1, 1, 0, 0), (1, 1, 1, 0), (1, -1, 1, 1), (-1, -1, 0, 1)]  # (z 方向, y 方向, u, v)：頭朝 +z，貼圖 v 往下
+pos = np.concatenate([pos, np.array([(0, EYE[0] + dy_ * EYE_R, EYE[1] + dz_ * EYE_R) for dz_, dy_, _, _ in corners], '<f4')])
+uv = np.concatenate([uv, np.array([(u_, v_) for _, _, u_, v_ in corners], '<f4')])
+shade = np.concatenate([shade, np.array([(255, 255, 0, 140)] * 4, 'u1')])
+top4 = np.concatenate([top4, np.tile(head_j, (4, 1))]); w4 = np.concatenate([w4, np.tile(head_w, (4, 1))])
+quads.append([n, n + 1, n + 2, n + 3]); n += 4
 assert n < 65536
 tris = np.array([[q[0], q[1], q[2], q[0], q[2], q[3]] for q in quads], '<u2').ravel()
 

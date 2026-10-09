@@ -292,6 +292,17 @@ export default function Home({ stageCat = false }) {
     return () => window.removeEventListener('pointermove', onMove)
   }, [])
 
+  // 大頭和量尺上的小貓是同一隻：小貓被樹彈飛的時候，大頭往牠那邊歪一下看過去；大頭被摸，小貓跟著跳一下
+  useEffect(() => {
+    const peek = peekRef.current
+    if (!catMeter || !peek) return undefined
+    const glance = () => peek.querySelector(peek.classList.contains('live') ? '.cat3d' : '.pet')?.animate([{ rotate: '0deg', translate: '0 0' }, { rotate: '-6deg', translate: '0 5px', offset: 0.35 }, { rotate: '-6deg', translate: '0 5px', offset: 0.7 }, { rotate: '0deg', translate: '0 0' }], { duration: 1100, easing: 'ease-in-out' })
+    const pet = (e) => { if (!e.target.closest('.cat-tools')) window.dispatchEvent(new CustomEvent('bl-big-cat')) }
+    window.addEventListener('bl-meter-cat', glance)
+    peek.addEventListener('pointerdown', pet)
+    return () => { window.removeEventListener('bl-meter-cat', glance); peek.removeEventListener('pointerdown', pet) }
+  }, [catMeter])
+
   // 立體貓：預設開著，按貓旁邊的切換可以換回原本的圖。立體版載入中、失敗或裝置不支援時顯示的也是原圖。
   // 選擇和調過的參數都記在這台裝置上
   const [cat3d, setCat3d] = useState(() => readStored(CAT3D_KEY, true))
