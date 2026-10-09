@@ -22,10 +22,13 @@ TYPES = {5126: np.float32, 5125: np.uint32, 5123: np.uint16, 5121: np.uint8}
 COMPS = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4, 'MAT4': 16}
 SIZE, SPAN, CY = 1024, 2.2, 0.85
 K = SIZE / SPAN
+LITE = len(sys.argv) > 3 and sys.argv[3] == 'lite'  # 精簡版：給首頁量尺上那隻二十幾 px 的小貓用，格子粗、貼圖小、動作少，檔案小很多
 STEP = 5                      # 格子多細（原圖框的 px；每一片照自己的縮放換算）
 DENSITY = 1.45                 # 貼圖的細緻度：原圖框的 1 px 在貼圖上佔幾 px
 ATLAS = 2048
-GAP = 40                      # 貼圖上零件之間留多寬：貓縮很小時顯示卡會取很糊的版本，隔太近會沾到隔壁零件的顏色
+if LITE: STEP, DENSITY, ATLAS = 12, 0.42, 512
+KEEP = ['Walk', 'Gallop', 'Idle', 'Idle_2', 'Idle_2_HeadLow', 'Eating', 'Jump_ToIdle', 'Attack', 'Idle_HitReact1', 'Idle_HitReact2']  # 精簡版只留量尺用得到的動作
+GAP = 12 if LITE else 40                      # 貼圖上零件之間留多寬：貓縮很小時顯示卡會取很糊的版本，隔太近會沾到隔壁零件的顏色
 FAR_SHADE = 0.74              # 另一側的腿調多暗
 TAIL_SIZE = 0.85              # 尾巴相對原圖的大小（根的位置不動）
 LIFT = 0.12                   # 身體、頭、尾巴整個往上抬多少（模型單位）：腿露出來長一點，走路才看得清楚腳在動
@@ -238,7 +241,7 @@ used_h = int(np.nonzero(atlas[..., 3].any(1))[0].max()) + 5
 rgba = atlas[:used_h].astype('u1')
 raw = b''.join(b'\0' + rgba[y].tobytes() for y in range(used_h))
 chunk = lambda t, d: struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d))
-webp = os.path.join(ROOT, 'src/assets/cat-parts.webp')
+webp = os.path.join(ROOT, 'src/assets/cat-parts-lite.webp' if LITE else 'src/assets/cat-parts.webp')
 with tempfile.NamedTemporaryFile(suffix='.png') as f_:
     f_.write(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', ATLAS, used_h, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')); f_.flush()
     subprocess.run(['cwebp', '-quiet', '-q', '84', '-alpha_q', '90', f_.name, '-o', webp], check=True)
@@ -265,6 +268,15 @@ tris = np.array([[q[0], q[1], q[2], q[0], q[2], q[3]] for q in quads], '<u2').ra
 
 # ---- 寫檔：骨架和動作照舊，網格換成這幾片紙，貼圖另外放
 out = bytearray()
+if LITE:  # 只留用得到的動作，每個動作的格數砍半（留頭尾；網頁會在兩格之間內插，小小一隻看不出差別）
+    j['animations'] = [an for an in j['animations'] if an['name'] in KEEP]
+    thin = {}  # 原本的 accessor → 砍半之後的陣列
+    for an in j['animations']:
+        for s_ in an['samplers']:
+            for key in ('input', 'output'):
+                if s_[key] not in thin:
+                    full = acc(s_[key]); pick_ = sorted(set(range(0, len(full), 2)) | {len(full) - 1})
+                    thin[s_[key]] = np.ascontiguousarray(full[pick_].astype('<f4'))
 used = {s['inverseBindMatrices'] for s in j['skins']}
 for an in j['animations']:
     for s in an['samplers']: used |= {s['input'], s['output']}
@@ -282,6 +294,11 @@ for i in sorted(used):
     a_ = j['accessors'][i]; v = j['bufferViews'][a_['bufferView']]
     size = a_['count'] * COMPS[a_['type']] * np.dtype(TYPES[a_['componentType']]).itemsize
     o = v.get('byteOffset', 0) + a_.get('byteOffset', 0)
+    if LITE and i in thin:
+        t_ = thin[i]; a_ = dict(a_, count=len(t_))
+        if 'min' in a_: a_['min'], a_['max'] = t_.min(0).tolist(), t_.max(0).tolist()
+        remap_[i] = put(t_.tobytes(), a_)
+        continue
     remap_[i] = put(buf[o:o + size], a_)
 for s in j['skins']: s['inverseBindMatrices'] = remap_[s['inverseBindMatrices']]
 for an in j['animations']:
@@ -296,9 +313,34 @@ for key in ('images', 'textures', 'samplers'): j.pop(key, None)
 while len(out) % 4: out.append(0)
 j['accessors'], j['bufferViews'], j['buffers'] = accs, views, [{'byteLength': len(out)}]
 js = json.dumps(j, separators=(',', ':')).encode(); js += b' ' * (-len(js) % 4)
-dst = os.path.join(ROOT, 'src/assets/cat-paper.glb')
+dst = os.path.join(ROOT, 'src/assets/cat-paper-lite.glb' if LITE else 'src/assets/cat-paper.glb')
 with open(dst, 'wb') as f:
     f.write(struct.pack('<4sII', b'glTF', 2, 12 + 8 + len(js) + 8 + len(out)))
     f.write(struct.pack('<I4s', len(js), b'JSON') + js)
     f.write(struct.pack('<I4s', len(out), b'BIN\0') + out)
+if LITE:  # 一張靜止的站姿剪影（白色、透明底，臉朝右）：貓的檔案還沒載好的時候先墊著，網頁會把它塗成設定的顏色。
+    # 框跟網頁的畫布一樣（2.2 單位見方、中心高度 0.85），所以疊上去位置剛好
+    NS = 132; KS = NS / SPAN
+    still = np.zeros((NS, NS))
+    sx_, sy_ = pos[:, 2] * KS + NS / 2, NS / 2 - (pos[:, 1] - CY) * KS
+    for q in quads:
+        if shade[q[0], 3] < 200: continue  # 閉眼那一小塊、活動眼不算
+        for t_ in ((q[0], q[1], q[2]), (q[0], q[2], q[3])):
+            xs_, ys_ = sx_[list(t_)], sy_[list(t_)]
+            ar = (xs_[1] - xs_[0]) * (ys_[2] - ys_[0]) - (xs_[2] - xs_[0]) * (ys_[1] - ys_[0])
+            if abs(ar) < 1e-9: continue
+            x0_, x1_, y0_, y1_ = max(int(xs_.min()), 0), min(int(xs_.max()) + 1, NS - 1), max(int(ys_.min()), 0), min(int(ys_.max()) + 1, NS - 1)
+            gx_, gy_ = np.meshgrid(np.arange(x0_, x1_ + 1) + .5, np.arange(y0_, y1_ + 1) + .5)
+            w1 = ((gx_ - xs_[0]) * (ys_[2] - ys_[0]) - (xs_[2] - xs_[0]) * (gy_ - ys_[0])) / ar
+            w2 = ((xs_[1] - xs_[0]) * (gy_ - ys_[0]) - (gx_ - xs_[0]) * (ys_[1] - ys_[0])) / ar
+            w0 = 1 - w1 - w2; inside = (w0 >= 0) & (w1 >= 0) & (w2 >= 0)
+            u_ = w0 * uv[t_[0], 0] + w1 * uv[t_[1], 0] + w2 * uv[t_[2], 0]; v_ = w0 * uv[t_[0], 1] + w1 * uv[t_[1], 1] + w2 * uv[t_[2], 1]
+            al = rgba[np.clip((v_ * used_h).astype(int), 0, used_h - 1), np.clip((u_ * ATLAS).astype(int), 0, ATLAS - 1), 3] / 255.
+            still[y0_:y1_ + 1, x0_:x1_ + 1] = np.maximum(still[y0_:y1_ + 1, x0_:x1_ + 1], al * inside)
+    px_ = np.concatenate([np.full((NS, NS, 3), 255, 'u1'), (np.clip((still - 0.35) / 0.3, 0, 1) * 255).astype('u1')[..., None]], 2)
+    raw_ = b''.join(b'\0' + px_[y].tobytes() for y in range(NS))
+    with tempfile.NamedTemporaryFile(suffix='.png') as f_:
+        f_.write(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', NS, NS, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw_)) + chunk(b'IEND', b'')); f_.flush()
+        subprocess.run(['cwebp', '-quiet', '-lossless', '-exact', f_.name, '-o', os.path.join(ROOT, 'src/assets/cat-still.webp')], check=True)
+    print('靜止的剪影', os.path.getsize(os.path.join(ROOT, 'src/assets/cat-still.webp')), 'bytes')
 print('格點', n, '三角形', len(tris) // 3, '→', dst, f'{os.path.getsize(dst) / 1e6:.2f}MB', webp, f'{os.path.getsize(webp) / 1e3:.0f}KB')

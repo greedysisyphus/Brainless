@@ -25,9 +25,20 @@
 .mc-cat.held { cursor: grabbing; z-index: 3; }
 .mc-cat.on { opacity: 1; }
 .mc-cat canvas { display: block; width: 100%; height: 100%; }
+/* 貓的檔案還沒載好的時候（.wait）：先顯示一張靜止的站姿剪影，載好了換成會動的 */
+.mc-still { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+.mc-cat.wait .mc-still { display: block; }
+.mc-cat.wait canvas { visibility: hidden; }
+/* 頭上冒的小字（喵、哼、!）和樹上掉的葉子：出現、移動都由元件控制 */
+.mc-say { position: absolute; left: 50%; bottom: 84%; translate: -50% 0; font: 600 10px/1 var(--serif, Georgia, serif); color: var(--fill, #2a211c); white-space: nowrap; opacity: 0; pointer-events: none; }
+.mc-leaf { position: absolute; left: 0; bottom: 0; width: 3px; height: 2px; border-radius: 80% 0; pointer-events: none; }
+/* 蝴蝶（少見的動作）：飛的路線由元件控制，這裡只管拍翅膀 */
+.mc-fly { position: absolute; left: 0; bottom: 0; width: calc(var(--cat) * 0.5); margin-left: calc(var(--cat) * -0.25); pointer-events: none; }
+.mc-fly img { display: block; width: 100%; height: auto; animation: mc-flap 0.2s ease-in-out infinite alternate; }
+@keyframes mc-flap { to { scale: 0.25 1; } }
 /* 邊框：沿著輪廓描一圈（往四個方向各疊一道沒有模糊的影子），小小一隻也跟底色分得開。貓和樹的粗細分開（--edge、--tree-edge，0 就沒有），顏色共用。
    走動的那隻貓不在這裡：牠的邊框是紙偶自己在畫布裡畫的（iPhone 的 Safari 不會把 filter 畫在那種畫布上） */
-.mc-cat .mc-nap img, .mc-tree { --w: var(--edge, 0px); --c: var(--edge-color, #2a211c); --line: drop-shadow(var(--w) 0 0 var(--c)) drop-shadow(calc(var(--w) * -1) 0 0 var(--c)) drop-shadow(0 var(--w) 0 var(--c)) drop-shadow(0 calc(var(--w) * -1) 0 var(--c)); filter: var(--line); }
+.mc-cat .mc-nap img, .mc-sit img, .mc-tree { --w: var(--edge, 0px); --c: var(--edge-color, #2a211c); --line: drop-shadow(var(--w) 0 0 var(--c)) drop-shadow(calc(var(--w) * -1) 0 0 var(--c)) drop-shadow(0 var(--w) 0 var(--c)) drop-shadow(0 calc(var(--w) * -1) 0 var(--c)); filter: var(--line); }
 .mc-tree { --w: var(--tree-edge, 0px); }
 /* 睡覺那張圖跟走動的貓一樣把顏色加濃、壓深一點（走動的那隻是在畫布裡調的） */
 .mc-cat .mc-nap img { filter: saturate(1.4) brightness(0.88) var(--line); }
@@ -42,9 +53,23 @@
 @keyframes mc-breathe { 0%, 100% { scale: 1 1; } 50% { scale: 1.015 1.05; } }
 @keyframes mc-z { 0% { opacity: 0; translate: 2px 4px; } 40% { opacity: 1; } 100% { opacity: 0; translate: -4px -7px; } }
 
+/* 坐著：換成坐姿那張圖。原圖頭朝左，整塊翻面讓牠看著樹；鬧脾氣的時候（.away）不翻，背對著樹。
+   剪影模式下圖被塗成一個顏色，眼睛另外點一顆（位置是原圖眼睛的位置） */
+.mc-sit { position: absolute; left: 16.5%; bottom: 11.4%; width: 67%; display: none; transform: scaleX(-1); }
+.mc-cat.away .mc-sit { transform: none; }
+.mc-sit img { display: block; width: 100%; height: auto; filter: saturate(1.4) brightness(0.88) var(--line); }
+.mc-sit b { position: absolute; left: 12.3%; top: 17.9%; width: 10%; aspect-ratio: 1; margin: -5% 0 0 -5%; border-radius: 50%; background: var(--eye); display: none; }
+.mc.solid .mc-sit img { filter: var(--line); }
+.mc.solid .mc-sit b { display: block; }
+.mc-cat[data-pose='sit'] canvas { visibility: hidden; }
+.mc-cat[data-pose='sit'] .mc-sit { display: block; }
+/* 換姿勢的那一下不要硬切：新的那張圖從稍微高一點、窄一點的樣子沉下來 */
+.mc-cat[data-pose='sit'] .mc-sit, .mc-cat[data-pose='sleep'] .mc-nap { transform-origin: 50% 100%; animation: mc-settle 0.32s cubic-bezier(0.2, 0.7, 0.3, 1.3) backwards; }
+@keyframes mc-settle { from { scale: 0.9 1.18; } }
+
 /* 剪影模式下，睡覺那張圖不用再加濃（元件已經把它整張塗成同一個顏色） */
 .mc.solid .mc-cat .mc-nap img { filter: var(--line); }
 
 @media (prefers-reduced-motion: reduce) {
-  .mc-tree, .mc-nap img, .mc-nap i { animation: none !important; }
+  .mc-tree, .mc-nap, .mc-sit, .mc-nap img, .mc-nap i { animation: none !important; }
 }

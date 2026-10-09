@@ -221,20 +221,29 @@ function useFitToViewport(ref) {
   useEffect(() => {
     const el = ref.current
     if (!el || typeof ResizeObserver === 'undefined') return undefined
+    // 看得到的高度用「工具列全部展開時」的那個（100svh）：iPad 的 Safari 一捲動工具列就收合、可視高度跟著變，
+    // 照即時的高度算的話，頁面會跟著忽大忽小，一縮放又觸發捲動，畫面就一直跳。svh 不會隨工具列變，轉向時才變
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none'
+    document.body.append(probe)
+    let applied = 1
     const fit = () => {
       el.style.zoom = ''
-      if (!window.matchMedia('(min-width: 960px)').matches) return
-      // visualViewport 是 Safari 扣掉分頁列、網址列後真正看得到的高度；往下取整再留一點餘量，避免四捨五入多出 1px 又能滑
-      const visible = window.visualViewport?.height ?? window.innerHeight
-      const z = Math.floor((visible / el.scrollHeight) * 1000) / 1000 - 0.004
-      if (z < 1) el.style.zoom = Math.max(MIN_FIT, z).toFixed(3)
+      let z = 1
+      if (window.matchMedia('(min-width: 960px)').matches) {
+        const visible = probe.offsetHeight || window.visualViewport?.height || window.innerHeight
+        // 往下取整再留一點餘量，避免四捨五入多出 1px 又能滑
+        z = Math.min(1, Math.max(MIN_FIT, Math.floor((visible / el.scrollHeight) * 1000) / 1000 - 0.004))
+      }
+      if (applied < 1 && z >= applied && z - applied < 0.012) z = applied // 只是可以再放大一點點（內容矮了一兩個像素）就不動，不要整頁跟著抖；要縮更小的時候照縮，才不會塞不下：內容高度有一兩個像素的變化時，不要整頁跟著抖
+      applied = z
+      if (z < 1) el.style.zoom = z.toFixed(3)
     }
     fit()
     const ro = new ResizeObserver(fit) // 班表、下一班晚一點才展開，高度變了要重算
     ro.observe(el)
     window.addEventListener('resize', fit)
-    window.visualViewport?.addEventListener('resize', fit)
-    return () => { ro.disconnect(); window.removeEventListener('resize', fit); window.visualViewport?.removeEventListener('resize', fit) }
+    return () => { ro.disconnect(); window.removeEventListener('resize', fit); probe.remove() }
   }, [ref])
 }
 
@@ -268,6 +277,8 @@ export default function Home({ stageCat = false }) {
   const { flights, busy } = useTodayFlights(dateKey)
   const { book, loading } = useShiftBook()
   const nextFlight = flights?.find((f) => f.time >= clock) || null
+  const minutes = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5))
+  const flightSoon = Boolean(nextFlight) && minutes(nextFlight.time) - minutes(clock) <= 10 // 下一班十分鐘內：量尺上的貓會警覺起來
   const latest = APP_CHANGELOG[0]
   const { hasUnseenUpdate } = useChangelog()
   // 只有一個工具的分類標成 solo：手機上把它們併成一組「其他」，不讓三個小標各佔一行
@@ -297,10 +308,14 @@ export default function Home({ stageCat = false }) {
     const peek = peekRef.current
     if (!catMeter || !peek) return undefined
     const glance = () => peek.querySelector(peek.classList.contains('live') ? '.cat3d' : '.pet')?.animate([{ rotate: '0deg', translate: '0 0' }, { rotate: '-6deg', translate: '0 5px', offset: 0.35 }, { rotate: '-6deg', translate: '0 5px', offset: 0.7 }, { rotate: '0deg', translate: '0 0' }], { duration: 1100, easing: 'ease-in-out' })
-    const pet = (e) => { if (!e.target.closest('.cat-tools')) window.dispatchEvent(new CustomEvent('bl-big-cat')) }
+    // 點一下才算摸（按下和放開在差不多的位置）：拖著轉大頭、手指經過大頭去捲頁面都不算，不然小貓會一直亂跳
+    let at = null
+    const press = (e) => { at = e.target.closest('.cat-tools') ? null : [e.clientX, e.clientY] }
+    const pet = (e) => { if (at && Math.hypot(e.clientX - at[0], e.clientY - at[1]) < 8) window.dispatchEvent(new CustomEvent('bl-big-cat')); at = null }
     window.addEventListener('bl-meter-cat', glance)
-    peek.addEventListener('pointerdown', pet)
-    return () => { window.removeEventListener('bl-meter-cat', glance); peek.removeEventListener('pointerdown', pet) }
+    peek.addEventListener('pointerdown', press)
+    peek.addEventListener('pointerup', pet)
+    return () => { window.removeEventListener('bl-meter-cat', glance); peek.removeEventListener('pointerdown', press); peek.removeEventListener('pointerup', pet) }
   }, [catMeter])
 
   // 立體貓：預設開著，按貓旁邊的切換可以換回原本的圖。立體版載入中、失敗或裝置不支援時顯示的也是原圖。
@@ -396,7 +411,7 @@ export default function Home({ stageCat = false }) {
                   ))}
                 <u className={busy ? 'on' : ''} />
                 {/* 量尺選了貓的版本：圓點換成一棵公司的小樹，旁邊有一隻小貓 */}
-                {catMeter && <MeterCat value={busy ? meterPct(busy.index) : null} level={busy?.label} />}
+                {catMeter && <MeterCat value={busy ? meterPct(busy.index) : null} level={busy?.label} soon={flightSoon} />}
               </div>
               <Reveal show={Boolean(nextFlight)} className="r-next">
                 {nextFlight ? (

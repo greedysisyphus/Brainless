@@ -5,12 +5,19 @@ import MeterCat, { METER_CAT_KEY, METER_CAT_SIZE, meterCatSize } from '../../com
 // 可以拉今天的位置、換忙碌程度，或直接叫牠做某件事。
 const EDGE_COLORS = [['#2a211c', '墨色'], ['#4f2d55', '梅紫'], ['#6b5d52', '灰褐'], ['#000000', '黑'], ['#f6f1e7', '紙白']]
 const LEVELS = ['輕鬆', '普通', '忙', '爆']
-const ACTS = { bat: '跳起來拍數字', sniffTick: '聞刻度', stretch: '伸懶腰', stroll: '散步', pounce: '撲樹', bounce: '跳樹被彈飛', napBeside: '睡在旁邊', napOnTree: '睡在樹上', pace: '來回踱步', sniff: '聞樹下', look: '東張西望' }
+const ACTS = { bat: '跳起來拍數字', sniffTick: '聞刻度', sit: '坐下', stretch: '伸懶腰', stroll: '散步', pounce: '撲樹', bounce: '跳樹被彈飛', napBeside: '睡在旁邊', napOnTree: '睡在樹上', pace: '來回踱步', sniff: '聞樹下', look: '東張西望', alert: '飛機快到了', zoomies: '暴衝', leafHit: '葉子掉頭上', flip: '後空翻', butterfly: '追蝴蝶' }
 
 export default function CatMeter() {
   const cat = useRef(null)
   const [value, setValue] = useState(55)
   const [level, setLevel] = useState('普通')
+  // 貓有沒有載好（載不出來的裝置會顯示原因，方便回報）
+  const [status, setStatus] = useState('載入中…')
+  useEffect(() => {
+    const on = (e) => setStatus(e.detail)
+    window.addEventListener('bl-meter-cat-status', on)
+    return () => window.removeEventListener('bl-meter-cat-status', on)
+  }, [])
   // 大小：拉滑桿就存在這台裝置上（首頁測試版也會用同一組），停手一下才把貓換成新的大小
   const [size, setSize] = useState(meterCatSize)
   const [shown, setShown] = useState(size)
@@ -28,6 +35,7 @@ export default function CatMeter() {
         <h1 style={{ fontSize: 22, margin: '0 0 2px' }}>量尺上的小貓（試作）</h1>
         <p style={{ margin: 0, color: '#6b5d52', fontSize: 14, lineHeight: 1.6 }}>樹種在今天的位置，貓走過來在樹旁邊做事。點貓牠會嚇得跳一下，也可以把牠抓起來拖走，放手牠會自己走回來。</p>
 
+        <p role="status" style={{ margin: '6px 0 0', fontSize: 13, color: status.startsWith('失敗') ? '#c64022' : '#6b5d52', wordBreak: 'break-all' }}>貓的狀態：{status}　<span style={{ opacity: 0.7 }}>{navigator.userAgent.match(/(iPhone|iPad|Android|Macintosh|Windows)[^;)]*/)?.[0]} · {navigator.userAgent.match(/Version\/[\d.]+|Chrome\/[\d.]+|Firefox\/[\d.]+/)?.[0]}</span></p>
         <div style={{ position: 'relative', marginTop: 90, borderTop: '1px solid #2a211c', height: 28 }}>
           <MeterCat key={`${shown.cat}-${shown.tree}`} ref={cat} value={value} level={level} size={{ ...size, cat: shown.cat, tree: shown.tree }} />
         </div>
