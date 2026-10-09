@@ -567,7 +567,7 @@ const MeterCat = forwardRef(function MeterCat({ value, level, soon = false, size
   }, [size.solid, size.fill])
 
   return (
-    <span className={`mc${size.solid ? ' solid' : ''}`} ref={rootRef} aria-hidden="true" style={{ '--fill': size.fill, '--eye': size.eye === 'googly' ? '#fff' : size.eye || 'transparent', '--cat': `${size.cat}px`, '--tree': `${size.tree}px`, '--edge': `${size.edge}px`, '--tree-edge': `${size.treeEdge}px`, '--edge-color': size.color }}>
+    <span className={`mc${size.solid ? ' solid' : ''}${size.edge ? '' : ' no-edge'}${size.treeEdge ? '' : ' no-tree-edge'}`} ref={rootRef} aria-hidden="true" style={{ '--fill': size.fill, '--eye': size.eye === 'googly' ? '#fff' : size.eye || 'transparent', '--cat': `${size.cat}px`, '--tree': `${size.tree}px`, '--edge': `${size.edge}px`, '--tree-edge': `${size.treeEdge}px`, '--edge-color': size.color }}>
       <img className="mc-tree" ref={treeRef} src={treeImg} alt="" />
       <b className="mc-ground" />
       <b className="mc-shade" ref={shadeRef} />

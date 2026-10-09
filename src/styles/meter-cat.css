@@ -40,6 +40,8 @@
    走動的那隻貓不在這裡：牠的邊框是紙偶自己在畫布裡畫的（iPhone 的 Safari 不會把 filter 畫在那種畫布上） */
 .mc-cat .mc-nap img, .mc-sit img, .mc-tree { --w: var(--edge, 0px); --c: var(--edge-color, #2a211c); --line: drop-shadow(var(--w) 0 0 var(--c)) drop-shadow(calc(var(--w) * -1) 0 0 var(--c)) drop-shadow(0 var(--w) 0 var(--c)) drop-shadow(0 calc(var(--w) * -1) 0 var(--c)); filter: var(--line); }
 .mc-tree { --w: var(--tree-edge, 0px); }
+/* 粗細是 0 的時候整個不要描：不然四道影子疊在圖的正下方，會從半透明的邊緣透出來，變成一圈深色的細框 */
+.mc.no-edge :is(.mc-nap img, .mc-sit img), .mc.no-tree-edge .mc-tree { --c: transparent; }
 /* 睡覺那張圖跟走動的貓一樣把顏色加濃、壓深一點（走動的那隻是在畫布裡調的） */
 .mc-cat .mc-nap img { filter: saturate(1.4) brightness(0.88) var(--line); }
 
