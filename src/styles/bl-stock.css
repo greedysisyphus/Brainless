@@ -203,3 +203,110 @@
 @media (hover: hover) {
   .bl-stock .dir button:hover { border-color: var(--ink); }
 }
+
+/* ── 手機版：照片佔滿上面，工具全部在底部的深色工具列（StockDock.jsx），不用上下滑 ── */
+.bl-stock.docked { --stage-h: calc(100dvh - var(--dock-h, 180px) - 166px); }
+.bl-stock.docked .top { display: none; }
+.bl-stock.docked .page { padding-bottom: calc(var(--dock-h, 180px) + 12px); }
+.bl-stock.docked .work { padding-top: 8px; }
+.bl-stock.docked .left { position: static; margin: 0; padding: 0; box-shadow: none; }
+
+.sdock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding-bottom: env(safe-area-inset-bottom, 0px); border-radius: 18px 18px 0 0; background: var(--ink); color: var(--paper); box-shadow: 0 -12px 30px -14px rgba(0, 0, 0, 0.5); transition: transform 0.2s; }
+.sdock .inner { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 760px; margin: 0 auto; padding: 10px 0 6px; }
+/* 橫滑那幾排內容很長，不能把整條工具列撐寬 */
+.sdock .inner > * { min-width: 0; }
+.sdock .toast { position: absolute; bottom: calc(100% + 10px); left: 50%; translate: -50% 0; max-width: calc(100% - 32px); margin: 0; padding: 8px 16px; border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5); animation: bl-fade 0.35s var(--out); }
+.sdock .toast.bad { color: #8a2b1c; }
+
+/* 橫滑的一排：快捷、或選中標籤的工具 */
+.sdock .rail { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 2px 16px 4px; scrollbar-width: none; overscroll-behavior-x: contain; }
+.sdock .rail::-webkit-scrollbar { display: none; }
+.sdock .rail > * { flex: none; }
+.sdock .grp { display: flex; gap: 8px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, 0.14); }
+.sdock .chip { min-height: 44px; padding: 8px 14px; white-space: nowrap; }
+.sdock .chip.s-black, .sdock .chip.s-veil { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3); }
+.sdock .tidy, .sdock .mini { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 999px; background: none; color: var(--paper); font-size: 0.875rem; white-space: nowrap; }
+.sdock .tidy { border-style: dashed; color: #cfc4b6; }
+.sdock .mini:not(.wide) { width: 44px; padding: 0; justify-content: center; }
+.sdock .mini.bad { color: #ffb4a8; }
+
+/* 深色底上的步進器、樣式、方向 */
+.sdock .stepper { height: 44px; border-color: rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.07); }
+.sdock .stepper > button { color: var(--paper); }
+.sdock .stepper > button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+.sdock .day b, .sdock .stepper .num { color: var(--paper); font-size: 1.375rem; }
+.sdock .stepper .num { min-width: 2.4em; }
+.sdock .swatches { flex-wrap: nowrap; }
+.sdock .sw { border-color: rgba(255, 255, 255, 0.2); }
+.sdock .sw small { color: #cfc4b6; }
+.sdock .sw.white span { box-shadow: none; }
+.sdock .sw.black span { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.sdock .sw[aria-pressed='true'] { border-color: var(--paper); box-shadow: inset 0 0 0 1px var(--paper); }
+.sdock .sw[aria-pressed='true'] small { color: var(--paper); }
+.sdock .dir { flex-wrap: nowrap; }
+.sdock .dir button { min-height: 44px; padding: 4px 12px 4px 6px; border-color: rgba(255, 255, 255, 0.2); color: var(--paper); white-space: nowrap; }
+.sdock .dir button[aria-pressed='true'] { border-color: var(--paper); box-shadow: inset 0 0 0 1px var(--paper); }
+.sdock .dir i { background: var(--paper); color: var(--ink); }
+
+/* 多出來的一排：外觀、打字、存圖、整理快捷 */
+.sdock .extra { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 0 16px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); scrollbar-width: none; animation: bl-fade 0.3s var(--out); }
+.sdock .extra > * { flex: none; }
+.sdock .extra.type input:not([type='checkbox']) { flex: 1 1 8em; min-width: 0; height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 16px; }
+.sdock .extra.save .pri { flex: 1; }
+.sdock .extra.manage span { flex: 1; font-size: 0.8125rem; color: #cfc4b6; }
+.sdock .pri { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--wash); color: var(--ink); font-weight: 600; white-space: nowrap; }
+.sdock .pri:disabled { opacity: 0.4; }
+.sdock .ghost { min-height: 44px; border-color: rgba(255, 255, 255, 0.3); color: var(--paper); }
+.sdock .keep { color: #cfc4b6; white-space: nowrap; }
+
+/* 最下面一排：圖示＋字，存圖是亮的那顆 */
+.sdock .acts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.35fr); gap: 4px; padding: 2px 10px 0; }
+.sdock :is(.tb, .acts .go) { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 54px; padding: 4px 0; border: 0; border-radius: 14px; background: none; color: #cfc4b6; font-size: 0.75rem; transition: background-color 0.2s, color 0.2s, scale 0.2s var(--out); }
+.sdock .tb[aria-pressed='true'] { background: rgba(255, 255, 255, 0.1); color: var(--paper); }
+.sdock .tb:disabled { opacity: 0.35; }
+.sdock .acts .go { background: var(--wash); color: var(--ink); font-weight: 600; font-size: 0.8125rem; letter-spacing: 0.04em; }
+.sdock .acts .go:hover:not(:disabled) { background: #c5c87a; }
+.sdock :is(.tb, .acts .go):active:not(:disabled) { scale: 0.94; }
+
+/* 選中標籤時 */
+.sdock .head { display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+.sdock .head input { flex: 1; min-width: 0; height: 46px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--paper); color: var(--ink); font-family: var(--tag-font); font-weight: 700; font-size: 16px; }
+.sdock .head b { flex: 1; font-family: var(--serif); font-weight: 600; font-size: 1.125rem; letter-spacing: 0.06em; }
+.sdock .tool { display: flex; align-items: center; gap: 8px; padding-right: 12px; border-right: 1px solid rgba(255, 255, 255, 0.12); }
+.sdock .tool:last-child { border-right: 0; }
+.sdock .tool > span { font-size: 0.75rem; letter-spacing: 0.1em; color: #cfc4b6; white-space: nowrap; }
+
+/* 日期＋兩列快捷 */
+.sdock .adds { display: flex; align-items: center; gap: 8px; padding-left: 12px; }
+.sdock .adds .date { flex: none; }
+.sdock .adds .stepper { height: 40px; }
+.sdock .adds .stepper > button { width: 32px; height: 38px; }
+.sdock .adds .day { min-width: 3.3em; }
+.sdock .adds .day b { font-size: 1.25rem; }
+.sdock .rail.grid { flex: 1; min-width: 0; display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); justify-content: start; gap: 6px; padding: 2px 24px 4px 0; }
+.sdock .rail.grid .chip { min-height: 40px; padding: 6px 12px; font-size: 1rem; }
+.sdock .rail.grid .chip small { font-size: 1rem; }
+.sdock .rail.grid .tidy { min-height: 40px; }
+/* 右邊淡出：看得出還可以往右滑 */
+.sdock .rail { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+
+/* 選中標籤的工具：排成幾行全部攤開，不用左右滑 */
+.sdock .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 16px 4px; }
+.sdock .tool { gap: 6px; padding: 0; border: 0; }
+.sdock .tool > span { display: none; }
+.sdock .tools .stepper { height: 42px; }
+.sdock .tools .stepper > button { width: 36px; height: 40px; }
+.sdock .tools .day { min-width: 3.3em; }
+.sdock .tools .day b, .sdock .tools .stepper .num { font-size: 1.25rem; }
+.sdock .tools .stepper .num { min-width: 2.2em; }
+.sdock .tools .mini { min-height: 42px; }
+.sdock .tools .mini:not(.wide) { width: 42px; }
+.sdock .tools .sw { height: 42px; padding: 0 6px; }
+.sdock .tools .sw small { display: none; }
+.sdock .mini[aria-pressed='true'] { border-color: var(--paper); background: var(--paper); color: var(--ink); }
+.sdock .vmark { display: grid; place-items: center; width: 16px; height: 24px; border: 1.5px solid currentColor; border-radius: 999px; font-style: normal; font-size: 0.625rem; font-weight: 700; }
+.sdock .tool > span.cap { display: block; font-size: 0.75rem; letter-spacing: 0.08em; color: #cfc4b6; }
+
+/* 手機上剛貼上的標籤彈一下 */
+.bl-stock :is(.tag, .cross).fresh { animation: bl-stock-pop 0.5s var(--out); }
+@keyframes bl-stock-pop { 0% { scale: 0.4; opacity: 0; } 60% { scale: 1.12; opacity: 1; } 100% { scale: 1; } }

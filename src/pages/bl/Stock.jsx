@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ToolPage } from '../../components/bl/shared'
+import { useIsNarrow } from '../../hooks/useIsNarrow'
+import StockDock from './StockDock'
 import {
   DEFAULT_PRESETS,
   DEFAULT_SIZE,
   METRICS,
-  STYLES,
   SIZE_MAX,
   SIZE_MIN,
   clamp01,
@@ -20,6 +21,7 @@ import {
   WRAP_MIN,
 } from '../stockPhoto/labelModel'
 import { measureEm, renderPhoto } from '../stockPhoto/renderPhoto'
+import { Chip, DateStepper, I, Icon, Swatches, openPicker } from '../stockPhoto/ui'
 import '../../styles/bl-tools.css'
 import '../../styles/bl-stock.css'
 
@@ -52,14 +54,6 @@ const canShareFiles = () => {
     return false
   }
 }
-// 透明的日期欄蓋在日期字上：電腦上點了不會自己跳出日曆，要叫 showPicker
-const openPicker = (e) => {
-  try {
-    e.currentTarget.showPicker?.()
-  } catch {
-    // 不支援就交給瀏覽器預設行為
-  }
-}
 const isTouch = () => window.matchMedia('(pointer: coarse)').matches
 /** 倉庫_1009.jpg；一次存好幾張時後面帶第幾張 */
 const fileNameOf = (index, count) => {
@@ -68,23 +62,6 @@ const fileNameOf = (index, count) => {
   return `倉庫_${stamp}${count > 1 ? `_${index + 1}` : ''}.jpg`
 }
 
-const Icon = ({ d, size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d={d} />
-  </svg>
-)
-const I = {
-  undo: 'M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 010 11H11',
-  plus: 'M12 5v14M5 12h14',
-  minus: 'M5 12h14',
-  left: 'M15 6l-6 6 6 6',
-  right: 'M9 6l6 6-6 6',
-  x: 'M6 6l12 12M18 6L6 18',
-  share: 'M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7',
-  down: 'M12 3v12M8 11l4 4 4-4M5 21h14',
-  copy: 'M9 9h10v10H9zM5 15V5h10',
-  camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z',
-}
 
 export default function Stock() {
   const [photos, setPhotos] = useState(memory.photos)
@@ -101,6 +78,9 @@ export default function Stock() {
   const [msg, setMsg] = useState(null)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef(null)
+  // 手機、直放的平板：工具全部收進底部工具列
+  const narrow = useIsNarrow('(max-width: 899px)')
+  const [fresh, setFresh] = useState(null)
 
   const photo = photos.find((p) => p.id === curId) || photos[0] || null
   const labels = photo?.labels || []
@@ -234,12 +214,16 @@ export default function Stock() {
     const at = spot || (last ? nextSpot(last, aspect) : { x: 0.5, y: 0.5 })
     const label = makeLabel(preset, { ...at, date, style: prefs.style, size: prefs.size, vertical: prefs.vertical })
     commit((ls) => [...ls, label])
-    setSelId(label.id)
+    // 手機上貼完不切到編輯工具：底下的快捷留著，一疊籃子可以連續點；新標籤閃一下讓人看到貼在哪
+    if (narrow) {
+      setSelId(null)
+      setFresh(label.id)
+    } else setSelId(label.id)
     // 下一個接在這個下面，一疊籃子可以一路點下去
     setSpot(nextSpot(label, aspect))
   }
-  const addDraft = () => {
-    const text = draft.trim()
+  const addDraft = (raw = draft) => {
+    const text = raw.trim()
     if (!text) return
     if (keep && !presets.some((p) => p.text === text && !p.dated)) setPresets((ps) => [...ps, { text, group: '我的' }])
     place({ text })
@@ -413,9 +397,43 @@ export default function Stock() {
   }
 
   const others = photos.length > 1
+  const saveOne = () => exportPhotos([photo], shareFirst ? 'share' : 'download')
+  // 手機版底部工具列要用的東西，跟電腦版右側面板是同一份狀態
+  const dock = {
+    sel,
+    msg,
+    busy,
+    prefs,
+    date,
+    setDate,
+    groups,
+    managing,
+    keep,
+    setKeep,
+    canUndo,
+    undo,
+    place,
+    addText: addDraft,
+    setStyle,
+    setVertical,
+    setSize,
+    patchSel,
+    duplicateSel,
+    removeSel,
+    removePreset,
+    resetPresets,
+    toggleManage: () => setManaging((v) => !v),
+    deselect: () => setSelId(null),
+    pickFile,
+    shareFirst,
+    others,
+    photoCount: photos.length,
+    saveCurrent: saveOne,
+    saveAll: () => exportPhotos(photos, shareFirst ? 'share' : 'download'),
+  }
   return (
     <ToolPage
-      className="bl-x bl-stock"
+      className={`bl-x bl-stock${narrow ? ' docked' : ''}`}
       path="/stock-photo"
       section="庫存與報表"
       title="倉庫標籤"
@@ -444,6 +462,7 @@ export default function Stock() {
           <Stage
             photo={photo}
             selId={selId}
+            fresh={fresh}
             spot={spot}
             dragOver={dragOver}
             dropProps={dropProps}
@@ -459,37 +478,39 @@ export default function Stock() {
             onMove={(id, patch) => setLabels(photo.id, (ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))}
           />
 
-          <div className="bar">
-            <button type="button" className="ic" onClick={undo} disabled={!canUndo} aria-label="復原">
-              <Icon d={I.undo} />
-              <span>復原</span>
-            </button>
-            <p className="hint" role="status">
-              {msg ? <span className={msg.bad ? 'bad' : 'ok'}>{msg.text}</span> : spot ? '下一個標籤會放在閃的地方' : sel ? '拖曳移動，拉右下角圓點改大小' : '點照片選位置，再點下面的品項'}
-            </p>
-            <div className="save">
-              {shareFirst ? (
-                <button type="button" className="go" onClick={() => exportPhotos([photo], 'share')} disabled={Boolean(busy)}>
-                  <Icon d={I.share} />
-                  {busy === 'share' ? '準備中…' : '分享／存到相簿'}
-                </button>
-              ) : (
-                <>
-                  {canCopy ? (
-                    <button type="button" className="ghost" onClick={() => exportPhotos([photo], 'copy')} disabled={Boolean(busy)}>
-                      <Icon d={I.copy} />
-                      {busy === 'copy' ? '複製中…' : '複製'}
-                    </button>
-                  ) : null}
-                  <button type="button" className="go" onClick={() => exportPhotos([photo], 'download')} disabled={Boolean(busy)}>
-                    <Icon d={I.down} />
-                    {busy === 'download' ? '準備中…' : '下載圖片'}
+          {narrow ? null : (
+            <div className="bar">
+              <button type="button" className="ic" onClick={undo} disabled={!canUndo} aria-label="復原">
+                <Icon d={I.undo} />
+                <span>復原</span>
+              </button>
+              <p className="hint" role="status">
+                {msg ? <span className={msg.bad ? 'bad' : 'ok'}>{msg.text}</span> : spot ? '下一個標籤會放在閃的地方' : sel ? '拖曳移動，拉右下角圓點改大小' : '點照片選位置，再點下面的品項'}
+              </p>
+              <div className="save">
+                {shareFirst ? (
+                  <button type="button" className="go" onClick={() => exportPhotos([photo], 'share')} disabled={Boolean(busy)}>
+                    <Icon d={I.share} />
+                    {busy === 'share' ? '準備中…' : '分享／存到相簿'}
                   </button>
-                </>
+                ) : (
+                  <>
+                    {canCopy ? (
+                      <button type="button" className="ghost" onClick={() => exportPhotos([photo], 'copy')} disabled={Boolean(busy)}>
+                        <Icon d={I.copy} />
+                        {busy === 'copy' ? '複製中…' : '複製'}
+                      </button>
+                    ) : null}
+                    <button type="button" className="go" onClick={() => exportPhotos([photo], 'download')} disabled={Boolean(busy)}>
+                      <Icon d={I.down} />
+                      {busy === 'download' ? '準備中…' : '下載圖片'}
+                    </button>
+                  </>
               )}
             </div>
           </div>
-          {others ? (
+          )}
+          {others && !narrow ? (
             <div className="all">
               <span>一次存全部 {photos.length} 張</span>
               {share ? (
@@ -504,133 +525,101 @@ export default function Stock() {
           ) : null}
         </div>
 
-        <aside className="panel">
-          {sel ? (
-            <Editor
-              key={sel.id}
-              label={sel}
-              onPatch={patchSel}
-              onSize={setSize}
-              onDuplicate={duplicateSel}
-              onRemove={removeSel}
-              onDone={() => setSelId(null)}
-            />
-          ) : null}
+        {narrow ? null : (
+          <aside className="panel">
+            {sel ? (
+              <Editor
+                key={sel.id}
+                label={sel}
+                onPatch={patchSel}
+                onSize={setSize}
+                onDuplicate={duplicateSel}
+                onRemove={removeSel}
+                onDone={() => setSelId(null)}
+              />
+            ) : null}
 
-          <section className="card look">
-            <div className="hd">
-              <h2>外觀</h2>
-              <small>{sel?.kind === 'text' ? '改的是選中的這個標籤' : '接下來貼的標籤都用這個'}</small>
-            </div>
-            <div className="row">
-              <span>樣式</span>
-              <Swatches value={sel?.kind === 'text' ? sel.style : prefs.style} onPick={setStyle} />
-            </div>
-            <div className="row">
-              <span>方向</span>
-              <div className="dir" role="group" aria-label="文字方向">
-                {[
-                  [false, '橫排'],
-                  [true, '直排'],
-                ].map(([v, name]) => (
-                  <button key={name} type="button" aria-pressed={(sel?.kind === 'text' ? sel.vertical : prefs.vertical) === v} onClick={() => setVertical(v)}>
-                    <i className={v ? 'v' : undefined} aria-hidden="true">
-                      {v ? '大\n蓋' : '大蓋'}
-                    </i>
-                    {name}
-                  </button>
-                ))}
+            <section className="card look">
+              <div className="hd">
+                <h2>外觀</h2>
+                <small>{sel?.kind === 'text' ? '改的是選中的這個標籤' : '接下來貼的標籤都用這個'}</small>
               </div>
-            </div>
-          </section>
-
-          <section className="card quick">
-            <div className="hd">
-              <h2>貼標籤</h2>
-              <button type="button" className="side" aria-pressed={managing} onClick={() => setManaging((v) => !v)}>
-                {managing ? '好了' : '整理快捷'}
-              </button>
-            </div>
-
-            <div className="row date">
-              <span>日期</span>
-              <div className="stepper">
-                <button type="button" aria-label="前一天" onClick={() => setDate((d) => stepDate(d, -1))}>
-                  <Icon d={I.left} />
-                </button>
-                <label className="day">
-                  <b>{shortDate(date)}</b>
-                  <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} aria-label="選日期" onClick={openPicker} />
-                </label>
-                <button type="button" aria-label="後一天" onClick={() => setDate((d) => stepDate(d, 1))}>
-                  <Icon d={I.right} />
-                </button>
+              <div className="row">
+                <span>樣式</span>
+                <Swatches value={sel?.kind === 'text' ? sel.style : prefs.style} onPick={setStyle} />
               </div>
-            </div>
-
-            {groups.map((g) => (
-              <div className="group" key={g.name}>
-                <span>{g.name}</span>
-                <div className="chips">
-                  {g.items.map((p) => (
-                    <span className="chip-wrap" key={`${p.i}-${p.text}`}>
-                      <button
-                        type="button"
-                        className={`chip ${p.kind === 'cross' ? 'strike' : `s-${p.style || prefs.style}`}`}
-                        onClick={() => (managing ? removePreset(p.i) : place(p))}
-                        aria-label={managing ? `移除快捷「${p.text}」` : undefined}
-                      >
-                        {p.kind === 'cross' ? <Icon d={I.x} size={16} /> : null}
-                        {p.dated ? <small>{shortDate(date)}</small> : null}
-                        {p.text}
-                        {managing ? <i aria-hidden="true">×</i> : null}
-                      </button>
-                    </span>
+              <div className="row">
+                <span>方向</span>
+                <div className="dir" role="group" aria-label="文字方向">
+                  {[
+                    [false, '橫排'],
+                    [true, '直排'],
+                  ].map(([v, name]) => (
+                    <button key={name} type="button" aria-pressed={(sel?.kind === 'text' ? sel.vertical : prefs.vertical) === v} onClick={() => setVertical(v)}>
+                      <i className={v ? 'v' : undefined} aria-hidden="true">
+                        {v ? '大\n蓋' : '大蓋'}
+                      </i>
+                      {name}
+                    </button>
                   ))}
                 </div>
               </div>
-            ))}
-            {managing ? (
-              <button type="button" className="link reset" onClick={resetPresets}>
-                換回預設的快捷
-              </button>
-            ) : null}
+            </section>
 
-            <form
-              className="own"
-              onSubmit={(e) => {
-                e.preventDefault()
-                addDraft()
-              }}
-            >
-              <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="自己打，例如 9/11 SW*2" enterKeyHint="done" aria-label="自己打標籤" />
-              <button type="submit" className="add" disabled={!draft.trim()}>
-                貼上去
-              </button>
-              <label className="keep">
-                <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
-                存成快捷
-              </label>
-            </form>
-          </section>
-        </aside>
+            <section className="card quick">
+              <div className="hd">
+                <h2>貼標籤</h2>
+                <button type="button" className="side" aria-pressed={managing} onClick={() => setManaging((v) => !v)}>
+                  {managing ? '好了' : '整理快捷'}
+                </button>
+              </div>
+
+              <div className="row date">
+                <span>日期</span>
+                <DateStepper value={date} onChange={setDate} onStep={(n) => setDate((d) => stepDate(d, n))} />
+              </div>
+
+              {groups.map((g) => (
+                <div className="group" key={g.name}>
+                  <span>{g.name}</span>
+                  <div className="chips">
+                    {g.items.map((p) => (
+                      <Chip key={`${p.i}-${p.text}`} preset={p} style={prefs.style} date={date} managing={managing} onPick={() => (managing ? removePreset(p.i) : place(p))} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {managing ? (
+                <button type="button" className="link reset" onClick={resetPresets}>
+                  換回預設的快捷
+                </button>
+              ) : null}
+
+              <form
+                className="own"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  addDraft()
+                }}
+              >
+                <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="自己打，例如 9/11 SW*2" enterKeyHint="done" aria-label="自己打標籤" />
+                <button type="submit" className="add" disabled={!draft.trim()}>
+                  貼上去
+                </button>
+                <label className="keep">
+                  <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
+                  存成快捷
+                </label>
+              </form>
+            </section>
+          </aside>
+        )}
       </div>
+      {narrow ? <StockDock m={dock} /> : null}
     </ToolPage>
   )
 }
 
-function Swatches({ value, onPick }) {
-  return (
-    <div className="swatches" role="group" aria-label="標籤樣式">
-      {STYLES.map((s) => (
-        <button key={s.id} type="button" className={`sw ${s.id}`} aria-pressed={value === s.id} onClick={() => onPick(s.id)} title={s.name} aria-label={s.name}>
-          <span>標</span>
-          <small>{s.name}</small>
-        </button>
-      ))}
-    </div>
-  )
-}
 
 function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
   const isText = label.kind === 'text'
@@ -725,7 +714,7 @@ function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
 }
 
 /** 照片與標籤。標籤是疊在照片上的 HTML，大小跟著照片顯示寬度走（--w），比例和存出來的圖一樣 */
-function Stage({ photo, selId, spot, dragOver, dropProps, onSelect, onSpot, onMoveStart, onMove }) {
+function Stage({ photo, selId, fresh, spot, dragOver, dropProps, onSelect, onSpot, onMoveStart, onMove }) {
   const ref = useRef(null)
   const [w, setW] = useState(0)
   useEffect(() => {
@@ -814,7 +803,7 @@ function Stage({ photo, selId, spot, dragOver, dropProps, onSelect, onSpot, onMo
           l.kind === 'cross' ? (
             <div
               key={l.id}
-              className="cross"
+              className={`cross${l.id === fresh ? ' fresh' : ''}`}
               aria-selected={l.id === selId}
               style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size }}
               onPointerDown={(e) => onDown(e, l, 'move')}
@@ -828,7 +817,7 @@ function Stage({ photo, selId, spot, dragOver, dropProps, onSelect, onSpot, onMo
           ) : (
             <div
               key={l.id}
-              className={`tag ${l.style}${l.vertical ? ' vert' : ''}`}
+              className={`tag ${l.style}${l.vertical ? ' vert' : ''}${l.id === fresh ? ' fresh' : ''}`}
               aria-selected={l.id === selId}
               style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size, width: l.wrap && !l.vertical ? `calc(var(--w) * var(--s) * ${l.wrap + METRICS.padX * 2})` : undefined }}
               onPointerDown={(e) => onDown(e, l, 'move')}
