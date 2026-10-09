@@ -34,6 +34,7 @@ const BlOrder = lazy(() => loadBl().then((m) => ({ default: m.Order })))
 const BlFlights = lazy(() => loadBl().then((m) => ({ default: m.Flights })))
 const BlPour = lazy(() => loadBl().then((m) => ({ default: m.Pour })))
 const BlReports = lazy(() => loadBl().then((m) => ({ default: m.Reports })))
+const BlStock = lazy(() => loadBl().then((m) => ({ default: m.Stock })))
 const BlFeedback = lazy(() => loadBl().then((m) => ({ default: m.Feedback })))
 const BlChangelog = lazy(() => loadBl().then((m) => ({ default: m.Changelog })))
 const BlAdmin = lazy(() => loadBl().then((m) => ({ default: m.Admin })))
@@ -89,6 +90,7 @@ function AppContent() {
               <Route path="/home/flight-data" element={<BlFlights />} />
               <Route path="/home/poursteady" element={<BlPour />} />
               <Route path="/home/daily-reports" element={<BlReports />} />
+              <Route path="/home/stock-photo" element={<BlStock />} />
               <Route path="/home/feedback" element={<BlFeedback />} />
               <Route path="/home/changelog" element={<BlChangelog />} />
               <Route path="/home/admin" element={<BlAdmin />} />
