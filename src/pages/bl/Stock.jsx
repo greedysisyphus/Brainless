@@ -46,6 +46,13 @@ function writeJson(key, value) {
   }
 }
 
+// 還在測試：標題旁邊掛 beta（首頁導覽也有）
+const BETA = (
+  <i className="beta" title="測試中，有問題請到回饋告訴我們">
+    beta
+  </i>
+)
+
 const GROUP_ORDER = ['日期', '杯蓋', '其他', '我的', '標記']
 const canShareFiles = () => {
   try {
@@ -381,7 +388,7 @@ export default function Stock() {
 
   if (!photo) {
     return (
-      <ToolPage className="bl-x bl-stock" path="/stock-photo" section="庫存與報表" title="倉庫標籤">
+      <ToolPage className="bl-x bl-stock" path="/stock-photo" section="庫存與報表" title="倉庫標籤" titleExtra={BETA}>
         {fileInput}
         <button type="button" className={`blank${dragOver ? ' over' : ''}`} onClick={pickFile} {...dropProps}>
           <b>拍照或選照片</b>
@@ -437,7 +444,14 @@ export default function Stock() {
       path="/stock-photo"
       section="庫存與報表"
       title="倉庫標籤"
-      titleExtra={<p className="count">{photos.length} 張照片 · {labels.length} 個標籤</p>}
+      titleExtra={
+        <>
+          {BETA}
+          <p className="count">
+            {photos.length} 張照片 · {labels.length} 個標籤
+          </p>
+        </>
+      }
     >
       {fileInput}
       <div className="work">
@@ -457,6 +471,8 @@ export default function Stock() {
             <button type="button" className="more" onClick={pickFile} aria-label="再加照片">
               <Icon d={I.plus} size={22} />
             </button>
+            {/* 手機上標題收起來了，beta 放在照片列右邊 */}
+            {narrow ? BETA : null}
           </div>
 
           <Stage

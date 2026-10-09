@@ -319,3 +319,8 @@
 /* 手機上剛貼上的標籤彈一下 */
 .bl-stock :is(.tag, .cross).fresh { animation: bl-stock-pop 0.5s var(--out); }
 @keyframes bl-stock-pop { 0% { scale: 0.4; opacity: 0; } 60% { scale: 1.12; opacity: 1; } 100% { scale: 1; } }
+
+/* beta 標記：跟首頁導覽上的一樣用斜體，多一圈細框 */
+.bl-stock .beta { display: inline-block; padding: 1px 10px 2px; border: 1px solid var(--plum); border-radius: 999px; font-family: var(--didone); font-style: italic; font-size: 0.9375rem; line-height: 1.4; color: var(--plum); font-variation-settings: 'opsz' 18; }
+.bl-stock .top .beta { margin-bottom: 14px; }
+.bl-stock .strip .beta { flex: none; align-self: center; margin-left: auto; }
