@@ -92,9 +92,14 @@
 .bl-home .roster th { font-family: var(--serif); font-weight: 400; font-size: 0.8125rem; color: var(--plum); letter-spacing: 0.16em; text-align: left; white-space: nowrap; }
 .bl-home .roster thead th { padding: 0 0 6px; font-weight: 600; color: var(--ink); letter-spacing: 0.06em; font-size: 0.9375rem; }
 .bl-home .roster tbody th { width: 3.4em; }
-.bl-home .roster td span { white-space: nowrap; }
-.bl-home .roster td span i { font-style: normal; }
-.bl-home .roster td, .bl-home .roster tbody th { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
+/* 名字一人一行（頓號藏掉，留給讀螢幕的人）；班別跟第一個名字對齊基線；沒人的格子補一槓 */
+.bl-home .roster td span { display: block; white-space: nowrap; }
+.bl-home .roster td span i { display: none; }
+.bl-home .roster td, .bl-home .roster tbody th { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); vertical-align: baseline; }
+.bl-home .roster td:empty::after { content: '—'; color: var(--soft); }
+/* 現在這一班維持墨色、班別加粗；其他班退成淡色（班表沒填時間就都不變） */
+.bl-home .roster.has-now tbody tr:not(.now) :is(td, th) { color: var(--soft); }
+.bl-home .roster tbody tr.now th { color: var(--ink); font-weight: 600; }
 .bl-home .note { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.875rem; color: var(--soft); }
 .bl-home .note a { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
 
@@ -193,8 +198,6 @@
   .bl-home .roster thead th { padding-bottom: 8px; font-size: 1rem; }
   .bl-home .roster tbody th { width: 3em; font-size: 0.875rem; letter-spacing: 0.08em; }
   .bl-home .roster td, .bl-home .roster tbody th { padding: 10px 6px 10px 0; }
-  .bl-home .roster td span { display: block; }
-  .bl-home .roster td span i { display: none; }
   .bl-home .colophon { order: 9; margin: 0; padding-top: 18px; }
 }
 

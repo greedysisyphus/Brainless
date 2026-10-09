@@ -116,8 +116,8 @@ function Stat({ label, value, unit, format = (v) => v.toLocaleString('en-US') })
   )
 }
 
-function Roster({ book, dateKey, loading }) {
-  const { codes, cell, labelOf } = useMemo(() => {
+function Roster({ book, dateKey, loading, clock }) {
+  const { codes, cell, labelOf, timeOf } = useMemo(() => {
     const stores = groupWorkingByStore(getWorkingAssignments(book, dateKey))
     const months = getMonthsForDate(book, dateKey)
     const names = {}
@@ -140,6 +140,7 @@ function Roster({ book, dateKey, loading }) {
       codes: sorted.map((d) => d.code),
       cell: (store, code) => names[`${store}|${code}`] || [],
       labelOf: Object.fromEntries(sorted.map((d) => [d.code, d.label])),
+      timeOf: Object.fromEntries(sorted.map((d) => [d.code, d])),
     }
   }, [book, dateKey])
 
@@ -154,8 +155,14 @@ function Roster({ book, dateKey, loading }) {
       </p>
     )
   }
+  // 現在正在上的班（可能不只一班重疊）；跨夜的班只看開始時間，因為這張表只有今天
+  const isNow = (code) => {
+    const { start, end, crossesMidnight } = timeOf[code]
+    if (!start || !end) return false
+    return clock >= start && (crossesMidnight || end < start || clock < end)
+  }
   return (
-    <table className="roster">
+    <table className={`roster${codes.some(isNow) ? ' has-now' : ''}`}>
       <caption>
         <span className="label">今天上班</span>
       </caption>
@@ -171,7 +178,7 @@ function Roster({ book, dateKey, loading }) {
       </thead>
       <tbody>
         {codes.map((code) => (
-          <tr key={code}>
+          <tr key={code} className={isNow(code) ? 'now' : undefined} aria-current={isNow(code) ? 'time' : undefined}>
             <th scope="row">{labelOf[code]}</th>
             {STORE_CODES.map((store) => (
               <td key={store}>
@@ -424,7 +431,7 @@ export default function Home({ stageCat = false }) {
                 ) : null}
               </Reveal>
               <Reveal show={!loading} className="r-roster">
-                {loading ? null : <Roster book={book} dateKey={dateKey} loading={loading} />}
+                {loading ? null : <Roster book={book} dateKey={dateKey} loading={loading} clock={clock} />}
               </Reveal>
             </section>
           </div>
