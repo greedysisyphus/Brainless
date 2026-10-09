@@ -94,9 +94,12 @@
 .bl-stock :is(.tag, .cross)[aria-selected='true'] { touch-action: none; }
 /* 拉寬度的左右直條（像 Canva 的文字框），字在框裡換行 */
 .bl-stock .edge { position: absolute; z-index: 3; top: 50%; width: 9px; height: max(22px, 56%); translate: -50% -50%; border: 2px solid var(--plum); border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); cursor: ew-resize; touch-action: none; }
-.bl-stock .edge.l { left: -4px; }
-.bl-stock .edge.r { left: calc(100% + 4px); }
-.bl-stock .edge::before { content: ''; position: absolute; inset: -10px -14px; }
+/* 直條放在框的外面，可以抓的範圍只往外長、不伸進字框：平板上手指按在字框右半邊拖，不會被當成拉寬度 */
+.bl-stock .edge.l { left: -12px; }
+.bl-stock .edge.r { left: calc(100% + 12px); }
+.bl-stock .edge::before { content: ''; position: absolute; top: -10px; bottom: -10px; }
+.bl-stock .edge.l::before { left: -16px; right: -3px; }
+.bl-stock .edge.r::before { left: -3px; right: -16px; }
 /* 拉大小的圓點：看起來小，手指抓得到的範圍大 */
 /* 放在角落的斜外側，短標籤上也不會蓋住左右的直條（直條疊在它上面） */
 .bl-stock .handle { position: absolute; z-index: 2; right: -24px; bottom: -24px; width: 24px; height: 24px; border: 3px solid #fff; border-radius: 50%; background: var(--plum); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); cursor: nwse-resize; touch-action: none; }
@@ -234,7 +237,8 @@
 .bl-stock.docked { --stage-h: calc(100dvh - var(--dock-h, 180px) - 166px); }
 /* 只有一張：縮圖列收掉，高度讓給照片，底下留一行「換一張照片」 */
 .bl-stock.docked.solo { --stage-h: calc(100dvh - var(--dock-h, 180px) - 132px); }
-.bl-stock .swap { justify-self: center; min-height: 32px; padding: 4px 12px; border: 0; background-color: transparent; color: var(--ink); font-size: 0.875rem; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--line); }
+.bl-stock .swaprow { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; }
+.bl-stock .swap { min-height: 32px; padding: 4px 12px; border: 0; background-color: transparent; color: var(--ink); font-size: 0.875rem; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--line); }
 .bl-stock.docked .top { display: none; }
 .bl-stock.docked .page { padding-bottom: calc(var(--dock-h, 180px) + 12px); }
 .bl-stock.docked .work { padding-top: 8px; }
@@ -341,3 +345,12 @@
 /* 手機上剛貼上的標籤彈一下 */
 .bl-stock :is(.tag, .cross).fresh { animation: bl-stock-pop 0.5s var(--out); }
 @keyframes bl-stock-pop { 0% { scale: 0.4; opacity: 0; } 60% { scale: 1.12; opacity: 1; } 100% { scale: 1; } }
+
+/* beta 標記：跟首頁導覽上的一樣用斜體，多一圈細框 */
+.bl-stock .beta { display: inline-block; padding: 1px 10px 2px; border: 1px solid var(--plum); border-radius: 999px; font-family: var(--didone); font-style: italic; font-size: 0.9375rem; line-height: 1.4; color: var(--plum); font-variation-settings: 'opsz' 18; }
+.bl-stock .top .beta { margin-bottom: 14px; }
+.bl-stock .strip .beta { flex: none; align-self: center; margin-left: auto; }
+
+/* 照片列：好幾張時可以一次清掉 */
+.bl-stock .strip .clear { flex: none; align-self: center; min-height: 40px; padding: 0 6px; border: 0; background: none; font-size: 0.8125rem; color: var(--soft); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--line); white-space: nowrap; }
+.bl-stock .strip .clear:hover { color: #8a2b1c; }

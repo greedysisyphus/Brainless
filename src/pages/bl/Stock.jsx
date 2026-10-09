@@ -24,22 +24,20 @@ import {
   TAIL_NAMES,
   WRAP_MIN,
 } from '../stockPhoto/labelModel'
-import { delFile, getFile, pruneFiles, putFile } from '../stockPhoto/photoStore'
 import { measureEm, renderPhoto } from '../stockPhoto/renderPhoto'
+import { clearSaved, loadSaved, saveFile, saveList } from '../stockPhoto/store'
 import { Chip, DateStepper, I, Icon, Swatches, openPicker } from '../stockPhoto/ui'
 import '../../styles/bl-tools.css'
 import '../../styles/bl-stock.css'
 
 // 新版倉庫標籤（/home/stock-photo）。拿完貨拍的貨架照片，在上面貼品項標籤再存成圖。
 // 照片只在這台裝置上處理，不上傳。換到別的工具再回來，照片和標籤還在；
-// 頁面被重新載入（手機切去 LINE 再回來）也會從這台裝置找回來，超過 KEEP_MS 沒動就不留了。
+// 頁面被重新載入（手機切去 LINE 再回來）也會從這台裝置找回來（stockPhoto/store.js）。
 const memory = { photos: [], cur: null, date: null }
 
 const PRESETS_KEY = 'bl-stock-presets'
 const PREFS_KEY = 'bl-stock-prefs'
 const USES_KEY = 'bl-stock-uses'
-const SESSION_KEY = 'bl-stock-session'
-const KEEP_MS = 12 * 60 * 60 * 1000
 // 只有日期的快捷是後來加的：已經存過快捷的裝置補一顆進去，只補一次（之後自己移掉就不會再回來）
 const DATE_ONLY = { text: '', dated: true, group: '日期' }
 function readPresets() {
@@ -54,6 +52,14 @@ function readPresets() {
   return merged
 }
 
+const DATE_KEY = 'bl-stock-date'
+const DATE_KEEP_MS = 2 * 24 * 60 * 60 * 1000
+/** 日期記住兩天：同一批豆子這兩天回來貼，不用再調一次；再久就回到今天 */
+function initialDate() {
+  const saved = readJson(DATE_KEY, null)
+  if (saved?.date && Date.now() - saved.at < DATE_KEEP_MS) return saved.date
+  return isoOf(new Date())
+}
 function readJson(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback
@@ -68,6 +74,13 @@ function writeJson(key, value) {
     // 存不了（無痕模式）就只用這一次
   }
 }
+
+// 還在測試：標題旁邊掛 beta（首頁導覽也有）
+const BETA = (
+  <i className="beta" title="測試中，有問題請到回饋告訴我們">
+    beta
+  </i>
+)
 
 const GROUP_ORDER = ['日期', '杯蓋', '其他', '我的', '標記']
 const canShareFiles = () => {
@@ -91,7 +104,7 @@ export default function Stock() {
   const [curId, setCurId] = useState(memory.cur)
   const [selId, setSelId] = useState(null)
   const [spot, setSpot] = useState(null) // 點照片空白處＝下一個標籤放這裡
-  const [date, setDate] = useState(() => memory.date || isoOf(new Date()))
+  const [date, setDate] = useState(() => memory.date || initialDate())
   const [prefs, setPrefs] = useState(() => ({ style: 'white', size: DEFAULT_SIZE, vertical: false, ...readJson(PREFS_KEY, {}) }))
   const [presets, setPresets] = useState(readPresets)
   // 快捷按過幾次。只在打開頁面時照次數排一次，貼到一半按鈕不會跑位
@@ -118,38 +131,38 @@ export default function Stock() {
     memory.cur = photo?.id || null
     memory.date = date
   }, [photos, photo, date])
-  // ── 重新載入後把上次的照片和標籤找回來 ──
-  const [ready, setReady] = useState(memory.photos.length > 0)
+  useEffect(() => writeJson(PREFS_KEY, prefs), [prefs])
+  useEffect(() => writeJson(DATE_KEY, { date, at: Date.now() }), [date])
+
+  // ── 自動保存：重新整理、切去 LINE 回來被重新載入，都接著上次的照片 ──
+  const restored = useRef(memory.photos.length > 0)
   useEffect(() => {
-    if (memory.photos.length) return undefined
-    let dead = false
-    ;(async () => {
-      const saved = readJson(SESSION_KEY, null)
-      const list = saved?.photos?.length && Date.now() - saved.t < KEEP_MS ? saved.photos : []
-      const back = []
-      for (const p of list) {
-        const file = await getFile(p.id)
-        if (file) back.push({ ...p, file, url: URL.createObjectURL(file) })
-      }
-      if (dead) return back.forEach((p) => URL.revokeObjectURL(p.url))
-      pruneFiles(back.map((p) => p.id))
-      if (back.length) {
-        setPhotos((ps) => (ps.length ? ps : back))
-        setCurId((c) => c || saved.cur)
-        if (saved.date) setDate(saved.date)
-      }
-      setReady(true)
-    })()
+    if (restored.current) return undefined
+    let alive = true
+    loadSaved().then((rows) => {
+      restored.current = true
+      if (!alive || !rows.length) return
+      const back = rows.map((r) => ({ ...r, url: URL.createObjectURL(r.blob) }))
+      // 讀回來之前就已經選了新照片：以新選的為準
+      setPhotos((cur) => {
+        if (cur.length) {
+          back.forEach((p) => URL.revokeObjectURL(p.url))
+          return cur
+        }
+        setCurId(back[0].id)
+        setMsg({ text: `接著上次的 ${back.length} 張照片` })
+        return back
+      })
+    })
     return () => {
-      dead = true
+      alive = false
     }
   }, [])
   useEffect(() => {
-    if (!ready) return undefined
-    const t = setTimeout(() => writeJson(SESSION_KEY, { t: Date.now(), cur: photo?.id || null, date, photos: photos.map(({ url, file, ...p }) => p) }), 400)
+    if (!restored.current) return undefined
+    const t = setTimeout(() => saveList(photos), 500)
     return () => clearTimeout(t)
-  }, [ready, photos, photo, date])
-  useEffect(() => writeJson(PREFS_KEY, prefs), [prefs])
+  }, [photos])
   useEffect(() => writeJson(PRESETS_KEY, presets), [presets])
   useEffect(() => {
     if (!msg) return undefined
@@ -221,9 +234,7 @@ export default function Stock() {
           img.onerror = reject
           img.src = url
         })
-        const id = newId()
-        putFile(id, file)
-        added.push({ id, name: file.name, file, url, ...size, labels: [] })
+        added.push({ id: newId(), name: file.name, url, ...size, labels: [], blob: file })
       } catch {
         URL.revokeObjectURL(url)
         setMsg({ bad: true, text: `「${file.name}」打不開，換一張試試` })
@@ -234,12 +245,13 @@ export default function Stock() {
     const old = replace && photoRef.current
     if (old && (!old.labels.length || window.confirm(`原本那張有 ${old.labels.length} 個標籤，換掉就沒了。確定換掉？`))) {
       URL.revokeObjectURL(old.url)
-      delFile(old.id)
       history.current.delete(old.id)
       rendered.current.delete(old.id)
       setPhotos((ps) => ps.filter((p) => p.id !== old.id))
     }
     setPhotos((ps) => [...ps, ...added])
+    restored.current = true
+    added.forEach((p) => saveFile(p.id, p.blob))
     setCurId(added[0].id)
     setSelId(null)
     setSpot(null)
@@ -247,7 +259,6 @@ export default function Stock() {
   const removePhoto = (p) => {
     if (p.labels.length && !window.confirm(`這張照片有 ${p.labels.length} 個標籤，確定拿掉？`)) return
     URL.revokeObjectURL(p.url)
-    delFile(p.id)
     history.current.delete(p.id)
     rendered.current.delete(p.id)
     const rest = photos.filter((x) => x.id !== p.id)
@@ -255,6 +266,17 @@ export default function Stock() {
     setPhotos(rest)
     setSelId(null)
     setSpot(null)
+  }
+  const clearAll = () => {
+    if (!window.confirm(`拿掉全部 ${photos.length} 張照片和上面的標籤？`)) return
+    photos.forEach((p) => URL.revokeObjectURL(p.url))
+    history.current.clear()
+    rendered.current.clear()
+    setPhotos([])
+    setCurId(null)
+    setSelId(null)
+    setSpot(null)
+    clearSaved()
   }
   const pick = (p) => {
     setCurId(p.id)
@@ -469,7 +491,7 @@ export default function Stock() {
 
   if (!photo) {
     return (
-      <ToolPage className="bl-x bl-stock" path="/stock-photo" section="庫存與報表" title="倉庫標籤">
+      <ToolPage className="bl-x bl-stock" path="/stock-photo" section="庫存與報表" title="倉庫標籤" titleExtra={BETA}>
         {fileInput}
         <button type="button" className={`blank${dragOver ? ' over' : ''}`} onClick={pickFile} {...dropProps}>
           <b>拍照或選照片</b>
@@ -527,7 +549,14 @@ export default function Stock() {
       path="/stock-photo"
       section="庫存與報表"
       title="倉庫標籤"
-      titleExtra={<p className="count">{photos.length} 張照片 · {labels.length} 個標籤</p>}
+      titleExtra={
+        <>
+          {BETA}
+          <p className="count">
+            {photos.length} 張照片 · {labels.length} 個標籤
+          </p>
+        </>
+      }
     >
       {fileInput}
       <div className="work">
@@ -549,6 +578,13 @@ export default function Stock() {
               <button type="button" className="more" onClick={pickFile} aria-label="再加照片">
                 <Icon d={I.plus} size={22} />
               </button>
+              {photos.length > 1 ? (
+                <button type="button" className="clear" onClick={clearAll}>
+                  全部清掉
+                </button>
+              ) : null}
+              {/* 手機上標題收起來了，beta 放在照片列右邊 */}
+              {narrow ? BETA : null}
             </div>
           ) : null}
 
@@ -572,9 +608,12 @@ export default function Stock() {
           />
 
           {narrow && !others ? (
-            <button type="button" className="swap" onClick={() => pickFile(true)}>
-              換一張照片
-            </button>
+            <p className="swaprow">
+              <button type="button" className="swap" onClick={() => pickFile(true)}>
+                換一張照片
+              </button>
+              {BETA}
+            </p>
           ) : null}
 
           {narrow ? null : (
@@ -989,7 +1028,8 @@ function Stage({ photo, selId, fresh, spot, dragOver, dropProps, onSelect, onSpo
     const d = drag.current
     if (!d) return
     if (!d.moved) {
-      if (d.mode === 'move' && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < d.slop) return
+      // 拖曳、拉大小、拉寬度都一樣：要真的移動一段才算，手指按上去抖一下不會改到東西
+      if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < d.slop) return
       d.moved = true
       onMoveStart()
     }
