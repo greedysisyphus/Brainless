@@ -327,3 +327,7 @@
 .bl-stock .beta { display: inline-block; padding: 1px 10px 2px; border: 1px solid var(--plum); border-radius: 999px; font-family: var(--didone); font-style: italic; font-size: 0.9375rem; line-height: 1.4; color: var(--plum); font-variation-settings: 'opsz' 18; }
 .bl-stock .top .beta { margin-bottom: 14px; }
 .bl-stock .strip .beta { flex: none; align-self: center; margin-left: auto; }
+
+/* 照片列：好幾張時可以一次清掉 */
+.bl-stock .strip .clear { flex: none; align-self: center; min-height: 40px; padding: 0 6px; border: 0; background: none; font-size: 0.8125rem; color: var(--soft); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--line); white-space: nowrap; }
+.bl-stock .strip .clear:hover { color: #8a2b1c; }

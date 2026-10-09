@@ -21,6 +21,7 @@ import {
   WRAP_MIN,
 } from '../stockPhoto/labelModel'
 import { measureEm, renderPhoto } from '../stockPhoto/renderPhoto'
+import { clearSaved, loadSaved, saveFile, saveList } from '../stockPhoto/store'
 import { Chip, DateStepper, I, Icon, Swatches, openPicker } from '../stockPhoto/ui'
 import '../../styles/bl-tools.css'
 import '../../styles/bl-stock.css'
@@ -31,6 +32,14 @@ const memory = { photos: [], cur: null, date: null }
 
 const PRESETS_KEY = 'bl-stock-presets'
 const PREFS_KEY = 'bl-stock-prefs'
+const DATE_KEY = 'bl-stock-date'
+const DATE_KEEP_MS = 2 * 24 * 60 * 60 * 1000
+/** 日期記住兩天：同一批豆子這兩天回來貼，不用再調一次；再久就回到今天 */
+function initialDate() {
+  const saved = readJson(DATE_KEY, null)
+  if (saved?.date && Date.now() - saved.at < DATE_KEEP_MS) return saved.date
+  return isoOf(new Date())
+}
 function readJson(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback
@@ -75,7 +84,7 @@ export default function Stock() {
   const [curId, setCurId] = useState(memory.cur)
   const [selId, setSelId] = useState(null)
   const [spot, setSpot] = useState(null) // 點照片空白處＝下一個標籤放這裡
-  const [date, setDate] = useState(() => memory.date || isoOf(new Date()))
+  const [date, setDate] = useState(() => memory.date || initialDate())
   const [prefs, setPrefs] = useState(() => ({ style: 'white', size: DEFAULT_SIZE, vertical: false, ...readJson(PREFS_KEY, {}) }))
   const [presets, setPresets] = useState(() => readJson(PRESETS_KEY, DEFAULT_PRESETS))
   const [managing, setManaging] = useState(false)
@@ -100,6 +109,37 @@ export default function Stock() {
     memory.date = date
   }, [photos, photo, date])
   useEffect(() => writeJson(PREFS_KEY, prefs), [prefs])
+  useEffect(() => writeJson(DATE_KEY, { date, at: Date.now() }), [date])
+
+  // ── 自動保存：重新整理、切去 LINE 回來被重新載入，都接著上次的照片 ──
+  const restored = useRef(memory.photos.length > 0)
+  useEffect(() => {
+    if (restored.current) return undefined
+    let alive = true
+    loadSaved().then((rows) => {
+      restored.current = true
+      if (!alive || !rows.length) return
+      const back = rows.map((r) => ({ ...r, url: URL.createObjectURL(r.blob) }))
+      // 讀回來之前就已經選了新照片：以新選的為準
+      setPhotos((cur) => {
+        if (cur.length) {
+          back.forEach((p) => URL.revokeObjectURL(p.url))
+          return cur
+        }
+        setCurId(back[0].id)
+        setMsg({ text: `接著上次的 ${back.length} 張照片` })
+        return back
+      })
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+  useEffect(() => {
+    if (!restored.current) return undefined
+    const t = setTimeout(() => saveList(photos), 500)
+    return () => clearTimeout(t)
+  }, [photos])
   useEffect(() => writeJson(PRESETS_KEY, presets), [presets])
   useEffect(() => {
     if (!msg) return undefined
@@ -171,7 +211,7 @@ export default function Stock() {
           img.onerror = reject
           img.src = url
         })
-        added.push({ id: newId(), name: file.name, url, ...size, labels: [] })
+        added.push({ id: newId(), name: file.name, url, ...size, labels: [], blob: file })
       } catch {
         URL.revokeObjectURL(url)
         setMsg({ bad: true, text: `「${file.name}」打不開，換一張試試` })
@@ -179,6 +219,8 @@ export default function Stock() {
     }
     if (!added.length) return
     setPhotos((ps) => [...ps, ...added])
+    restored.current = true
+    added.forEach((p) => saveFile(p.id, p.blob))
     setCurId(added[0].id)
     setSelId(null)
     setSpot(null)
@@ -193,6 +235,17 @@ export default function Stock() {
     setPhotos(rest)
     setSelId(null)
     setSpot(null)
+  }
+  const clearAll = () => {
+    if (!window.confirm(`拿掉全部 ${photos.length} 張照片和上面的標籤？`)) return
+    photos.forEach((p) => URL.revokeObjectURL(p.url))
+    history.current.clear()
+    rendered.current.clear()
+    setPhotos([])
+    setCurId(null)
+    setSelId(null)
+    setSpot(null)
+    clearSaved()
   }
   const pick = (p) => {
     setCurId(p.id)
@@ -471,6 +524,11 @@ export default function Stock() {
             <button type="button" className="more" onClick={pickFile} aria-label="再加照片">
               <Icon d={I.plus} size={22} />
             </button>
+            {photos.length > 1 ? (
+              <button type="button" className="clear" onClick={clearAll}>
+                全部清掉
+              </button>
+            ) : null}
             {/* 手機上標題收起來了，beta 放在照片列右邊 */}
             {narrow ? BETA : null}
           </div>
