@@ -25,6 +25,10 @@
 .mc-cat.held { cursor: grabbing; z-index: 3; }
 .mc-cat.on { opacity: 1; }
 .mc-cat canvas { display: block; width: 100%; height: 100%; }
+/* 貓的檔案還沒載好的時候（.wait）：先顯示一張靜止的站姿剪影，載好了換成會動的 */
+.mc-still { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+.mc-cat.wait .mc-still { display: block; }
+.mc-cat.wait canvas { visibility: hidden; }
 /* 邊框：沿著輪廓描一圈（往四個方向各疊一道沒有模糊的影子），小小一隻也跟底色分得開。貓和樹的粗細分開（--edge、--tree-edge，0 就沒有），顏色共用。
    走動的那隻貓不在這裡：牠的邊框是紙偶自己在畫布裡畫的（iPhone 的 Safari 不會把 filter 畫在那種畫布上） */
 .mc-cat .mc-nap img, .mc-tree { --w: var(--edge, 0px); --c: var(--edge-color, #2a211c); --line: drop-shadow(var(--w) 0 0 var(--c)) drop-shadow(calc(var(--w) * -1) 0 0 var(--c)) drop-shadow(0 var(--w) 0 var(--c)) drop-shadow(0 calc(var(--w) * -1) 0 var(--c)); filter: var(--line); }

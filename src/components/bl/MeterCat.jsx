@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import treeImg from '../../assets/cat-tree.webp'
 import sleepImg from '../../assets/cat-sleep.webp'
+import stillImg from '../../assets/cat-still.webp'
 import '../../styles/meter-cat.css'
 
 // 忙碌量尺上的水彩貓和水彩樹。樹（公司標誌那三棵樹，畫成水彩）種在今天的位置上，中間那棵的樹幹就是精確的位置；
@@ -50,6 +51,8 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
     const SIZE = box.offsetWidth, TREE_H = tree.offsetHeight // 大小都在 meter-cat.css（--cat、--tree），這裡照量到的算
     const canvas = document.createElement('canvas')
     box.prepend(canvas)
+    const say = (text) => window.dispatchEvent(new CustomEvent('bl-meter-cat-status', { detail: text })) // 試作頁會把這句話顯示出來
+    say('載入中…')
     let gone = false
     let cat = null
     let run = 0     // 每開始一件新的事就加一：舊的那件事做到一半發現號碼變了就收手
@@ -59,8 +62,17 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
     const wait = (ms) => new Promise((ok) => (timer = setTimeout(ok, ms)))
     const where = () => { const [x = 0, y = 0] = getComputedStyle(box).translate.split(' ').map(parseFloat); return [x || 0, y || 0] }
     const face = (right) => cat.face(right ? 90 : -90)
-    const play = (name, speed = 1, once = false) => { box.dataset.pose = 'up'; cat.awake(true); cat.speed(speed); cat.play(name, once) }
-    const asleep = () => { box.dataset.pose = 'sleep'; cat.awake(false) } // 換成蜷著睡的那張圖，紙偶先不畫
+    // 看不到的時候（捲出畫面、切到別的分頁）不畫，省電；牠的行程照走，看得到了再接著畫
+    let seen = true
+    const draw = () => cat?.awake(seen && box.dataset.pose !== 'sleep')
+    const watch = new IntersectionObserver(([e]) => { seen = e.isIntersecting && !document.hidden; draw() })
+    watch.observe(tree)
+    const shown = () => { seen = !document.hidden; draw() }
+    document.addEventListener('visibilitychange', shown)
+    // 頁面在大螢幕上會整個縮小一點（zoom）：畫面上量到的距離要除以這個倍率，才是這裡擺位置用的單位
+    const zoom = () => root.getBoundingClientRect().width / root.offsetWidth || 1
+    const play = (name, speed = 1, once = false) => { box.dataset.pose = 'up'; draw(); cat.speed(speed); cat.play(name, once) }
+    const asleep = () => { box.dataset.pose = 'sleep'; draw() } // 換成蜷著睡的那張圖，紙偶先不畫
     const lift = (y) => String(Math.max(0.25, 1 + parseFloat(y || 0) / 70))
     // 直接把貓放到某個位置（"x y"）
     const place = (t) => {
@@ -114,17 +126,28 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
       },
       // 原地跳高，拍一下正上方的數字，數字被拍得跳一下
       async bat(me) {
-        const [x] = where()
-        const mine = root.getBoundingClientRect().left + x + SIZE / 2
-        const numbers = [...(root.closest('.today')?.querySelectorAll('.stats b') ?? [])]
-        const hit = numbers.sort((a, b) => Math.abs(a.getBoundingClientRect().left + a.offsetWidth / 2 - mine) - Math.abs(b.getBoundingClientRect().left + b.offsetWidth / 2 - mine))[0]
+        // 找最近的那個數字，先走到它正下方，再跳到頭頂剛好碰到數字的高度
+        const k = zoom(), frame = root.getBoundingClientRect()
+        const spot = (el) => { const r = el.getBoundingClientRect(); return { el, left: (r.left - frame.left) / k, right: (r.right - frame.left) / k, bottom: (r.bottom - frame.top) / k } }
+        const mid = where()[0] + SIZE / 2
+        const reach = (n) => Math.max(n.left - mid, mid - n.right, 0)
+        const hit = [...(root.closest('.today')?.querySelectorAll('.stats b') ?? [])].map(spot).sort((a, b) => reach(a) - reach(b))[0]
+        if (hit && reach(hit) > 150) return acts.stretch() // 太遠就算了
+        const x = hit ? Math.max(hit.left + 4, Math.min(hit.right - 4, mid)) - SIZE / 2 : where()[0]
+        const top = hit ? Math.min(-6, hit.bottom + SIZE * 0.586 - 6) : -SIZE * 1.5 // 站著的時候頭頂在線上方 0.586 個身長；再多跳 6px，頭才真的頂到字（字的框下面有一點空白）
+        await go(x, ['Walk', 1.4])
+        if (me !== run) return
+        face(true)
         play('Jump_ToIdle', 1.6, true)
+        cat.jolt(0, 5)
         await wait(160)
         if (me !== run) return
-        await glide([{ translate: `${x}px 0px` }, { translate: `${x}px ${-SIZE * 1.5}px` }], { duration: 260, easing: EASE_OUT })
-        hit?.animate([{ translate: '0 0' }, { translate: '0 -4px', rotate: '-2deg' }, { translate: '0 0' }], { duration: 360, easing: 'ease-out' })
+        const ms = 150 + Math.sqrt(-top) * 16
+        await glide([{ translate: `${x}px 0px` }, { translate: `${x}px ${top}px` }], { duration: ms, easing: EASE_OUT })
+        hit?.el.animate([{ translate: '0 0' }, { translate: '0 -4px', rotate: '-2deg' }, { translate: '0 0' }], { duration: 360, easing: 'ease-out' })
         if (me !== run) return
-        await glide([{ translate: `${x}px ${-SIZE * 1.5}px` }, { translate: `${x}px 0px` }], { duration: 280, easing: EASE_IN })
+        await glide([{ translate: `${x}px ${top}px` }, { translate: `${x}px 0px` }], { duration: ms, easing: EASE_IN })
+        if (me === run) await go(home, ['Walk', 1.4])
       },
       // 伸懶腰：前腳往前趴、屁股翹起來，整隻拉長，撐一下再站回來（動作資料裡沒有伸懶腰，用低頭的動作加上把整隻壓扁拉長湊的）
       async stretch() {
@@ -234,10 +257,18 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
       mood = MOODS[lv] ?? MOODS.普通
       root.style.setProperty('--at', `${v}%`)
       root.classList.add('on')
-      if (!cat) return
+      const spot = () => treeX() - tree.offsetWidth * 0.5 - SIZE * 0.93 + 6
+      if (!cat) { // 貓的檔案還沒載好：先放一張靜止的剪影站在樹旁邊，不要只有一棵樹
+        home = spot()
+        place(`${home}px 0px`)
+        box.classList.add('on', 'wait')
+        shade.classList.add('on')
+        return
+      }
+      box.classList.remove('wait')
       const first = home == null
       const me = reset()
-      home = treeX() - tree.offsetWidth * 0.5 - SIZE * 0.93 + 6
+      home = spot()
       if (first) place(`${Math.max(-SIZE, home - 220)}px 0px`)
       if (calm) { place(`${home}px 0px`); box.classList.add('on'); face(true); play('Idle'); return cat.awake(false) } // 關掉動態：站在樹旁邊不動
       if (first) { // 第一次出場：樹先長出來，貓再從左邊跑進來，一眼就看得出是一隻貓跑到樹旁邊
@@ -277,7 +308,7 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
     }
     const moveTo = (e) => {
       if (!grab) return
-      const dx = e.clientX - grab.x, dy = e.clientY - grab.y
+      const k = zoom(), dx = (e.clientX - grab.x) / k, dy = (e.clientY - grab.y) / k
       if (!grab.held) {
         if (Math.hypot(dx, dy) < 5) return
         grab.held = true
@@ -315,25 +346,35 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
     box.addEventListener('pointerup', up)
     box.addEventListener('pointercancel', up)
 
-    Promise.all([import('./cat3d/paper.js'), import('../../assets/cat-paper.glb?url'), import('../../assets/cat-parts.webp')])
+    Promise.all([import('./cat3d/paper.js'), import('../../assets/cat-paper-lite.glb?url'), import('../../assets/cat-parts-lite.webp')]) // 精簡版：小小一隻用不到完整的細節，檔案只有四分之一
       .then(([{ createPaperCat }, glb, paint]) => createPaperCat(canvas, { glb: glb.default, paint: paint.default }))
       .then((made) => {
         if (gone) return made.dispose()
         cat = made
+        say('已載入')
         cat.play('Idle')
         cat.punch(1.4, 0.88) // 這麼小一隻，水彩的顏色在米色底上太淡：加濃、壓深一點（只有量尺上這隻，大頭不動）
         api.current.edge = (px, color) => cat.outline(px, color)
         api.current.look = (fill, eye) => cat.solid(fill, eye)
         api.current.look(...look.current)
         api.current.edge(...edge.current)
+        if (import.meta.env.DEV) window.meterCat = api.current // 開發時在主控台叫牠做事：meterCat.act('bat')
         if (want.current) api.current.arrive(...want.current)
       })
-      .catch((error) => console.error('量尺上的貓載入失敗', error))
+      .catch((error) => {
+        // 貓出不來（這台裝置跑不動、或檔案抓不到）：把原本的圓點叫回來，至少看得到今天的位置；原因留給試作頁顯示
+        console.error('量尺上的貓載入失敗', error)
+        if (gone) return
+        root.parentElement?.classList.add('mc-failed')
+        say(`失敗：${error?.message || error}`)
+      })
     return () => {
       gone = true
       run += 1
       clearTimeout(timer)
       window.removeEventListener('bl-big-cat', petted)
+      watch.disconnect()
+      document.removeEventListener('visibilitychange', shown)
       box.removeEventListener('pointerdown', down)
       box.removeEventListener('pointermove', moveTo)
       box.removeEventListener('pointerup', up)
@@ -341,6 +382,7 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
       box.getAnimations().forEach((a) => a.cancel())
       cat?.dispose()
       canvas.remove()
+      root.parentElement?.classList.remove('mc-failed')
       api.current = {}
     }
   }, [])
@@ -360,26 +402,30 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
     look.current = [size.solid ? size.fill : null, size.eye]
     api.current.look?.(...look.current)
   }, [size.solid, size.fill, size.eye])
-  // 剪影模式：睡覺那張圖也整張塗成同一個顏色（畫到一張小畫布上，只留有顏料的地方，再存成圖）
+  // 把一張圖整張塗成同一個顏色（畫到一張小畫布上，只留有顏料的地方，再存成圖）
   const napRef = useRef(null)
+  const stillRef = useRef(null)
   useEffect(() => {
-    const nap = napRef.current
-    if (!size.solid) { nap.src = sleepImg; return undefined }
     let live = true
-    const img = new Image()
-    img.onload = () => {
-      if (!live) return
-      const c = document.createElement('canvas')
-      c.width = img.naturalWidth
-      c.height = img.naturalHeight
-      const g = c.getContext('2d')
-      g.drawImage(img, 0, 0)
-      g.globalCompositeOperation = 'source-in'
-      g.fillStyle = size.fill
-      g.fillRect(0, 0, c.width, c.height)
-      nap.src = c.toDataURL()
+    const tint = (el, src, color) => {
+      const img = new Image()
+      img.onload = () => {
+        if (!live) return
+        const c = document.createElement('canvas')
+        c.width = img.naturalWidth
+        c.height = img.naturalHeight
+        const g = c.getContext('2d')
+        g.drawImage(img, 0, 0)
+        g.globalCompositeOperation = 'source-in'
+        g.fillStyle = color
+        g.fillRect(0, 0, c.width, c.height)
+        el.src = c.toDataURL()
+      }
+      img.src = src
     }
-    img.src = sleepImg
+    tint(stillRef.current, stillImg, size.fill) // 載入前墊著的那張站姿
+    if (size.solid) tint(napRef.current, sleepImg, size.fill) // 剪影模式：睡覺那張也塗
+    else napRef.current.src = sleepImg
     return () => { live = false }
   }, [size.solid, size.fill])
 
@@ -389,6 +435,7 @@ const MeterCat = forwardRef(function MeterCat({ value, level, size = meterCatSiz
       <b className="mc-ground" />
       <b className="mc-shade" ref={shadeRef} />
       <span className="mc-cat" ref={boxRef} data-pose="up">
+        <img className="mc-still" ref={stillRef} alt="" />
         <span className="mc-nap"><img ref={napRef} src={sleepImg} alt="" /><i>z</i><i>z</i></span>
       </span>
     </span>
