@@ -1,10 +1,25 @@
-import { CROSS_COLOR, CROSS_SPAN, CROSS_STROKE, FONT_STACK, METRICS, labelLines, padOf, styleOf } from './labelModel'
+import { CROSS_COLOR, CROSS_SPAN, CROSS_STROKE, FONT_STACK, METRICS, labelLines, padOf, styleOf, textWidthEm } from './labelModel'
 
 // 把照片和標籤畫成一張圖。全部在這台裝置上做，照片不會上傳。
 // 長邊壓到 MAX_EDGE：iPhone 原圖 4032px 傳到 LINE 也會被壓，太大只是存得慢、傳得慢。
 const MAX_EDGE = 2560
 
 export const fontOf = (px) => `700 ${px}px ${FONT_STACK}`
+
+// 量字寬（em）。畫面上換行也用這一支，跟存圖時斷在同一個字
+let measurer = null
+const widthCache = new Map()
+export function measureEm(text) {
+  if (widthCache.has(text)) return widthCache.get(text)
+  if (!measurer) {
+    measurer = document.createElement('canvas').getContext('2d')
+    measurer.font = fontOf(100)
+  }
+  const w = measurer.measureText(text).width / 100
+  if (widthCache.size > 4000) widthCache.clear()
+  widthCache.set(text, w)
+  return w
+}
 
 function roundRect(ctx, x, y, w, h, r) {
   const rr = Math.min(r, w / 2, h / 2)
@@ -36,12 +51,13 @@ export function drawLabel(ctx, label, W, H) {
     return
   }
   const em = label.size * W
-  const lines = labelLines(label)
-  const lh = (label.vertical ? METRICS.vline : METRICS.line) * em
   ctx.save()
   ctx.font = fontOf(em)
+  const measure = (s) => ctx.measureText(s).width / em
+  const lines = labelLines(label, measure)
+  const lh = (label.vertical ? METRICS.vline : METRICS.line) * em
   const pad = padOf(label)
-  const textW = Math.max(em, ...lines.map((l) => ctx.measureText(l).width))
+  const textW = textWidthEm(label, lines, measure) * em
   const w = textW + pad.x * 2 * em
   const h = lines.length * lh + pad.y * 2 * em
   const x = cx - w / 2

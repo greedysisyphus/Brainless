@@ -3,6 +3,7 @@ import { ToolPage } from '../../components/bl/shared'
 import {
   DEFAULT_PRESETS,
   DEFAULT_SIZE,
+  METRICS,
   STYLES,
   SIZE_MAX,
   SIZE_MIN,
@@ -16,8 +17,9 @@ import {
   nextSpot,
   shortDate,
   stepDate,
+  WRAP_MIN,
 } from '../stockPhoto/labelModel'
-import { renderPhoto } from '../stockPhoto/renderPhoto'
+import { measureEm, renderPhoto } from '../stockPhoto/renderPhoto'
 import '../../styles/bl-tools.css'
 import '../../styles/bl-stock.css'
 
@@ -564,13 +566,6 @@ export default function Stock() {
                   <Icon d={I.right} />
                 </button>
               </div>
-              {date !== isoOf(new Date()) ? (
-                <button type="button" className="link" onClick={() => setDate(isoOf(new Date()))}>
-                  今天
-                </button>
-              ) : (
-                <small>今天</small>
-              )}
             </div>
 
             {groups.map((g) => (
@@ -639,7 +634,8 @@ function Swatches({ value, onPick }) {
 
 function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
   const isText = label.kind === 'text'
-  const rows = Math.min(4, Math.max(1, ((label.text || '').match(/\n/g) || []).length + 1))
+  // 長的字一行放不下時多給幾行，看得到全部
+  const rows = Math.min(4, (label.text || '').split('\n').reduce((n, line) => n + Math.max(1, Math.ceil([...line].length / 16)), 0))
   return (
     <section className="card editor" aria-label="編輯標籤">
       <div className="hd">
@@ -650,7 +646,7 @@ function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
       </div>
       {isText ? (
         <>
-          <textarea rows={rows} value={label.text} onChange={(e) => onPatch({ text: e.target.value }, 'text')} aria-label="標籤文字" />
+          <textarea rows={rows} value={label.text} placeholder="按 Enter 可以換行" onChange={(e) => onPatch({ text: e.target.value }, 'text')} aria-label="標籤文字" />
           <div className="row">
             <span>日期</span>
             {label.date ? (
@@ -689,6 +685,17 @@ function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
               </button>
             </div>
           </div>
+          {!label.vertical ? (
+            <div className="row">
+              <span>寬度</span>
+              <small className="grow">{label.wrap ? '固定寬度，太長會自動換行' : '跟著字走；拉標籤左右兩邊的直條可以固定寬度'}</small>
+              {label.wrap ? (
+                <button type="button" className="link" onClick={() => onPatch({ wrap: null })}>
+                  改回自動
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </>
       ) : null}
       <div className="row">
@@ -696,11 +703,12 @@ function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
         <input
           type="range"
           className="size"
-          min={SIZE_MIN}
-          max={SIZE_MAX}
-          step="0.001"
-          value={label.size}
-          onChange={(e) => onSize(Number(e.target.value))}
+          // 用對數刻度：小字那一段拉起來比較細，不會一動就跳很大
+          min={Math.log(SIZE_MIN)}
+          max={Math.log(SIZE_MAX)}
+          step="0.01"
+          value={Math.log(label.size)}
+          onChange={(e) => onSize(Math.exp(Number(e.target.value)))}
           aria-label="標籤大小"
         />
       </div>
@@ -736,24 +744,49 @@ function Stage({ photo, selId, spot, dragOver, dropProps, onSelect, onSpot, onMo
   }
   const onDown = (e, label, mode) => {
     e.stopPropagation()
+    // 手機上沒選中的標籤只當成「點一下選它」，手指順手滑過去不會被拖走，也還能捲動頁面
+    if (mode === 'move' && e.pointerType !== 'mouse' && label.id !== selId) {
+      onSelect(label.id)
+      return
+    }
     e.preventDefault()
     onSelect(label.id)
     const { x, y, r } = toRatio(e)
     const cx = r.left + label.x * r.width
     const cy = r.top + label.y * r.height
-    drag.current = { id: label.id, mode, dx: label.x - x, dy: label.y - y, size: label.size, dist: Math.hypot(e.clientX - cx, e.clientY - cy) || 1, cx, cy, moved: false }
+    drag.current = {
+      id: label.id,
+      mode,
+      dx: label.x - x,
+      dy: label.y - y,
+      size: label.size,
+      dist: Math.hypot(e.clientX - cx, e.clientY - cy) || 1,
+      cx,
+      cy,
+      em: label.size * r.width,
+      sx: e.clientX,
+      sy: e.clientY,
+      // 移動要超過這個距離才算拖曳：點一下、手抖一下都不會讓標籤跑掉
+      slop: e.pointerType === 'mouse' ? 3 : 8,
+      moved: false,
+    }
     e.currentTarget.setPointerCapture?.(e.pointerId)
   }
   const onMovePtr = (e) => {
     const d = drag.current
     if (!d) return
     if (!d.moved) {
+      if (d.mode === 'move' && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < d.slop) return
       d.moved = true
       onMoveStart()
     }
     if (d.mode === 'resize') {
       const dist = Math.hypot(e.clientX - d.cx, e.clientY - d.cy)
       onMove(d.id, { size: clampSize((d.size * dist) / d.dist) })
+    } else if (d.mode === 'width') {
+      // 左右對稱：拉到哪，框的半寬就到哪；文字在裡面換行
+      const half = Math.abs(e.clientX - d.cx)
+      onMove(d.id, { wrap: Math.max(WRAP_MIN, Math.round(((half * 2) / d.em - METRICS.padX * 2) * 100) / 100) })
     } else {
       const { x, y } = toRatio(e)
       onMove(d.id, { x: clamp01(x + d.dx), y: clamp01(y + d.dy) })
@@ -797,14 +830,20 @@ function Stage({ photo, selId, spot, dragOver, dropProps, onSelect, onSpot, onMo
               key={l.id}
               className={`tag ${l.style}${l.vertical ? ' vert' : ''}`}
               aria-selected={l.id === selId}
-              style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size }}
+              style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size, width: l.wrap && !l.vertical ? `calc(var(--w) * var(--s) * ${l.wrap + METRICS.padX * 2})` : undefined }}
               onPointerDown={(e) => onDown(e, l, 'move')}
               onPointerMove={onMovePtr}
               onPointerUp={onUp}
               onPointerCancel={onUp}
               onClick={stop}
             >
-              <span className={l.vertical ? 'v' : undefined}>{labelLines(l).join('\n')}</span>
+              <span className={l.vertical ? 'v' : undefined}>{labelLines(l, measureEm).join('\n')}</span>
+              {l.id === selId && !l.vertical ? (
+                <>
+                  <b className="edge l" aria-hidden="true" onPointerDown={(e) => onDown(e, l, 'width')} />
+                  <b className="edge r" aria-hidden="true" onPointerDown={(e) => onDown(e, l, 'width')} />
+                </>
+              ) : null}
               {l.id === selId ? <Handle onDown={(e) => onDown(e, l, 'resize')} /> : null}
             </div>
           )

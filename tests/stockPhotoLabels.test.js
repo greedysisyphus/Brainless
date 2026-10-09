@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { boxOf, labelLines, labelText, makeLabel, nextSpot, shortDate, stepDate } from '../src/pages/stockPhoto/labelModel.js'
+import { boxOf, labelLines, labelText, makeLabel, nextSpot, shortDate, stepDate, wrapLine } from '../src/pages/stockPhoto/labelModel.js'
 
 test('shortDate 用照片上的寫法，不補零', () => {
   assert.equal(shortDate('2026-09-04'), '9/4')
@@ -45,4 +45,20 @@ test('boxOf 高度跟著照片比例換算', () => {
   const tall = boxOf(l, 3 / 4)
   assert.equal(wide.w, tall.w)
   assert.ok(wide.h > tall.h)
+})
+
+test('wrapLine 中文逐字斷，英數字整組不拆', () => {
+  assert.deepEqual(wrapLine('下週還推車', 2), ['下週', '還推', '車'])
+  // 放不下時 ESP 整組換到下一行，不會拆成 ES／P
+  assert.deepEqual(wrapLine('9/14 ESP', 2.5), ['9/14', 'ESP'])
+  assert.deepEqual(wrapLine('ABCDEFGH', 1.2), ['AB', 'CD', 'EF', 'GH'])
+})
+
+test('labelLines 設了寬度才換行，直排不受影響', () => {
+  const l = makeLabel({ text: '牛紙 手乳 客砂' })
+  assert.deepEqual(labelLines(l), ['牛紙 手乳 客砂'])
+  assert.deepEqual(labelLines({ ...l, wrap: 2 }), ['牛紙', '手乳', '客砂'])
+  const box = boxOf({ ...l, wrap: 2 }, 1)
+  assert.equal(box.w, (2 + 0.62 * 2) * l.size)
+  assert.deepEqual(labelLines({ ...l, wrap: 2, vertical: true }).length, 6)
 })

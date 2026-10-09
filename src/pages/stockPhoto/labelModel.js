@@ -9,7 +9,7 @@ export const STYLES = [
 ]
 export const styleOf = (id) => STYLES.find((s) => s.id === id) || STYLES[0]
 
-export const SIZE_MIN = 0.02
+export const SIZE_MIN = 0.008
 export const SIZE_MAX = 0.2
 export const DEFAULT_SIZE = 0.042
 export const CROSS_COLOR = '#ec3b5a'
@@ -70,11 +70,47 @@ export function labelText(label) {
   return [date, `${name}${qty}`].filter(Boolean).join(' ')
 }
 
-/** 要畫的每一行。直排就是一個字一行（照片裡「下週還推車」那種） */
-export function labelLines(label) {
+/**
+ * 要畫的每一行。直排就是一個字一行（照片裡「下週還推車」那種）。
+ * 橫排有設寬度（wrap，單位 em）時自動換行：中文一個字可以斷，英數字（ESP、9/14、*2）盡量整組不拆。
+ * measure(text) → 寬度（em）；畫面和存圖都用 canvas 量，兩邊斷在同一個地方。
+ */
+export function labelLines(label, measure = roughWidth) {
   const text = labelText(label)
-  if (!label.vertical) return text.split('\n')
-  return [...text.replace(/\s+/g, '')]
+  if (label.vertical) return [...text.replace(/\s+/g, '')]
+  const lines = text.split('\n')
+  if (!label.wrap) return lines
+  return lines.flatMap((line) => wrapLine(line, label.wrap, measure))
+}
+
+export function wrapLine(line, maxEm, measure = roughWidth) {
+  const tokens = line.match(/[A-Za-z0-9/*.#:+\-]+|\s+|./gu) || ['']
+  const out = []
+  let cur = ''
+  const push = () => {
+    out.push(cur.trim())
+    cur = ''
+  }
+  for (const token of tokens) {
+    if (measure(cur + token) <= maxEm + 0.001) {
+      cur += token
+      continue
+    }
+    if (/^\s+$/.test(token)) {
+      push()
+      continue
+    }
+    if (cur.trim()) push()
+    // 一組英數字比整行還寬：只好一個字一個字拆
+    if (measure(token) > maxEm) {
+      for (const ch of token) {
+        if (cur && measure(cur + ch) > maxEm + 0.001) push()
+        cur += ch
+      }
+    } else cur = token
+  }
+  if (cur.trim() || !out.length) push()
+  return out
 }
 
 export const clamp01 = (v) => Math.min(1, Math.max(0, v))
@@ -111,13 +147,20 @@ export function boxOf(label, aspect, measure = roughWidth) {
     const span = label.size * CROSS_SPAN
     return { w: span, h: span * aspect }
   }
-  const lines = labelLines(label)
+  const lines = labelLines(label, measure)
   const lh = label.vertical ? METRICS.vline : METRICS.line
   const pad = padOf(label)
-  const wEm = Math.max(1, ...lines.map((l) => measure(l))) + pad.x * 2
+  const wEm = textWidthEm(label, lines, measure) + pad.x * 2
   const hEm = lines.length * lh + pad.y * 2
   return { w: wEm * label.size, h: hEm * label.size * aspect }
 }
+
+/** 文字區的寬度（em）。拉過寬度的標籤固定那個寬（跟 Canva 的文字框一樣），沒拉過就跟著字走 */
+export function textWidthEm(label, lines, measure = roughWidth) {
+  if (label.wrap && !label.vertical) return label.wrap
+  return Math.max(1, ...lines.map((l) => measure(l)))
+}
+export const WRAP_MIN = 1
 
 export function roughWidth(line) {
   let w = 0
