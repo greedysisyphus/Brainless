@@ -714,18 +714,131 @@ function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
 }
 
 /** 照片與標籤。標籤是疊在照片上的 HTML，大小跟著照片顯示寬度走（--w），比例和存出來的圖一樣 */
+const ZOOM_MAX = 5
+const NO_ZOOM = { s: 1, x: 0, y: 0 }
+
 function Stage({ photo, selId, fresh, spot, dragOver, dropProps, onSelect, onSpot, onMoveStart, onMove }) {
+  // frame 是照片的框（大小固定、超出去的裁掉）；ref 是框裡被放大、平移的那一層。
+  // 標籤的位置都用 ref 的 getBoundingClientRect 換算，它已經含放大倍率，所以放大後拖、拉都照樣準
+  const frameRef = useRef(null)
   const ref = useRef(null)
   const [w, setW] = useState(0)
+  const [h, setH] = useState(0)
   useEffect(() => {
-    const el = ref.current
+    const el = frameRef.current
     if (!el) return undefined
-    const ro = new ResizeObserver(() => setW(el.clientWidth))
+    const measure = () => {
+      setW(el.clientWidth)
+      setH(el.clientHeight)
+    }
+    const ro = new ResizeObserver(measure)
     ro.observe(el)
-    setW(el.clientWidth)
+    measure()
     return () => ro.disconnect()
   }, [])
   const drag = useRef(null)
+
+  // ── 放大：兩指捏、觸控板捏（ctrl＋滾輪）；放大後一指拖空白處可以移動照片 ──
+  const [zoom, setZoom] = useState(NO_ZOOM)
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
+  const fit = useCallback((z) => {
+    const el = frameRef.current
+    if (!el) return NO_ZOOM
+    const W = el.clientWidth
+    const H = el.clientHeight
+    const sc = Math.min(ZOOM_MAX, Math.max(1, z.s))
+    if (sc <= 1.01) return NO_ZOOM
+    return { s: sc, x: Math.min(0, Math.max(W - W * sc, z.x)), y: Math.min(0, Math.max(H - H * sc, z.y)) }
+  }, [])
+  // 以畫面上的某一點為中心縮放：那一點底下的東西不動
+  const zoomAt = useCallback(
+    (px, py, sc, base = zoomRef.current) => {
+      const cx = (px - base.x) / base.s
+      const cy = (py - base.y) / base.s
+      return fit({ s: sc, x: px - cx * sc, y: py - cy * sc })
+    },
+    [fit]
+  )
+  useEffect(() => setZoom(NO_ZOOM), [photo.id])
+  useEffect(() => setZoom((z) => fit(z)), [w, h, fit])
+
+  const ptrs = useRef(new Map())
+  const g = useRef({ pinch: null, pan: null, suppress: false })
+  const local = (x, y) => {
+    const r = frameRef.current.getBoundingClientRect()
+    return { x: x - r.left, y: y - r.top }
+  }
+  const onDownCapture = (e) => {
+    if (e.pointerType === 'mouse') return
+    if (!ptrs.current.size) g.current.suppress = false
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (ptrs.current.size !== 2) return
+    // 第二根手指放下：不管第一根在拖什麼，都改成放大
+    e.stopPropagation()
+    drag.current = null
+    g.current.pan = null
+    g.current.suppress = true
+    const [a, b] = [...ptrs.current.values()]
+    g.current.pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, mid: local((a.x + b.x) / 2, (a.y + b.y) / 2), z: zoomRef.current }
+  }
+  const onMoveCapture = (e) => {
+    if (!ptrs.current.has(e.pointerId)) return
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const pinch = g.current.pinch
+    if (pinch && ptrs.current.size >= 2) {
+      e.stopPropagation()
+      const [a, b] = [...ptrs.current.values()]
+      const mid = local((a.x + b.x) / 2, (a.y + b.y) / 2)
+      const sc = pinch.z.s * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.dist)
+      // 縮放跟著兩指中點，兩指一起移動就是平移
+      const z = zoomAt(pinch.mid.x, pinch.mid.y, sc, pinch.z)
+      setZoom(fit({ s: z.s, x: z.x + mid.x - pinch.mid.x, y: z.y + mid.y - pinch.mid.y }))
+      return
+    }
+    const pan = g.current.pan
+    if (pan) {
+      const dx = e.clientX - pan.sx
+      const dy = e.clientY - pan.sy
+      if (!pan.moved && Math.hypot(dx, dy) < 6) return
+      pan.moved = true
+      g.current.suppress = true
+      setZoom(fit({ s: pan.z.s, x: pan.z.x + dx, y: pan.z.y + dy }))
+    }
+  }
+  const onUpCapture = (e) => {
+    ptrs.current.delete(e.pointerId)
+    if (ptrs.current.size < 2) g.current.pinch = null
+    if (!ptrs.current.size) g.current.pan = null
+  }
+  // 點在照片空白處（標籤會擋掉）：放大時準備拖著移動照片
+  const onFrameDown = (e) => {
+    if (zoomRef.current.s <= 1 || g.current.pinch || (e.pointerType === 'mouse' && e.button !== 0)) return
+    g.current.pan = { sx: e.clientX, sy: e.clientY, z: zoomRef.current, moved: false }
+    if (e.pointerType === 'mouse') {
+      ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      g.current.suppress = false
+    }
+    frameRef.current.setPointerCapture?.(e.pointerId)
+  }
+  useEffect(() => {
+    const el = frameRef.current
+    if (!el) return undefined
+    const onWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        const p = local(e.clientX, e.clientY)
+        setZoom(zoomAt(p.x, p.y, zoomRef.current.s * Math.exp(-e.deltaY * 0.01)))
+      } else if (zoomRef.current.s > 1) {
+        e.preventDefault()
+        const z = zoomRef.current
+        setZoom(fit({ s: z.s, x: z.x - e.deltaX, y: z.y - e.deltaY }))
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [fit, zoomAt])
+  const zoomed = zoom.s > 1
 
   const toRatio = (e) => {
     const r = ref.current.getBoundingClientRect()
@@ -788,56 +901,80 @@ function Stage({ photo, selId, fresh, spot, dragOver, dropProps, onSelect, onSpo
   return (
     <div className="stage-wrap">
       <div
-        ref={ref}
-        className={`stage${dragOver ? ' over' : ''}`}
-        style={{ aspectRatio: `${photo.w} / ${photo.h}`, '--w': `${w}px`, width: `min(100%, calc(var(--stage-h) * ${photo.w / photo.h}))` }}
-        // 用 click 不用 pointerdown：手機上手指放在照片上捲動頁面時不會被當成選位置
+        ref={frameRef}
+        className={`stage${dragOver ? ' over' : ''}${zoomed ? ' zoomed' : ''}`}
+        style={{ aspectRatio: `${photo.w} / ${photo.h}`, '--w': `${w}px`, '--z': zoom.s, width: `min(100%, calc(var(--stage-h) * ${photo.w / photo.h}))` }}
+        onPointerDownCapture={onDownCapture}
+        onPointerMoveCapture={onMoveCapture}
+        onPointerUpCapture={onUpCapture}
+        onPointerCancelCapture={onUpCapture}
+        onPointerDown={onFrameDown}
+        // 用 click 不用 pointerdown：手機上手指放在照片上捲動頁面時不會被當成選位置；剛捏過、拖過照片的不算
         onClick={(e) => {
+          if (g.current.suppress) {
+            g.current.suppress = false
+            return
+          }
           const { x, y } = toRatio(e)
           onSpot({ x, y })
         }}
         {...dropProps}
       >
-        <img src={photo.url} alt="倉庫照片" draggable="false" />
-        {photo.labels.map((l) =>
-          l.kind === 'cross' ? (
-            <div
-              key={l.id}
-              className={`cross${l.id === fresh ? ' fresh' : ''}`}
-              aria-selected={l.id === selId}
-              style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size }}
-              onPointerDown={(e) => onDown(e, l, 'move')}
-              onPointerMove={onMovePtr}
-              onPointerUp={onUp}
-              onPointerCancel={onUp}
-              onClick={stop}
-            >
-              {l.id === selId ? <Handle onDown={(e) => onDown(e, l, 'resize')} /> : null}
-            </div>
-          ) : (
-            <div
-              key={l.id}
-              className={`tag ${l.style}${l.vertical ? ' vert' : ''}${l.id === fresh ? ' fresh' : ''}`}
-              aria-selected={l.id === selId}
-              style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size, width: l.wrap && !l.vertical ? `calc(var(--w) * var(--s) * ${l.wrap + METRICS.padX * 2})` : undefined }}
-              onPointerDown={(e) => onDown(e, l, 'move')}
-              onPointerMove={onMovePtr}
-              onPointerUp={onUp}
-              onPointerCancel={onUp}
-              onClick={stop}
-            >
-              <span className={l.vertical ? 'v' : undefined}>{labelLines(l, measureEm).join('\n')}</span>
-              {l.id === selId && !l.vertical ? (
-                <>
-                  <b className="edge l" aria-hidden="true" onPointerDown={(e) => onDown(e, l, 'width')} />
-                  <b className="edge r" aria-hidden="true" onPointerDown={(e) => onDown(e, l, 'width')} />
-                </>
-              ) : null}
-              {l.id === selId ? <Handle onDown={(e) => onDown(e, l, 'resize')} /> : null}
-            </div>
-          )
-        )}
-        {spot ? <i className="spot" style={{ left: `${spot.x * 100}%`, top: `${spot.y * 100}%` }} aria-hidden="true" /> : null}
+        <div ref={ref} className="layer" style={{ transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.s})` }}>
+          <img src={photo.url} alt="倉庫照片" draggable="false" />
+          {photo.labels.map((l) =>
+            l.kind === 'cross' ? (
+              <div
+                key={l.id}
+                className={`cross${l.id === fresh ? ' fresh' : ''}`}
+                aria-selected={l.id === selId}
+                style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size }}
+                onPointerDown={(e) => onDown(e, l, 'move')}
+                onPointerMove={onMovePtr}
+                onPointerUp={onUp}
+                onPointerCancel={onUp}
+                onClick={stop}
+              >
+                {l.id === selId ? <Handle onDown={(e) => onDown(e, l, 'resize')} /> : null}
+              </div>
+            ) : (
+              <div
+                key={l.id}
+                className={`tag ${l.style}${l.vertical ? ' vert' : ''}${l.id === fresh ? ' fresh' : ''}`}
+                aria-selected={l.id === selId}
+                style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size, width: l.wrap && !l.vertical ? `calc(var(--w) * var(--s) * ${l.wrap + METRICS.padX * 2})` : undefined }}
+                onPointerDown={(e) => onDown(e, l, 'move')}
+                onPointerMove={onMovePtr}
+                onPointerUp={onUp}
+                onPointerCancel={onUp}
+                onClick={stop}
+              >
+                <span className={l.vertical ? 'v' : undefined}>{labelLines(l, measureEm).join('\n')}</span>
+                {l.id === selId && !l.vertical ? (
+                  <>
+                    <b className="edge l" aria-hidden="true" onPointerDown={(e) => onDown(e, l, 'width')} />
+                    <b className="edge r" aria-hidden="true" onPointerDown={(e) => onDown(e, l, 'width')} />
+                  </>
+                ) : null}
+                {l.id === selId ? <Handle onDown={(e) => onDown(e, l, 'resize')} /> : null}
+              </div>
+            )
+          )}
+          {spot ? <i className="spot" style={{ left: `${spot.x * 100}%`, top: `${spot.y * 100}%` }} aria-hidden="true" /> : null}
+        </div>
+        {zoomed ? (
+          <button
+            type="button"
+            className="unzoom"
+            onPointerDown={stop}
+            onClick={(e) => {
+              e.stopPropagation()
+              setZoom(NO_ZOOM)
+            }}
+          >
+            {zoom.s.toFixed(1)}× · 還原
+          </button>
+        ) : null}
       </div>
     </div>
   )
