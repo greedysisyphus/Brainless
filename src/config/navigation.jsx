@@ -12,6 +12,7 @@ import {
   QrCodeIcon,
   ShoppingCartIcon,
   ChatBubbleLeftRightIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline'
 
 /** SVG 雞尾酒圖示（與 Navigation 原版一致） */
@@ -67,6 +68,14 @@ export const BASE_NAV_ITEMS = [
     section: '庫存與報表',
     accentColor: '#fb7185',
     Icon: ShoppingCartIcon,
+  },
+  {
+    path: '/stock-photo',
+    label: '倉庫標籤',
+    badge: 'Beta',
+    section: '庫存與報表',
+    accentColor: '#f59e0b',
+    Icon: TagIcon,
   },
   {
     path: '/daily-reports',
