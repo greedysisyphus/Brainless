@@ -1,4 +1,4 @@
-import { CROSS_COLOR, CROSS_SPAN, CROSS_STROKE, FONT_STACK, METRICS, labelLines, padOf, styleOf, textWidthEm } from './labelModel'
+import { CROSS_COLOR, CROSS_SPAN, CROSS_STROKE, FONT_STACK, METRICS, labelLines, padOf, styleOf, tailPoints, textWidthEm } from './labelModel'
 
 // 把照片和標籤畫成一張圖。全部在這台裝置上做，照片不會上傳。
 // 長邊壓到 MAX_EDGE：iPhone 原圖 4032px 傳到 LINE 也會被壓，太大只是存得慢、傳得慢。
@@ -71,6 +71,12 @@ export function drawLabel(ctx, label, W, H) {
   ctx.fillStyle = style.fill
   // 直排畫成兩頭全圓的膠囊（roundRect 會把半徑壓到寬度的一半）
   roundRect(ctx, x, y, w, h, label.vertical ? w : METRICS.radius * em)
+  if (label.tail) {
+    const [first, ...rest] = tailPoints(label.tail, cx, cy, w, h, em)
+    ctx.moveTo(...first)
+    rest.forEach((p) => ctx.lineTo(...p))
+    ctx.closePath()
+  }
   ctx.fill()
   ctx.shadowColor = 'transparent'
   ctx.fillStyle = style.text

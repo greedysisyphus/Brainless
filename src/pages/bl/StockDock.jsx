@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { stepDate } from '../stockPhoto/labelModel'
+import { TAIL_NAMES, nextTail, stepDate } from '../stockPhoto/labelModel'
 import { Chip, DateStepper, I, Icon, Swatches } from '../stockPhoto/ui'
 
 // 倉庫標籤的手機版工具列：黏在畫面底部，照片佔滿上面，不用上下滑找東西（像 Canva、IG 的編輯畫面）。
@@ -46,6 +46,9 @@ function AddTools({ m, sheet, toggle, setSheet }) {
         <div className="extra look">
           <Swatches value={m.prefs.style} onPick={m.setStyle} />
           <Direction value={m.prefs.vertical} onPick={m.setVertical} />
+          <button type="button" className="ghost" onClick={m.styleAll} disabled={!m.hasText}>
+            全部換成這個樣式
+          </button>
         </div>
       ) : null}
       {sheet === 'type' ? (
@@ -201,6 +204,14 @@ function LabelTools({ m }) {
                 直
               </i>
               直排
+            </button>
+          </div>
+        ) : null}
+        {isText ? (
+          <div className="tool">
+            <span>箭頭</span>
+            <button type="button" className="mini wide" aria-pressed={Boolean(sel.tail)} aria-label={`箭頭：${sel.tail ? TAIL_NAMES[sel.tail] : '沒有'}，按一下換方向`} onClick={() => m.patchSel({ tail: nextTail(sel.tail) })}>
+              {sel.tail ? TAIL_NAMES[sel.tail] : '箭頭'}
             </button>
           </div>
         ) : null}

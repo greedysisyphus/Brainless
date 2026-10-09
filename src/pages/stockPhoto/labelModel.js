@@ -6,6 +6,9 @@ export const STYLES = [
   { id: 'black', name: '黑底', fill: '#141210', text: '#ffffff', shadow: true },
   { id: 'veil', name: '半透明', fill: 'rgba(24, 18, 14, 0.74)', text: '#ffffff' },
   { id: 'plum', name: '紫', fill: '#4f2d55', text: '#ffffff', shadow: true },
+  // 有意思的顏色：黃＝注意、紅＝缺貨／不要動
+  { id: 'yellow', name: '黃', fill: '#ffd84a', text: '#1c1914', shadow: true },
+  { id: 'red', name: '紅', fill: '#d6303f', text: '#ffffff', shadow: true },
 ]
 export const styleOf = (id) => STYLES.find((s) => s.id === id) || STYLES[0]
 
@@ -23,6 +26,39 @@ export const padOf = (label) => (label.vertical ? { x: METRICS.vpadX, y: METRICS
 /** 劃掉（✕）的邊長是 size 的幾倍、線寬是邊長的幾分之一 */
 export const CROSS_SPAN = 4
 export const CROSS_STROKE = 0.085
+
+/**
+ * 箭頭：標籤邊上凸出去的小三角，指著是哪一格。label.tail＝朝哪邊（沒有就不畫）。
+ * half＝底邊的一半、len＝凸出去多長、lap＝往框裡多伸多少（em）；畫面的 CSS 用同一組數字。
+ * lap 是為了不露縫：直排膠囊的頭是圓的，三角貼著圓弧會缺兩個角，伸進去一點才填得滿。
+ */
+export const TAIL = { half: 0.42, len: 0.55, lap: 0.2 }
+const TAIL_DIRS = { down: [0, 1], left: [-1, 0], up: [0, -1], right: [1, 0] }
+export const TAIL_NAMES = { down: '↓ 朝下', left: '← 朝左', up: '↑ 朝上', right: '→ 朝右' }
+/** 按一下換一個方向：沒有 → 下 → 左 → 上 → 右 → 沒有 */
+export function nextTail(tail) {
+  const order = Object.keys(TAIL_DIRS)
+  return order[order.indexOf(tail) + 1] || null
+}
+/**
+ * 箭頭的五個點：框裡的兩個底角、框邊上的兩個角、尖端。繞的方向跟標籤框一樣（順時針），兩塊疊在一起填色才不會挖洞。
+ * 框的中心 cx, cy、寬高 w, h、字高 em，單位隨呼叫的人。
+ */
+export function tailPoints(tail, cx, cy, w, h, em) {
+  const [dx, dy] = TAIL_DIRS[tail]
+  const ex = cx + (dx * w) / 2
+  const ey = cy + (dy * h) / 2
+  const half = TAIL.half * em
+  const len = TAIL.len * em
+  const lap = TAIL.lap * em
+  const side = (k) => [
+    [ex + k * dy * half - dx * lap, ey - k * dx * half - dy * lap],
+    [ex + k * dy * half, ey - k * dx * half],
+  ]
+  const [aIn, a] = side(1)
+  const [cIn, c] = side(-1)
+  return [aIn, a, [ex + dx * len, ey + dy * len], c, cIn]
+}
 export const FONT_STACK = '"PingFang TC", "Noto Sans TC", "Heiti TC", "Microsoft JhengHei", sans-serif'
 
 /**
@@ -32,6 +68,7 @@ export const FONT_STACK = '"PingFang TC", "Noto Sans TC", "Heiti TC", "Microsoft
 export const DEFAULT_PRESETS = [
   { text: 'ESP', dated: true, group: '日期' },
   { text: 'SW', dated: true, group: '日期' },
+  { text: '', dated: true, group: '日期' },
   { text: '大熱杯', group: '杯蓋' },
   { text: '大杯', group: '杯蓋' },
   { text: '小杯', group: '杯蓋' },
@@ -43,6 +80,11 @@ export const DEFAULT_PRESETS = [
   { text: '空', group: '標記', style: 'veil', size: 0.13 },
   { kind: 'cross', text: '劃掉', group: '標記' },
 ]
+
+/** 記使用次數用的名字：同樣的字，帶日期和不帶日期算兩顆 */
+export const presetKey = (p) => (p.kind === 'cross' ? 'cross' : `${p.dated ? 'd:' : ''}${p.text}`)
+/** 常用的排前面；次數一樣的維持原本順序 */
+export const sortByUse = (items, uses) => [...items].sort((a, b) => (uses[presetKey(b)] || 0) - (uses[presetKey(a)] || 0))
 
 const pad2 = (n) => String(n).padStart(2, '0')
 export const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`

@@ -30,12 +30,13 @@ export default function Changelog() {
   useEffect(() => markChangelogSeen(), [markChangelogSeen])
 
   // 捲到哪、軸上的點和那一版就亮到哪。不支援或關掉動態時一開始就全亮
+  // 記在 data-in 不記在 class：展開收合時 React 會整串重寫 className，記在 class 會被洗掉、整版又變透明
   const tlRef = useRef(null)
   useEffect(() => {
     const root = tlRef.current
     const items = [...(root?.querySelectorAll('.ver, .month, .era') || [])]
     if (typeof IntersectionObserver === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      items.forEach((el) => el.classList.add('in'))
+      items.forEach((el) => el.setAttribute('data-in', ''))
       return undefined
     }
     root.classList.add('reveal')
@@ -43,7 +44,7 @@ export default function Changelog() {
       (entries) =>
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return
-          entry.target.classList.add('in')
+          entry.target.setAttribute('data-in', '')
           io.unobserve(entry.target)
         }),
       { rootMargin: '0px 0px -8% 0px' }

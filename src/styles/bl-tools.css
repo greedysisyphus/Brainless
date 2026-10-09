@@ -257,12 +257,12 @@
 
 /* 更新紀錄：捲到才亮。.reveal 是 JS 確定能動才加的，沒加就全部直接顯示 */
 .bl-log .tl.reveal :is(.ver, .month, .era) { opacity: 0; translate: 0 16px; transition: opacity 0.7s var(--out), translate 0.7s var(--out); }
-.bl-log .tl.reveal :is(.ver, .month, .era).in { opacity: 1; translate: 0 0; }
+.bl-log .tl.reveal :is(.ver, .month, .era)[data-in] { opacity: 1; translate: 0 0; }
 .bl-log .tl.reveal .ver::before { scale: 0; transition: scale 0.6s var(--out) 0.15s, background-color 0.3s; }
-.bl-log .tl.reveal .ver.in::before { scale: 1; }
-.bl-log .tl.reveal .ver.in.open::before { scale: 1.15; }
+.bl-log .tl.reveal .ver[data-in]::before { scale: 1; }
+.bl-log .tl.reveal .ver[data-in].open::before { scale: 1.15; }
 .bl-log .tl.reveal .era::before { scale: 0; transition: scale 0.7s var(--out) 0.2s; }
-.bl-log .tl.reveal .era.in::before { scale: 1; }
+.bl-log .tl.reveal .era[data-in]::before { scale: 1; }
 
 /* ── 手沖機、報表生成器的補充動態 ── */
 /* 對照條進場時從左邊長出來 */
