@@ -66,11 +66,24 @@
 .bl-stock .tag:active { cursor: grabbing; }
 .bl-stock .tag.white { background: #fff; color: #1c1914; }
 .bl-stock .tag.black { background: #141210; color: #fff; }
-.bl-stock .tag:is(.white, .black, .plum) { box-shadow: 0 0.08em 0.4em rgba(0, 0, 0, 0.26); }
+.bl-stock .tag:is(.white, .black, .plum, .yellow, .red) { box-shadow: 0 0.08em 0.4em rgba(0, 0, 0, 0.26); }
 .bl-stock .tag.veil { background: rgba(24, 18, 14, 0.74); color: #fff; }
 .bl-stock .tag.plum { background: #4f2d55; color: #fff; }
+.bl-stock .tag.yellow { background: #ffd84a; color: #1c1914; }
+.bl-stock .tag.red { background: #d6303f; color: #fff; }
+/* 箭頭：邊上凸出去的小三角，尺寸跟 labelModel 的 TAIL 一樣（底 0.84em、長 0.55em、往框裡多伸 0.2em）。
+   框的底色和三角畫在同一層 .bg 上：兩塊疊在一起不會露縫，半透明的也不會疊出一條深色（整層一起變透明）。 */
+.bl-stock .tag > .bg { --lap: 0.2em; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: inherit; }
+.bl-stock .tag.veil[data-tail] { background: none; }
+.bl-stock .tag.veil > .bg { background: rgb(24, 18, 14); opacity: 0.74; }
+.bl-stock .tag > .bg::after { content: ''; position: absolute; left: 50%; top: 50%; width: 0.84em; height: calc(0.55em + var(--lap)); background: inherit; }
+.bl-stock .tag[data-tail='down'] > .bg::after { top: calc(100% - var(--lap)); translate: -50% 0; clip-path: polygon(0 0, 100% 0, 100% var(--lap), 50% 100%, 0 var(--lap)); }
+.bl-stock .tag[data-tail='up'] > .bg::after { top: auto; bottom: calc(100% - var(--lap)); translate: -50% 0; clip-path: polygon(0 100%, 100% 100%, 100% calc(100% - var(--lap)), 50% 0, 0 calc(100% - var(--lap))); }
+.bl-stock .tag:is([data-tail='left'], [data-tail='right']) > .bg::after { width: calc(0.55em + var(--lap)); height: 0.84em; translate: 0 -50%; }
+.bl-stock .tag[data-tail='left'] > .bg::after { left: auto; right: calc(100% - var(--lap)); clip-path: polygon(100% 0, 100% 100%, calc(100% - var(--lap)) 100%, 0 50%, calc(100% - var(--lap)) 0); }
+.bl-stock .tag[data-tail='right'] > .bg::after { left: calc(100% - var(--lap)); clip-path: polygon(0 0, 0 100%, var(--lap) 100%, 100% 50%, var(--lap) 0); }
 .bl-stock :is(.tag, .cross)[aria-selected='true'] { z-index: 2; outline: calc(2px / var(--z, 1)) dashed #fff; outline-offset: calc(4px / var(--z, 1)); box-shadow: 0 0 0 calc(7px / var(--z, 1)) rgba(79, 45, 85, 0.85); }
-.bl-stock .tag:is(.white, .black, .plum)[aria-selected='true'] { box-shadow: 0 0.08em 0.4em rgba(0, 0, 0, 0.26), 0 0 0 calc(7px / var(--z, 1)) rgba(79, 45, 85, 0.85); }
+.bl-stock .tag:is(.white, .black, .plum, .yellow, .red)[aria-selected='true'] { box-shadow: 0 0.08em 0.4em rgba(0, 0, 0, 0.26), 0 0 0 calc(7px / var(--z, 1)) rgba(79, 45, 85, 0.85); }
 
 .bl-stock .cross { position: absolute; width: calc(var(--w) * var(--s) * 4); aspect-ratio: 1; translate: -50% -50%; cursor: grab; touch-action: manipulation; border-radius: 4px; }
 .bl-stock .cross::before, .bl-stock .cross::after { content: ''; position: absolute; left: 50%; top: 50%; width: calc(141.42% + 8.5%); height: 8.5%; border-radius: 999px; background: var(--cross); translate: -50% -50%; rotate: 45deg; }
@@ -146,6 +159,8 @@
 .bl-stock .sw.black span { background: #141210; color: #fff; }
 .bl-stock .sw.veil span { background: linear-gradient(rgba(24, 18, 14, 0.74), rgba(24, 18, 14, 0.74)), repeating-conic-gradient(#d8cdbb 0 25%, #f6f1e7 0 50%) 0 0 / 10px 10px; color: #fff; }
 .bl-stock .sw.plum span { background: #4f2d55; color: #fff; }
+.bl-stock .sw.yellow span { background: #ffd84a; color: #1c1914; }
+.bl-stock .sw.red span { background: #d6303f; color: #fff; }
 .bl-stock .sw:hover { border-color: var(--ink); }
 .bl-stock .sw[aria-pressed='true'] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .bl-stock .sw[aria-pressed='true'] small { color: var(--ink); font-weight: 500; }
@@ -165,8 +180,10 @@
 .bl-stock .chip.s-black { background: #141210; color: #fff; box-shadow: 0 2px 6px -2px rgba(42, 33, 28, 0.5); }
 .bl-stock .chip.s-veil { background: rgba(24, 18, 14, 0.74); color: #fff; box-shadow: 0 2px 6px -2px rgba(42, 33, 28, 0.4); }
 .bl-stock .chip.s-plum { background: #4f2d55; color: #fff; box-shadow: 0 2px 6px -2px rgba(79, 45, 85, 0.6); }
-.bl-stock .chip.s-white small { color: var(--plum); }
-.bl-stock .chip:is(.s-black, .s-veil, .s-plum) small { color: var(--wash); }
+.bl-stock .chip.s-yellow { background: #ffd84a; color: #1c1914; box-shadow: 0 2px 6px -2px rgba(42, 33, 28, 0.4); }
+.bl-stock .chip.s-red { background: #d6303f; color: #fff; box-shadow: 0 2px 6px -2px rgba(140, 20, 30, 0.6); }
+.bl-stock .chip:is(.s-white, .s-yellow) small { color: var(--plum); }
+.bl-stock .chip:is(.s-black, .s-veil, .s-plum, .s-red) small { color: var(--wash); }
 .bl-stock .chip.strike { align-items: center; background: #fff; color: #c22846; box-shadow: 0 0 0 1.5px rgba(236, 59, 90, 0.55); }
 .bl-stock .chip i { margin-left: 2px; font-style: normal; font-weight: 400; color: #8a2b1c; }
 .bl-stock .chip:has(i) { outline: 1.5px dashed rgba(138, 43, 28, 0.6); outline-offset: 3px; }
@@ -215,6 +232,9 @@
 
 /* ── 手機版：照片佔滿上面，工具全部在底部的深色工具列（StockDock.jsx），不用上下滑 ── */
 .bl-stock.docked { --stage-h: calc(100dvh - var(--dock-h, 180px) - 166px); }
+/* 只有一張：縮圖列收掉，高度讓給照片，底下留一行「換一張照片」 */
+.bl-stock.docked.solo { --stage-h: calc(100dvh - var(--dock-h, 180px) - 132px); }
+.bl-stock .swap { justify-self: center; min-height: 32px; padding: 4px 12px; border: 0; background-color: transparent; color: var(--ink); font-size: 0.875rem; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--line); }
 .bl-stock.docked .top { display: none; }
 .bl-stock.docked .page { padding-bottom: calc(var(--dock-h, 180px) + 12px); }
 .bl-stock.docked .work { padding-top: 8px; }
@@ -260,6 +280,8 @@
 /* 多出來的一排：外觀、打字、存圖、整理快捷 */
 .sdock .extra { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 0 16px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); scrollbar-width: none; animation: bl-fade 0.3s var(--out); }
 .sdock .extra > * { flex: none; }
+/* 外觀：顏色一列、方向和「全部換成」一列，不用往右滑才找得到 */
+.sdock .extra.look { flex-wrap: wrap; overflow: visible; }
 .sdock .extra.type input:not([type='checkbox']) { flex: 1 1 8em; min-width: 0; height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 16px; }
 .sdock .extra.save .pri { flex: 1; }
 .sdock .extra.manage span { flex: 1; font-size: 0.8125rem; color: #cfc4b6; }

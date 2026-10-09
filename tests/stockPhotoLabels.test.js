@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { boxOf, labelLines, labelText, makeLabel, nextSpot, shortDate, stepDate, wrapLine } from '../src/pages/stockPhoto/labelModel.js'
+import { boxOf, labelLines, labelText, makeLabel, nextSpot, nextTail, shortDate, sortByUse, stepDate, tailPoints, wrapLine } from '../src/pages/stockPhoto/labelModel.js'
 
 test('shortDate 用照片上的寫法，不補零', () => {
   assert.equal(shortDate('2026-09-04'), '9/4')
@@ -61,4 +61,26 @@ test('labelLines 設了寬度才換行，直排不受影響', () => {
   const box = boxOf({ ...l, wrap: 2 }, 1)
   assert.equal(box.w, (2 + 0.62 * 2) * l.size)
   assert.deepEqual(labelLines({ ...l, wrap: 2, vertical: true }).length, 6)
+})
+
+test('sortByUse 常用的排前面，沒用過的維持原本順序，帶日期的分開算', () => {
+  const items = [{ text: '大杯' }, { text: '小杯' }, { text: 'ESP', dated: true }, { text: 'ESP' }, { kind: 'cross', text: '劃掉' }]
+  const sorted = sortByUse(items, { 'd:ESP': 5, cross: 2, 小杯: 2 })
+  assert.deepEqual(sorted.map((p) => (p.dated ? 'd:' : '') + p.text), ['d:ESP', '小杯', '劃掉', '大杯', 'ESP'])
+  assert.equal(items[0].text, '大杯')
+})
+
+test('箭頭：按一下換一個方向，尖端凸出框外，繞向跟框一樣是順時針', () => {
+  const seen = []
+  for (let t = nextTail(undefined); t; t = nextTail(t)) seen.push(t)
+  assert.deepEqual(seen, ['down', 'left', 'up', 'right'])
+  // 框中心 (100, 50)、寬 40 高 20、字高 10
+  const round = (pts) => pts.map((p) => p.map((v) => Math.round(v * 10) / 10))
+  assert.deepEqual(round(tailPoints('down', 100, 50, 40, 20, 10)), [[104.2, 58], [104.2, 60], [100, 65.5], [95.8, 60], [95.8, 58]])
+  assert.deepEqual(round(tailPoints('left', 100, 50, 40, 20, 10))[2], [74.5, 50])
+  for (const t of seen) {
+    const [, a, b, c] = tailPoints(t, 100, 50, 40, 20, 10)
+    const cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])
+    assert.ok(cross > 0, t)
+  }
 })

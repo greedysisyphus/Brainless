@@ -80,11 +80,11 @@ export function Chip({ preset, style, date, managing, onPick }) {
       type="button"
       className={`chip ${preset.kind === 'cross' ? 'strike' : `s-${preset.style || style}`}`}
       onClick={onPick}
-      aria-label={managing ? `移除快捷「${preset.text}」` : undefined}
+      aria-label={managing ? `移除快捷「${preset.text || '日期'}」` : undefined}
     >
       {preset.kind === 'cross' ? <Icon d={I.x} size={16} /> : null}
-      {preset.dated ? <small>{shortDateOf(date)}</small> : null}
-      {preset.text}
+      {preset.dated && preset.text ? <small>{shortDateOf(date)}</small> : null}
+      {preset.text || shortDateOf(date)}
       {managing ? <i aria-hidden="true">×</i> : null}
     </button>
   )

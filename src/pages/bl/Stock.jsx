@@ -16,21 +16,44 @@ import {
   makeLabel,
   newId,
   nextSpot,
+  nextTail,
+  presetKey,
   shortDate,
+  sortByUse,
   stepDate,
+  TAIL_NAMES,
   WRAP_MIN,
 } from '../stockPhoto/labelModel'
+import { delFile, getFile, pruneFiles, putFile } from '../stockPhoto/photoStore'
 import { measureEm, renderPhoto } from '../stockPhoto/renderPhoto'
 import { Chip, DateStepper, I, Icon, Swatches, openPicker } from '../stockPhoto/ui'
 import '../../styles/bl-tools.css'
 import '../../styles/bl-stock.css'
 
 // 新版倉庫標籤（/home/stock-photo）。拿完貨拍的貨架照片，在上面貼品項標籤再存成圖。
-// 照片只在這台裝置上處理，不上傳。換到別的工具再回來，照片和標籤還在（重新整理才會清掉）。
+// 照片只在這台裝置上處理，不上傳。換到別的工具再回來，照片和標籤還在；
+// 頁面被重新載入（手機切去 LINE 再回來）也會從這台裝置找回來，超過 KEEP_MS 沒動就不留了。
 const memory = { photos: [], cur: null, date: null }
 
 const PRESETS_KEY = 'bl-stock-presets'
 const PREFS_KEY = 'bl-stock-prefs'
+const USES_KEY = 'bl-stock-uses'
+const SESSION_KEY = 'bl-stock-session'
+const KEEP_MS = 12 * 60 * 60 * 1000
+// 只有日期的快捷是後來加的：已經存過快捷的裝置補一顆進去，只補一次（之後自己移掉就不會再回來）
+const DATE_ONLY = { text: '', dated: true, group: '日期' }
+function readPresets() {
+  const saved = readJson(PRESETS_KEY, null)
+  const seen = readJson(PRESETS_KEY + '-v', 1) >= 2
+  writeJson(PRESETS_KEY + '-v', 2)
+  if (!Array.isArray(saved)) return DEFAULT_PRESETS
+  if (seen || saved.some((p) => p.dated && !p.text)) return saved
+  const at = saved.findLastIndex((p) => p.group === '日期') + 1
+  const merged = [...saved.slice(0, at), DATE_ONLY, ...saved.slice(at)]
+  writeJson(PRESETS_KEY, merged)
+  return merged
+}
+
 function readJson(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback
@@ -70,7 +93,10 @@ export default function Stock() {
   const [spot, setSpot] = useState(null) // 點照片空白處＝下一個標籤放這裡
   const [date, setDate] = useState(() => memory.date || isoOf(new Date()))
   const [prefs, setPrefs] = useState(() => ({ style: 'white', size: DEFAULT_SIZE, vertical: false, ...readJson(PREFS_KEY, {}) }))
-  const [presets, setPresets] = useState(() => readJson(PRESETS_KEY, DEFAULT_PRESETS))
+  const [presets, setPresets] = useState(readPresets)
+  // 快捷按過幾次。只在打開頁面時照次數排一次，貼到一半按鈕不會跑位
+  const [useSnap] = useState(() => readJson(USES_KEY, {}))
+  const uses = useRef({ ...useSnap })
   const [managing, setManaging] = useState(false)
   const [draft, setDraft] = useState('')
   const [keep, setKeep] = useState(false)
@@ -92,6 +118,37 @@ export default function Stock() {
     memory.cur = photo?.id || null
     memory.date = date
   }, [photos, photo, date])
+  // ── 重新載入後把上次的照片和標籤找回來 ──
+  const [ready, setReady] = useState(memory.photos.length > 0)
+  useEffect(() => {
+    if (memory.photos.length) return undefined
+    let dead = false
+    ;(async () => {
+      const saved = readJson(SESSION_KEY, null)
+      const list = saved?.photos?.length && Date.now() - saved.t < KEEP_MS ? saved.photos : []
+      const back = []
+      for (const p of list) {
+        const file = await getFile(p.id)
+        if (file) back.push({ ...p, file, url: URL.createObjectURL(file) })
+      }
+      if (dead) return back.forEach((p) => URL.revokeObjectURL(p.url))
+      pruneFiles(back.map((p) => p.id))
+      if (back.length) {
+        setPhotos((ps) => (ps.length ? ps : back))
+        setCurId((c) => c || saved.cur)
+        if (saved.date) setDate(saved.date)
+      }
+      setReady(true)
+    })()
+    return () => {
+      dead = true
+    }
+  }, [])
+  useEffect(() => {
+    if (!ready) return undefined
+    const t = setTimeout(() => writeJson(SESSION_KEY, { t: Date.now(), cur: photo?.id || null, date, photos: photos.map(({ url, file, ...p }) => p) }), 400)
+    return () => clearTimeout(t)
+  }, [ready, photos, photo, date])
   useEffect(() => writeJson(PREFS_KEY, prefs), [prefs])
   useEffect(() => writeJson(PRESETS_KEY, presets), [presets])
   useEffect(() => {
@@ -151,7 +208,7 @@ export default function Stock() {
   }
 
   // ── 加照片 ──
-  const addFiles = async (fileList) => {
+  const addFiles = async (fileList, replace = false) => {
     const files = [...(fileList || [])].filter((f) => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name))
     if (!files.length) return
     const added = []
@@ -164,13 +221,24 @@ export default function Stock() {
           img.onerror = reject
           img.src = url
         })
-        added.push({ id: newId(), name: file.name, url, ...size, labels: [] })
+        const id = newId()
+        putFile(id, file)
+        added.push({ id, name: file.name, file, url, ...size, labels: [] })
       } catch {
         URL.revokeObjectURL(url)
         setMsg({ bad: true, text: `「${file.name}」打不開，換一張試試` })
       }
     }
     if (!added.length) return
+    // 換一張：舊的拿掉。上面有標籤又不想丟的話就兩張都留著
+    const old = replace && photoRef.current
+    if (old && (!old.labels.length || window.confirm(`原本那張有 ${old.labels.length} 個標籤，換掉就沒了。確定換掉？`))) {
+      URL.revokeObjectURL(old.url)
+      delFile(old.id)
+      history.current.delete(old.id)
+      rendered.current.delete(old.id)
+      setPhotos((ps) => ps.filter((p) => p.id !== old.id))
+    }
     setPhotos((ps) => [...ps, ...added])
     setCurId(added[0].id)
     setSelId(null)
@@ -179,6 +247,7 @@ export default function Stock() {
   const removePhoto = (p) => {
     if (p.labels.length && !window.confirm(`這張照片有 ${p.labels.length} 個標籤，確定拿掉？`)) return
     URL.revokeObjectURL(p.url)
+    delFile(p.id)
     history.current.delete(p.id)
     rendered.current.delete(p.id)
     const rest = photos.filter((x) => x.id !== p.id)
@@ -214,6 +283,11 @@ export default function Stock() {
     const at = spot || (last ? nextSpot(last, aspect) : { x: 0.5, y: 0.5 })
     const label = makeLabel(preset, { ...at, date, style: prefs.style, size: prefs.size, vertical: prefs.vertical })
     commit((ls) => [...ls, label])
+    if (preset.i != null) {
+      const k = presetKey(preset)
+      uses.current[k] = (uses.current[k] || 0) + 1
+      writeJson(USES_KEY, uses.current)
+    }
     // 手機上貼完不切到編輯工具：底下的快捷留著，一疊籃子可以連續點；新標籤閃一下讓人看到貼在哪
     if (narrow) {
       setSelId(null)
@@ -236,8 +310,8 @@ export default function Stock() {
       if (!map.has(g)) map.set(g, [])
       map.get(g).push({ ...p, i })
     })
-    return GROUP_ORDER.filter((g) => map.has(g)).map((g) => ({ name: g, items: map.get(g) }))
-  }, [presets])
+    return GROUP_ORDER.filter((g) => map.has(g)).map((g) => ({ name: g, items: g === '日期' ? map.get(g) : sortByUse(map.get(g), useSnap) }))
+  }, [presets, useSnap])
   const removePreset = (i) => setPresets((ps) => ps.filter((_, k) => k !== i))
   const resetPresets = () => {
     if (window.confirm('快捷標籤換回預設的那一組？自己加的會不見。')) setPresets(DEFAULT_PRESETS)
@@ -247,6 +321,9 @@ export default function Stock() {
     setPrefs((p) => ({ ...p, style }))
     if (sel && sel.kind === 'text') patchSel({ style })
   }
+  // 貼到一半想換樣式：這張照片上的字全部換成現在選的樣式（可以復原）
+  const hasText = labels.some((l) => l.kind === 'text')
+  const styleAll = () => commit((ls) => ls.map((l) => (l.kind === 'text' ? { ...l, style: prefs.style } : l)))
   const setVertical = (vertical) => {
     setPrefs((p) => ({ ...p, vertical }))
     if (sel && sel.kind === 'text') patchSel({ vertical })
@@ -286,19 +363,25 @@ export default function Stock() {
 
   // ── 存圖：標籤停下來一會兒就先在背景畫好，按分享時不用等（iPhone 等太久會不讓分享） ──
   const rendered = useRef(new Map())
-  const blobOf = useCallback(async (p) => {
+  // 排隊一張一張畫：好幾張原圖同時解碼，iPhone 會撐不住
+  const queue = useRef(Promise.resolve())
+  const blobOf = useCallback((p) => {
     const sig = JSON.stringify(p.labels)
     const hit = rendered.current.get(p.id)
     if (hit?.sig === sig) return hit.blob
-    const blob = await renderPhoto(p)
+    const blob = (queue.current = queue.current.catch(() => {}).then(() => renderPhoto(p)))
     rendered.current.set(p.id, { sig, blob })
+    blob.catch(() => {
+      if (rendered.current.get(p.id)?.blob === blob) rendered.current.delete(p.id)
+    })
     return blob
   }, [])
+  // 每一張都先畫好（目前這張排最前面），「全部分享」才不用再按一次
   useEffect(() => {
-    if (!photo || !photo.labels.length) return undefined
-    const t = setTimeout(() => blobOf(photo).catch(() => {}), 900)
+    if (!photo) return undefined
+    const t = setTimeout(() => [photo, ...photos.filter((p) => p !== photo)].forEach((p) => blobOf(p).catch(() => {})), 900)
     return () => clearTimeout(t)
-  }, [photo, blobOf])
+  }, [photos, photo, blobOf])
 
   const exportPhotos = async (list, how) => {
     if (!list.length || busy) return
@@ -351,7 +434,12 @@ export default function Stock() {
   const canCopy = typeof ClipboardItem !== 'undefined' && Boolean(navigator.clipboard?.write) && !touch
   const shareFirst = share && touch
 
-  const pickFile = () => fileRef.current?.click()
+  // replace＝選完把目前這張換掉（手機上只有一張時用）
+  const replacing = useRef(false)
+  const pickFile = (replace) => {
+    replacing.current = replace === true
+    fileRef.current?.click()
+  }
   const fileInput = (
     <input
       ref={fileRef}
@@ -360,7 +448,7 @@ export default function Stock() {
       multiple
       hidden
       onChange={(e) => {
-        addFiles(e.target.files)
+        addFiles(e.target.files, replacing.current)
         e.target.value = ''
       }}
     />
@@ -415,6 +503,8 @@ export default function Stock() {
     place,
     addText: addDraft,
     setStyle,
+    styleAll,
+    hasText,
     setVertical,
     setSize,
     patchSel,
@@ -433,7 +523,7 @@ export default function Stock() {
   }
   return (
     <ToolPage
-      className={`bl-x bl-stock${narrow ? ' docked' : ''}`}
+      className={`bl-x bl-stock${narrow ? ' docked' : ''}${narrow && !others ? ' solo' : ''}`}
       path="/stock-photo"
       section="庫存與報表"
       title="倉庫標籤"
@@ -442,22 +532,25 @@ export default function Stock() {
       {fileInput}
       <div className="work">
         <div className="left">
-          <div className="strip" role="group" aria-label="照片">
-            {photos.map((p, i) => (
-              <div key={p.id} className="thumb" aria-current={p.id === photo.id ? 'true' : undefined}>
-                <button type="button" onClick={() => pick(p)} aria-label={`第 ${i + 1} 張照片，${p.labels.length} 個標籤`}>
-                  <img src={p.url} alt="" />
-                  {p.labels.length ? <i>{p.labels.length}</i> : null}
-                </button>
-                <button type="button" className="rm" aria-label={`拿掉第 ${i + 1} 張`} onClick={() => removePhoto(p)}>
-                  <Icon d={I.x} size={14} />
-                </button>
-              </div>
-            ))}
-            <button type="button" className="more" onClick={pickFile} aria-label="再加照片">
-              <Icon d={I.plus} size={22} />
-            </button>
-          </div>
+          {/* 手機上只有一張時收掉，照片大一點；要換照片用底部的「加照片」 */}
+          {others || !narrow ? (
+            <div className="strip" role="group" aria-label="照片">
+              {photos.map((p, i) => (
+                <div key={p.id} className="thumb" aria-current={p.id === photo.id ? 'true' : undefined}>
+                  <button type="button" onClick={() => pick(p)} aria-label={`第 ${i + 1} 張照片，${p.labels.length} 個標籤`}>
+                    <img src={p.url} alt="" />
+                    {p.labels.length ? <i>{p.labels.length}</i> : null}
+                  </button>
+                  <button type="button" className="rm" aria-label={`拿掉第 ${i + 1} 張`} onClick={() => removePhoto(p)}>
+                    <Icon d={I.x} size={14} />
+                  </button>
+                </div>
+              ))}
+              <button type="button" className="more" onClick={pickFile} aria-label="再加照片">
+                <Icon d={I.plus} size={22} />
+              </button>
+            </div>
+          ) : null}
 
           <Stage
             photo={photo}
@@ -477,6 +570,12 @@ export default function Stock() {
             onMoveStart={() => remember(null)}
             onMove={(id, patch) => setLabels(photo.id, (ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))}
           />
+
+          {narrow && !others ? (
+            <button type="button" className="swap" onClick={() => pickFile(true)}>
+              換一張照片
+            </button>
+          ) : null}
 
           {narrow ? null : (
             <div className="bar">
@@ -547,6 +646,9 @@ export default function Stock() {
               <div className="row">
                 <span>樣式</span>
                 <Swatches value={sel?.kind === 'text' ? sel.style : prefs.style} onPick={setStyle} />
+                <button type="button" className="link" onClick={styleAll} disabled={!hasText}>
+                  全部標籤都換成這個
+                </button>
               </div>
               <div className="row">
                 <span>方向</span>
@@ -686,6 +788,15 @@ function Editor({ label, onPatch, onSize, onDuplicate, onRemove, onDone }) {
             </div>
           ) : null}
         </>
+      ) : null}
+      {isText ? (
+        <div className="row">
+          <span>箭頭</span>
+          <small className="grow">{label.tail ? TAIL_NAMES[label.tail] : '沒有'}</small>
+          <button type="button" className="link" onClick={() => onPatch({ tail: nextTail(label.tail) })}>
+            換方向
+          </button>
+        </div>
       ) : null}
       <div className="row">
         <span>大小</span>
@@ -941,6 +1052,7 @@ function Stage({ photo, selId, fresh, spot, dragOver, dropProps, onSelect, onSpo
               <div
                 key={l.id}
                 className={`tag ${l.style}${l.vertical ? ' vert' : ''}${l.id === fresh ? ' fresh' : ''}`}
+                data-tail={l.tail || undefined}
                 aria-selected={l.id === selId}
                 style={{ left: `${l.x * 100}%`, top: `${l.y * 100}%`, '--s': l.size, width: l.wrap && !l.vertical ? `calc(var(--w) * var(--s) * ${l.wrap + METRICS.padX * 2})` : undefined }}
                 onPointerDown={(e) => onDown(e, l, 'move')}
@@ -949,6 +1061,7 @@ function Stage({ photo, selId, fresh, spot, dragOver, dropProps, onSelect, onSpo
                 onPointerCancel={onUp}
                 onClick={stop}
               >
+                {l.tail ? <i className="bg" aria-hidden="true" /> : null}
                 <span className={l.vertical ? 'v' : undefined}>{labelLines(l, measureEm).join('\n')}</span>
                 {l.id === selId && !l.vertical ? (
                   <>
