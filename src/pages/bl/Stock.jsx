@@ -894,7 +894,8 @@ function Stage({ photo, selId, fresh, spot, dragOver, dropProps, onSelect, onSpo
     const d = drag.current
     if (!d) return
     if (!d.moved) {
-      if (d.mode === 'move' && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < d.slop) return
+      // 拖曳、拉大小、拉寬度都一樣：要真的移動一段才算，手指按上去抖一下不會改到東西
+      if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < d.slop) return
       d.moved = true
       onMoveStart()
     }

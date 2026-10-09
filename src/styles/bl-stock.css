@@ -81,9 +81,12 @@
 .bl-stock :is(.tag, .cross)[aria-selected='true'] { touch-action: none; }
 /* 拉寬度的左右直條（像 Canva 的文字框），字在框裡換行 */
 .bl-stock .edge { position: absolute; z-index: 3; top: 50%; width: 9px; height: max(22px, 56%); translate: -50% -50%; border: 2px solid var(--plum); border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); cursor: ew-resize; touch-action: none; }
-.bl-stock .edge.l { left: -4px; }
-.bl-stock .edge.r { left: calc(100% + 4px); }
-.bl-stock .edge::before { content: ''; position: absolute; inset: -10px -14px; }
+/* 直條放在框的外面，可以抓的範圍只往外長、不伸進字框：平板上手指按在字框右半邊拖，不會被當成拉寬度 */
+.bl-stock .edge.l { left: -12px; }
+.bl-stock .edge.r { left: calc(100% + 12px); }
+.bl-stock .edge::before { content: ''; position: absolute; top: -10px; bottom: -10px; }
+.bl-stock .edge.l::before { left: -16px; right: -3px; }
+.bl-stock .edge.r::before { left: -3px; right: -16px; }
 /* 拉大小的圓點：看起來小，手指抓得到的範圍大 */
 /* 放在角落的斜外側，短標籤上也不會蓋住左右的直條（直條疊在它上面） */
 .bl-stock .handle { position: absolute; z-index: 2; right: -24px; bottom: -24px; width: 24px; height: 24px; border: 3px solid #fff; border-radius: 50%; background: var(--plum); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); cursor: nwse-resize; touch-action: none; }
